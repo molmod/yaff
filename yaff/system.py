@@ -48,8 +48,8 @@ class System(object):
                 zero) to define the chemical bonds.
 
            rvecs
-                An array whose columns are the unit cell vectors. At most three
-                columns are allowed.
+                An array whose rows are the unit cell vectors. At most three
+                rows are allowed, each containg three Cartesian coordinates.
         '''
         self.numbers = numbers
         self.pos = pos
@@ -60,8 +60,8 @@ class System(object):
     size = property(lambda self: len(self.pos))
 
     def update_rvecs(self, rvecs):
-        self.rvecs = rvecs
-        U, S, Vt = np.linalg.svd(rvecs)
-        self.gvecs = np.dot(U/S, Vt)
-        self.rspacings = (self.gvecs**2).sum(axis=0)**(-0.5)
-        self.gspacings = (self.rvecs**2).sum(axis=0)**(-0.5)
+        self.rvecs = rvecs.reshape((-1,3))
+        U, S, Vt = np.linalg.svd(rvecs.transpose())
+        self.gvecs = np.dot(Vt.transpose(), (U/S).transpose())
+        self.rspacings = (self.gvecs**2).sum(axis=1)**(-0.5)
+        self.gspacings = (self.rvecs**2).sum(axis=1)**(-0.5)

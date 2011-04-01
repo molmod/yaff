@@ -48,11 +48,16 @@ def test_nlists_h2o32_4A():
         # compare
         assert len(nlists[i]) == len(check)
         for row in nlists[i]:
-            assert row[0] in check
-            assert abs(check[row[0]][0]) <= cutoff
-            assert abs(check[row[0]][0] - row[1]) < 1e-8
-            assert abs(check[row[0]][1] - row[2]).max() < 1e-8
-            assert (row[3] == 0).all()
+            key = row['i']
+            assert key in check
+            assert abs(check[key][0]) <= cutoff
+            assert abs(check[key][0] - row['d']) < 1e-8
+            assert abs(check[key][1][0] - row['dx']) < 1e-8
+            assert abs(check[key][1][1] - row['dy']) < 1e-8
+            assert abs(check[key][1][2] - row['dz']) < 1e-8
+            assert row['r0'] == 0
+            assert row['r1'] == 0
+            assert row['r2'] == 0
 
 
 def test_nlists_h2o32_9A():
@@ -78,8 +83,10 @@ def test_nlists_h2o32_9A():
         # compare
         assert len(nlists[i]) == len(check)
         for row in nlists[i]:
-            key = row[0], row[3][0], row[3][1], row[3][2]
+            key = row['i'], row['r0'], row['r1'], row['r2']
             assert key in check
             assert abs(check[key][0]) <= cutoff
-            assert abs(check[key][0] - row[1]) < 1e-8
-            assert abs(check[key][1] - row[2]).max() < 1e-8
+            assert abs(check[key][0] - row['d']) < 1e-8
+            assert abs(check[key][1][0] - row['dx']) < 1e-8
+            assert abs(check[key][1][1] - row['dy']) < 1e-8
+            assert abs(check[key][1][2] - row['dz']) < 1e-8

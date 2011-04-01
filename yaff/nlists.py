@@ -29,7 +29,10 @@ from yaff.ext import nlist_status_init, nlist_status_finish, nlist_update
 __all__ = ['NeighborLists']
 
 
-nlist_dtype = [('i', int), ('d', float), ('delta', float, 3), ('image', int, 3)]
+nlist_dtype = [
+    ('i', int), ('d', float), ('dx', float), ('dy', float), ('dz', float),
+    ('r0', int), ('r1', int), ('r2', int)
+]
 
 
 class NeighborLists(object):
