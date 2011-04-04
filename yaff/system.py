@@ -61,7 +61,7 @@ class System(object):
 
     def update_rvecs(self, rvecs):
         self.rvecs = rvecs.reshape((-1,3))
-        U, S, Vt = np.linalg.svd(rvecs.transpose())
+        U, S, Vt = np.linalg.svd(rvecs.transpose(), full_matrices=False)
         self.gvecs = np.dot(Vt.transpose(), (U/S).transpose())
         self.rspacings = (self.gvecs**2).sum(axis=1)**(-0.5)
         self.gspacings = (self.rvecs**2).sum(axis=1)**(-0.5)

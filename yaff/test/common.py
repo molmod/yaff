@@ -28,7 +28,7 @@ from molmod import angstrom
 from yaff import *
 
 
-__all__ = ['get_system_h2o32']
+__all__ = ['get_system_h2o32', 'get_system_graphene8']
 
 
 def get_system_h2o32():
@@ -75,4 +75,21 @@ def get_system_h2o32():
         ffatypes=['O', 'H', 'H']*32,
         bonds=np.array([[i,i+1] for i in xrange(96) if i%3!=2]),
         rvecs=np.array([[9.865, 0.0, 0.0], [0.0, 9.865, 0.0], [0.0, 0.0, 9.865]])*angstrom,
+    )
+
+
+def get_system_graphene8():
+   return System(
+        numbers=np.array([6]*8),
+        pos=np.array([
+            [2.461, 0.000, 0.000], [4.922, 1.421, 0.000], [3.692, 2.131, 0.000],
+            [6.153, 3.552, 0.000], [1.231, 2.131, 0.000], [3.692, 3.552, 0.000],
+            [0.000, 0.000, 0.000], [2.461, 1.421, 0.000]
+        ])*angstrom,
+        ffatypes=['C']*8,
+        bonds=np.array([
+            [0, 1], [1, 2], [1, 3], [3, 6], [4, 0], [2, 6], [2, 4], [7, 0], [7,
+            3], [5, 6], [5, 4], [5, 7]
+        ]),
+        rvecs=np.array([[4.922, 0.0, 0.0], [2.462, 4.262, 0.0]])*angstrom,
     )

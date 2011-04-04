@@ -25,10 +25,15 @@ import numpy as np
 
 from molmod import angstrom
 
-from common import get_system_h2o32
+from common import get_system_h2o32, get_system_graphene8
 
 
-def test_cell_h2o32_4A():
+def test_cell_h2o32():
     system = get_system_h2o32()
     assert (system.rspacings == 9.865*angstrom).all()
     assert (system.gspacings == 1/(9.865*angstrom)).all()
+
+
+def test_cell_graphene8():
+    system = get_system_graphene8()
+    assert abs(np.dot(system.gvecs, system.rvecs.transpose()) - np.identity(2)).max() < 1e-5

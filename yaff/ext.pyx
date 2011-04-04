@@ -45,7 +45,11 @@ def nlist_status_init(rmax):
     # * r2
     # * other_index
     # * number of rows consumed
-    return np.array([-rmax[0], -rmax[1], -rmax[2], 0, 0], int)
+    result = np.array([0, 0, 0, 0, 0], int)
+    for i in xrange(len(rmax)):
+        if len(rmax) > 0:
+            result[i] = -rmax[i]
+    return result
 
 
 def nlist_update(np.ndarray[np.float64_t, ndim=2] pos, center_index, cutoff,
