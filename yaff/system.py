@@ -61,8 +61,10 @@ class System(object):
 
     def update_rvecs(self, rvecs):
         if rvecs.size == 0:
-            self.rvecs = rvecs
-            self.gvecs = rvecs.copy()
+            self.rvecs = np.zeros((0,3), float)
+            self.gvecs = np.zeros((0,3), float)
+            self.rspacings = np.zeros((0,), float)
+            self.gspacings = np.zeros((0,), float)
         else:
             self.rvecs = rvecs.reshape((-1,3))
             assert len(self.rvecs) <= 3

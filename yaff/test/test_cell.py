@@ -56,6 +56,7 @@ def test_cell_quartz():
 
 def test_cell_glycine():
     system = get_system_glycine()
-    print system.rvecs.shape
-    assert system.rvecs.shape == (0,)
-    assert system.gvecs.shape == (0,)
+    assert system.rvecs.shape == (0, 3)
+    assert system.gvecs.shape == (0, 3)
+    assert system.rspacings.shape == (0,)
+    assert system.gspacings.shape == (0,)

@@ -26,7 +26,7 @@ import numpy as np
 
 from molmod import angstrom
 from common import get_system_h2o32, get_system_graphene8, \
-    get_system_polyethylene4, get_system_quartz
+    get_system_polyethylene4, get_system_quartz, get_system_glycine
 
 from yaff import *
 
@@ -118,7 +118,6 @@ def test_nlists_graphene8_9A():
             assert row['r2'] == 0
             assert row['d'] <= cutoff
             assert row['d'] >= 0
-            #continue
             key = row['i'], row['r0'], row['r1']
             assert key in check
             assert check[key][0] <= cutoff
@@ -154,7 +153,6 @@ def test_nlists_polyethylene4_9A():
             assert row['r2'] == 0
             assert row['d'] <= cutoff
             assert row['d'] >= 0
-            #continue
             key = row['i'], row['r0']
             assert key in check
             assert check[key][0] <= cutoff
@@ -190,8 +188,39 @@ def test_nlists_quartz_9A():
         for row in nlists[i]:
             assert row['d'] <= cutoff
             assert row['d'] >= 0
-            #continue
             key = row['i'], row['r0'], row['r1'], row['r2']
+            assert key in check
+            assert check[key][0] <= cutoff
+            assert check[key][0] >= 0
+            assert abs(check[key][0] - row['d']) < 1e-8
+            assert abs(check[key][1][0] - row['dx']) < 1e-8
+            assert abs(check[key][1][1] - row['dy']) < 1e-8
+            assert abs(check[key][1][2] - row['dz']) < 1e-8
+
+
+def test_nlists_glycine_9A():
+    system = get_system_glycine()
+    nlists = NeighborLists(system)
+    cutoff = 9*angstrom
+    nlists.request_cutoff(cutoff)
+    nlists.update()
+    for i in 0,:#random.sample(xrange(system.size), 5):
+        # compute the distances in the neighborlist manually and check.
+        check = {}
+        for j in xrange(system.size):
+            delta = system.pos[i] - system.pos[j]
+            d = np.linalg.norm(delta)
+            if d <= cutoff:
+                check[j] = (d, delta)
+        # compare
+        assert len(nlists[i]) == len(check)
+        for row in nlists[i]:
+            assert row['r0'] == 0
+            assert row['r1'] == 0
+            assert row['r2'] == 0
+            assert row['d'] <= cutoff
+            assert row['d'] >= 0
+            key = row['i']
             assert key in check
             assert check[key][0] <= cutoff
             assert check[key][0] >= 0
