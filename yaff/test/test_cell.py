@@ -25,7 +25,8 @@ import numpy as np
 
 from molmod import angstrom
 
-from common import get_system_h2o32, get_system_graphene8, get_system_polyethylene4
+from common import get_system_h2o32, get_system_graphene8, \
+    get_system_polyethylene4, get_system_quartz
 
 
 def test_cell_h2o32():
@@ -44,3 +45,10 @@ def test_cell_polyethylene4():
     assert system.rvecs.shape == (1, 3)
     assert system.gvecs.shape == (1, 3)
     assert abs(np.dot(system.gvecs, system.rvecs.transpose()) - 1) < 1e-5
+
+
+def test_cell_quartz():
+    system = get_system_quartz()
+    assert system.rvecs.shape == (3, 3)
+    assert system.gvecs.shape == (3, 3)
+    assert abs(np.dot(system.gvecs, system.rvecs.transpose()) - np.identity(3)).max() < 1e-5
