@@ -38,14 +38,14 @@ cdef extern from "nlists.h":
                          long nlist_size, int nvec)
 
 
-def nlist_status_init(rmax):
+def nlist_status_init(center_index, rmax):
     # five integer status fields:
     # * r0
     # * r1
     # * r2
     # * other_index
     # * number of rows consumed
-    result = np.array([0, 0, 0, 0, 0], int)
+    result = np.array([0, 0, 0, center_index+1, 0], int)
     for i in xrange(len(rmax)):
         if len(rmax) > 0:
             result[i] = -rmax[i]

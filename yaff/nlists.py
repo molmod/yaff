@@ -62,7 +62,7 @@ class NeighborLists(object):
             nlist = self.nlists[i]
             last_start = 0
             # make an initial status object for the nlist algorithm
-            nlist_status = nlist_status_init(rmax)
+            nlist_status = nlist_status_init(i, rmax)
             while True:
                 done = nlist_update(
                     self.system.pos, i, self.cutoff, rmax, self.system.rvecs,
