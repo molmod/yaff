@@ -99,7 +99,7 @@ def test_nlists_graphene8_9A():
     cutoff = 9*angstrom
     nlists.request_cutoff(cutoff)
     nlists.update()
-    for i in 0,:#random.sample(xrange(system.size), 5):
+    for i in random.sample(xrange(system.size), 5):
         # compute the distances in the neighborlist manually and check.
         check = {}
         for j in xrange(i+1, system.size):
@@ -134,7 +134,7 @@ def test_nlists_polyethylene4_9A():
     cutoff = 9*angstrom
     nlists.request_cutoff(cutoff)
     nlists.update()
-    for i in 0,:#random.sample(xrange(system.size), 5):
+    for i in random.sample(xrange(system.size), 5):
         # compute the distances in the neighborlist manually and check.
         check = {}
         for j in xrange(i+1, system.size):
@@ -169,7 +169,7 @@ def test_nlists_quartz_9A():
     cutoff = 9*angstrom
     nlists.request_cutoff(cutoff)
     nlists.update()
-    for i in 0,:#random.sample(xrange(system.size), 5):
+    for i in random.sample(xrange(system.size), 5):
         # compute the distances in the neighborlist manually and check.
         check = {}
         for j in xrange(i+1, system.size):
@@ -204,7 +204,7 @@ def test_nlists_glycine_9A():
     cutoff = 9*angstrom
     nlists.request_cutoff(cutoff)
     nlists.update()
-    for i in 0,:#random.sample(xrange(system.size), 5):
+    for i in random.sample(xrange(system.size), 5):
         # compute the distances in the neighborlist manually and check.
         check = {}
         for j in xrange(i+1, system.size):
