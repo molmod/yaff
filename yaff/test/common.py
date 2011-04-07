@@ -28,7 +28,10 @@ from molmod import angstrom
 from yaff import *
 
 
-__all__ = ['get_system_h2o32', 'get_system_graphene8']
+__all__ = [
+    'get_system_h2o32', 'get_system_graphene8',
+    'get_system_polyethylene4'
+]
 
 
 def get_system_h2o32():
@@ -92,4 +95,24 @@ def get_system_graphene8():
             3], [5, 6], [5, 4], [5, 7]
         ]),
         rvecs=np.array([[4.922, 0.0, 0.0], [2.462, 4.262, 0.0]])*angstrom,
+    )
+
+
+def get_system_polyethylene4():
+    return System(
+        numbers=np.array([6]*4 + [1]*8),
+        pos=np.array([
+            [4.4665, -0.2419, 0.0939], [3.1498, 0.5401, 0.0859], [1.9114,
+            -0.3549, 0.0216], [0.6320, 0.4677, 0.0288], [4.4927, -0.8901,
+            0.9785], [4.4935, -0.9016, -0.7825], [3.1442, 1.2221, -0.7735],
+            [3.1012, 1.1657, 0.9858], [1.9051, -1.0408, 0.8766], [1.9429,
+            -0.9675, -0.8867], [0.5566, 1.0682, 0.9410], [0.5949, 1.1431,
+            -0.8319],
+        ])*angstrom,
+        ffatypes=['C']*4 + ['H']*8,
+        bonds=np.array([
+            [3, 2], [10, 3], [11, 3], [1, 0], [2, 1], [4, 0], [5, 0], [6, 1],
+            [7, 1], [8, 2], [9, 2], [3, 0],
+        ]),
+        rvecs=np.array([[5.075, 0.187, 0.055]])*angstrom,
     )
