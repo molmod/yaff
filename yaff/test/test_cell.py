@@ -25,12 +25,12 @@ import numpy as np
 
 from molmod import angstrom
 
-from common import get_system_h2o32, get_system_graphene8, \
+from common import get_system_water32, get_system_graphene8, \
     get_system_polyethylene4, get_system_quartz, get_system_glycine
 
 
-def test_cell_h2o32():
-    system = get_system_h2o32()
+def test_cell_water32():
+    system = get_system_water32()
     assert (system.rspacings == 9.865*angstrom).all()
     assert (system.gspacings == 1/(9.865*angstrom)).all()
 

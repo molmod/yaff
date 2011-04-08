@@ -23,6 +23,8 @@
 
 import numpy as np
 
+from yaff.topology import Topology
+
 
 __all__ = ['System']
 
@@ -54,7 +56,10 @@ class System(object):
         self.numbers = numbers
         self.pos = pos
         self.ffatypes = ffatypes
-        self.bonds = bonds
+        if bonds is None:
+            self.topology = None
+        else:
+            self.topology = Topology(bonds, self.size)
         self.update_rvecs(rvecs)
 
     size = property(lambda self: len(self.pos))

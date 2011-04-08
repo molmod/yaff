@@ -22,3 +22,4 @@
 
 from yaff.nlists import *
 from yaff.system import *
+from yaff.topology import *

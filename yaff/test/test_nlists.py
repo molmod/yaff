@@ -25,14 +25,14 @@ import random
 import numpy as np
 
 from molmod import angstrom
-from common import get_system_h2o32, get_system_graphene8, \
+from common import get_system_water32, get_system_graphene8, \
     get_system_polyethylene4, get_system_quartz, get_system_glycine
 
 from yaff import *
 
 
-def test_nlists_h2o32_4A():
-    system = get_system_h2o32()
+def test_nlists_water32_4A():
+    system = get_system_water32()
     nlists = NeighborLists(system)
     cutoff = 4*angstrom
     nlists.request_cutoff(cutoff)
@@ -61,8 +61,8 @@ def test_nlists_h2o32_4A():
             assert row['r2'] == 0
 
 
-def test_nlists_h2o32_9A():
-    system = get_system_h2o32()
+def test_nlists_water32_9A():
+    system = get_system_water32()
     nlists = NeighborLists(system)
     cutoff = 9*angstrom
     nlists.request_cutoff(cutoff)
