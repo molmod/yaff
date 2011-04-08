@@ -20,7 +20,29 @@
 #
 # --
 
-from yaff.nlists import *
-from yaff.scaling import *
-from yaff.system import *
-from yaff.topology import *
+
+import numpy as np
+
+
+__all__ = ['Scaling']
+
+
+class Scaling(object):
+    def __init__(self, topology, scale1=0.0, scale2=0.0, scale3=1.0):
+        self.items = []
+        for i0 in xrange(topology.natom):
+            slist = []
+            if scale1 < 1.0:
+                for i1 in topology.neighs1[i0]:
+                    slist.append((i1, scale1))
+            if scale2 < 1.0:
+                for i2 in  topology.neighs2[i0]:
+                    slist.append((i2, scale2))
+            if scale3 < 1.0:
+                for i3 in topology.neighs3[i0]:
+                    slist.append((i3, scale3))
+            slist.sort()
+            self.items.append(np.array(slist, dtype=[('i', int), ('scale', float)]))
+
+    def __getitem__(self, index):
+        return self.items[index]

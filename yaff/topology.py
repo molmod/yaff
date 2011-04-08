@@ -37,6 +37,7 @@ class Topology(object):
                 The total number of atoms in the system
         '''
         self.bonds = bonds
+        self.natom = natom
         # 1-bond neighbors
         self.neighs1 = dict((i,[]) for i in xrange(natom))
         for i0, i1 in self.bonds:
