@@ -52,12 +52,12 @@ class NeighborLists(object):
         assert self.cutoff > 0
         # if there are no items yet, lets make them first:
         if self.nlists is None:
-            self.nlists = [np.empty(10, dtype=nlist_dtype) for i in xrange(self.system.size)]
-            self.nlist_sizes = np.zeros(self.system.size, dtype=int)
+            self.nlists = [np.empty(10, dtype=nlist_dtype) for i in xrange(self.system.natom)]
+            self.nlist_sizes = np.zeros(self.system.natom, dtype=int)
         # determine the number of periodic images
         rmax = np.ceil(self.cutoff/self.system.rspacings-0.5).astype(int)
         # build all neighbor lists
-        for i in xrange(self.system.size):
+        for i in xrange(self.system.natom):
             # make an initial nlist array
             nlist = self.nlists[i]
             last_start = 0

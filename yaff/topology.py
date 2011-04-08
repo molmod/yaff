@@ -64,6 +64,6 @@ class Topology(object):
                         self.neighs3[i0].append(i3)
                         self.neighs3[i3].append(i0)
         # Derive array formatted version of the neighs* dictionaries
-        #self.narrs1 = [np.array(self.neighs1.get(i, [])) for i in xrange(system.size)]
-        #self.narrs2 = [np.array(self.neighs2.get(i, [])) for i in xrange(system.size)]
-        #self.narrs3 = [np.array(self.neighs3.get(i, [])) for i in xrange(system.size)]
+        #self.narrs1 = [np.array(self.neighs1.get(i, [])) for i in xrange(system.natom)]
+        #self.narrs2 = [np.array(self.neighs2.get(i, [])) for i in xrange(system.natom)]
+        #self.narrs3 = [np.array(self.neighs3.get(i, [])) for i in xrange(system.natom)]

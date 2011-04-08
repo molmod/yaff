@@ -41,7 +41,7 @@ def test_topology_water32():
     assert t.bonds[2,1] == 4
     assert t.bonds[3,0] == 3
     assert t.bonds[3,1] == 5
-    for i in xrange(system.size):
+    for i in xrange(system.natom):
         if system.numbers[i] == 8:
             assert len(t.neighs1[i]) == 2
             assert system.numbers[t.neighs1[i][0]] == 1
@@ -80,7 +80,7 @@ def floyd_warshall(bonds, natom):
 
 def check_topology_slow(system):
     t = system.topology
-    dmat = floyd_warshall(t.bonds, system.size)
+    dmat = floyd_warshall(t.bonds, system.natom)
     # check dmat with neigs*
     for i0, n0 in t.neighs1.iteritems():
         for i1 in n0:
@@ -95,8 +95,8 @@ def check_topology_slow(system):
             assert dmat[i0, i3] == 3
             assert dmat[i3, i0] == 3
     # check neigs* with dmat
-    for i0 in xrange(system.size):
-        for i1 in xrange(system.size):
+    for i0 in xrange(system.natom):
+        for i1 in xrange(system.natom):
             if dmat[i0, i1] == 1:
                 assert i1 in t.neighs1[i0]
             if dmat[i0, i1] == 2:

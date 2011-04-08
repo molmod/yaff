@@ -31,7 +31,7 @@ from yaff import *
 def test_scaling_water32():
     system = get_system_water32()
     scaling = Scaling(system.topology)
-    for i in xrange(system.size):
+    for i in xrange(system.natom):
         if system.numbers[i] == 8:
             assert len(scaling[i][0]) == 2
             print scaling[i], i
@@ -48,7 +48,7 @@ def test_scaling_water32():
 def test_scaling_glycine():
     system = get_system_glycine()
     scaling = Scaling(system.topology, 1.0, 0.5, 0.2) # warning: absurd numbers
-    for i in xrange(system.size):
+    for i in xrange(system.natom):
         assert len(scaling[i]) == len(system.topology.neighs2[i]) + len(system.topology.neighs3[i])
         for j, scale in scaling.items[i]:
             if j in system.topology.neighs2[i]:

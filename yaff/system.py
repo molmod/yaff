@@ -59,10 +59,10 @@ class System(object):
         if bonds is None:
             self.topology = None
         else:
-            self.topology = Topology(bonds, self.size)
+            self.topology = Topology(bonds, self.natom)
         self.update_rvecs(rvecs)
 
-    size = property(lambda self: len(self.pos))
+    natom = property(lambda self: len(self.pos))
 
     def update_rvecs(self, rvecs):
         if rvecs.size == 0:
