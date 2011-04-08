@@ -99,15 +99,15 @@ def test_nlists_graphene8_9A():
     cutoff = 9*angstrom
     nlists.request_cutoff(cutoff)
     nlists.update()
-    for i in random.sample(xrange(system.size), 5):
+    for i in xrange(system.size):
         # compute the distances in the neighborlist manually and check.
         check = {}
         for j in xrange(i+1, system.size):
             delta = system.pos[i] - system.pos[j]
             for c in xrange(len(system.rvecs)):
-                delta -= system.rvecs[c]*np.floor(np.dot(delta, system.gvecs[c]) + 0.5)
-            for r0 in xrange(-3, 3):
-                for r1 in xrange(-3, 3):
+                delta -= system.rvecs[c]*np.ceil(np.dot(delta, system.gvecs[c]) - 0.5)
+            for r0 in xrange(-3, 4):
+                for r1 in xrange(-3, 4):
                     my_delta = delta + r0*system.rvecs[0] + r1*system.rvecs[1]
                     d = np.linalg.norm(my_delta)
                     if d <= cutoff:
