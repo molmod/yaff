@@ -24,10 +24,10 @@
 import numpy as np
 
 
-__all__ = ['Scaling']
+__all__ = ['Scalings']
 
 
-class Scaling(object):
+class Scalings(object):
     def __init__(self, topology, scale1=0.0, scale2=0.0, scale3=1.0):
         self.items = []
         for i0 in xrange(topology.natom):
@@ -43,6 +43,9 @@ class Scaling(object):
                     slist.append((i3, scale3))
             slist.sort()
             self.items.append(np.array(slist, dtype=[('i', int), ('scale', float)]))
+
+    def __len__(self):
+        return len(self.items)
 
     def __getitem__(self, index):
         return self.items[index]

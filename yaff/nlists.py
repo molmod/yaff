@@ -45,6 +45,9 @@ class NeighborLists(object):
     def request_cutoff(self, cutoff):
         self.cutoff = max(self.cutoff, cutoff)
 
+    def __len__(self):
+        return len(self.nlists)
+
     def __getitem__(self, index):
         return self.nlists[index][:self.nlist_sizes[index]]
 

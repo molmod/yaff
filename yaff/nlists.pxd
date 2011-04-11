@@ -20,9 +20,21 @@
 #
 # --
 
-from yaff.ext import *
-from yaff.ff import *
-from yaff.nlists import *
-from yaff.scaling import *
-from yaff.system import *
-from yaff.topology import *
+
+cimport numpy as np
+
+
+cdef extern from "nlists.h":
+    ctypedef struct nlist_row_type:
+        np.long_t i
+        np.float64_t d
+        np.float64_t dx, dy, dz
+        np.long_t r0, r1, r2
+
+    int nlist_update_low(double *pos, long center_index, double cutoff,
+                         long *rmax, double *rvecs, double *gvecs, long
+                         *nlist_status, nlist_row_type *nlist, long pos_size,
+                         long nlist_size, int nvec)
+
+
+

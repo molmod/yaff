@@ -30,27 +30,28 @@ from yaff import *
 
 def test_scaling_water32():
     system = get_system_water32()
-    scaling = Scaling(system.topology)
+    scalings = Scalings(system.topology)
+    assert len(scalings) == system.natom
     for i in xrange(system.natom):
         if system.numbers[i] == 8:
-            assert len(scaling[i][0]) == 2
-            print scaling[i], i
-            assert scaling[i][0]['i'] == i+1
-            assert scaling[i][0]['scale'] == 0.0
-            assert scaling[i][1]['i'] == i+2
-            assert scaling[i][1]['scale'] == 0.0
+            assert len(scalings[i][0]) == 2
+            print scalings[i], i
+            assert scalings[i][0]['i'] == i+1
+            assert scalings[i][0]['scale'] == 0.0
+            assert scalings[i][1]['i'] == i+2
+            assert scalings[i][1]['scale'] == 0.0
         elif system.numbers[i] == 8:
-            assert len(scaling[i][0]) == 1
-            assert scaling[i][0]['i'] == (i/3)*3
-            assert scaling[i][0]['scale'] == 0.0
+            assert len(scalings[i][0]) == 1
+            assert scalings[i][0]['i'] == (i/3)*3
+            assert scalings[i][0]['scale'] == 0.0
 
 
 def test_scaling_glycine():
     system = get_system_glycine()
-    scaling = Scaling(system.topology, 1.0, 0.5, 0.2) # warning: absurd numbers
+    scalings = Scalings(system.topology, 1.0, 0.5, 0.2) # warning: absurd numbers
     for i in xrange(system.natom):
-        assert len(scaling[i]) == len(system.topology.neighs2[i]) + len(system.topology.neighs3[i])
-        for j, scale in scaling.items[i]:
+        assert len(scalings[i]) == len(system.topology.neighs2[i]) + len(system.topology.neighs3[i])
+        for j, scale in scalings[i]:
             if j in system.topology.neighs2[i]:
                 assert scale == 0.5
             if j in system.topology.neighs3[i]:

@@ -20,9 +20,28 @@
 #
 # --
 
-from yaff.ext import *
-from yaff.ff import *
-from yaff.nlists import *
-from yaff.scaling import *
-from yaff.system import *
-from yaff.topology import *
+
+cimport numpy as np
+cimport nlists
+
+cdef extern from "pairpot.h":
+    ctypedef struct scaling_row_type:
+        np.long_t i
+        np.float64_t scale
+    
+    ctypedef struct pairpot_type:
+        pass
+
+    pairpot_type* pairpot_new()
+    void pairpot_free(pairpot_type *pairpot)
+    bint pairpot_ready(pairpot_type *pairpot)
+    double pairpot_get_cutoff(pairpot_type *pairpot)
+    void pairpot_set_cutoff(pairpot_type *pairpot, double cutoff)
+    
+    double pairpot_energy(long center_index, nlists.nlist_row_type* nlist,
+                          long nlist_size, scaling_row_type* scaling,
+                          long scaling_size, pairpot_type* pairpot)
+
+    void pairpot_lj_init(pairpot_type *pairpot, double *sigma, double *epsilon)
+    void pairpot_lj_free(pairpot_type *pairpot)
+    

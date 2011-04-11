@@ -37,10 +37,11 @@ def test_nlists_water32_4A():
     cutoff = 4*angstrom
     nlists.request_cutoff(cutoff)
     nlists.update()
+    assert len(nlists) == system.natom
     for i in random.sample(xrange(system.natom), 5):
         # compute the distances in the neighborlist manually and check.
         check = {}
-        for j in xrange(i+1, system.natom):
+        for j in xrange(i, system.natom):
             delta = system.pos[i] - system.pos[j]
             delta -= np.floor(delta/(9.865*angstrom)+0.5)*(9.865*angstrom)
             d = np.linalg.norm(delta)
@@ -70,7 +71,7 @@ def test_nlists_water32_9A():
     for i in random.sample(xrange(system.natom), 5):
         # compute the distances in the neighborlist manually and check.
         check = {}
-        for j in xrange(i+1, system.natom):
+        for j in xrange(i, system.natom):
             delta = system.pos[i] - system.pos[j]
             delta -= np.floor(delta/(9.865*angstrom)+0.5)*(9.865*angstrom)
             assert abs(delta).max() < 0.5*9.865*angstrom
@@ -102,7 +103,7 @@ def test_nlists_graphene8_9A():
     for i in xrange(system.natom):
         # compute the distances in the neighborlist manually and check.
         check = {}
-        for j in xrange(i+1, system.natom):
+        for j in xrange(i, system.natom):
             delta = system.pos[i] - system.pos[j]
             for c in xrange(len(system.rvecs)):
                 delta -= system.rvecs[c]*np.ceil(np.dot(delta, system.gvecs[c]) - 0.5)
@@ -137,7 +138,7 @@ def test_nlists_polyethylene4_9A():
     for i in random.sample(xrange(system.natom), 5):
         # compute the distances in the neighborlist manually and check.
         check = {}
-        for j in xrange(i+1, system.natom):
+        for j in xrange(i, system.natom):
             delta = system.pos[i] - system.pos[j]
             for c in xrange(len(system.rvecs)):
                 delta -= system.rvecs[c]*np.floor(np.dot(delta, system.gvecs[c]) + 0.5)
@@ -172,7 +173,7 @@ def test_nlists_quartz_9A():
     for i in random.sample(xrange(system.natom), 5):
         # compute the distances in the neighborlist manually and check.
         check = {}
-        for j in xrange(i+1, system.natom):
+        for j in xrange(i, system.natom):
             delta = system.pos[i] - system.pos[j]
             for c in xrange(len(system.rvecs)):
                 delta -= system.rvecs[c]*np.floor(np.dot(delta, system.gvecs[c]) + 0.5)
@@ -207,7 +208,7 @@ def test_nlists_glycine_9A():
     for i in random.sample(xrange(system.natom), 5):
         # compute the distances in the neighborlist manually and check.
         check = {}
-        for j in xrange(i+1, system.natom):
+        for j in xrange(i, system.natom):
             delta = system.pos[i] - system.pos[j]
             d = np.linalg.norm(delta)
             if d <= cutoff:
