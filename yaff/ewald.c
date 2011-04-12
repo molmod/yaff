@@ -23,6 +23,7 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include "constants.h"
 #include "ewald.h"
 #include "mic.h"
 
@@ -77,9 +78,9 @@ double compute_ewald_corr(double *pos, long center_index, double *charges,
                           scaling_row_type *scaling, long scaling_size,
                           double *gradient) {
   long i, other_index;
-  double energy, delta[3], d, s;
+  double energy, delta[3], d, s, x, g, pot, fac;
   energy = 0.0;
-  // Self-interaction correction
+  // Self-interaction correction (no gradient contribution)
   energy -= alpha/M_SQRT_PI*charges[center_index]*charges[center_index];
   // Scaling corrections
   for (i = 0; i < scaling_size; i++) {
@@ -91,7 +92,19 @@ double compute_ewald_corr(double *pos, long center_index, double *charges,
     delta[2] = pos[3*center_index + 2] - pos[3*other_index + 2];
     mic(delta, rvecs, gvecs, 3);
     d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
-    energy -= (1-s)*charges[other_index]*charges[center_index]*erf(alpha*d)/d;
+    x = alpha*d;
+    pot = erf(x)/d;
+    fac = (1-s)*charges[other_index]*charges[center_index];
+    if (gradient != NULL) {
+      g = -fac*(M_TWO_DIV_SQRT_PI*alpha*exp(-x*x) - pot)/d/d;
+      gradient[3*center_index  ] += delta[0]*g;
+      gradient[3*center_index+1] += delta[1]*g;
+      gradient[3*center_index+2] += delta[2]*g;
+      gradient[3*other_index  ] -= delta[0]*g;
+      gradient[3*other_index+1] -= delta[1]*g;
+      gradient[3*other_index+2] -= delta[2]*g;
+    }
+    energy -= fac*pot;
   }
   return energy;
 }

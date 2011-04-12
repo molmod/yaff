@@ -21,9 +21,10 @@
 // --
 
 
-#include "pair_pot.h"
 #include <math.h>
 #include <stdlib.h>
+#include "constants.h"
+#include "pair_pot.h"
 
 
 pair_pot_type* pair_pot_new(void) {

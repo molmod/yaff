@@ -209,12 +209,18 @@ def compute_ewald_corr(np.ndarray[np.float64_t, ndim=2] pos,
     assert gvecs.shape[1] == 3
     assert alpha > 0
     assert scaling.flags['C_CONTIGUOUS']
-    if gradient is not None:
+    if gradient is None:
+        return ewald.compute_ewald_corr(<double*>pos.data, center_index,
+                                        <double*>charges.data, <double*>rvecs.data,
+                                        <double*>gvecs.data, alpha,
+                                        <pair_pot.scaling_row_type*>scaling.data,
+                                        len(scaling), NULL)
+    else:
         assert gradient.flags['C_CONTIGUOUS']
         assert gradient.shape[1] == 3
         assert gradient.shape[0] == pos.shape[0]
-    return ewald.compute_ewald_corr(<double*>pos.data, center_index,
-                                    <double*>charges.data, <double*>rvecs.data,
-                                    <double*>gvecs.data, alpha,
-                                    <pair_pot.scaling_row_type*>scaling.data,
-                                    len(scaling), <double*>gradient.data)
+        return ewald.compute_ewald_corr(<double*>pos.data, center_index,
+                                        <double*>charges.data, <double*>rvecs.data,
+                                        <double*>gvecs.data, alpha,
+                                        <pair_pot.scaling_row_type*>scaling.data,
+                                        len(scaling), <double*>gradient.data)

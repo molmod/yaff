@@ -26,9 +26,6 @@
 
 #include "pair_pot.h"
 
-#define M_TWO_PI 6.2831853071795864769
-#define M_SQRT_PI 1.7724538509055160273
-
 
 double compute_ewald_reci(double *pos, long natom, double *charges,
                           double *gvecs, double volume, double alpha,

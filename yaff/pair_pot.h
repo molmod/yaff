@@ -26,8 +26,6 @@
 
 #include "nlists.h"
 
-#define M_TWO_DIV_SQRT_PI 1.1283791670955125739
-
 
 typedef double (*pair_fn_type)(void*, long, long, double, double*);
 
