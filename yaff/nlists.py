@@ -41,6 +41,7 @@ class NeighborLists(object):
         self.cutoff = 0.0
         self.nlists = None
         self.nlist_sizes = None
+        self.rmax = None
 
     natom = property(lambda self: self.system.natom)
 
@@ -60,18 +61,19 @@ class NeighborLists(object):
             self.nlists = [np.empty(10, dtype=nlist_dtype) for i in xrange(self.system.natom)]
             self.nlist_sizes = np.zeros(self.system.natom, dtype=int)
         # determine the number of periodic images
-        rmax = np.ceil(self.cutoff/self.system.rspacings-0.5).astype(int)
+        self.rmax = np.ceil(self.cutoff/self.system.rspacings-0.5).astype(int)
         # build all neighbor lists
         for i in xrange(self.system.natom):
             # make an initial nlist array
             nlist = self.nlists[i]
             last_start = 0
             # make an initial status object for the nlist algorithm
-            nlist_status = nlist_status_init(i, rmax)
+            nlist_status = nlist_status_init(i, self.rmax)
             while True:
                 done = nlist_update(
-                    self.system.pos, i, self.cutoff, rmax, self.system.rvecs,
-                    self.system.gvecs, nlist_status, nlist[last_start:]
+                    self.system.pos, i, self.cutoff, self.rmax,
+                    self.system.rvecs, self.system.gvecs, nlist_status,
+                    nlist[last_start:]
                 )
                 if done:
                     break

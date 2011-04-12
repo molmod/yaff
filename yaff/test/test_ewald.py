@@ -23,7 +23,7 @@
 
 import numpy as np
 
-from common import get_system_water32
+from common import get_system_water32, get_system_quartz
 
 from yaff import *
 
@@ -32,22 +32,37 @@ def test_ewald_water32():
     # Idea: run ewald sum with two different alpha parameters and compare.
     # (this only works if both real and reciprocal part properly converge.)
     energies = []
+    system = get_system_water32()
+    charges = -0.8 + (system.numbers == 1)*1.2
+    assert abs(charges.sum()) < 1e-10
     for alpha in 0.05, 0.1, 0.2, 0.5, 1.0:
-        energies.append(get_electrostatic_energy_water32(alpha))
+        energies.append(get_electrostatic_energy(alpha, system, charges))
     energies = np.array(energies)
+    print energies
     assert abs(energies - energies.mean()).max() < 1e-8
 
 
-def get_electrostatic_energy_water32(alpha):
-    # Creat system
-    system = get_system_water32()
-    nlists = NeighborLists(system)
-    scalings = Scalings(system.topology)
-    # Define charges
-    charges = -0.8 + (system.numbers == 1)*1.2
+def test_ewald_quartz():
+    # Idea: run ewald sum with two different alpha parameters and compare.
+    # (this only works if both real and reciprocal part properly converge.)
+    energies = []
+    system = get_system_quartz()
+    charges = 1.8 - (system.numbers == 8)*2.7
     assert abs(charges.sum()) < 1e-10
+    for alpha in 0.05, 0.051, 0.052, 0.1, 0.2, 0.5, 1.0:
+        energies.append(get_electrostatic_energy(alpha, system, charges))
+    energies = np.array(energies)
+    print energies
+    assert abs(energies - energies.mean()).max() < 1e-8
+
+
+def get_electrostatic_energy(alpha, system, charges):
+    # Creat system
+    nlists = NeighborLists(system)
+    scalings = Scalings(system.topology, 0.0, 0.0, 0.5)
     # Construct the ewald real-space potential and term
     cutoff = 5.5/alpha
+    print 'cutoff', cutoff
     ewald_real_pot = PairPotEI(charges, alpha, cutoff)
     ewald_real_term = PairTerm(nlists, scalings, ewald_real_pot)
     # Construct the ewald reciprocal and correction term

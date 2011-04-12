@@ -203,6 +203,57 @@ def test_nlists_quartz_9A():
             assert abs(check[key][1][2] - row['dz']) < 1e-8
 
 
+def test_nlists_quartz_20A():
+    system = get_system_quartz()
+    nlists = NeighborLists(system)
+    cutoff = 20*angstrom
+    nlists.request_cutoff(cutoff)
+    nlists.update()
+    for i in random.sample(xrange(system.natom), 5):
+        # compute the distances in the neighborlist manually and check.
+        check = {}
+        for j in xrange(0, system.natom):
+            delta = system.pos[i] - system.pos[j]
+            for c in xrange(len(system.rvecs)):
+                delta -= system.rvecs[c]*np.floor(np.dot(delta, system.gvecs[c]) + 0.5)
+            for r0 in xrange(-6, 6):
+                for r1 in xrange(-6, 6):
+                    for r2 in xrange(-6, 6):
+                        my_delta = delta + r0*system.rvecs[0] + r1*system.rvecs[1] + r2*system.rvecs[2]
+                        d = np.linalg.norm(my_delta)
+                        if d <= cutoff:
+                            if (r0!=0) or (r1!=0) or (r2!=0) or (j>i):
+                                check[(j, r0, r1, r2)] = (d, my_delta)
+        # compare
+        assert len(nlists[i]) == len(check)
+        for row in nlists[i]:
+            assert row['d'] <= cutoff
+            assert row['d'] >= 0
+            key = row['i'], row['r0'], row['r1'], row['r2']
+            assert key in check
+            assert check[key][0] <= cutoff
+            assert check[key][0] >= 0
+            assert abs(check[key][0] - row['d']) < 1e-8
+            assert abs(check[key][1][0] - row['dx']) < 1e-8
+            assert abs(check[key][1][1] - row['dy']) < 1e-8
+            assert abs(check[key][1][2] - row['dz']) < 1e-8
+
+
+def test_nlists_quartz_110A():
+    system = get_system_quartz()
+    nlists = NeighborLists(system)
+    cutoff = 110*angstrom
+    nlists.request_cutoff(cutoff)
+    nlists.update()
+    for i in xrange(len(nlists)):
+        assert (nlists[i]['r0'] <= nlists.rmax[0]).all()
+        assert (nlists[i]['r0'] >= -nlists.rmax[0]).all()
+        assert (nlists[i]['r1'] <= nlists.rmax[1]).all()
+        assert (nlists[i]['r1'] >= -nlists.rmax[1]).all()
+        assert (nlists[i]['r2'] <= nlists.rmax[2]).all()
+        assert (nlists[i]['r2'] >= -nlists.rmax[2]).all()
+
+
 def test_nlists_glycine_9A():
     system = get_system_glycine()
     nlists = NeighborLists(system)
