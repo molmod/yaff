@@ -34,16 +34,18 @@ def test_scaling_water32():
     assert len(scalings) == system.natom
     for i in xrange(system.natom):
         if system.numbers[i] == 8:
-            assert len(scalings[i][0]) == 2
-            print scalings[i], i
+            assert i%3 == 0
+            assert len(scalings[i]) == 2
             assert scalings[i][0]['i'] == i+1
             assert scalings[i][0]['scale'] == 0.0
             assert scalings[i][1]['i'] == i+2
             assert scalings[i][1]['scale'] == 0.0
-        elif system.numbers[i] == 8:
-            assert len(scalings[i][0]) == 1
+        elif system.numbers[i] == 1:
+            assert len(scalings[i]) == 2
             assert scalings[i][0]['i'] == (i/3)*3
             assert scalings[i][0]['scale'] == 0.0
+            assert scalings[i][1]['i'] == (i/3)*3 + (3-i%3)
+            assert scalings[i][1]['scale'] == 0.0
 
 
 def test_scaling_glycine():
