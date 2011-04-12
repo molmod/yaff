@@ -24,7 +24,7 @@
 import numpy as np
 
 from molmod import angstrom, kcalmol
-from common import get_system_water32
+from common import get_system_water32, get_system_caffeine
 
 from yaff import *
 
@@ -35,8 +35,8 @@ def test_pairpot_lj_water32_9A():
     nlists = NeighborLists(system)
     scalings = Scalings(system.topology)
     # Initialize parameters
-    rminhalf_table = {1: 0.224500*angstrom, 8: 1.768200*angstrom}
-    epsilon_table = {1: -0.046000*kcalmol, 8: -0.152100*kcalmol}
+    rminhalf_table = {1: 0.2245*angstrom, 8: 1.7682*angstrom}
+    epsilon_table = {1: -0.0460*kcalmol, 8: -0.1521*kcalmol}
     sigmas = np.zeros(96, float)
     epsilons = np.zeros(96, float)
     for i in xrange(system.natom):
@@ -83,4 +83,57 @@ def test_pairpot_lj_water32_9A():
                             x = (sigma/d)**6
                             term = 4*fac*epsilon*(x*(x-1))
                             check_energy += term
+    assert abs(energy - check_energy) < 1e-15
+
+
+def test_pairpot_lj_caffeine_15A():
+    system = get_system_caffeine()
+    nlists = NeighborLists(system)
+    scalings = Scalings(system.topology, 0.0, 1.0, 0.5)
+    # Initialize (random) parameters
+    rminhalf_table = {
+        1: 0.2245*angstrom,
+        6: 1.6000*angstrom,
+        7: 1.7000*angstrom,
+        8: 1.7682*angstrom
+    }
+    epsilon_table = {
+        1: -0.0460*kcalmol,
+        6: -0.2357*kcalmol,
+        7: -0.1970*kcalmol,
+        8: -0.1521*kcalmol,
+    }
+    sigmas = np.zeros(96, float)
+    epsilons = np.zeros(96, float)
+    for i in xrange(system.natom):
+        sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
+        epsilons[i] = epsilon_table[system.numbers[i]]
+    # Create the pair_pot and pair_term
+    pair_pot = PairPotLJ(sigmas, epsilons, 9*angstrom)
+    pair_term = PairTerm(nlists, scalings, pair_pot)
+    nlists.update() # update the neighborlists, once the cutoffs are known.
+    # Compute the energy using yaff.
+    energy = pair_term.energy()
+    # Compute the energy manually
+    check_energy = 0.0
+    for i in 0,:#xrange(system.natom):
+        # compute the distances in the neighborlist manually and check.
+        for j in xrange(i+1, system.natom):
+            delta = system.pos[i] - system.pos[j]
+            # find the scaling
+            fac = 1.0
+            for k, s in scalings[j]:
+                if k == i:
+                    fac = s
+                    break
+            # continue if scaled to zero
+            if fac == 0.0:
+                continue
+            d = np.linalg.norm(delta)
+            if d <= nlists.cutoff:
+                sigma = 0.5*(sigmas[i]+sigmas[j])
+                epsilon = np.sqrt(epsilons[i]*epsilons[j])
+                x = (sigma/d)**6
+                term = 4*fac*epsilon*(x*(x-1))
+                check_energy += term
     assert abs(energy - check_energy) < 1e-15
