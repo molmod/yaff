@@ -53,7 +53,6 @@ void pair_pot_set_cutoff(pair_pot_type *pair_pot, double cutoff) {
   (*pair_pot).cutoff = cutoff;
 }
 
-
 double get_scaling(scaling_row_type *scaling, long center_index, long other_index, long *counter, long size) {
   if (other_index==center_index) return 0.0;
   if (*counter >= size) return 1.0;
@@ -67,12 +66,11 @@ double get_scaling(scaling_row_type *scaling, long center_index, long other_inde
   return 1.0;
 }
 
-
 double pair_pot_energy(long center_index, nlist_row_type *nlist,
                        long nlist_size, scaling_row_type *scaling,
                        long scaling_size, pair_pot_type *pair_pot) {
   long i, other_index, scaling_counter;
-  double s, energy, term;
+  double s, energy;
   energy = 0.0;
   // Reset the counter for the scaling.
   scaling_counter = 0;
@@ -96,6 +94,13 @@ double pair_pot_energy(long center_index, nlist_row_type *nlist,
   return energy;
 }
 
+void pair_data_free(pair_pot_type *pair_pot) {
+  free((*pair_pot).pair_data);
+  (*pair_pot).pair_data = NULL;
+  (*pair_pot).pair_fn = NULL;
+}
+
+
 
 void pair_data_lj_init(pair_pot_type *pair_pot, double *sigma, double *epsilon) {
   pair_data_lj_type *pair_data;
@@ -104,10 +109,6 @@ void pair_data_lj_init(pair_pot_type *pair_pot, double *sigma, double *epsilon) 
   (*pair_pot).pair_fn = pair_fn_lj;
   (*pair_data).sigma = sigma;
   (*pair_data).epsilon = epsilon;
-}
-
-void pair_data_lj_free(pair_pot_type *pair_pot) {
-  free((*pair_pot).pair_data);
 }
 
 double pair_fn_lj(void *pair_data, long center_index, long other_index, double d, double *g) {
@@ -123,6 +124,28 @@ double pair_fn_lj(void *pair_data, long center_index, long other_index, double d
   x = sigma/d;
   x *= x;
   x *= x*x;
-  //printf("C %3i %3i %10.5f %10.3e\n", center_index, other_index, d, 4.0*epsilon*(x*(x-1.0)));
   return 4.0*epsilon*(x*(x-1.0));
+}
+
+
+void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha) {
+  pair_data_ei_type *pair_data;
+  pair_data = malloc(sizeof(pair_data_ei_type));
+  (*pair_pot).pair_data = pair_data;
+  (*pair_pot).pair_fn = pair_fn_ei;
+  (*pair_data).charges = charges;
+  (*pair_data).alpha = alpha;
+}
+
+double pair_fn_ei(void *pair_data, long center_index, long other_index, double d, double *g) {
+  double result, alpha;
+  result = (
+    (*(pair_data_ei_type*)pair_data).charges[center_index]*
+    (*(pair_data_ei_type*)pair_data).charges[other_index]
+  )/d;
+  alpha = (*(pair_data_ei_type*)pair_data).alpha;
+  if (alpha > 0) {
+    result *= erfc(alpha*d);
+  }
+  return result;
 }

@@ -29,7 +29,7 @@ cimport pair_pot
 
 __all__ = [
     'nlist_status_init', 'nlist_update', 'nlist_status_finish',
-    'PairPot', 'PairPotLJ',
+    'PairPot', 'PairPotLJ', 'PairPotEI',
 ]
 
 #
@@ -95,6 +95,8 @@ cdef class PairPot:
             raise MemoryError()
 
     def __dealloc__(self):
+        if pair_pot.pair_pot_ready(self._c_pair_pot):
+            pair_pot.pair_data_free(self._c_pair_pot)
         if self._c_pair_pot is not NULL:
             pair_pot.pair_pot_free(self._c_pair_pot)
 
@@ -126,6 +128,11 @@ cdef class PairPotLJ(PairPot):
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
 
-    def __dealloc__(self):
-        if pair_pot.pair_pot_ready(self._c_pair_pot):
-            pair_pot.pair_data_lj_free(self._c_pair_pot)
+
+cdef class PairPotEI(PairPot):
+    def __cinit__(self, np.ndarray[np.float64_t, ndim=1] charges, double alpha, double cutoff):
+        assert charges.flags['C_CONTIGUOUS']
+        pair_pot.pair_pot_set_cutoff(self._c_pair_pot, cutoff)
+        pair_pot.pair_data_ei_init(self._c_pair_pot, <double*>charges.data, alpha)
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()

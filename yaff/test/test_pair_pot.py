@@ -22,6 +22,7 @@
 
 
 import numpy as np
+from scipy.special import erfc
 
 from molmod import angstrom, kcalmol
 from common import get_system_water32, get_system_caffeine
@@ -87,8 +88,8 @@ def test_pair_pot_lj_water32_9A():
 
 
 def test_pair_pot_lj_caffeine_15A():
+    # Get a system and define scalings
     system = get_system_caffeine()
-    nlists = NeighborLists(system)
     scalings = Scalings(system.topology, 0.0, 1.0, 0.5)
     # Initialize (random) parameters
     rminhalf_table = {
@@ -108,8 +109,57 @@ def test_pair_pot_lj_caffeine_15A():
     for i in xrange(system.natom):
         sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
         epsilons[i] = epsilon_table[system.numbers[i]]
+    # Construct the pair potential
+    pair_pot = PairPotLJ(sigmas, epsilons, 15*angstrom)
+    # The pair function
+    def pair_fn(i, j, d):
+        sigma = 0.5*(sigmas[i]+sigmas[j])
+        epsilon = np.sqrt(epsilons[i]*epsilons[j])
+        x = (sigma/d)**6
+        return 4*epsilon*(x*(x-1))
+
+    check_pair_pot_caffeine(system, scalings, pair_pot, pair_fn, 1e-15)
+
+
+def test_pair_pot_ei1_caffeine_10A():
+    # Get a system and define scalings
+    system = get_system_caffeine()
+    scalings = Scalings(system.topology, 0.0, 1.0, 0.5)
+    # Initialize (random) parameters
+    charges = np.random.uniform(0, 1, system.natom)
+    charges -= charges.sum()
+    # Construct the pair potential
+    cutoff = 10*angstrom
+    alpha = 3.5/cutoff
+    pair_pot = PairPotEI(charges, alpha, cutoff)
+    # The pair function
+    def pair_fn(i, j, d):
+        return charges[i]*charges[j]*erfc(alpha*d)/d
+
+    check_pair_pot_caffeine(system, scalings, pair_pot, pair_fn, 1e-13)
+
+
+def test_pair_pot_ei2_caffeine_10A():
+    # Get a system and define scalings
+    system = get_system_caffeine()
+    scalings = Scalings(system.topology, 0.0, 1.0, 0.5)
+    # Initialize (random) parameters
+    charges = np.random.uniform(0, 1, system.natom)
+    charges -= charges.sum()
+    # Construct the pair potential
+    cutoff = 10*angstrom
+    alpha = 0.0
+    pair_pot = PairPotEI(charges, alpha, cutoff)
+    # The pair function
+    def pair_fn(i, j, d):
+        return charges[i]*charges[j]/d
+
+    check_pair_pot_caffeine(system, scalings, pair_pot, pair_fn, 1e-13)
+
+
+def check_pair_pot_caffeine(system, scalings, pair_pot, pair_fn, eps):
+    nlists = NeighborLists(system)
     # Create the pair_pot and pair_term
-    pair_pot = PairPotLJ(sigmas, epsilons, 9*angstrom)
     pair_term = PairTerm(nlists, scalings, pair_pot)
     nlists.update() # update the neighborlists, once the cutoffs are known.
     # Compute the energy using yaff.
@@ -131,9 +181,5 @@ def test_pair_pot_lj_caffeine_15A():
                 continue
             d = np.linalg.norm(delta)
             if d <= nlists.cutoff:
-                sigma = 0.5*(sigmas[i]+sigmas[j])
-                epsilon = np.sqrt(epsilons[i]*epsilons[j])
-                x = (sigma/d)**6
-                term = 4*fac*epsilon*(x*(x-1))
-                check_energy += term
-    assert abs(energy - check_energy) < 1e-15
+                check_energy += fac*pair_fn(i, j, d)
+    assert abs(energy - check_energy) < 1e-13

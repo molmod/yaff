@@ -62,4 +62,14 @@ void pair_data_lj_free(pair_pot_type *pair_pot);
 double pair_fn_lj(void *pair_data, long center_index, long other_index, double d, double *g);
 
 
+typedef struct {
+  double *charges;
+  double alpha;
+} pair_data_ei_type;
+
+void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha);
+void pair_data_ei_free(pair_pot_type *pair_pot);
+double pair_fn_ei(void *pair_data, long center_index, long other_index, double d, double *g);
+
+
 #endif
