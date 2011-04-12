@@ -23,16 +23,34 @@
 
 import numpy as np
 
-from molmod import angstrom
+from molmod import angstrom, check_delta
 
 from yaff import *
 
 
 __all__ = [
+    'check_gradient_term',
     'get_system_water32', 'get_system_graphene8',
     'get_system_polyethylene4', 'get_system_quartz', 'get_system_glycine',
     'get_system_cyclopropene', 'get_system_caffeine', 'get_system_butanol',
 ]
+
+
+def check_gradient_term(system, term, eps, nlists=None):
+    def fn(x, do_gradient=False):
+        system.pos[:] = x.reshape(system.natom, 3)
+        if nlists is not None:
+            nlists.update()
+        if do_gradient:
+            g = np.zeros(system.pos.shape, float)
+            e = term.compute(g)
+            return e, g.ravel()
+        else:
+            return term.compute()
+
+    x = system.pos.ravel()
+    dxs = np.random.normal(0, 1e-4, (100, len(x)))
+    check_delta(fn, x, dxs, eps)
 
 
 def get_system_water32():

@@ -160,7 +160,8 @@ def compute_ewald_reci(np.ndarray[np.float64_t, ndim=2] pos,
                        np.ndarray[np.float64_t, ndim=1] charges,
                        np.ndarray[np.float64_t, ndim=2] gvecs, double volume,
                        double alpha, np.ndarray[np.long_t, ndim=1] gmax,
-                       np.ndarray[np.float64_t, ndim=2] gradient):
+                       np.ndarray[np.float64_t, ndim=2] gradient,
+                       np.ndarray[np.float64_t, ndim=1] work):
     assert pos.flags['C_CONTIGUOUS']
     assert pos.shape[1] == 3
     assert charges.flags['C_CONTIGUOUS']
@@ -172,14 +173,21 @@ def compute_ewald_reci(np.ndarray[np.float64_t, ndim=2] pos,
     assert alpha > 0
     assert gmax.flags['C_CONTIGUOUS']
     assert gmax.shape[0] == 3
-    if gradient is not None:
+    if gradient is None:
+        return ewald.compute_ewald_reci(<double*>pos.data, len(pos),
+                                        <double*>charges.data, <double*>gvecs.data,
+                                        volume, alpha, <long*>gmax.data,
+                                        NULL, NULL)
+    else:
         assert gradient.flags['C_CONTIGUOUS']
         assert gradient.shape[1] == 3
         assert gradient.shape[0] == pos.shape[0]
-    return ewald.compute_ewald_reci(<double*>pos.data, len(pos),
-                                    <double*>charges.data, <double*>gvecs.data,
-                                    volume, alpha, <long*>gmax.data,
-                                    <double*>gradient.data)
+        assert work.flags['C_CONTIGUOUS']
+        assert gradient.shape[0]*2 == work.shape[0]
+        return ewald.compute_ewald_reci(<double*>pos.data, len(pos),
+                                        <double*>charges.data, <double*>gvecs.data,
+                                        volume, alpha, <long*>gmax.data,
+                                        <double*>gradient.data, <double*>work.data)
 
 
 def compute_ewald_corr(np.ndarray[np.float64_t, ndim=2] pos,

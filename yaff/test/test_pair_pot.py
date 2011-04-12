@@ -24,8 +24,9 @@
 import numpy as np
 from scipy.special import erfc
 
-from molmod import angstrom, kcalmol, check_delta
-from common import get_system_water32, get_system_caffeine
+from molmod import angstrom, kcalmol
+
+from common import get_system_water32, get_system_caffeine, check_gradient_term
 
 from yaff import *
 
@@ -216,30 +217,14 @@ def check_pair_pot_caffeine(system, nlists, scalings, pair_term, pair_fn, eps):
 
 def test_gradient_pair_pot_caffeine_lj_15A():
     system, nlists, scalings, pair_pot, pair_term, pair_fn = get_term_caffeine_lj_15A()
-    check_gradient_pair_pot(system, nlists, pair_term, 1e-10)
+    check_gradient_term(system, pair_term, 1e-10, nlists)
 
 
 def test_gradient_pair_pot_caffeine_ei1_10A():
     system, nlists, scalings, pair_pot, pair_term, pair_fn = get_term_caffeine_ei1_10A()
-    check_gradient_pair_pot(system, nlists, pair_term, 1e-8)
+    check_gradient_term(system, pair_term, 1e-8, nlists)
 
 
 def test_gradient_pair_pot_caffeine_ei2_10A():
     system, nlists, scalings, pair_pot, pair_term, pair_fn = get_term_caffeine_ei2_10A()
-    check_gradient_pair_pot(system, nlists, pair_term, 1e-8)
-
-
-def check_gradient_pair_pot(system, nlists, pair_term, eps):
-    def fn(x, do_gradient=False):
-        system.pos[:] = x.reshape(system.natom, 3)
-        nlists.update()
-        if do_gradient:
-            g = np.zeros(system.pos.shape, float)
-            e = pair_term.compute(g)
-            return e, g.ravel()
-        else:
-            return pair_term.compute()
-
-    x = system.pos.ravel()
-    dxs = np.random.normal(0, 1e-4, (100, len(x)))
-    check_delta(fn, x, dxs, eps)
+    check_gradient_term(system, pair_term, 1e-8, nlists)

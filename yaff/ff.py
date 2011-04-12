@@ -91,11 +91,12 @@ class EwaldReciprocalTerm(object):
         self.charges = charges
         self.alpha = alpha
         self.gmax = gmax
+        self.work = np.empty(system.natom*2)
 
     def compute(self, gradient=None):
         return compute_ewald_reci(
             self.system.pos, self.charges, self.system.gvecs,
-            self.system.volume, self.alpha, self.gmax, gradient
+            self.system.volume, self.alpha, self.gmax, gradient, self.work
         )
 
 

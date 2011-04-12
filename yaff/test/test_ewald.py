@@ -25,7 +25,7 @@ import numpy as np
 
 from yaff import *
 
-from common import get_system_water32, get_system_quartz
+from common import get_system_water32, get_system_quartz, check_gradient_term
 
 
 def test_ewald_water32():
@@ -70,3 +70,21 @@ def get_electrostatic_energy(alpha, system, charges):
     ff = SumForceField(system, [ewald_real_term, ewald_reci_term, ewald_corr_term], nlists)
     ff.update_pos(system.pos)
     return ff.compute()
+
+
+def test_ewald_gradient_reci_water32():
+    system = get_system_water32()
+    charges = -0.8 + (system.numbers == 1)*1.2
+    for alpha, eps in (0.05, 1e-17), (0.1, 1e-13), (0.2, 1e-11):
+        gmax = np.ceil(alpha*1.5/system.gspacings-0.5).astype(int)
+        ewald_reci_term = EwaldReciprocalTerm(system, charges, alpha, gmax)
+        check_gradient_term(system, ewald_reci_term, eps)
+
+
+def test_ewald_gradient_reci_quartz():
+    system = get_system_quartz()
+    charges = 1.8 - (system.numbers == 8)*2.7
+    for alpha, eps in (0.1, 1e-16), (0.2, 1e-12), (0.5, 1e-12):
+        gmax = np.ceil(alpha*2.0/system.gspacings-0.5).astype(int)
+        ewald_reci_term = EwaldReciprocalTerm(system, charges, alpha, gmax)
+        check_gradient_term(system, ewald_reci_term, eps)

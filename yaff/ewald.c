@@ -22,16 +22,19 @@
 
 
 #include <math.h>
+#include <stdlib.h>
 #include "ewald.h"
 #include "mic.h"
 
 
 double compute_ewald_reci(double *pos, long natom, double *charges,
                           double *gvecs, double volume, double alpha,
-                          long *gmax, double *gradient) {
+                          long *gmax, double *gradient, double *work) {
   long j0, j1, j2, i;
-  double energy, k[3], ksq, cosfac, sinfac, x;
+  double energy, k[3], ksq, cosfac, sinfac, x, c, s, fac1, fac2;
   energy = 0.0;
+  fac1 = M_TWO_PI/volume;
+  fac2 = 0.25/alpha/alpha;
   for (j0=-gmax[0]; j0 <= gmax[0]; j0++) {
     for (j1=-gmax[1]; j1 <= gmax[1]; j1++) {
       for (j2=-gmax[2]; j2 <= gmax[2]; j2++) {
@@ -44,14 +47,28 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
         sinfac = 0.0;
         for (i=0; i<natom; i++) {
           x = k[0]*pos[3*i] + k[1]*pos[3*i+1] + k[2]*pos[3*i+2];
-          cosfac += charges[i]*cos(x);
-          sinfac += charges[i]*sin(x);
+          c = charges[i]*cos(x);
+          s = charges[i]*sin(x);
+          cosfac += c;
+          sinfac += s;
+          if (gradient != NULL) {
+            work[2*i] = 2*c;
+            work[2*i+1] = -2*s;
+          }
         }
-        energy += exp(-ksq/4.0/alpha/alpha)/ksq*(cosfac*cosfac+sinfac*sinfac);
+        c = fac1*exp(-ksq*fac2)/ksq;
+        energy += c*(cosfac*cosfac+sinfac*sinfac);
+        if (gradient != NULL) {
+          for (i=0; i<natom; i++) {
+            x = c*(cosfac*work[2*i+1] + sinfac*work[2*i]);
+            gradient[3*i] += k[0]*x;
+            gradient[3*i+1] += k[1]*x;
+            gradient[3*i+2] += k[2]*x;
+          }
+        }
       }
     }
   }
-  energy *= M_TWO_PI/volume;
   return energy;
 }
 

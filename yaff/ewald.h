@@ -32,7 +32,7 @@
 
 double compute_ewald_reci(double *pos, long natom, double *charges,
                           double *gvecs, double volume, double alpha,
-                          long *gmax, double *gradient);
+                          long *gmax, double *gradient, double *work);
 double compute_ewald_corr(double *pos, long center_index, double *charges,
                           double *rvecs, double *gvecs, double alpha, 
                           scaling_row_type *scaling, long scaling_size,
