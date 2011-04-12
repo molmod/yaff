@@ -42,6 +42,8 @@ class NeighborLists(object):
         self.nlists = None
         self.nlist_sizes = None
 
+    natom = property(lambda self: self.system.natom)
+
     def request_cutoff(self, cutoff):
         self.cutoff = max(self.cutoff, cutoff)
 

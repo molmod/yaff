@@ -159,7 +159,7 @@ def test_pair_pot_ei2_caffeine_10A():
 
 def check_pair_pot_caffeine(system, scalings, pair_pot, pair_fn, eps):
     nlists = NeighborLists(system)
-    # Create the pair_pot and pair_term
+    # Create the pair_term
     pair_term = PairTerm(nlists, scalings, pair_pot)
     nlists.update() # update the neighborlists, once the cutoffs are known.
     # Compute the energy using yaff.
@@ -183,3 +183,32 @@ def check_pair_pot_caffeine(system, scalings, pair_pot, pair_fn, eps):
             if d <= nlists.cutoff:
                 check_energy += fac*pair_fn(i, j, d)
     assert abs(energy - check_energy) < 1e-13
+
+
+def test_gradient_pair_pot_ei2_caffeine_10A():
+    # Get a system and define scalings
+    system = get_system_caffeine()
+    scalings = Scalings(system.topology, 0.0, 1.0, 0.5)
+    # Initialize (random) parameters
+    charges = np.random.uniform(0, 1, system.natom)
+    charges -= charges.sum()
+    # Construct the pair potential
+    cutoff = 30*angstrom
+    alpha = 0.0
+    pair_pot = PairPotEI(charges, alpha, cutoff)
+    # Create the FF term
+    nlists = NeighborLists(system)
+    pair_term = PairTerm(nlists, scalings, pair_pot)
+    # Compute the energy using yaff.
+    nlists.update()
+    energy1, gradient1 = pair_term.energy_gradient()
+    # Change the positions, and recompute
+    delta = np.random.normal(0, 1e-4, (system.natom, 3))
+    system.pos += delta
+    nlists.update()
+    energy2, gradient2 = pair_term.energy_gradient()
+    # Check
+    first = energy2 - energy1
+    second = 0.5*np.dot(delta.ravel(), (gradient1 + gradient2).ravel())
+    print first, second
+    assert abs(first - second) < abs(first)*1e-3

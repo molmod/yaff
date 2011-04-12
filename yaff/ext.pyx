@@ -111,10 +111,25 @@ cdef class PairPot:
         assert pair_pot.pair_pot_ready(self._c_pair_pot)
         assert nlist.flags['C_CONTIGUOUS']
         assert scaling.flags['C_CONTIGUOUS']
-        return pair_pot.pair_pot_energy(
+        return pair_pot.pair_pot_energy_gradient(
             center_index, <nlists.nlist_row_type*>nlist.data, len(nlist),
             <pair_pot.scaling_row_type*>scaling.data, len(scaling),
-            self._c_pair_pot
+            self._c_pair_pot, NULL
+        )
+
+    def energy_gradient(self, long center_index,
+               np.ndarray[nlists.nlist_row_type, ndim=1] nlist,
+               np.ndarray[pair_pot.scaling_row_type, ndim=1] scaling,
+               np.ndarray[double, ndim=2] gradient):
+        assert pair_pot.pair_pot_ready(self._c_pair_pot)
+        assert nlist.flags['C_CONTIGUOUS']
+        assert scaling.flags['C_CONTIGUOUS']
+        assert gradient.flags['C_CONTIGUOUS']
+        assert gradient.shape[1] == 3
+        return pair_pot.pair_pot_energy_gradient(
+            center_index, <nlists.nlist_row_type*>nlist.data, len(nlist),
+            <pair_pot.scaling_row_type*>scaling.data, len(scaling),
+            self._c_pair_pot, <double*>gradient.data
         )
 
 

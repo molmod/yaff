@@ -66,11 +66,12 @@ double get_scaling(scaling_row_type *scaling, long center_index, long other_inde
   return 1.0;
 }
 
-double pair_pot_energy(long center_index, nlist_row_type *nlist,
-                       long nlist_size, scaling_row_type *scaling,
-                       long scaling_size, pair_pot_type *pair_pot) {
+double pair_pot_energy_gradient(long center_index, nlist_row_type *nlist,
+                                long nlist_size, scaling_row_type *scaling,
+                                long scaling_size, pair_pot_type *pair_pot,
+                                double *gradient) {
   long i, other_index, scaling_counter;
-  double s, energy;
+  double s, energy, g;
   energy = 0.0;
   // Reset the counter for the scaling.
   scaling_counter = 0;
@@ -86,8 +87,21 @@ double pair_pot_energy(long center_index, nlist_row_type *nlist,
       }
       // If the scale is non-zero, compute the contribution.
       if (s > 0.0) {
-        // Call the potential function
-        energy += s*(*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, nlist[i].d, NULL);
+        if (gradient==NULL) {
+          // Call the potential function without g argument.
+          energy += s*(*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, nlist[i].d, NULL);
+        } else {
+          // Call the potential function with g argument.
+          // g is the derivative of the pair potential divided by the distance.
+          energy += s*(*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, nlist[i].d, &g);
+          g *= s;
+          gradient[3*center_index  ] += nlist[i].dx*g;
+          gradient[3*center_index+1] += nlist[i].dy*g;
+          gradient[3*center_index+2] += nlist[i].dz*g;
+          gradient[3*other_index  ] -= nlist[i].dx*g;
+          gradient[3*other_index+1] -= nlist[i].dy*g;
+          gradient[3*other_index+2] -= nlist[i].dz*g;
+        }
       }
     }
   }
@@ -124,6 +138,9 @@ double pair_fn_lj(void *pair_data, long center_index, long other_index, double d
   x = sigma/d;
   x *= x;
   x *= x*x;
+  if (g != NULL) {
+    *g = 24.0*epsilon/sigma/d/d*x*(1.0-2.0*x);
+  }
   return 4.0*epsilon*(x*(x-1.0));
 }
 
@@ -138,14 +155,26 @@ void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha) {
 }
 
 double pair_fn_ei(void *pair_data, long center_index, long other_index, double d, double *g) {
-  double result, alpha;
-  result = (
+  double pot, alpha, qprod, x;
+  qprod = (
     (*(pair_data_ei_type*)pair_data).charges[center_index]*
     (*(pair_data_ei_type*)pair_data).charges[other_index]
-  )/d;
+  );
   alpha = (*(pair_data_ei_type*)pair_data).alpha;
   if (alpha > 0) {
-    result *= erfc(alpha*d);
+    x = alpha*d;
+    pot = erfc(x)/d;
+  } else {
+    pot = 1.0/d;
   }
-  return result;
+  if (g != NULL) {
+    if (alpha > 0) {
+      *g = (-M_TWO_DIV_SQRT_PI*alpha*exp(-x*x) - pot)/d;
+    } else {
+      *g = -pot/d;
+    }
+    *g *= qprod/d; // compute derivative divided by d
+  }
+  pot *= qprod;
+  return pot;
 }
