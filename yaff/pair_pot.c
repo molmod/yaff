@@ -139,7 +139,7 @@ double pair_fn_lj(void *pair_data, long center_index, long other_index, double d
   x *= x;
   x *= x*x;
   if (g != NULL) {
-    *g = 24.0*epsilon/sigma/d/d*x*(1.0-2.0*x);
+    *g = 24.0*epsilon/d/d*x*(1.0-2.0*x);
   }
   return 4.0*epsilon*(x*(x-1.0));
 }
