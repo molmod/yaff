@@ -48,6 +48,7 @@ void pair_pot_free(pair_pot_type *pair_pot);
 int pair_pot_ready(pair_pot_type *pair_pot);
 double pair_pot_get_cutoff(pair_pot_type *pair_pot);
 void pair_pot_set_cutoff(pair_pot_type *pair_pot, double cutoff);
+void pair_data_free(pair_pot_type *pair_pot);
 
 double pair_pot_energy_gradient(long center_index, nlist_row_type *nlist,
                                 long nlist_size, scaling_row_type *scaling,
@@ -61,7 +62,6 @@ typedef struct {
 } pair_data_lj_type;
 
 void pair_data_lj_init(pair_pot_type *pair_pot, double *sigma, double *epsilon);
-void pair_data_lj_free(pair_pot_type *pair_pot);
 double pair_fn_lj(void *pair_data, long center_index, long other_index, double d, double *g);
 
 
@@ -71,7 +71,6 @@ typedef struct {
 } pair_data_ei_type;
 
 void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha);
-void pair_data_ei_free(pair_pot_type *pair_pot);
 double pair_fn_ei(void *pair_data, long center_index, long other_index, double d, double *g);
 
 
