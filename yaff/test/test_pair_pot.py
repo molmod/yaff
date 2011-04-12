@@ -29,7 +29,7 @@ from common import get_system_water32, get_system_caffeine
 from yaff import *
 
 
-def test_pairpot_lj_water32_9A():
+def test_pair_pot_lj_water32_9A():
     # Initialize system, topology and scaling
     system = get_system_water32()
     nlists = NeighborLists(system)
@@ -86,7 +86,7 @@ def test_pairpot_lj_water32_9A():
     assert abs(energy - check_energy) < 1e-15
 
 
-def test_pairpot_lj_caffeine_15A():
+def test_pair_pot_lj_caffeine_15A():
     system = get_system_caffeine()
     nlists = NeighborLists(system)
     scalings = Scalings(system.topology, 0.0, 1.0, 0.5)

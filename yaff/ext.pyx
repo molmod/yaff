@@ -24,8 +24,13 @@
 import numpy as np
 cimport numpy as np
 cimport nlists
-cimport pairpot
+cimport pair_pot
 
+
+__all__ = [
+    'nlist_status_init', 'nlist_update', 'nlist_status_finish',
+    'PairPot', 'PairPotLJ',
+]
 
 #
 # Neighbor lists
@@ -82,32 +87,32 @@ def nlist_status_finish(nlist_status):
 #
 
 cdef class PairPot:
-    cdef pairpot.pairpot_type* _c_pairpot
+    cdef pair_pot.pair_pot_type* _c_pair_pot
 
     def __cinit__(self, *args, **kwargs):
-        self._c_pairpot = pairpot.pairpot_new()
-        if self._c_pairpot is NULL:
+        self._c_pair_pot = pair_pot.pair_pot_new()
+        if self._c_pair_pot is NULL:
             raise MemoryError()
 
     def __dealloc__(self):
-        if self._c_pairpot is not NULL:
-            pairpot.pairpot_free(self._c_pairpot)
+        if self._c_pair_pot is not NULL:
+            pair_pot.pair_pot_free(self._c_pair_pot)
 
     def get_cutoff(self):
-        return pairpot.pairpot_get_cutoff(self._c_pairpot)
+        return pair_pot.pair_pot_get_cutoff(self._c_pair_pot)
 
     cutoff = property(get_cutoff)
 
     def energy(self, long center_index,
                np.ndarray[nlists.nlist_row_type, ndim=1] nlist,
-               np.ndarray[pairpot.scaling_row_type, ndim=1] scaling):
-        assert pairpot.pairpot_ready(self._c_pairpot)
+               np.ndarray[pair_pot.scaling_row_type, ndim=1] scaling):
+        assert pair_pot.pair_pot_ready(self._c_pair_pot)
         assert nlist.flags['C_CONTIGUOUS']
         assert scaling.flags['C_CONTIGUOUS']
-        return pairpot.pairpot_energy(
+        return pair_pot.pair_pot_energy(
             center_index, <nlists.nlist_row_type*>nlist.data, len(nlist),
-            <pairpot.scaling_row_type*>scaling.data, len(scaling),
-            self._c_pairpot
+            <pair_pot.scaling_row_type*>scaling.data, len(scaling),
+            self._c_pair_pot
         )
 
 
@@ -116,11 +121,11 @@ cdef class PairPotLJ(PairPot):
         assert sigmas.flags['C_CONTIGUOUS']
         assert epsilons.flags['C_CONTIGUOUS']
         assert sigmas.shape[0] == epsilons.shape[0]
-        pairpot.pairpot_set_cutoff(self._c_pairpot, cutoff)
-        pairpot.pairpot_lj_init(self._c_pairpot, <double*>sigmas.data, <double*>epsilons.data)
-        if not pairpot.pairpot_ready(self._c_pairpot):
+        pair_pot.pair_pot_set_cutoff(self._c_pair_pot, cutoff)
+        pair_pot.pair_data_lj_init(self._c_pair_pot, <double*>sigmas.data, <double*>epsilons.data)
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
 
     def __dealloc__(self):
-        if pairpot.pairpot_ready(self._c_pairpot):
-            pairpot.pairpot_lj_free(self._c_pairpot)
+        if pair_pot.pair_pot_ready(self._c_pair_pot):
+            pair_pot.pair_data_lj_free(self._c_pair_pot)

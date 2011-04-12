@@ -27,13 +27,13 @@
 #include "nlists.h"
 
 
-typedef double (*pairfn_type)(void*, long, long, double, double*);
+typedef double (*pair_fn_type)(void*, long, long, double, double*);
 
 typedef struct {
-  void *pairdata;
-  pairfn_type pairfn;
+  void *pair_data;
+  pair_fn_type pair_fn;
   double cutoff;
-} pairpot_type;
+} pair_pot_type;
 
 typedef struct {
   long i;
@@ -41,25 +41,25 @@ typedef struct {
 } scaling_row_type;
 
 
-pairpot_type* pairpot_new(void);
-void pairpot_free(pairpot_type *pairpot);
-int pairpot_ready(pairpot_type *pairpot);
-double pairpot_get_cutoff(pairpot_type *pairpot);
-void pairpot_set_cutoff(pairpot_type *pairpot, double cutoff);
+pair_pot_type* pair_pot_new(void);
+void pair_pot_free(pair_pot_type *pair_pot);
+int pair_pot_ready(pair_pot_type *pair_pot);
+double pair_pot_get_cutoff(pair_pot_type *pair_pot);
+void pair_pot_set_cutoff(pair_pot_type *pair_pot, double cutoff);
 
-double pairpot_energy(long center_index, nlist_row_type *nlist,
-                      long nlist_size, scaling_row_type *scaling,
-                      long scaling_size, pairpot_type *pairpot);
+double pair_pot_energy(long center_index, nlist_row_type *nlist,
+                       long nlist_size, scaling_row_type *scaling,
+                       long scaling_size, pair_pot_type *pair_pot);
 
 
 typedef struct {
   double *sigma;
   double *epsilon;
-} pairpot_lj_type;
+} pair_data_lj_type;
 
-void pairpot_lj_init(pairpot_type *pairpot, double *sigma, double *epsilon);
-void pairpot_lj_free(pairpot_type *pairpot);
-double pairpot_lj_eval(void *pairdata, long center_index, long other_index, double d, double *g);
+void pair_data_lj_init(pair_pot_type *pair_pot, double *sigma, double *epsilon);
+void pair_data_lj_free(pair_pot_type *pair_pot);
+double pair_fn_lj(void *pair_data, long center_index, long other_index, double d, double *g);
 
 
 #endif

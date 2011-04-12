@@ -21,36 +21,36 @@
 // --
 
 
-#include "pairpot.h"
+#include "pair_pot.h"
 #include <math.h>
 #include <stdlib.h>
 
 
-pairpot_type* pairpot_new(void) {
-  pairpot_type* result;
-  result = malloc(sizeof(pairpot_type));
+pair_pot_type* pair_pot_new(void) {
+  pair_pot_type* result;
+  result = malloc(sizeof(pair_pot_type));
   if (result != NULL) {
-    (*result).pairdata = NULL;
-    (*result).pairfn = NULL;
+    (*result).pair_data = NULL;
+    (*result).pair_fn = NULL;
     (*result).cutoff = 0.0;
   }
   return result;
 }
 
-void pairpot_free(pairpot_type *pairpot) {
-  free(pairpot);
+void pair_pot_free(pair_pot_type *pair_pot) {
+  free(pair_pot);
 }
 
-int pairpot_ready(pairpot_type *pairpot) {
-  return (*pairpot).pairdata != NULL && (*pairpot).pairfn != NULL;
+int pair_pot_ready(pair_pot_type *pair_pot) {
+  return (*pair_pot).pair_data != NULL && (*pair_pot).pair_fn != NULL;
 }
 
-double pairpot_get_cutoff(pairpot_type *pairpot) {
-  return (*pairpot).cutoff;
+double pair_pot_get_cutoff(pair_pot_type *pair_pot) {
+  return (*pair_pot).cutoff;
 }
 
-void pairpot_set_cutoff(pairpot_type *pairpot, double cutoff) {
-  (*pairpot).cutoff = cutoff;
+void pair_pot_set_cutoff(pair_pot_type *pair_pot, double cutoff) {
+  (*pair_pot).cutoff = cutoff;
 }
 
 
@@ -68,9 +68,9 @@ double get_scaling(scaling_row_type *scaling, long center_index, long other_inde
 }
 
 
-double pairpot_energy(long center_index, nlist_row_type *nlist,
-                      long nlist_size, scaling_row_type *scaling,
-                      long scaling_size, pairpot_type *pairpot) {
+double pair_pot_energy(long center_index, nlist_row_type *nlist,
+                       long nlist_size, scaling_row_type *scaling,
+                       long scaling_size, pair_pot_type *pair_pot) {
   long i, other_index, scaling_counter;
   double s, energy, term;
   energy = 0.0;
@@ -79,7 +79,7 @@ double pairpot_energy(long center_index, nlist_row_type *nlist,
   // Compute the interactions.
   for (i=0; i<nlist_size; i++) {
     // Find the scale
-    if (nlist[i].d < (*pairpot).cutoff) {
+    if (nlist[i].d < (*pair_pot).cutoff) {
       other_index = nlist[i].i;
       if ((nlist[i].r0 == 0) && (nlist[i].r1 == 0) && (nlist[i].r2 == 0)) {
         s = get_scaling(scaling, center_index, other_index, &scaling_counter, scaling_size);
@@ -89,7 +89,7 @@ double pairpot_energy(long center_index, nlist_row_type *nlist,
       // If the scale is non-zero, compute the contribution.
       if (s > 0.0) {
         // Call the potential function
-        energy += s*(*pairpot).pairfn((*pairpot).pairdata, center_index, other_index, nlist[i].d, NULL);
+        energy += s*(*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, nlist[i].d, NULL);
       }
     }
   }
@@ -97,28 +97,28 @@ double pairpot_energy(long center_index, nlist_row_type *nlist,
 }
 
 
-void pairpot_lj_init(pairpot_type *pairpot, double *sigma, double *epsilon) {
-  pairpot_lj_type *pairdata;
-  pairdata = malloc(sizeof(pairpot_lj_type));
-  (*pairpot).pairdata = pairdata;
-  (*pairpot).pairfn = pairpot_lj_eval;
-  (*pairdata).sigma = sigma;
-  (*pairdata).epsilon = epsilon;
+void pair_data_lj_init(pair_pot_type *pair_pot, double *sigma, double *epsilon) {
+  pair_data_lj_type *pair_data;
+  pair_data = malloc(sizeof(pair_data_lj_type));
+  (*pair_pot).pair_data = pair_data;
+  (*pair_pot).pair_fn = pair_fn_lj;
+  (*pair_data).sigma = sigma;
+  (*pair_data).epsilon = epsilon;
 }
 
-void pairpot_lj_free(pairpot_type *pairpot) {
-  free((*pairpot).pairdata);
+void pair_data_lj_free(pair_pot_type *pair_pot) {
+  free((*pair_pot).pair_data);
 }
 
-double pairpot_lj_eval(void *pairdata, long center_index, long other_index, double d, double *g) {
+double pair_fn_lj(void *pair_data, long center_index, long other_index, double d, double *g) {
   double sigma, epsilon, x;
   sigma = 0.5*(
-    (*(pairpot_lj_type*)pairdata).sigma[center_index]+
-    (*(pairpot_lj_type*)pairdata).sigma[other_index]
+    (*(pair_data_lj_type*)pair_data).sigma[center_index]+
+    (*(pair_data_lj_type*)pair_data).sigma[other_index]
   );
   epsilon = sqrt(
-    (*(pairpot_lj_type*)pairdata).epsilon[center_index]*
-    (*(pairpot_lj_type*)pairdata).epsilon[other_index]
+    (*(pair_data_lj_type*)pair_data).epsilon[center_index]*
+    (*(pair_data_lj_type*)pair_data).epsilon[other_index]
   );
   x = sigma/d;
   x *= x;

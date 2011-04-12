@@ -65,14 +65,14 @@ class SumForceField(ForceField):
 
 
 class PairTerm(object):
-    def __init__(self, nlists, scalings, pairpot):
+    def __init__(self, nlists, scalings, pair_pot):
         self.nlists = nlists
         self.scalings = scalings
-        self.pairpot = pairpot
-        self.nlists.request_cutoff(pairpot.get_cutoff())
+        self.pair_pot = pair_pot
+        self.nlists.request_cutoff(pair_pot.cutoff)
 
     def energy(self):
         result = 0
         for i in 0,:#xrange(len(self.nlists)):
-            result += self.pairpot.energy(i, self.nlists[i], self.scalings[i])
+            result += self.pair_pot.energy(i, self.nlists[i], self.scalings[i])
         return result

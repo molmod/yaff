@@ -24,24 +24,24 @@
 cimport numpy as np
 cimport nlists
 
-cdef extern from "pairpot.h":
+cdef extern from "pair_pot.h":
     ctypedef struct scaling_row_type:
         np.long_t i
         np.float64_t scale
     
-    ctypedef struct pairpot_type:
+    ctypedef struct pair_pot_type:
         pass
 
-    pairpot_type* pairpot_new()
-    void pairpot_free(pairpot_type *pairpot)
-    bint pairpot_ready(pairpot_type *pairpot)
-    double pairpot_get_cutoff(pairpot_type *pairpot)
-    void pairpot_set_cutoff(pairpot_type *pairpot, double cutoff)
+    pair_pot_type* pair_pot_new()
+    void pair_pot_free(pair_pot_type *pair_pot)
+    bint pair_pot_ready(pair_pot_type *pair_pot)
+    double pair_pot_get_cutoff(pair_pot_type *pair_pot)
+    void pair_pot_set_cutoff(pair_pot_type *pair_pot, double cutoff)
     
-    double pairpot_energy(long center_index, nlists.nlist_row_type* nlist,
-                          long nlist_size, scaling_row_type* scaling,
-                          long scaling_size, pairpot_type* pairpot)
+    double pair_pot_energy(long center_index, nlists.nlist_row_type* nlist,
+                           long nlist_size, scaling_row_type* scaling,
+                           long scaling_size, pair_pot_type* pair_pot)
 
-    void pairpot_lj_init(pairpot_type *pairpot, double *sigma, double *epsilon)
-    void pairpot_lj_free(pairpot_type *pairpot)
+    void pair_data_lj_init(pair_pot_type *pair_pot, double *sigma, double *epsilon)
+    void pair_data_lj_free(pair_pot_type *pair_pot)
     
