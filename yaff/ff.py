@@ -76,13 +76,13 @@ class PairTerm(object):
 
     def energy(self):
         result = 0
-        for i in 0,:#xrange(len(self.nlists)):
+        for i in xrange(len(self.nlists)):
             result += self.pair_pot.energy(i, self.nlists[i], self.scalings[i])
         return result
 
     def energy_gradient(self):
         energy = 0
         gradient = np.zeros((self.nlists.natom, 3), float)
-        for i in 0,:#xrange(len(self.nlists)):
+        for i in xrange(len(self.nlists)):
             energy += self.pair_pot.energy_gradient(i, self.nlists[i], self.scalings[i], gradient)
         return energy, gradient

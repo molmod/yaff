@@ -51,7 +51,7 @@ def test_pair_pot_lj_water32_9A():
     energy = pair_term.energy()
     # Compute the energy manually
     check_energy = 0.0
-    for i in 0,:#xrange(system.natom):
+    for i in xrange(system.natom):
         # compute the distances in the neighborlist manually and check.
         for j in xrange(i, system.natom):
             delta = system.pos[i] - system.pos[j]
@@ -136,7 +136,7 @@ def test_pair_pot_ei1_caffeine_10A():
     def pair_fn(i, j, d):
         return charges[i]*charges[j]*erfc(alpha*d)/d
 
-    check_pair_pot_caffeine(system, scalings, pair_pot, pair_fn, 1e-13)
+    check_pair_pot_caffeine(system, scalings, pair_pot, pair_fn, 1e-9)
 
 
 def test_pair_pot_ei2_caffeine_10A():
@@ -154,7 +154,7 @@ def test_pair_pot_ei2_caffeine_10A():
     def pair_fn(i, j, d):
         return charges[i]*charges[j]/d
 
-    check_pair_pot_caffeine(system, scalings, pair_pot, pair_fn, 1e-13)
+    check_pair_pot_caffeine(system, scalings, pair_pot, pair_fn, 1e-8)
 
 
 def check_pair_pot_caffeine(system, scalings, pair_pot, pair_fn, eps):
@@ -166,7 +166,7 @@ def check_pair_pot_caffeine(system, scalings, pair_pot, pair_fn, eps):
     energy = pair_term.energy()
     # Compute the energy manually
     check_energy = 0.0
-    for i in 0,:#xrange(system.natom):
+    for i in xrange(system.natom):
         # compute the distances in the neighborlist manually and check.
         for j in xrange(i+1, system.natom):
             delta = system.pos[i] - system.pos[j]
@@ -182,7 +182,8 @@ def check_pair_pot_caffeine(system, scalings, pair_pot, pair_fn, eps):
             d = np.linalg.norm(delta)
             if d <= nlists.cutoff:
                 check_energy += fac*pair_fn(i, j, d)
-    assert abs(energy - check_energy) < 1e-13
+    print energy, check_energy
+    assert abs(energy - check_energy) < eps
 
 
 def test_gradient_pair_pot_ei2_caffeine_10A():
