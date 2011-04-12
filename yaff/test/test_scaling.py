@@ -23,7 +23,7 @@
 
 import numpy as np
 
-from common import get_system_water32, get_system_glycine
+from common import get_system_water32, get_system_glycine, get_system_quartz
 
 from yaff import *
 
@@ -58,3 +58,13 @@ def test_scaling_glycine():
                 assert scale == 0.5
             if j in system.topology.neighs3[i]:
                 assert scale == 0.2
+
+
+def test_scaling_quartz():
+    system = get_system_quartz()
+    scalings = Scalings(system.topology)
+    assert len(scalings) == system.natom
+    for i in xrange(system.natom):
+        scaling = scalings[i]
+        for j in xrange(len(scaling)-1):
+            assert scaling[j]['i'] != scaling[j+1]['i']

@@ -66,9 +66,7 @@ class SumForceField(ForceField):
             if self.nlists is not None:
                 self.nlists.update()
             self.needs_update = False
-        l = [term.compute(gradient) for term in self.terms]
-        print l
-        return sum(l)
+        return sum([term.compute(gradient) for term in self.terms])
 
 
 class PairTerm(object):

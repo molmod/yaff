@@ -72,9 +72,7 @@ double compute_ewald_corr(double *pos, long center_index, double *charges,
     delta[0] = pos[3*center_index    ] - pos[3*other_index    ];
     delta[1] = pos[3*center_index + 1] - pos[3*other_index + 1];
     delta[2] = pos[3*center_index + 2] - pos[3*other_index + 2];
-    printf("%f --- ", delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
     mic(delta, rvecs, gvecs, 3);
-    printf("%f \n", delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
     d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
     energy -= (1-s)*charges[other_index]*charges[center_index]*erf(alpha*d)/d;
   }

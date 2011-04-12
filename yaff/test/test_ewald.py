@@ -23,9 +23,9 @@
 
 import numpy as np
 
-from common import get_system_water32, get_system_quartz
-
 from yaff import *
+
+from common import get_system_water32, get_system_quartz
 
 
 def test_ewald_water32():
@@ -38,7 +38,6 @@ def test_ewald_water32():
     for alpha in 0.05, 0.1, 0.2, 0.5, 1.0:
         energies.append(get_electrostatic_energy(alpha, system, charges))
     energies = np.array(energies)
-    print energies
     assert abs(energies - energies.mean()).max() < 1e-8
 
 
@@ -52,7 +51,6 @@ def test_ewald_quartz():
     for alpha in 0.05, 0.051, 0.052, 0.1, 0.2, 0.5, 1.0:
         energies.append(get_electrostatic_energy(alpha, system, charges))
     energies = np.array(energies)
-    print energies
     assert abs(energies - energies.mean()).max() < 1e-8
 
 
@@ -62,7 +60,6 @@ def get_electrostatic_energy(alpha, system, charges):
     scalings = Scalings(system.topology, 0.0, 0.0, 0.5)
     # Construct the ewald real-space potential and term
     cutoff = 5.5/alpha
-    print 'cutoff', cutoff
     ewald_real_pot = PairPotEI(charges, alpha, cutoff)
     ewald_real_term = PairTerm(nlists, scalings, ewald_real_pot)
     # Construct the ewald reciprocal and correction term

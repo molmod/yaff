@@ -39,31 +39,28 @@ class Topology(object):
         self.bonds = bonds
         self.natom = natom
         # 1-bond neighbors
-        self.neighs1 = dict((i,[]) for i in xrange(natom))
+        self.neighs1 = dict((i,set([])) for i in xrange(natom))
         for i0, i1 in self.bonds:
-            self.neighs1[i0].append(i1)
-            self.neighs1[i1].append(i0)
+            self.neighs1[i0].add(i1)
+            self.neighs1[i1].add(i0)
         # 2-bond neighbors
-        self.neighs2 = dict((i,[]) for i in xrange(natom))
+        self.neighs2 = dict((i,set([])) for i in xrange(natom))
         for i0, n0 in self.neighs1.iteritems():
             for i1 in n0:
                 for i2 in self.neighs1[i1]:
                     # Require that there are no shorter paths than two bonds between
                     # i0 and i2. Also avoid duplicates.
                     if i2 > i0 and i2 not in self.neighs1[i0]:
-                        self.neighs2[i0].append(i2)
-                        self.neighs2[i2].append(i0)
+                        self.neighs2[i0].add(i2)
+                        self.neighs2[i2].add(i0)
         # 3-bond neighbors
-        self.neighs3 = dict((i,[]) for i in xrange(natom))
+        self.neighs3 = dict((i,set([])) for i in xrange(natom))
         for i0, n0 in self.neighs1.iteritems():
             for i1 in n0:
                 for i3 in self.neighs2[i1]:
                     # Require that there are no shorter paths than three bonds
                     # between i0 and i3. Also avoid duplicates.
                     if i3 != i0 and i3 not in self.neighs1[i0] and i3 not in self.neighs2[i0]:
-                        self.neighs3[i0].append(i3)
-                        self.neighs3[i3].append(i0)
+                        self.neighs3[i0].add(i3)
+                        self.neighs3[i3].add(i0)
         # Derive array formatted version of the neighs* dictionaries
-        #self.narrs1 = [np.array(self.neighs1.get(i, [])) for i in xrange(system.natom)]
-        #self.narrs2 = [np.array(self.neighs2.get(i, [])) for i in xrange(system.natom)]
-        #self.narrs3 = [np.array(self.neighs3.get(i, [])) for i in xrange(system.natom)]

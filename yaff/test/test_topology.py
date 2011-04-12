@@ -44,15 +44,18 @@ def test_topology_water32():
     for i in xrange(system.natom):
         if system.numbers[i] == 8:
             assert len(t.neighs1[i]) == 2
-            assert system.numbers[t.neighs1[i][0]] == 1
-            assert system.numbers[t.neighs1[i][1]] == 1
+            n0, n1 = t.neighs1[i]
+            assert system.numbers[n0] == 1
+            assert system.numbers[n1] == 1
             assert len(t.neighs2[i]) == 0
             assert len(t.neighs3[i]) == 0
         elif system.numbers[i] == 1:
             assert len(t.neighs1[i]) == 1
-            assert system.numbers[t.neighs1[i][0]] == 8
+            n, = t.neighs1[i]
+            assert system.numbers[n] == 8
             assert len(t.neighs2[i]) == 1
-            assert system.numbers[t.neighs2[i][0]] == 1
+            n, = t.neighs2[i]
+            assert system.numbers[n] == 1
             assert len(t.neighs3[i]) == 0
 
 
