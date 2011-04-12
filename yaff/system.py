@@ -70,6 +70,7 @@ class System(object):
             self.gvecs = np.zeros((0,3), float)
             self.rspacings = np.zeros((0,), float)
             self.gspacings = np.zeros((0,), float)
+            self.volume = None
         else:
             self.rvecs = rvecs.reshape((-1,3))
             assert len(self.rvecs) <= 3
@@ -77,3 +78,9 @@ class System(object):
             self.gvecs = np.dot(Vt.transpose(), (U/S).transpose())
             self.rspacings = (self.gvecs**2).sum(axis=1)**(-0.5)
             self.gspacings = (self.rvecs**2).sum(axis=1)**(-0.5)
+            if len(self.rvecs) == 1:
+                self.volume = np.linalg.norm(self.rvecs[0])
+            elif len(self.rvecs) == 2:
+                self.volume = np.dot(self.rvecs[0], self.rvecs[1])
+            elif len(self.rvecs) == 3:
+                self.volume = np.linalg.det(self.rvecs)

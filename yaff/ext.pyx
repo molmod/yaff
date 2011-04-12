@@ -29,7 +29,8 @@ cimport pair_pot
 
 __all__ = [
     'nlist_status_init', 'nlist_update', 'nlist_status_finish',
-    'PairPot', 'PairPotLJ', 'PairPotEI',
+    'PairPot', 'PairPotLJ', 'PairPotEI', 'compute_ewald_reci',
+    'compute_ewald_corr',
 ]
 
 #
@@ -105,32 +106,27 @@ cdef class PairPot:
 
     cutoff = property(get_cutoff)
 
-    def energy(self, long center_index,
-               np.ndarray[nlists.nlist_row_type, ndim=1] nlist,
-               np.ndarray[pair_pot.scaling_row_type, ndim=1] scaling):
+    def compute(self, long center_index,
+                np.ndarray[nlists.nlist_row_type, ndim=1] nlist,
+                np.ndarray[pair_pot.scaling_row_type, ndim=1] scaling,
+                np.ndarray[double, ndim=2] gradient):
         assert pair_pot.pair_pot_ready(self._c_pair_pot)
         assert nlist.flags['C_CONTIGUOUS']
         assert scaling.flags['C_CONTIGUOUS']
-        return pair_pot.pair_pot_energy_gradient(
-            center_index, <nlists.nlist_row_type*>nlist.data, len(nlist),
-            <pair_pot.scaling_row_type*>scaling.data, len(scaling),
-            self._c_pair_pot, NULL
-        )
-
-    def energy_gradient(self, long center_index,
-               np.ndarray[nlists.nlist_row_type, ndim=1] nlist,
-               np.ndarray[pair_pot.scaling_row_type, ndim=1] scaling,
-               np.ndarray[double, ndim=2] gradient):
-        assert pair_pot.pair_pot_ready(self._c_pair_pot)
-        assert nlist.flags['C_CONTIGUOUS']
-        assert scaling.flags['C_CONTIGUOUS']
-        assert gradient.flags['C_CONTIGUOUS']
-        assert gradient.shape[1] == 3
-        return pair_pot.pair_pot_energy_gradient(
-            center_index, <nlists.nlist_row_type*>nlist.data, len(nlist),
-            <pair_pot.scaling_row_type*>scaling.data, len(scaling),
-            self._c_pair_pot, <double*>gradient.data
-        )
+        if gradient is None:
+            return pair_pot.pair_pot_energy_gradient(
+                center_index, <nlists.nlist_row_type*>nlist.data, len(nlist),
+                <pair_pot.scaling_row_type*>scaling.data, len(scaling),
+                self._c_pair_pot, NULL
+            )
+        else:
+            assert gradient.flags['C_CONTIGUOUS']
+            assert gradient.shape[1] == 3
+            return pair_pot.pair_pot_energy_gradient(
+                center_index, <nlists.nlist_row_type*>nlist.data, len(nlist),
+                <pair_pot.scaling_row_type*>scaling.data, len(scaling),
+                self._c_pair_pot, <double*>gradient.data
+            )
 
 
 cdef class PairPotLJ(PairPot):
@@ -151,3 +147,10 @@ cdef class PairPotEI(PairPot):
         pair_pot.pair_data_ei_init(self._c_pair_pot, <double*>charges.data, alpha)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
+
+
+def compute_ewald_reci(pos, rvecs, gvecs, volume, alpha, gmax, gradient):
+    pass
+
+def compute_ewald_corr(pos, alpha, scaling, gradient):
+    pass

@@ -24,7 +24,10 @@
 import numpy as np
 
 
-__all__ = ['ForceField', 'SumForceField', 'PairTerm']
+__all__ = [
+    'ForceField', 'SumForceField', 'PairTerm', 'EwaldReciprocalTerm',
+    'EwaldCorrectionTerm', 'EwaldNeutralizingTerm',
+]
 
 
 class ForceField(object):
@@ -34,10 +37,7 @@ class ForceField(object):
     def update_pos(self, pos):
         system.pos[:] = pos
 
-    def energy(self):
-        raise NotImplementedError
-
-    def energy_gradient(self):
+    def compute(self, gradient=None):
         raise NotImplementedError
 
 
@@ -46,25 +46,22 @@ class SumForceField(ForceField):
         ForceField.__init__(self, system)
         self.terms = terms
         self.nlists = nlists
+        self.needs_update = True
+
+    def update_rvecs(self, rvecs):
+        self.system.update_rvecs(rvecs)
+        self.needs_update = True
 
     def update_pos(self, pos):
         ForceField.update_pos(self, pos)
-        if self.nlists is not None:
-            self.nlists.update()
+        self.needs_update = True
 
-    def energy(self):
-        result = 0
-        for term in self.terms:
-            result += term.energy()
-
-    def energy_gradient(self):
-        energy = 0
-        gradient = 0
-        for term in self.terms:
-            e, g = term.energy()
-            energy += e
-            gradient += g
-        return energy, gradient
+    def compute(self, gradient=None):
+        if self.needs_update:
+            if self.nlists is not None:
+                self.nlists.update()
+            self.needs_update = False
+        return sum(term.compute(gradient) for term in self.terms)
 
 
 class PairTerm(object):
@@ -74,15 +71,49 @@ class PairTerm(object):
         self.pair_pot = pair_pot
         self.nlists.request_cutoff(pair_pot.cutoff)
 
-    def energy(self):
-        result = 0
-        for i in xrange(len(self.nlists)):
-            result += self.pair_pot.energy(i, self.nlists[i], self.scalings[i])
-        return result
+    def compute(self, gradient=None):
+        assert len(self.nlists) == len(self.scalings)
+        return sum(
+            self.pair_pot.compute(i, self.nlists[i], self.scalings[i], gradient)
+            for i in xrange(len(self.nlists))
+        )
 
-    def energy_gradient(self):
-        energy = 0
-        gradient = np.zeros((self.nlists.natom, 3), float)
-        for i in xrange(len(self.nlists)):
-            energy += self.pair_pot.energy_gradient(i, self.nlists[i], self.scalings[i], gradient)
-        return energy, gradient
+
+class EwaldReciprocalTerm(object):
+    def __init__(self, system, charges, alpha, gmax):
+        assert len(system.rvecs) == 3
+        self.system = system
+        self.charges = charges
+        self.alpha = alpha
+        self.gmax = gmax
+
+    def compute(self, gradient=None):
+        return compute_ewald_reci(
+            self.system.pos, self.system.rvecs, self.system.gvecs,
+            self.system.volume, self.alpha, self.gmax, gradient
+        )
+
+
+class EwaldCorrectionTerm(object):
+    def __init__(self, system, charges, alpha, scalings):
+        assert len(system.rvecs) == 3
+        self.system = system
+        self.charges = charges
+        self.alpha = alpha
+
+    def compute(self, gradient=None):
+        return sum(
+            compute_ewald_corr(system.pos, self.alpha, self.scalings[i], gradient)
+            for i in xrange(len(self.scalings))
+        )
+
+
+class EwaldNeutralizingTerm(object):
+    def __init__(self, system, charges, alpha):
+        assert len(system.rvecs) == 3
+        self.system = system
+        self.charges = charges
+        self.alpha = alpha
+
+    def compute(self, gradient=None):
+        return self.charges.sum()**2*np.pi/(2.0*system.volume*self.alpha**2)

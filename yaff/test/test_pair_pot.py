@@ -60,8 +60,9 @@ def test_pair_pot_lj_water32_9A():
     system, nlists, scalings, pair_pot, pair_term, pair_fn = get_term_water32_9A_lj()
     nlists.update() # update the neighborlists, once the cutoffs are known.
     # Compute the energy using yaff.
-    energy1 = pair_term.energy()
-    energy2 = pair_term.energy_gradient()[0]
+    energy1 = pair_term.compute()
+    gradient = np.zeros(system.pos.shape, float)
+    energy2 = pair_term.compute(gradient)
     # Compute the energy manually
     check_energy = 0.0
     for i in xrange(system.natom):
@@ -187,8 +188,9 @@ def test_pair_pot_ei2_caffeine_10A():
 def check_pair_pot_caffeine(system, nlists, scalings, pair_term, pair_fn, eps):
     nlists.update() # update the neighborlists, once the cutoffs are known.
     # Compute the energy using yaff.
-    energy1 = pair_term.energy()
-    energy2 = pair_term.energy_gradient()[0]
+    energy1 = pair_term.compute()
+    gradient = np.zeros(system.pos.shape, float)
+    energy2 = pair_term.compute(gradient)
     # Compute the energy manually
     check_energy = 0.0
     for i in xrange(system.natom):
@@ -231,10 +233,11 @@ def check_gradient_pair_pot(system, nlists, pair_term, eps):
         system.pos[:] = x.reshape(system.natom, 3)
         nlists.update()
         if do_gradient:
-            e, g = pair_term.energy_gradient()
+            g = np.zeros(system.pos.shape, float)
+            e = pair_term.compute(g)
             return e, g.ravel()
         else:
-            return pair_term.energy()
+            return pair_term.compute()
 
     x = system.pos.ravel()
     dxs = np.random.normal(0, 1e-4, (100, len(x)))
