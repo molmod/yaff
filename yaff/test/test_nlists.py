@@ -23,8 +23,10 @@
 
 import random
 import numpy as np
+from nose.plugins.skip import SkipTest
 
 from molmod import angstrom
+
 from common import get_system_water32, get_system_graphene8, \
     get_system_polyethylene4, get_system_quartz, get_system_glycine
 
@@ -71,7 +73,7 @@ def test_nlists_water32_9A():
     for i in random.sample(xrange(system.natom), 5):
         # compute the distances in the neighborlist manually and check.
         check = {}
-        for j in xrange(0, system.natom):
+        for j in xrange(system.natom):
             delta = system.pos[i] - system.pos[j]
             delta -= np.floor(delta/(9.865*angstrom)+0.5)*(9.865*angstrom)
             assert abs(delta).max() < 0.5*9.865*angstrom
@@ -104,7 +106,7 @@ def test_nlists_graphene8_9A():
     for i in xrange(system.natom):
         # compute the distances in the neighborlist manually and check.
         check = {}
-        for j in xrange(0, system.natom):
+        for j in xrange(system.natom):
             delta = system.pos[i] - system.pos[j]
             for c in xrange(len(system.rvecs)):
                 delta -= system.rvecs[c]*np.ceil(np.dot(delta, system.gvecs[c]) - 0.5)
@@ -140,7 +142,7 @@ def test_nlists_polyethylene4_9A():
     for i in random.sample(xrange(system.natom), 5):
         # compute the distances in the neighborlist manually and check.
         check = {}
-        for j in xrange(0, system.natom):
+        for j in xrange(system.natom):
             delta = system.pos[i] - system.pos[j]
             for c in xrange(len(system.rvecs)):
                 delta -= system.rvecs[c]*np.floor(np.dot(delta, system.gvecs[c]) + 0.5)
@@ -167,6 +169,26 @@ def test_nlists_polyethylene4_9A():
             assert abs(check[key][1][2] - row['dz']) < 1e-8
 
 
+def test_nlists_quartz_4A_shortest():
+    raise SkipTest('The mic routine fails to find the shortest distance in small skewed unit cells.')
+    system = get_system_quartz()
+    nlists = NeighborLists(system)
+    nlists.request_cutoff(4*angstrom)
+    nlists.update()
+    for i in xrange(system.natom):
+        nlist = nlists[i]
+        for j in xrange(len(nlist)):
+            if (nlist[j]['r0'] == 0) and (nlist[j]['r1'] == 0) and (nlist[j]['r2'] == 0):
+                delta0 = np.array([nlist[j]['dx'], nlist[j]['dy'], nlist[j]['dz']])
+                for r0 in xrange(-1, 1):
+                    for r1 in xrange(-1, 1):
+                        for r2 in xrange(-1, 1):
+                            if (r0==0) and (r1==0) and (r2==0):
+                                continue
+                            delta = delta0 + r0*system.rvecs[0] + r1*system.rvecs[1] + r2*system.rvecs[2]
+                            assert np.linalg.norm(delta) >= nlist[j]['d']
+
+
 def test_nlists_quartz_9A():
     system = get_system_quartz()
     nlists = NeighborLists(system)
@@ -176,7 +198,7 @@ def test_nlists_quartz_9A():
     for i in random.sample(xrange(system.natom), 5):
         # compute the distances in the neighborlist manually and check.
         check = {}
-        for j in xrange(0, system.natom):
+        for j in xrange(system.natom):
             delta = system.pos[i] - system.pos[j]
             for c in xrange(len(system.rvecs)):
                 delta -= system.rvecs[c]*np.floor(np.dot(delta, system.gvecs[c]) + 0.5)
@@ -212,7 +234,7 @@ def test_nlists_quartz_20A():
     for i in random.sample(xrange(system.natom), 5):
         # compute the distances in the neighborlist manually and check.
         check = {}
-        for j in xrange(0, system.natom):
+        for j in xrange(system.natom):
             delta = system.pos[i] - system.pos[j]
             for c in xrange(len(system.rvecs)):
                 delta -= system.rvecs[c]*np.floor(np.dot(delta, system.gvecs[c]) + 0.5)
