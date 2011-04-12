@@ -51,7 +51,6 @@ def test_topology_water32():
         elif system.numbers[i] == 1:
             assert len(t.neighs1[i]) == 1
             assert system.numbers[t.neighs1[i][0]] == 8
-            print t.neighs2[i]
             assert len(t.neighs2[i]) == 1
             assert system.numbers[t.neighs2[i][0]] == 1
             assert len(t.neighs3[i]) == 0
@@ -100,7 +99,6 @@ def check_topology_slow(system):
             if dmat[i0, i1] == 1:
                 assert i1 in t.neighs1[i0]
             if dmat[i0, i1] == 2:
-                print i0, i1
                 assert i1 in t.neighs2[i0]
             if dmat[i0, i1] == 3:
                 assert i1 in t.neighs3[i0]
