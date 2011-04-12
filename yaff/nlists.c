@@ -20,8 +20,9 @@
 //
 // --
 
-#include "nlists.h"
 #include <math.h>
+#include "nlists.h"
+#include "mic.h"
 
 
 int nlist_update_low(double *pos, long center_index, double cutoff, long *rmax,
@@ -32,7 +33,7 @@ int nlist_update_low(double *pos, long center_index, double cutoff, long *rmax,
   long other_index, row;
   long *r;
   int update_delta0, i;
-  double delta0[3], delta[3], x;
+  double delta0[3], delta[3], d;
   double *center_pos;
 
   r = nlist_status;
@@ -54,13 +55,7 @@ int nlist_update_low(double *pos, long center_index, double cutoff, long *rmax,
       delta0[2] = center_pos[2] - pos[3*other_index+2];
       // Subtract the cell vectors as to make the relative vector as short
       // as possible. (This is the minimum image convention.)
-      for (i=0; i<nvec; i++) {
-        x = gvecs[3*i]*delta0[0] + gvecs[3*i+1]*delta0[1] + gvecs[3*i+2]*delta0[2];
-        x = ceil(x-0.5);
-        delta0[0] -= x*rvecs[3*i];
-        delta0[1] -= x*rvecs[3*i+1];
-        delta0[2] -= x*rvecs[3*i+2];
-      }
+      mic(delta0, rvecs, gvecs, nvec);
       // Done updating delta0.
       update_delta0 = 0;
     }
@@ -74,18 +69,20 @@ int nlist_update_low(double *pos, long center_index, double cutoff, long *rmax,
       delta[2] += r[i]*rvecs[3*i+2];
     }
     // Compute the distance and store the record if distance is below the cutoff.
-    x = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
-    if (x < cutoff) {
-      (*nlist).i = other_index;
-      (*nlist).d = x;
-      (*nlist).dx = delta[0];
-      (*nlist).dy = delta[1];
-      (*nlist).dz = delta[2];
-      (*nlist).r0 = r[0];
-      (*nlist).r1 = r[1];
-      (*nlist).r2 = r[2];
-      nlist++;
-      row++;
+    d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
+    if (d < cutoff) {
+      if ((r[0]!=0)||(r[1]!=0)||(r[2]!=0)||(center_index<other_index)) {
+        (*nlist).i = other_index;
+        (*nlist).d = d;
+        (*nlist).dx = delta[0];
+        (*nlist).dy = delta[1];
+        (*nlist).dz = delta[2];
+        (*nlist).r0 = r[0];
+        (*nlist).r1 = r[1];
+        (*nlist).r2 = r[2];
+        nlist++;
+        row++;
+      }
     }
     // Increase the appropriate counters in the quadruple loop.
     if (nvec > 0) {

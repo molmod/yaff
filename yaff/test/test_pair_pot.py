@@ -67,7 +67,7 @@ def test_pair_pot_lj_water32_9A():
     check_energy = 0.0
     for i in xrange(system.natom):
         # compute the distances in the neighborlist manually and check.
-        for j in xrange(i, system.natom):
+        for j in xrange(0, system.natom):
             delta = system.pos[i] - system.pos[j]
             delta -= np.floor(delta/(9.865*angstrom)+0.5)*(9.865*angstrom)
             assert abs(delta).max() < 0.5*9.865*angstrom
@@ -90,10 +90,11 @@ def test_pair_pot_lj_water32_9A():
                             # Interactions with neighboring cells are counted
                             # half. (The energy per unit cell is computed.)
                             fac = 0.5
-                        my_delta = delta + np.array([l0,l1,l2])*9.865*angstrom
-                        d = np.linalg.norm(my_delta)
-                        if d <= nlists.cutoff:
-                            check_energy += fac*pair_fn(i, j, d)
+                        if (l0!=0) or (l1!=0) or (l2!=0) or (j>i):
+                            my_delta = delta + np.array([l0,l1,l2])*9.865*angstrom
+                            d = np.linalg.norm(my_delta)
+                            if d <= nlists.cutoff:
+                                check_energy += fac*pair_fn(i, j, d)
     assert abs(energy1 - check_energy) < 1e-15
     assert abs(energy2 - check_energy) < 1e-15
 

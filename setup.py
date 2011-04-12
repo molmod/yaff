@@ -39,7 +39,10 @@ setup(
     packages=['yaff'],
     cmdclass = {'build_ext': build_ext},
     ext_modules=[
-        Extension("yaff.ext", ['yaff/ext.pyx', 'yaff/nlists.c', 'yaff/pair_pot.c']),
+        Extension("yaff.ext", [
+            'yaff/ext.pyx', 'yaff/nlists.c', 'yaff/pair_pot.c',
+            'yaff/ewald.c', 'yaff/mic.c'
+        ]),
     ],
     classifiers=[
         'Development Status :: 3 - Alpha',

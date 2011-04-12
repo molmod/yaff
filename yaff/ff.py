@@ -23,6 +23,8 @@
 
 import numpy as np
 
+from yaff.ext import compute_ewald_reci, compute_ewald_corr
+
 
 __all__ = [
     'ForceField', 'SumForceField', 'PairTerm', 'EwaldReciprocalTerm',
@@ -34,8 +36,11 @@ class ForceField(object):
     def __init__(self, system):
         self.system = system
 
+    def update_rvecs(self, rvecs):
+        self.system.update_rvecs(rvecs)
+
     def update_pos(self, pos):
-        system.pos[:] = pos
+        self.system.pos[:] = pos
 
     def compute(self, gradient=None):
         raise NotImplementedError
@@ -49,7 +54,7 @@ class SumForceField(ForceField):
         self.needs_update = True
 
     def update_rvecs(self, rvecs):
-        self.system.update_rvecs(rvecs)
+        ForceField.update_rvecs(self, pos)
         self.needs_update = True
 
     def update_pos(self, pos):
@@ -61,7 +66,9 @@ class SumForceField(ForceField):
             if self.nlists is not None:
                 self.nlists.update()
             self.needs_update = False
-        return sum(term.compute(gradient) for term in self.terms)
+        l = [term.compute(gradient) for term in self.terms]
+        print l
+        return sum(l)
 
 
 class PairTerm(object):
@@ -73,10 +80,10 @@ class PairTerm(object):
 
     def compute(self, gradient=None):
         assert len(self.nlists) == len(self.scalings)
-        return sum(
+        return sum([
             self.pair_pot.compute(i, self.nlists[i], self.scalings[i], gradient)
             for i in xrange(len(self.nlists))
-        )
+        ])
 
 
 class EwaldReciprocalTerm(object):
@@ -89,7 +96,7 @@ class EwaldReciprocalTerm(object):
 
     def compute(self, gradient=None):
         return compute_ewald_reci(
-            self.system.pos, self.system.rvecs, self.system.gvecs,
+            self.system.pos, self.charges, self.system.gvecs,
             self.system.volume, self.alpha, self.gmax, gradient
         )
 
@@ -100,12 +107,15 @@ class EwaldCorrectionTerm(object):
         self.system = system
         self.charges = charges
         self.alpha = alpha
+        self.scalings = scalings
 
     def compute(self, gradient=None):
-        return sum(
-            compute_ewald_corr(system.pos, self.alpha, self.scalings[i], gradient)
+        return sum([
+            compute_ewald_corr(self.system.pos, i, self.charges,
+                               self.system.rvecs, self.system.gvecs, self.alpha,
+                               self.scalings[i], gradient)
             for i in xrange(len(self.scalings))
-        )
+        ])
 
 
 class EwaldNeutralizingTerm(object):

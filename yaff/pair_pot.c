@@ -54,7 +54,6 @@ void pair_pot_set_cutoff(pair_pot_type *pair_pot, double cutoff) {
 }
 
 double get_scaling(scaling_row_type *scaling, long center_index, long other_index, long *counter, long size) {
-  if (other_index==center_index) return 0.0;
   if (*counter >= size) return 1.0;
   while (scaling[*counter].i < other_index) {
     (*counter)++;

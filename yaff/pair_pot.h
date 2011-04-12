@@ -21,12 +21,12 @@
 // --
 
 
-#ifndef YAFF_PAIRPOT_H
-#define YAFF_PAIRPOT_H
+#ifndef YAFF_PAIR_POT_H
+#define YAFF_PAIR_POT_H
 
 #include "nlists.h"
 
-#define M_TWO_DIV_SQRT_PI 1.12837916709551257
+#define M_TWO_DIV_SQRT_PI 1.1283791670955125739
 
 
 typedef double (*pair_fn_type)(void*, long, long, double, double*);

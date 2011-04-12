@@ -25,6 +25,7 @@ import numpy as np
 cimport numpy as np
 cimport nlists
 cimport pair_pot
+cimport ewald
 
 
 __all__ = [
@@ -44,7 +45,7 @@ def nlist_status_init(center_index, rmax):
     # * r2
     # * other_index
     # * number of rows consumed
-    result = np.array([0, 0, 0, center_index, 0], int)
+    result = np.array([0, 0, 0, 0, 0], int)
     for i in xrange(len(rmax)):
         if len(rmax) > 0:
             result[i] = -rmax[i]
@@ -130,7 +131,8 @@ cdef class PairPot:
 
 
 cdef class PairPotLJ(PairPot):
-    def __cinit__(self, np.ndarray[np.float64_t, ndim=1] sigmas, np.ndarray[np.float64_t, ndim=1] epsilons, double cutoff):
+    def __cinit__(self, np.ndarray[np.float64_t, ndim=1] sigmas,
+                  np.ndarray[np.float64_t, ndim=1] epsilons, double cutoff):
         assert sigmas.flags['C_CONTIGUOUS']
         assert epsilons.flags['C_CONTIGUOUS']
         assert sigmas.shape[0] == epsilons.shape[0]
@@ -149,8 +151,62 @@ cdef class PairPotEI(PairPot):
             raise MemoryError()
 
 
-def compute_ewald_reci(pos, rvecs, gvecs, volume, alpha, gmax, gradient):
-    pass
+#
+# Ewald summation stuff
+#
 
-def compute_ewald_corr(pos, alpha, scaling, gradient):
-    pass
+
+def compute_ewald_reci(np.ndarray[np.float64_t, ndim=2] pos,
+                       np.ndarray[np.float64_t, ndim=1] charges,
+                       np.ndarray[np.float64_t, ndim=2] gvecs, double volume,
+                       double alpha, np.ndarray[np.long_t, ndim=1] gmax,
+                       np.ndarray[np.float64_t, ndim=2] gradient):
+    assert pos.flags['C_CONTIGUOUS']
+    assert pos.shape[1] == 3
+    assert charges.flags['C_CONTIGUOUS']
+    assert charges.shape[0] == pos.shape[0]
+    assert gvecs.flags['C_CONTIGUOUS']
+    assert gvecs.shape[0] == 3
+    assert gvecs.shape[1] == 3
+    assert volume > 0
+    assert alpha > 0
+    assert gmax.flags['C_CONTIGUOUS']
+    assert gmax.shape[0] == 3
+    if gradient is not None:
+        assert gradient.flags['C_CONTIGUOUS']
+        assert gradient.shape[1] == 3
+        assert gradient.shape[0] == pos.shape[0]
+    return ewald.compute_ewald_reci(<double*>pos.data, len(pos),
+                                    <double*>charges.data, <double*>gvecs.data,
+                                    volume, alpha, <long*>gmax.data,
+                                    <double*>gradient.data)
+
+
+def compute_ewald_corr(np.ndarray[np.float64_t, ndim=2] pos,
+                       long center_index,
+                       np.ndarray[np.float64_t, ndim=1] charges,
+                       np.ndarray[np.float64_t, ndim=2] rvecs,
+                       np.ndarray[np.float64_t, ndim=2] gvecs, double alpha,
+                       np.ndarray[pair_pot.scaling_row_type, ndim=1] scaling,
+                       np.ndarray[np.float64_t, ndim=2] gradient):
+    assert pos.flags['C_CONTIGUOUS']
+    assert pos.shape[1] == 3
+    assert charges.flags['C_CONTIGUOUS']
+    assert charges.shape[0] == pos.shape[0]
+    assert rvecs.flags['C_CONTIGUOUS']
+    assert rvecs.shape[0] == 3
+    assert rvecs.shape[1] == 3
+    assert gvecs.flags['C_CONTIGUOUS']
+    assert gvecs.shape[0] == 3
+    assert gvecs.shape[1] == 3
+    assert alpha > 0
+    assert scaling.flags['C_CONTIGUOUS']
+    if gradient is not None:
+        assert gradient.flags['C_CONTIGUOUS']
+        assert gradient.shape[1] == 3
+        assert gradient.shape[0] == pos.shape[0]
+    return ewald.compute_ewald_corr(<double*>pos.data, center_index,
+                                    <double*>charges.data, <double*>rvecs.data,
+                                    <double*>gvecs.data, alpha,
+                                    <pair_pot.scaling_row_type*>scaling.data,
+                                    len(scaling), <double*>gradient.data)
