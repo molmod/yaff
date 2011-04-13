@@ -23,5 +23,13 @@
 
 __all__ = ['InternalCoordinateList']
 
+
 class InternalCoordinateList(object):
-    pass
+    def __init__(self, dlist):
+        self.dlist = dlist
+        self.ictab = np.array((10, 5), int)
+        self.lookup = {}
+        self.nic = 0
+
+    def add_ic(self, ic):
+        pass
