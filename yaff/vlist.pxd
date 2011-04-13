@@ -20,14 +20,15 @@
 #
 # --
 
-cimport dlist
 
-cdef extern from "iclist.h":
-    ctypedef struct iclist_row_type:
+cimport iclist
+
+cdef extern from "vlist.h":
+    ctypedef struct vlist_row_type:
         long kind
-        long i0, sign0, i1, sign1, i2, sign2, i3, sign3
-        double value
-
-    void iclist_forward(dlist.dlist_row_type* deltas, iclist_row_type* ictab, long nic)
+        double par0, par1, par2, par3
+        long ic0, ic1
+        
+    double vlist_forward(iclist.iclist_row_type* ictab, vlist_row_type* vtab, long nv)
 
 

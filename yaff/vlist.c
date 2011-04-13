@@ -20,17 +20,28 @@
 //
 // --
 
-#ifndef YAFF_ICLIST_H
-#define YAFF_ICLIST_H
 
-#include "dlist.h"
+#include <math.h>
+#include "vlist.h"
 
-typedef struct {
-  long kind;
-  long i0, sign0, i1, sign1, i2, sign2, i3, sign3;
-  double value;
-} iclist_row_type;
+typedef double (*v_forward_type)(vlist_row_type*, iclist_row_type*);
 
-void iclist_forward(dlist_row_type* deltas, iclist_row_type* ictab, long nic);
+double forward_harmonic(vlist_row_type* term, iclist_row_type* ictab) {
+  double x;
+  x = ictab[(*term).ic0].value - (*term).par1;
+  return 0.5*((*term).par0)*x*x;
+}
 
-#endif
+v_forward_type v_forward_fns[1] = {
+  forward_harmonic
+};
+
+double vlist_forward(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
+  long i;
+  double energy;
+  energy = 0.0;
+  for (i=0; i<nv; i++) {
+    energy += v_forward_fns[vtab[i].kind](vtab + i, ictab);
+  }
+  return energy;
+}

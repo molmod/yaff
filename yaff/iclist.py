@@ -62,8 +62,7 @@ class InternalCoordinateList(object):
                 self.ictab[row]['sign%i'%i] = rows_signs[i][1]
             self.lookup[key] = row
             self.nic += 1
-        else:
-            return row
+        return row
 
     def forward(self):
         iclist_forward(self.dlist.deltas, self.ictab, self.nic)

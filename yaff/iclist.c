@@ -24,7 +24,7 @@
 #include <math.h>
 #include "iclist.h"
 
-typedef double (*ic_forward_type)(iclist_row_type* ic, dlist_row_type* deltas);
+typedef double (*ic_forward_type)(iclist_row_type*, dlist_row_type*);
 
 double forward_bond(iclist_row_type* ic, dlist_row_type* deltas) {
   double *delta;
@@ -55,9 +55,9 @@ ic_forward_type ic_forward_fns[3] = {
   forward_bond, forward_bend_cos, forward_bend_angle
 };
 
-void iclist_forward(dlist_row_type* deltas, iclist_row_type* ics, long nic) {
+void iclist_forward(dlist_row_type* deltas, iclist_row_type* ictab, long nic) {
   long i;
   for (i=0; i<nic; i++) {
-    ics[i].value = ic_forward_fns[ics[i].kind](ics + i, deltas);
+    ictab[i].value = ic_forward_fns[ictab[i].kind](ictab + i, deltas);
   }
 }

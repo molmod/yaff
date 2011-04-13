@@ -20,17 +20,18 @@
 //
 // --
 
-#ifndef YAFF_ICLIST_H
-#define YAFF_ICLIST_H
 
-#include "dlist.h"
+#ifndef YAFF_VLIST_H
+#define YAFF_VLIST_H
+
+#include "iclist.h"
 
 typedef struct {
   long kind;
-  long i0, sign0, i1, sign1, i2, sign2, i3, sign3;
-  double value;
-} iclist_row_type;
+  double par0, par1, par2, par3;
+  long ic0, ic1;
+} vlist_row_type;
 
-void iclist_forward(dlist_row_type* deltas, iclist_row_type* ictab, long nic);
+double vlist_forward(iclist_row_type* ictab, vlist_row_type* vtab, long nv);
 
 #endif

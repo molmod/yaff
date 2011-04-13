@@ -21,8 +21,54 @@
 # --
 
 
-__all__ = ['ValenceList']
+import numpy as np
+
+from yaff.ext import vlist_forward
+
+
+__all__ = ['ValenceList', 'ValenceTerm', 'Harmonic']
+
+
+vlist_dtype = [
+    ('kind', int),
+    ('par0', float), ('par1', float), ('par2', float), ('par3', float),
+    ('ic0', int), ('ic1', int),
+]
 
 
 class ValenceList(object):
-    pass
+    def __init__(self, iclist):
+        self.iclist = iclist
+        self.vtab = np.zeros(10, vlist_dtype)
+        self.nv = 0
+
+    def add_term(self, term):
+        if self.nv >= len(self.vtab):
+            self.vtab = np.resize(self.vtab, int(len(self.vtab)*1.5))
+        row = self.nv
+        self.vtab['kind'] = term.kind
+        for i in xrange(len(term.pars)):
+            self.vtab[row]['par%i'%i] = term.pars[i]
+        ic_indexes = term.get_ic_indexes(self.iclist)
+        for i in xrange(len(ic_indexes)):
+            self.vtab[row]['ic%i'%i] = ic_indexes[i]
+        self.nv += 1
+
+    def forward(self):
+        return vlist_forward(self.iclist.ictab, self.vtab, self.nv)
+
+
+class ValenceTerm(object):
+    kind = None
+    def __init__(self, pars, ics):
+        self.pars = pars
+        self.ics = ics
+
+    def get_ic_indexes(self, iclist):
+        return [iclist.add_ic(ic) for ic in self.ics]
+
+
+class Harmonic(ValenceTerm):
+    kind = 0
+    def __init__(self, fc, rv, ic):
+        ValenceTerm.__init__(self, [fc, rv], [ic])
