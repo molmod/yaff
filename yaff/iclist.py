@@ -87,10 +87,10 @@ class Bond(InternalCoordinate):
 class BendCos(InternalCoordinate):
     kind = 1
     def __init__(self, i, j, k):
-        InternalCoordinate.__init__(self, [(i, j), (j, k)])
+        InternalCoordinate.__init__(self, [(j, i), (j, k)])
 
 
 class BendAngle(InternalCoordinate):
     kind = 2
     def __init__(self, i, j, k):
-        InternalCoordinate.__init__(self, [(i, j), (j, k)])
+        InternalCoordinate.__init__(self, [(j, i), (j, k)])

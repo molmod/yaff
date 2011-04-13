@@ -22,7 +22,7 @@
 
 
 import numpy as np
-from molmod import bond_length
+from molmod import bond_length, bend_angle, bend_cos
 
 from yaff import *
 
@@ -41,3 +41,49 @@ def test_ic_list_quartz_bonds():
         for c in xrange(len(system.rvecs)):
             delta -= system.rvecs[c]*np.ceil(np.dot(delta, system.gvecs[c]) - 0.5)
         assert abs(iclist.ictab[row]['value'] - bond_length(np.zeros(3, float), delta)[0]) < 1e-5
+
+
+def test_ic_list_quartz_bend_cos():
+    system = get_system_quartz()
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    angles = []
+    for i1 in xrange(system.natom):
+        for i0 in system.topology.neighs1[i1]:
+            for i2 in system.topology.neighs1[i1]:
+                if i0 > i2:
+                    iclist.add_ic(BendCos(i0, i1, i2))
+                    angles.append((i0, i1, i2))
+    dlist.forward()
+    iclist.forward()
+    for row, (i0, i1, i2) in enumerate(angles):
+        delta0 = system.pos[i0] - system.pos[i1]
+        for c in xrange(len(system.rvecs)):
+            delta0 -= system.rvecs[c]*np.ceil(np.dot(delta0, system.gvecs[c]) - 0.5)
+        delta2 = system.pos[i2] - system.pos[i1]
+        for c in xrange(len(system.rvecs)):
+            delta2 -= system.rvecs[c]*np.ceil(np.dot(delta2, system.gvecs[c]) - 0.5)
+        assert abs(iclist.ictab[row]['value'] - bend_cos(delta0, np.zeros(3, float), delta2)[0]) < 1e-5
+
+
+def test_ic_list_quartz_bend_angle():
+    system = get_system_quartz()
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    angles = []
+    for i1 in xrange(system.natom):
+        for i0 in system.topology.neighs1[i1]:
+            for i2 in system.topology.neighs1[i1]:
+                if i0 > i2:
+                    iclist.add_ic(BendAngle(i0, i1, i2))
+                    angles.append((i0, i1, i2))
+    dlist.forward()
+    iclist.forward()
+    for row, (i0, i1, i2) in enumerate(angles):
+        delta0 = system.pos[i0] - system.pos[i1]
+        for c in xrange(len(system.rvecs)):
+            delta0 -= system.rvecs[c]*np.ceil(np.dot(delta0, system.gvecs[c]) - 0.5)
+        delta2 = system.pos[i2] - system.pos[i1]
+        for c in xrange(len(system.rvecs)):
+            delta2 -= system.rvecs[c]*np.ceil(np.dot(delta2, system.gvecs[c]) - 0.5)
+        assert abs(iclist.ictab[row]['value'] - bend_angle(delta0, np.zeros(3, float), delta2)[0]) < 1e-5
