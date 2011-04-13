@@ -30,8 +30,8 @@ from yaff.vlist import ValenceList
 
 
 __all__ = [
-    'ForceField', 'SumForceField', 'PairTerm', 'EwaldReciprocalTerm',
-    'EwaldCorrectionTerm', 'EwaldNeutralizingTerm',
+    'ForceField', 'SumForceField', 'PairPart', 'EwaldReciprocalPart',
+    'EwaldCorrectionPart', 'EwaldNeutralizingPart',
 ]
 
 
@@ -50,9 +50,9 @@ class ForceField(object):
 
 
 class SumForceField(ForceField):
-    def __init__(self, system, terms, nlists=None):
+    def __init__(self, system, parts, nlists=None):
         ForceField.__init__(self, system)
-        self.terms = terms
+        self.parts = parts
         self.nlists = nlists
         self.needs_update = True
 
@@ -69,10 +69,10 @@ class SumForceField(ForceField):
             if self.nlists is not None:
                 self.nlists.update()
             self.needs_update = False
-        return sum([term.compute(gradient) for term in self.terms])
+        return sum([part.compute(gradient) for part in self.parts])
 
 
-class PairTerm(object):
+class PairPart(object):
     def __init__(self, nlists, scalings, pair_pot):
         self.nlists = nlists
         self.scalings = scalings
@@ -87,7 +87,7 @@ class PairTerm(object):
         ])
 
 
-class EwaldReciprocalTerm(object):
+class EwaldReciprocalPart(object):
     def __init__(self, system, charges, alpha, gmax):
         assert len(system.rvecs) == 3
         self.system = system
@@ -103,7 +103,7 @@ class EwaldReciprocalTerm(object):
         )
 
 
-class EwaldCorrectionTerm(object):
+class EwaldCorrectionPart(object):
     def __init__(self, system, charges, alpha, scalings):
         assert len(system.rvecs) == 3
         self.system = system
@@ -120,7 +120,7 @@ class EwaldCorrectionTerm(object):
         ])
 
 
-class EwaldNeutralizingTerm(object):
+class EwaldNeutralizingPart(object):
     def __init__(self, system, charges, alpha):
         assert len(system.rvecs) == 3
         self.system = system
@@ -131,7 +131,7 @@ class EwaldNeutralizingTerm(object):
         return self.charges.sum()**2*np.pi/(2.0*system.volume*self.alpha**2)
 
 
-class ValenceTerm(object):
+class ValencePart(object):
     def __init__(self, system):
         self.dlist = DeltaList(system)
         self.iclist = InternalCoordinateList(self.dlist)

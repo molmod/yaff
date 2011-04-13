@@ -26,12 +26,12 @@ from scipy.special import erfc
 
 from molmod import angstrom, kcalmol
 
-from common import get_system_water32, get_system_caffeine, check_gradient_term
+from common import get_system_water32, get_system_caffeine, check_gradient_part
 
 from yaff import *
 
 
-def get_term_water32_9A_lj():
+def get_part_water32_9A_lj():
     # Initialize system, topology and scaling
     system = get_system_water32()
     nlists = NeighborLists(system)
@@ -44,26 +44,26 @@ def get_term_water32_9A_lj():
     for i in xrange(system.natom):
         sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
         epsilons[i] = epsilon_table[system.numbers[i]]
-    # Create the pair_pot and pair_term
+    # Create the pair_pot and pair_part
     pair_pot = PairPotLJ(sigmas, epsilons, 9*angstrom)
-    pair_term = PairTerm(nlists, scalings, pair_pot)
+    pair_part = PairPart(nlists, scalings, pair_pot)
     # Create a pair function:
     def pair_fn(i, j, d):
         sigma = 0.5*(sigmas[i]+sigmas[j])
         epsilon = np.sqrt(epsilons[i]*epsilons[j])
         x = (sigma/d)**6
         return 4*epsilon*(x*(x-1))
-    return system, nlists, scalings, pair_pot, pair_term, pair_fn
+    return system, nlists, scalings, pair_pot, pair_part, pair_fn
 
 
 
 def test_pair_pot_lj_water32_9A():
-    system, nlists, scalings, pair_pot, pair_term, pair_fn = get_term_water32_9A_lj()
+    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_water32_9A_lj()
     nlists.update() # update the neighborlists, once the cutoffs are known.
     # Compute the energy using yaff.
-    energy1 = pair_term.compute()
+    energy1 = pair_part.compute()
     gradient = np.zeros(system.pos.shape, float)
-    energy2 = pair_term.compute(gradient)
+    energy2 = pair_part.compute(gradient)
     # Compute the energy manually
     check_energy = 0.0
     for i in xrange(system.natom):
@@ -100,7 +100,7 @@ def test_pair_pot_lj_water32_9A():
     assert abs(energy2 - check_energy) < 1e-15
 
 
-def get_term_caffeine_lj_15A():
+def get_part_caffeine_lj_15A():
     # Get a system and define scalings
     system = get_system_caffeine()
     nlists = NeighborLists(system)
@@ -123,24 +123,24 @@ def get_term_caffeine_lj_15A():
     for i in xrange(system.natom):
         sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
         epsilons[i] = epsilon_table[system.numbers[i]]
-    # Construct the pair potential and term
+    # Construct the pair potential and part
     pair_pot = PairPotLJ(sigmas, epsilons, 15*angstrom)
-    pair_term = PairTerm(nlists, scalings, pair_pot)
+    pair_part = PairPart(nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
         sigma = 0.5*(sigmas[i]+sigmas[j])
         epsilon = np.sqrt(epsilons[i]*epsilons[j])
         x = (sigma/d)**6
         return 4*epsilon*(x*(x-1))
-    return system, nlists, scalings, pair_pot, pair_term, pair_fn
+    return system, nlists, scalings, pair_pot, pair_part, pair_fn
 
 
 def test_pair_pot_lj_caffeine_15A():
-    system, nlists, scalings, pair_pot, pair_term, pair_fn = get_term_caffeine_lj_15A()
-    check_pair_pot_caffeine(system, nlists, scalings, pair_term, pair_fn, 1e-15)
+    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_lj_15A()
+    check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, 1e-15)
 
 
-def get_term_caffeine_ei1_10A():
+def get_part_caffeine_ei1_10A():
     # Get a system and define scalings
     system = get_system_caffeine()
     nlists = NeighborLists(system)
@@ -148,23 +148,23 @@ def get_term_caffeine_ei1_10A():
     # Initialize (random) parameters
     charges = np.random.uniform(0, 1, system.natom)
     charges -= charges.sum()
-    # Construct the pair potential and term
+    # Construct the pair potential and part
     cutoff = 10*angstrom
     alpha = 3.5/cutoff
     pair_pot = PairPotEI(charges, alpha, cutoff)
-    pair_term = PairTerm(nlists, scalings, pair_pot)
+    pair_part = PairPart(nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
         return charges[i]*charges[j]*erfc(alpha*d)/d
-    return system, nlists, scalings, pair_pot, pair_term, pair_fn
+    return system, nlists, scalings, pair_pot, pair_part, pair_fn
 
 
 def test_pair_pot_ei1_caffeine_10A():
-    system, nlists, scalings, pair_pot, pair_term, pair_fn = get_term_caffeine_ei1_10A()
-    check_pair_pot_caffeine(system, nlists, scalings, pair_term, pair_fn, 1e-9)
+    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_ei1_10A()
+    check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, 1e-9)
 
 
-def get_term_caffeine_ei2_10A():
+def get_part_caffeine_ei2_10A():
     # Get a system and define scalings
     system = get_system_caffeine()
     nlists = NeighborLists(system)
@@ -172,27 +172,27 @@ def get_term_caffeine_ei2_10A():
     # Initialize (random) parameters
     charges = np.random.uniform(0, 1, system.natom)
     charges -= charges.sum()
-    # Construct the pair potential and term
+    # Construct the pair potential and part
     cutoff = 10*angstrom
     alpha = 0.0
     pair_pot = PairPotEI(charges, alpha, cutoff)
-    pair_term = PairTerm(nlists, scalings, pair_pot)
+    pair_part = PairPart(nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
         return charges[i]*charges[j]*erfc(alpha*d)/d
-    return system, nlists, scalings, pair_pot, pair_term, pair_fn
+    return system, nlists, scalings, pair_pot, pair_part, pair_fn
 
 def test_pair_pot_ei2_caffeine_10A():
-    system, nlists, scalings, pair_pot, pair_term, pair_fn = get_term_caffeine_ei2_10A()
-    check_pair_pot_caffeine(system, nlists, scalings, pair_term, pair_fn, 1e-8)
+    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_ei2_10A()
+    check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, 1e-8)
 
 
-def check_pair_pot_caffeine(system, nlists, scalings, pair_term, pair_fn, eps):
+def check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, eps):
     nlists.update() # update the neighborlists, once the cutoffs are known.
     # Compute the energy using yaff.
-    energy1 = pair_term.compute()
+    energy1 = pair_part.compute()
     gradient = np.zeros(system.pos.shape, float)
-    energy2 = pair_term.compute(gradient)
+    energy2 = pair_part.compute(gradient)
     # Compute the energy manually
     check_energy = 0.0
     for i in xrange(system.natom):
@@ -216,15 +216,15 @@ def check_pair_pot_caffeine(system, nlists, scalings, pair_term, pair_fn, eps):
 
 
 def test_gradient_pair_pot_caffeine_lj_15A():
-    system, nlists, scalings, pair_pot, pair_term, pair_fn = get_term_caffeine_lj_15A()
-    check_gradient_term(system, pair_term, 1e-10, nlists)
+    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_lj_15A()
+    check_gradient_part(system, pair_part, 1e-10, nlists)
 
 
 def test_gradient_pair_pot_caffeine_ei1_10A():
-    system, nlists, scalings, pair_pot, pair_term, pair_fn = get_term_caffeine_ei1_10A()
-    check_gradient_term(system, pair_term, 1e-8, nlists)
+    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_ei1_10A()
+    check_gradient_part(system, pair_part, 1e-8, nlists)
 
 
 def test_gradient_pair_pot_caffeine_ei2_10A():
-    system, nlists, scalings, pair_pot, pair_term, pair_fn = get_term_caffeine_ei2_10A()
-    check_gradient_term(system, pair_term, 1e-8, nlists)
+    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_ei2_10A()
+    check_gradient_part(system, pair_part, 1e-8, nlists)

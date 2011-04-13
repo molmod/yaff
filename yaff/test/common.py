@@ -29,24 +29,24 @@ from yaff import *
 
 
 __all__ = [
-    'check_gradient_term',
+    'check_gradient_part',
     'get_system_water32', 'get_system_graphene8',
     'get_system_polyethylene4', 'get_system_quartz', 'get_system_glycine',
     'get_system_cyclopropene', 'get_system_caffeine', 'get_system_butanol',
 ]
 
 
-def check_gradient_term(system, term, eps, nlists=None):
+def check_gradient_part(system, part, eps, nlists=None):
     def fn(x, do_gradient=False):
         system.pos[:] = x.reshape(system.natom, 3)
         if nlists is not None:
             nlists.update()
         if do_gradient:
             g = np.zeros(system.pos.shape, float)
-            e = term.compute(g)
+            e = part.compute(g)
             return e, g.ravel()
         else:
-            return term.compute()
+            return part.compute()
 
     x = system.pos.ravel()
     dxs = np.random.normal(0, 1e-4, (100, len(x)))
