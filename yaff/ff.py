@@ -23,8 +23,10 @@
 
 import numpy as np
 
-from yaff import compute_ewald_reci, compute_ewald_corr, DeltaList, \
-    InternalCoordinateList, ValenceList
+from yaff.ext import compute_ewald_reci, compute_ewald_corr
+from yaff.dlist import DeltaList
+from yaff.iclist import InternalCoordinateList
+from yaff.vlist import ValenceList
 
 
 __all__ = [
