@@ -64,7 +64,6 @@ class DeltaList(object):
         return row, sign
 
     def forward(self):
-        print self.ndelta
         dlist_forward(self.system.pos, self.system.rvecs, self.system.gvecs, self.deltas, self.ndelta)
 
     def back(self, gradient):
