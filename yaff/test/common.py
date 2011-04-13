@@ -44,9 +44,13 @@ def check_gradient_part(system, part, eps, nlists=None):
         if do_gradient:
             g = np.zeros(system.pos.shape, float)
             e = part.compute(g)
+            assert np.isfinite(e)
+            assert np.isfinite(g).all()
             return e, g.ravel()
         else:
-            return part.compute()
+            e = part.compute()
+            assert np.isfinite(e)
+            return e
 
     x = system.pos.ravel()
     dxs = np.random.normal(0, 1e-4, (100, len(x)))
@@ -59,10 +63,13 @@ def check_gradient_ff(ff, eps):
         if do_gradient:
             g = np.zeros(ff.system.pos.shape, float)
             e = ff.compute(g)
-            print g
+            assert np.isfinite(e)
+            assert np.isfinite(g).all()
             return e, g.ravel()
         else:
-            return ff.compute()
+            e = ff.compute()
+            assert np.isfinite(e)
+            return e
 
     x = ff.system.pos.ravel()
     dxs = np.random.normal(0, 1e-4, (100, len(x)))

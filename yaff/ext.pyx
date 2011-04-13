@@ -140,6 +140,9 @@ cdef class PairPot:
 
 
 cdef class PairPotLJ(PairPot):
+    cdef np.ndarray sigmas
+    cdef np.ndarray epsilons
+
     def __cinit__(self, np.ndarray[double, ndim=1] sigmas,
                   np.ndarray[double, ndim=1] epsilons, double cutoff, bint smooth):
         assert sigmas.flags['C_CONTIGUOUS']
@@ -150,16 +153,20 @@ cdef class PairPotLJ(PairPot):
         pair_pot.pair_data_lj_init(self._c_pair_pot, <double*>sigmas.data, <double*>epsilons.data)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
+        self.sigmas = sigmas
+        self.epsilons = epsilons
 
 
 cdef class PairPotEI(PairPot):
+    cdef np.ndarray charges
+
     def __cinit__(self, np.ndarray[double, ndim=1] charges, double alpha, double cutoff):
         assert charges.flags['C_CONTIGUOUS']
         pair_pot.pair_pot_set_cutoff(self._c_pair_pot, cutoff)
         pair_pot.pair_data_ei_init(self._c_pair_pot, <double*>charges.data, alpha)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
-
+        self.charges = charges
 
 #
 # Ewald summation stuff

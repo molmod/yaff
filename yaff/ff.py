@@ -57,7 +57,7 @@ class SumForceField(ForceField):
         self.needs_update = True
 
     def update_rvecs(self, rvecs):
-        ForceField.update_rvecs(self, pos)
+        ForceField.update_rvecs(self, rvecs)
         self.needs_update = True
 
     def update_pos(self, pos):
@@ -81,10 +81,10 @@ class PairPart(object):
 
     def compute(self, gradient=None):
         assert len(self.nlists) == len(self.scalings)
-        return sum([
-            self.pair_pot.compute(i, self.nlists[i], self.scalings[i], gradient)
-            for i in xrange(len(self.nlists))
-        ])
+        result = 0.0
+        for i in xrange(len(self.nlists)):
+            result += self.pair_pot.compute(i, self.nlists[i], self.scalings[i], gradient)
+        return result
 
 
 class EwaldReciprocalPart(object):
