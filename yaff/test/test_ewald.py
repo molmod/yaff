@@ -104,7 +104,8 @@ def test_ewald_gradient_corr_quartz():
     system = get_system_quartz()
     charges = 1.8 - (system.numbers == 8)*2.7
     scalings = Scalings(system.topology, 0.0, 0.0, 0.5)
-    for alpha, eps in (0.1, 1e-12), (0.2, 1e-11), (0.5, 1e-12):
+    for alpha, eps in (0.1, 1e-12), (0.2, 1e-11), (0.5, 1e-11):
+        print alpha, eps
         gmax = np.ceil(alpha*2.0/system.gspacings-0.5).astype(int)
         ewald_corr_term = EwaldCorrectionTerm(system, charges, alpha, scalings)
         check_gradient_term(system, ewald_corr_term, eps)
