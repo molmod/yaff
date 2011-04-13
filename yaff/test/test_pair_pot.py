@@ -45,16 +45,16 @@ def get_part_water32_9A_lj():
         sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
         epsilons[i] = epsilon_table[system.numbers[i]]
     # Create the pair_pot and pair_part
-    pair_pot = PairPotLJ(sigmas, epsilons, 9*angstrom)
+    cutoff = 9*angstrom
+    pair_pot = PairPotLJ(sigmas, epsilons, cutoff, True)
     pair_part = PairPart(nlists, scalings, pair_pot)
     # Create a pair function:
     def pair_fn(i, j, d):
         sigma = 0.5*(sigmas[i]+sigmas[j])
         epsilon = np.sqrt(epsilons[i]*epsilons[j])
         x = (sigma/d)**6
-        return 4*epsilon*(x*(x-1))
+        return 4*epsilon*(x*(x-1))*np.exp(1.0/(d-cutoff))
     return system, nlists, scalings, pair_pot, pair_part, pair_fn
-
 
 
 def test_pair_pot_lj_water32_9A():
@@ -124,7 +124,7 @@ def get_part_caffeine_lj_15A():
         sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
         epsilons[i] = epsilon_table[system.numbers[i]]
     # Construct the pair potential and part
-    pair_pot = PairPotLJ(sigmas, epsilons, 15*angstrom)
+    pair_pot = PairPotLJ(sigmas, epsilons, 15*angstrom, False)
     pair_part = PairPart(nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
@@ -213,6 +213,11 @@ def check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, eps):
                 check_energy += fac*pair_fn(i, j, d)
     assert abs(energy1 - check_energy) < eps
     assert abs(energy2 - check_energy) < eps
+
+
+def test_gradient_pair_pot_water_lj_9A():
+    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_water32_9A_lj()
+    check_gradient_part(system, pair_part, 1e-10, nlists)
 
 
 def test_gradient_pair_pot_caffeine_lj_15A():

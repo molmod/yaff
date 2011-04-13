@@ -37,6 +37,8 @@ cdef extern from "pair_pot.h":
     bint pair_pot_ready(pair_pot_type *pair_pot)
     double pair_pot_get_cutoff(pair_pot_type *pair_pot)
     void pair_pot_set_cutoff(pair_pot_type *pair_pot, double cutoff)
+    bint pair_pot_get_smooth(pair_pot_type *pair_pot)
+    void pair_pot_set_smooth(pair_pot_type *pair_pot, bint smooth)
     void pair_data_free(pair_pot_type *pair_pot)
     
     double pair_pot_energy_gradient(long center_index, nlists.nlist_row_type* nlist,

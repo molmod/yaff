@@ -29,7 +29,7 @@ from yaff import *
 
 
 __all__ = [
-    'check_gradient_part',
+    'check_gradient_part', 'check_gradient_ff',
     'get_system_water32', 'get_system_graphene8',
     'get_system_polyethylene4', 'get_system_quartz', 'get_system_glycine',
     'get_system_cyclopropene', 'get_system_caffeine', 'get_system_butanol',
@@ -49,6 +49,22 @@ def check_gradient_part(system, part, eps, nlists=None):
             return part.compute()
 
     x = system.pos.ravel()
+    dxs = np.random.normal(0, 1e-4, (100, len(x)))
+    check_delta(fn, x, dxs, eps)
+
+
+def check_gradient_ff(ff, eps):
+    def fn(x, do_gradient=False):
+        ff.update_pos(x.reshape(ff.system.natom, 3))
+        if do_gradient:
+            g = np.zeros(ff.system.pos.shape, float)
+            e = ff.compute(g)
+            print g
+            return e, g.ravel()
+        else:
+            return ff.compute()
+
+    x = ff.system.pos.ravel()
     dxs = np.random.normal(0, 1e-4, (100, len(x)))
     check_delta(fn, x, dxs, eps)
 

@@ -111,6 +111,11 @@ cdef class PairPot:
 
     cutoff = property(get_cutoff)
 
+    def get_smooth(self):
+        return pair_pot.pair_pot_get_smooth(self._c_pair_pot)
+
+    smooth = property(get_smooth)
+
     def compute(self, long center_index,
                 np.ndarray[nlists.nlist_row_type, ndim=1] nlist,
                 np.ndarray[pair_pot.scaling_row_type, ndim=1] scaling,
@@ -136,11 +141,12 @@ cdef class PairPot:
 
 cdef class PairPotLJ(PairPot):
     def __cinit__(self, np.ndarray[double, ndim=1] sigmas,
-                  np.ndarray[double, ndim=1] epsilons, double cutoff):
+                  np.ndarray[double, ndim=1] epsilons, double cutoff, bint smooth):
         assert sigmas.flags['C_CONTIGUOUS']
         assert epsilons.flags['C_CONTIGUOUS']
         assert sigmas.shape[0] == epsilons.shape[0]
         pair_pot.pair_pot_set_cutoff(self._c_pair_pot, cutoff)
+        pair_pot.pair_pot_set_smooth(self._c_pair_pot, smooth)
         pair_pot.pair_data_lj_init(self._c_pair_pot, <double*>sigmas.data, <double*>epsilons.data)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()

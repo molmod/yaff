@@ -34,6 +34,7 @@ pair_pot_type* pair_pot_new(void) {
     (*result).pair_data = NULL;
     (*result).pair_fn = NULL;
     (*result).cutoff = 0.0;
+    (*result).smooth = 0;
   }
   return result;
 }
@@ -54,6 +55,15 @@ void pair_pot_set_cutoff(pair_pot_type *pair_pot, double cutoff) {
   (*pair_pot).cutoff = cutoff;
 }
 
+int pair_pot_get_smooth(pair_pot_type *pair_pot) {
+  return (*pair_pot).smooth;
+}
+
+void pair_pot_set_smooth(pair_pot_type *pair_pot, int smooth) {
+  (*pair_pot).smooth = smooth;
+}
+
+
 double get_scaling(scaling_row_type *scaling, long center_index, long other_index, long *counter, long size) {
   if (*counter >= size) return 1.0;
   while (scaling[*counter].i < other_index) {
@@ -66,12 +76,27 @@ double get_scaling(scaling_row_type *scaling, long center_index, long other_inde
   return 1.0;
 }
 
+
+double hammer(double d, double c, double *g) {
+  double result, x;
+  if (d < c) {
+    x = d - c;
+    result = exp(1.0/x);
+    if (g != NULL) *g = -result/x/x;
+  } else {
+    result = 0.0;
+    if (g != NULL) *g = 0.0;
+  }
+  return result;
+}
+
+
 double pair_pot_energy_gradient(long center_index, nlist_row_type *nlist,
                                 long nlist_size, scaling_row_type *scaling,
                                 long scaling_size, pair_pot_type *pair_pot,
                                 double *gradient) {
   long i, other_index, scaling_counter;
-  double s, energy, g;
+  double s, energy, v, vg, h, hg;
   energy = 0.0;
   // Reset the counter for the scaling.
   scaling_counter = 0;
@@ -89,19 +114,26 @@ double pair_pot_energy_gradient(long center_index, nlist_row_type *nlist,
       if (s > 0.0) {
         if (gradient==NULL) {
           // Call the potential function without g argument.
-          energy += s*(*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, nlist[i].d, NULL);
+          v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, nlist[i].d, NULL);
+          if ((*pair_pot).smooth) v *= hammer(nlist[i].d, (*pair_pot).cutoff, NULL);
         } else {
-          // Call the potential function with g argument.
-          // g is the derivative of the pair potential divided by the distance.
-          energy += s*(*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, nlist[i].d, &g);
-          g *= s;
-          gradient[3*center_index  ] += nlist[i].dx*g;
-          gradient[3*center_index+1] += nlist[i].dy*g;
-          gradient[3*center_index+2] += nlist[i].dz*g;
-          gradient[3*other_index  ] -= nlist[i].dx*g;
-          gradient[3*other_index+1] -= nlist[i].dy*g;
-          gradient[3*other_index+2] -= nlist[i].dz*g;
+          // Call the potential function with vg argument.
+          // vg is the derivative of the pair potential divided by the distance.
+          v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, nlist[i].d, &vg);
+          if ((*pair_pot).smooth) {
+            h = hammer(nlist[i].d, (*pair_pot).cutoff, &hg);
+            vg = vg*h + v*hg/nlist[i].d;
+            v *= h;
+          }
+          vg *= s;
+          gradient[3*center_index  ] += nlist[i].dx*vg;
+          gradient[3*center_index+1] += nlist[i].dy*vg;
+          gradient[3*center_index+2] += nlist[i].dz*vg;
+          gradient[3*other_index  ] -= nlist[i].dx*vg;
+          gradient[3*other_index+1] -= nlist[i].dy*vg;
+          gradient[3*other_index+2] -= nlist[i].dz*vg;
         }
+        energy += s*v;
       }
     }
   }
