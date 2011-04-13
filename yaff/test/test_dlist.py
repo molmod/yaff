@@ -39,14 +39,14 @@ def get_dlist_random(system, n=10):
     dlist = DeltaList(system)
     for row in xrange(n):
         i = np.random.randint(system.natom)
-        j = (i + np.random.randint(system.natom-1)) % system.natom
+        j = (i + np.random.randint(1, system.natom)) % system.natom
         dlist.add_delta(i, j)
     return dlist
 
 
 def check_dlist(system, dlist):
     dlist.forward()
-    for row in dlist.deltas:
+    for row in dlist.deltas[:dlist.ndelta]:
         i = row['i']
         j = row['j']
         delta = system.pos[i] - system.pos[j]
