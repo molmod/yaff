@@ -54,6 +54,7 @@ class DeltaList(object):
                     self.deltas = np.resize(self.deltas, int(len(self.deltas)*1.5))
                 self.deltas[row]['i'] = i
                 self.deltas[row]['j'] = j
+                self.lookup[(i, j)] = row
                 self.ndelta += 1
             else:
                 sign = -1

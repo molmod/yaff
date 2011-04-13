@@ -35,9 +35,9 @@ def get_dlist_bonds(system):
     return dlist
 
 
-def get_dlist_random(system):
+def get_dlist_random(system, n=10):
     dlist = DeltaList(system)
-    for row in xrange(10):
+    for row in xrange(n):
         i = np.random.randint(system.natom)
         j = (i + np.random.randint(system.natom-1)) % system.natom
         dlist.add_delta(i, j)
@@ -89,5 +89,6 @@ def test_dlist_glycine_bonds():
 
 def test_dlist_glycine_random():
     system = get_system_glycine()
-    dlist = get_dlist_random(system)
+    dlist = get_dlist_random(system, 100)
+    assert dlist.ndelta <= 45
     check_dlist(system, dlist)
