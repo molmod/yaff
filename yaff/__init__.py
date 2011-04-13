@@ -21,6 +21,9 @@
 # --
 
 from yaff.ext import *
+from yaff.dlist import *
+from yaff.iclist import *
+from yaff.vlist import *
 from yaff.ff import *
 from yaff.nlists import *
 from yaff.scaling import *

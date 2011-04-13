@@ -23,7 +23,8 @@
 
 import numpy as np
 
-from yaff.ext import compute_ewald_reci, compute_ewald_corr
+from yaff import compute_ewald_reci, compute_ewald_corr, DeltaList, \
+    InternalCoordinateList, ValenceList
 
 
 __all__ = [
@@ -126,3 +127,23 @@ class EwaldNeutralizingTerm(object):
 
     def compute(self, gradient=None):
         return self.charges.sum()**2*np.pi/(2.0*system.volume*self.alpha**2)
+
+
+class ValenceTerm(object):
+    def __init__(self, system):
+        self.dlist = DeltaList(system)
+        self.iclist = InternalCoordinateList(self.dlist)
+        self.vlist = ValenceList(self.iclist)
+
+    def add_term(self, term):
+        self.vlist.add_term(term)
+
+    def compute(self, gradient=None):
+        self.dlist.forward()
+        self.iclist.forward()
+        energy = self.vlist.forward()
+        if gradient is not None:
+            self.vlist.back()
+            self.iclist.back()
+            self.dlist.back(gradient)
+        return energy

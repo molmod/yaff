@@ -21,17 +21,7 @@
 # --
 
 
-cdef extern from "nlists.h":
-    ctypedef struct nlist_row_type:
-        long i
-        double d
-        double dx, dy, dz
-        long r0, r1, r2
+__all__ = ['InternalCoordinateList']
 
-    int nlist_update_low(double *pos, long center_index, double cutoff,
-                         long *rmax, double *rvecs, double *gvecs, long
-                         *nlist_status, nlist_row_type *nlist, long pos_size,
-                         long nlist_size, int nvec)
-
-
-
+class InternalCoordinateList(object):
+    pass

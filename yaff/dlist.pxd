@@ -20,18 +20,12 @@
 #
 # --
 
-
-cdef extern from "nlists.h":
-    ctypedef struct nlist_row_type:
-        long i
-        double d
+cdef extern from "dlist.h":
+    ctypedef struct dlist_row_type:
         double dx, dy, dz
-        long r0, r1, r2
+        long i, j
 
-    int nlist_update_low(double *pos, long center_index, double cutoff,
-                         long *rmax, double *rvecs, double *gvecs, long
-                         *nlist_status, nlist_row_type *nlist, long pos_size,
-                         long nlist_size, int nvec)
-
+    void dlist_forward(double *pos, double *rvecs, double *gvecs, long nvec, 
+                       dlist_row_type* deltas, long ndelta)
 
 

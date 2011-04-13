@@ -21,17 +21,8 @@
 # --
 
 
-cdef extern from "nlists.h":
-    ctypedef struct nlist_row_type:
-        long i
-        double d
-        double dx, dy, dz
-        long r0, r1, r2
-
-    int nlist_update_low(double *pos, long center_index, double cutoff,
-                         long *rmax, double *rvecs, double *gvecs, long
-                         *nlist_status, nlist_row_type *nlist, long pos_size,
-                         long nlist_size, int nvec)
+__all__ = ['ValenceList']
 
 
-
+class ValenceList(object):
+    pass

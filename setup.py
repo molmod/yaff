@@ -41,7 +41,7 @@ setup(
     ext_modules=[
         Extension("yaff.ext", [
             'yaff/ext.pyx', 'yaff/nlists.c', 'yaff/pair_pot.c',
-            'yaff/ewald.c', 'yaff/mic.c'
+            'yaff/ewald.c', 'yaff/mic.c', 'yaff/dlist.c',
         ]),
     ],
     classifiers=[

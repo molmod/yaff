@@ -26,12 +26,13 @@ cimport numpy as np
 cimport nlists
 cimport pair_pot
 cimport ewald
+cimport dlist
 
 
 __all__ = [
     'nlist_status_init', 'nlist_update', 'nlist_status_finish',
     'PairPot', 'PairPotLJ', 'PairPotEI', 'compute_ewald_reci',
-    'compute_ewald_corr',
+    'compute_ewald_corr', 'dlist_forward',
 ]
 
 #
@@ -52,11 +53,11 @@ def nlist_status_init(center_index, rmax):
     return result
 
 
-def nlist_update(np.ndarray[np.float64_t, ndim=2] pos, center_index, cutoff,
-                 np.ndarray[np.long_t, ndim=1] rmax,
-                 np.ndarray[np.float64_t, ndim=2] rvecs,
-                 np.ndarray[np.float64_t, ndim=2] gvecs,
-                 np.ndarray[np.long_t, ndim=1] nlist_status,
+def nlist_update(np.ndarray[double, ndim=2] pos, center_index, cutoff,
+                 np.ndarray[long, ndim=1] rmax,
+                 np.ndarray[double, ndim=2] rvecs,
+                 np.ndarray[double, ndim=2] gvecs,
+                 np.ndarray[long, ndim=1] nlist_status,
                  np.ndarray[nlists.nlist_row_type, ndim=1] nlist):
     assert pos.shape[1] == 3
     assert pos.flags['C_CONTIGUOUS']
@@ -131,8 +132,8 @@ cdef class PairPot:
 
 
 cdef class PairPotLJ(PairPot):
-    def __cinit__(self, np.ndarray[np.float64_t, ndim=1] sigmas,
-                  np.ndarray[np.float64_t, ndim=1] epsilons, double cutoff):
+    def __cinit__(self, np.ndarray[double, ndim=1] sigmas,
+                  np.ndarray[double, ndim=1] epsilons, double cutoff):
         assert sigmas.flags['C_CONTIGUOUS']
         assert epsilons.flags['C_CONTIGUOUS']
         assert sigmas.shape[0] == epsilons.shape[0]
@@ -143,7 +144,7 @@ cdef class PairPotLJ(PairPot):
 
 
 cdef class PairPotEI(PairPot):
-    def __cinit__(self, np.ndarray[np.float64_t, ndim=1] charges, double alpha, double cutoff):
+    def __cinit__(self, np.ndarray[double, ndim=1] charges, double alpha, double cutoff):
         assert charges.flags['C_CONTIGUOUS']
         pair_pot.pair_pot_set_cutoff(self._c_pair_pot, cutoff)
         pair_pot.pair_data_ei_init(self._c_pair_pot, <double*>charges.data, alpha)
@@ -156,12 +157,12 @@ cdef class PairPotEI(PairPot):
 #
 
 
-def compute_ewald_reci(np.ndarray[np.float64_t, ndim=2] pos,
-                       np.ndarray[np.float64_t, ndim=1] charges,
-                       np.ndarray[np.float64_t, ndim=2] gvecs, double volume,
-                       double alpha, np.ndarray[np.long_t, ndim=1] gmax,
-                       np.ndarray[np.float64_t, ndim=2] gradient,
-                       np.ndarray[np.float64_t, ndim=1] work):
+def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
+                       np.ndarray[double, ndim=1] charges,
+                       np.ndarray[double, ndim=2] gvecs, double volume,
+                       double alpha, np.ndarray[long, ndim=1] gmax,
+                       np.ndarray[double, ndim=2] gradient,
+                       np.ndarray[double, ndim=1] work):
     assert pos.flags['C_CONTIGUOUS']
     assert pos.shape[1] == 3
     assert charges.flags['C_CONTIGUOUS']
@@ -190,13 +191,13 @@ def compute_ewald_reci(np.ndarray[np.float64_t, ndim=2] pos,
                                         <double*>gradient.data, <double*>work.data)
 
 
-def compute_ewald_corr(np.ndarray[np.float64_t, ndim=2] pos,
+def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
                        long center_index,
-                       np.ndarray[np.float64_t, ndim=1] charges,
-                       np.ndarray[np.float64_t, ndim=2] rvecs,
-                       np.ndarray[np.float64_t, ndim=2] gvecs, double alpha,
+                       np.ndarray[double, ndim=1] charges,
+                       np.ndarray[double, ndim=2] rvecs,
+                       np.ndarray[double, ndim=2] gvecs, double alpha,
                        np.ndarray[pair_pot.scaling_row_type, ndim=1] scaling,
-                       np.ndarray[np.float64_t, ndim=2] gradient):
+                       np.ndarray[double, ndim=2] gradient):
     assert pos.flags['C_CONTIGUOUS']
     assert pos.shape[1] == 3
     assert charges.flags['C_CONTIGUOUS']
@@ -224,3 +225,24 @@ def compute_ewald_corr(np.ndarray[np.float64_t, ndim=2] pos,
                                         <double*>gvecs.data, alpha,
                                         <pair_pot.scaling_row_type*>scaling.data,
                                         len(scaling), <double*>gradient.data)
+
+
+#
+# Delta lists
+#
+
+def dlist_forward(np.ndarray[double, ndim=2] pos,
+                  np.ndarray[double, ndim=2] rvecs,
+                  np.ndarray[double, ndim=2] gvecs,
+                  np.ndarray[dlist.dlist_row_type, ndim=1] deltas):
+    assert pos.flags['C_CONTIGUOUS']
+    assert pos.shape[1] == 3
+    assert rvecs.flags['C_CONTIGUOUS']
+    assert rvecs.shape[1] == 3
+    assert gvecs.flags['C_CONTIGUOUS']
+    assert gvecs.shape[0] == rvecs.shape[0]
+    assert gvecs.shape[1] == 3
+    assert deltas.flags['C_CONTIGUOUS']
+    dlist.dlist_forward(<double*>pos.data, <double*>rvecs.data,
+                        <double*>gvecs.data, len(rvecs),
+                        <dlist.dlist_row_type*>deltas.data, len(deltas))
