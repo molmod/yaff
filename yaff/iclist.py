@@ -21,15 +21,76 @@
 # --
 
 
-__all__ = ['InternalCoordinateList']
+import numpy as np
 
+from yaff.ext import iclist_forward
+
+
+__all__ = [
+    'InternalCoordinateList', 'InternalCoordinate', 'Bond', 'BendAngle',
+    'BendCos',
+]
+
+iclist_dtype = [
+    ('kind', int),
+    ('i0', int), ('sign0', int),
+    ('i1', int), ('sign1', int),
+    ('i2', int), ('sign2', int),
+    ('i3', int), ('sign3', int),
+    ('value', float),
+]
 
 class InternalCoordinateList(object):
     def __init__(self, dlist):
         self.dlist = dlist
-        self.ictab = np.array((10, 5), int)
+        self.ictab = np.zeros(10, iclist_dtype)
         self.lookup = {}
         self.nic = 0
 
     def add_ic(self, ic):
-        pass
+        # First add the deltas
+        rows_signs = ic.get_rows_signs(self.dlist)
+        key = (ic.kind,) + sum(rows_signs, ())
+        row = self.lookup.get(key)
+        if row is None:
+            if self.nic >= len(self.ictab):
+                self.ictab = np.resize(self.ictab, int(len(self.ictab)*1.5))
+            row = self.nic
+            self.ictab[row]['kind'] = ic.kind
+            for i in xrange(len(rows_signs)):
+                self.ictab[row]['i%i'%i] = rows_signs[i][0]
+                self.ictab[row]['sign%i'%i] = rows_signs[i][1]
+            self.lookup[key] = row
+            self.nic += 1
+        else:
+            return row
+
+    def forward(self):
+        iclist_forward(self.dlist.deltas, self.ictab, self.nic)
+
+
+class InternalCoordinate(object):
+    kind = None
+    def __init__(self, index_pairs):
+        self.index_pairs = index_pairs
+
+    def get_rows_signs(self, dlist):
+        return [dlist.add_delta(i, j) for i, j in self.index_pairs]
+
+
+class Bond(InternalCoordinate):
+    kind = 0
+    def __init__(self, i, j):
+        InternalCoordinate.__init__(self, [(i, j)])
+
+
+class BendCos(InternalCoordinate):
+    kind = 1
+    def __init__(self, i, j, k):
+        InternalCoordinate.__init__(self, [(i, j), (j, k)])
+
+
+class BendAngle(InternalCoordinate):
+    kind = 2
+    def __init__(self, i, j, k):
+        InternalCoordinate.__init__(self, [(i, j), (j, k)])

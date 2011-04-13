@@ -27,12 +27,13 @@ cimport nlists
 cimport pair_pot
 cimport ewald
 cimport dlist
+cimport iclist
 
 
 __all__ = [
     'nlist_status_init', 'nlist_update', 'nlist_status_finish',
     'PairPot', 'PairPotLJ', 'PairPotEI', 'compute_ewald_reci',
-    'compute_ewald_corr', 'dlist_forward',
+    'compute_ewald_corr', 'dlist_forward', 'iclist_forward',
 ]
 
 #
@@ -234,7 +235,7 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
 def dlist_forward(np.ndarray[double, ndim=2] pos,
                   np.ndarray[double, ndim=2] rvecs,
                   np.ndarray[double, ndim=2] gvecs,
-                  np.ndarray[dlist.dlist_row_type, ndim=1] deltas):
+                  np.ndarray[dlist.dlist_row_type, ndim=1] deltas, long ndelta):
     assert pos.flags['C_CONTIGUOUS']
     assert pos.shape[1] == 3
     assert rvecs.flags['C_CONTIGUOUS']
@@ -245,4 +246,15 @@ def dlist_forward(np.ndarray[double, ndim=2] pos,
     assert deltas.flags['C_CONTIGUOUS']
     dlist.dlist_forward(<double*>pos.data, <double*>rvecs.data,
                         <double*>gvecs.data, len(rvecs),
-                        <dlist.dlist_row_type*>deltas.data, len(deltas))
+                        <dlist.dlist_row_type*>deltas.data, ndelta)
+
+#
+# InternalCoordinate lists
+#
+
+def iclist_forward(np.ndarray[dlist.dlist_row_type, ndim=1] deltas,
+                   np.ndarray[iclist.iclist_row_type, ndim=1] ictab, long nic):
+    assert deltas.flags['C_CONTIGUOUS']
+    assert ictab.flags['C_CONTIGUOUS']
+    iclist.iclist_forward(<dlist.dlist_row_type*>deltas.data,
+                          <iclist.iclist_row_type*>ictab.data, nic)
