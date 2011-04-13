@@ -34,7 +34,8 @@ cimport vlist
 __all__ = [
     'nlist_status_init', 'nlist_update', 'nlist_status_finish',
     'PairPot', 'PairPotLJ', 'PairPotEI', 'compute_ewald_reci',
-    'compute_ewald_corr', 'dlist_forward', 'iclist_forward', 'vlist_forward',
+    'compute_ewald_corr', 'dlist_forward', 'dlist_back', 'iclist_forward',
+    'iclist_back', 'vlist_forward', 'vlist_back',
 ]
 
 #
@@ -249,6 +250,14 @@ def dlist_forward(np.ndarray[double, ndim=2] pos,
                         <double*>gvecs.data, len(rvecs),
                         <dlist.dlist_row_type*>deltas.data, ndelta)
 
+def dlist_back(np.ndarray[double, ndim=2] gradient,
+               np.ndarray[dlist.dlist_row_type, ndim=1] deltas, long ndelta):
+    assert gradient.flags['C_CONTIGUOUS']
+    assert gradient.shape[1] == 3
+    assert deltas.flags['C_CONTIGUOUS']
+    dlist.dlist_back(<double*>gradient.data,
+                     <dlist.dlist_row_type*>deltas.data, ndelta)
+
 #
 # InternalCoordinate list
 #
@@ -259,6 +268,13 @@ def iclist_forward(np.ndarray[dlist.dlist_row_type, ndim=1] deltas,
     assert ictab.flags['C_CONTIGUOUS']
     iclist.iclist_forward(<dlist.dlist_row_type*>deltas.data,
                           <iclist.iclist_row_type*>ictab.data, nic)
+
+def iclist_back(np.ndarray[dlist.dlist_row_type, ndim=1] deltas,
+                np.ndarray[iclist.iclist_row_type, ndim=1] ictab, long nic):
+    assert deltas.flags['C_CONTIGUOUS']
+    assert ictab.flags['C_CONTIGUOUS']
+    iclist.iclist_back(<dlist.dlist_row_type*>deltas.data,
+                       <iclist.iclist_row_type*>ictab.data, nic)
 
 
 #
@@ -271,3 +287,10 @@ def vlist_forward(np.ndarray[iclist.iclist_row_type, ndim=1] ictab,
     assert vtab.flags['C_CONTIGUOUS']
     return vlist.vlist_forward(<iclist.iclist_row_type*>ictab.data,
                                <vlist.vlist_row_type*>vtab.data, nv)
+
+def vlist_back(np.ndarray[iclist.iclist_row_type, ndim=1] ictab,
+               np.ndarray[vlist.vlist_row_type, ndim=1] vtab, long nv):
+    assert ictab.flags['C_CONTIGUOUS']
+    assert vtab.flags['C_CONTIGUOUS']
+    vlist.vlist_back(<iclist.iclist_row_type*>ictab.data,
+                     <vlist.vlist_row_type*>vtab.data, nv)

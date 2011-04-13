@@ -33,5 +33,6 @@ typedef struct {
 } vlist_row_type;
 
 double vlist_forward(iclist_row_type* ictab, vlist_row_type* vtab, long nv);
+void vlist_back(iclist_row_type* ictab, vlist_row_type* vtab, long nv);
 
 #endif

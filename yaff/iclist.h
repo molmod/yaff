@@ -28,9 +28,10 @@
 typedef struct {
   long kind;
   long i0, sign0, i1, sign1, i2, sign2, i3, sign3;
-  double value;
+  double value, grad;
 } iclist_row_type;
 
 void iclist_forward(dlist_row_type* deltas, iclist_row_type* ictab, long nic);
+void iclist_back(dlist_row_type* deltas, iclist_row_type* ictab, long nic);
 
 #endif

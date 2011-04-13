@@ -26,12 +26,29 @@
 
 void dlist_forward(double *pos, double *rvecs, double *gvecs, long nvec, dlist_row_type* deltas, long ndelta) {
   long k;
-  double *delta;
+  dlist_row_type *delta;
   for (k=0; k<ndelta; k++) {
-    delta = (double*)(deltas + k);
-    delta[0] = pos[3*deltas[k].i    ] - pos[3*deltas[k].j    ];
-    delta[1] = pos[3*deltas[k].i + 1] - pos[3*deltas[k].j + 1];
-    delta[2] = pos[3*deltas[k].i + 2] - pos[3*deltas[k].j + 2];
-    if (nvec > 0) mic(delta, rvecs, gvecs, nvec);
+    delta = (deltas + k);
+    (*delta).dx = pos[3*(*delta).i    ] - pos[3*(*delta).j    ];
+    (*delta).dy = pos[3*(*delta).i + 1] - pos[3*(*delta).j + 1];
+    (*delta).dz = pos[3*(*delta).i + 2] - pos[3*(*delta).j + 2];
+    if (nvec > 0) mic((double*)delta, rvecs, gvecs, nvec);
+    (*delta).gx = 0.0;
+    (*delta).gy = 0.0;
+    (*delta).gz = 0.0;
+  }
+}
+
+void dlist_back(double *gradient, dlist_row_type* deltas, long ndelta) {
+  long k;
+  dlist_row_type *delta;
+  for (k=0; k<ndelta; k++) {
+    delta = (deltas + k);
+    gradient[3*(*delta).i    ] += (*delta).gx;
+    gradient[3*(*delta).i + 1] += (*delta).gy;
+    gradient[3*(*delta).i + 2] += (*delta).gz;
+    gradient[3*(*delta).j    ] -= (*delta).gx;
+    gradient[3*(*delta).j + 1] -= (*delta).gy;
+    gradient[3*(*delta).j + 2] -= (*delta).gz;
   }
 }

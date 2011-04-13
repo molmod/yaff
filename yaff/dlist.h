@@ -27,8 +27,10 @@
 typedef struct {
   double dx, dy, dz;
   long i, j;
+  double gx, gy, gz;
 } dlist_row_type;
 
 void dlist_forward(double *pos, double *rvecs, double *gvecs, long nvec, dlist_row_type* deltas, long ndelta);
+void dlist_back(double *gradient, dlist_row_type* deltas, long ndelta);
 
 #endif

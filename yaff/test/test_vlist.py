@@ -25,7 +25,7 @@ from molmod import bond_length, bend_angle, bend_cos
 
 from yaff import *
 
-from common import get_system_quartz
+from common import get_system_quartz, get_system_water32, check_gradient_part
 
 
 def test_vlist_quartz_bonds():
@@ -108,3 +108,33 @@ def test_vlist_quartz_bend_angle():
         angle = bend_angle(delta0, np.zeros(3, float), delta2)[0]
         check_energy += 0.5*1.5*(angle-(2.0+0.01*i2))**2
     assert abs(energy - check_energy) < 1e-8
+
+
+def test_gradient_bond_water32():
+    system = get_system_water32()
+    part = ValencePart(system)
+    for i, j in system.topology.bonds:
+        part.add_term(Harmonic(0.3, 1.7, Bond(i, j)))
+    check_gradient_part(system, part, 1e-10)
+
+
+def test_gradient_bend_cos_water32():
+    system = get_system_water32()
+    part = ValencePart(system)
+    for i1 in xrange(system.natom):
+        for i0 in system.topology.neighs1[i1]:
+            for i2 in system.topology.neighs1[i1]:
+                if i0 > i2:
+                    part.add_term(Harmonic(1.1+0.01*i0, -0.2, BendCos(i0, i1, i2)))
+    check_gradient_part(system, part, 1e-10)
+
+
+def test_gradient_bend_angle_water32():
+    system = get_system_water32()
+    part = ValencePart(system)
+    for i1 in xrange(system.natom):
+        for i0 in system.topology.neighs1[i1]:
+            for i2 in system.topology.neighs1[i1]:
+                if i0 > i2:
+                    part.add_term(Harmonic(1.5, 2.0+0.01*i2, BendAngle(i0, i1, i2)))
+    check_gradient_part(system, part, 1e-10)

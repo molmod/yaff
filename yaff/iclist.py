@@ -23,7 +23,7 @@
 
 import numpy as np
 
-from yaff.ext import iclist_forward
+from yaff.ext import iclist_forward, iclist_back
 
 
 __all__ = [
@@ -37,7 +37,7 @@ iclist_dtype = [
     ('i1', int), ('sign1', int),
     ('i2', int), ('sign2', int),
     ('i3', int), ('sign3', int),
-    ('value', float),
+    ('value', float), ('grad', float)
 ]
 
 class InternalCoordinateList(object):
@@ -66,6 +66,9 @@ class InternalCoordinateList(object):
 
     def forward(self):
         iclist_forward(self.dlist.deltas, self.ictab, self.nic)
+
+    def back(self):
+        iclist_back(self.dlist.deltas, self.ictab, self.nic)
 
 
 class InternalCoordinate(object):

@@ -45,3 +45,21 @@ double vlist_forward(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
   }
   return energy;
 }
+
+
+typedef void (*v_back_type)(vlist_row_type*, iclist_row_type*);
+
+void back_harmonic(vlist_row_type* term, iclist_row_type* ictab) {
+  ictab[(*term).ic0].grad += ((*term).par0)*(ictab[(*term).ic0].value - (*term).par1);
+}
+
+v_back_type v_back_fns[1] = {
+  back_harmonic
+};
+
+void vlist_back(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
+  long i;
+  for (i=0; i<nv; i++) {
+    v_back_fns[vtab[i].kind](vtab + i, ictab);
+  }
+}

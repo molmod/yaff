@@ -23,7 +23,7 @@
 
 import numpy as np
 
-from yaff.ext import vlist_forward
+from yaff.ext import vlist_forward, vlist_back
 
 
 __all__ = ['ValenceList', 'ValenceTerm', 'Harmonic']
@@ -56,6 +56,9 @@ class ValenceList(object):
 
     def forward(self):
         return vlist_forward(self.iclist.ictab, self.vtab, self.nv)
+
+    def back(self):
+        vlist_back(self.iclist.ictab, self.vtab, self.nv)
 
 
 class ValenceTerm(object):

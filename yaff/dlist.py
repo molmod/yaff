@@ -23,13 +23,17 @@
 
 import numpy as np
 
-from yaff.ext import dlist_forward
+from yaff.ext import dlist_forward, dlist_back
 
 
 __all__ = ['DeltaList']
 
 
-delta_dtype = [('dx', float), ('dy', float), ('dz', float), ('i', int), ('j', int)]
+delta_dtype = [
+    ('dx', float), ('dy', float), ('dz', float),
+    ('i', int), ('j', int),
+    ('gx', float), ('gy', float), ('gz', float),
+]
 
 
 class DeltaList(object):
@@ -67,4 +71,4 @@ class DeltaList(object):
         dlist_forward(self.system.pos, self.system.rvecs, self.system.gvecs, self.deltas, self.ndelta)
 
     def back(self, gradient):
-        raise NotImplementedError
+        dlist_back(gradient, self.deltas, self.ndelta)

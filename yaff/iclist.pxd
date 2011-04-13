@@ -26,8 +26,9 @@ cdef extern from "iclist.h":
     ctypedef struct iclist_row_type:
         long kind
         long i0, sign0, i1, sign1, i2, sign2, i3, sign3
-        double value
+        double value, grad
 
     void iclist_forward(dlist.dlist_row_type* deltas, iclist_row_type* ictab, long nic)
+    void iclist_back(dlist.dlist_row_type* deltas, iclist_row_type* ictab, long nic)
 
 

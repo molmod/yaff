@@ -31,7 +31,7 @@ from yaff.vlist import ValenceList
 
 __all__ = [
     'ForceField', 'SumForceField', 'PairPart', 'EwaldReciprocalPart',
-    'EwaldCorrectionPart', 'EwaldNeutralizingPart',
+    'EwaldCorrectionPart', 'EwaldNeutralizingPart', 'ValencePart',
 ]
 
 

@@ -44,7 +44,6 @@ double forward_bend_cos(iclist_row_type* ic, dlist_row_type* deltas) {
   return (*ic).sign0*(*ic).sign1*dot/d0/d1;
 }
 
-
 double forward_bend_angle(iclist_row_type* ic, dlist_row_type* deltas) {
   double c;
   c = forward_bend_cos(ic, deltas);
@@ -59,5 +58,59 @@ void iclist_forward(dlist_row_type* deltas, iclist_row_type* ictab, long nic) {
   long i;
   for (i=0; i<nic; i++) {
     ictab[i].value = ic_forward_fns[ictab[i].kind](ictab + i, deltas);
+    ictab[i].grad = 0.0;
+  }
+}
+
+
+typedef void (*ic_back_type)(iclist_row_type*, dlist_row_type*, double, double);
+
+void back_bond(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  dlist_row_type *delta;
+  double x;
+  delta = deltas + (*ic).i0;
+  x = grad/value;
+  (*delta).gx += x*(*delta).dx;
+  (*delta).gy += x*(*delta).dy;
+  (*delta).gz += x*(*delta).dz;
+}
+
+void back_bend_cos(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  dlist_row_type *delta0, *delta1;
+  double e0[3], e1[3];
+  double d0, d1, fac;
+  delta0 = deltas + (*ic).i0;
+  delta1 = deltas + (*ic).i1;
+  d0 = sqrt((*delta0).dx*(*delta0).dx + (*delta0).dy*(*delta0).dy + (*delta0).dz*(*delta0).dz);
+  d1 = sqrt((*delta1).dx*(*delta1).dx + (*delta1).dy*(*delta1).dy + (*delta1).dz*(*delta1).dz);
+  e0[0] = (*delta0).dx/d0;
+  e0[1] = (*delta0).dy/d0;
+  e0[2] = (*delta0).dz/d0;
+  e1[0] = (*delta1).dx/d1;
+  e1[1] = (*delta1).dy/d1;
+  e1[2] = (*delta1).dz/d1;
+  grad *= (*ic).sign0*(*ic).sign1;
+  fac = grad/d0;
+  (*delta0).gx += fac*(e1[0] - value*e0[0]);
+  (*delta0).gy += fac*(e1[1] - value*e0[1]);
+  (*delta0).gz += fac*(e1[2] - value*e0[2]);
+  fac = grad/d1;
+  (*delta1).gx += fac*(e0[0] - value*e1[0]);
+  (*delta1).gy += fac*(e0[1] - value*e1[1]);
+  (*delta1).gz += fac*(e0[2] - value*e1[2]);
+}
+
+void back_bend_angle(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  back_bend_cos(ic, deltas, cos(value), -grad/sin(value));
+}
+
+ic_back_type ic_back_fns[3] = {
+  back_bond, back_bend_cos, back_bend_angle
+};
+
+void iclist_back(dlist_row_type* deltas, iclist_row_type* ictab, long nic) {
+  long i;
+  for (i=0; i<nic; i++) {
+    ic_back_fns[ictab[i].kind](ictab + i, deltas, ictab[i].value, ictab[i].grad);
   }
 }
