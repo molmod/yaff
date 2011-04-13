@@ -23,7 +23,10 @@
 
 import numpy as np
 
-from molmod import kcalmol, angstrom, rad, deg
+from molmod import kcalmol, angstrom, rad, deg, femtosecond, boltzmann
+from molmod.periodic import periodic
+from molmod.io import XYZWriter
+
 from yaff import *
 
 from common import get_system_water32, check_gradient_ff, check_gradient_part
@@ -87,3 +90,35 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
 def test_gradient_water32_full():
     ff = get_ff_water32(True, True, True, True)
     check_gradient_ff(ff, 1e-10)
+
+def test_md_water32_full():
+    dump = False
+    ff = get_ff_water32(True, True, True, True)
+    pos = ff.system.pos.copy()
+    grad = np.zeros(pos.shape)
+    h = 1.0*femtosecond
+    mass = np.array([periodic[n].mass for n in ff.system.numbers]).reshape((-1,1))
+    # init
+    ff.update_pos(pos)
+    epot = ff.compute(grad)
+    temp = 300
+    vel = np.random.normal(0, 1, pos.shape)*np.sqrt((2*boltzmann*temp)/mass)
+    velh = vel + (-0.5*h)*grad/mass
+    # prop
+    cqs = []
+    if dump:
+        xyz_writer = XYZWriter('traj.xyz', ff.system.ffatypes)
+    for i in xrange(100):
+        pos += velh*h
+        ff.update_pos(pos)
+        grad[:] = 0.0
+        epot = ff.compute(grad)
+        if dump:
+            xyz_writer.dump('i = %i  energy = %.10f' % (i, epot), pos)
+        tmp = (-0.5*h)*grad/mass
+        vel = velh + tmp
+        ekin = 0.5*(mass*vel*vel).sum()
+        cqs.append(ekin + epot)
+        velh = vel + tmp
+    cqs = np.array(cqs)
+    assert cqs.std() < 5e-3
