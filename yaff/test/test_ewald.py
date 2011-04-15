@@ -29,29 +29,31 @@ from common import get_system_water32, get_system_quartz, check_gradient_part
 
 
 def test_ewald_water32():
-    # Idea: run ewald sum with two different alpha parameters and compare.
-    # (this only works if both real and reciprocal part properly converge.)
-    energies = []
     system = get_system_water32()
     charges = -0.8 + (system.numbers == 1)*1.2
-    assert abs(charges.sum()) < 1e-10
-    for alpha in 0.05, 0.1, 0.2, 0.5, 1.0:
-        energies.append(get_electrostatic_energy(alpha, system, charges))
-    energies = np.array(energies)
-    assert abs(energies - energies.mean()).max() < 1e-8
+    check_alpha_depedence(system, charges)
 
 
 def test_ewald_quartz():
+    system = get_system_quartz()
+    charges = 1.8 - (system.numbers == 8)*2.7
+    check_alpha_depedence(system, charges)
+
+
+def check_alpha_depedence(system, charges):
     # Idea: run ewald sum with two different alpha parameters and compare.
     # (this only works if both real and reciprocal part properly converge.)
     energies = []
-    system = get_system_quartz()
-    charges = 1.8 - (system.numbers == 8)*2.7
+    gradients = []
     assert abs(charges.sum()) < 1e-10
-    for alpha in 0.05, 0.051, 0.052, 0.1, 0.2, 0.5, 1.0:
-        energies.append(get_electrostatic_energy(alpha, system, charges))
+    for alpha in 0.05, 0.1, 0.2, 0.5, 1.0:
+        e, g = get_electrostatic_energy(alpha, system, charges)
+        energies.append(e)
+        gradients.append(g)
     energies = np.array(energies)
+    gradients = np.array(gradients)
     assert abs(energies - energies.mean()).max() < 1e-8
+    assert abs(gradients - gradients.mean(axis=0)).max() < 1e-8
 
 
 def get_electrostatic_energy(alpha, system, charges):
@@ -69,7 +71,8 @@ def get_electrostatic_energy(alpha, system, charges):
     # Construct the force field
     ff = SumForceField(system, [ewald_real_part, ewald_reci_part, ewald_corr_part], nlists)
     ff.update_pos(system.pos)
-    return ff.compute()
+    gradient = np.zeros(system.pos.shape, float)
+    return ff.compute(gradient), gradient
 
 
 def test_ewald_gradient_reci_water32():
