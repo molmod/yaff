@@ -89,7 +89,9 @@ void back_bend_cos(iclist_row_type* ic, dlist_row_type* deltas, double value, do
   e1[0] = (*delta1).dx/d1;
   e1[1] = (*delta1).dy/d1;
   e1[2] = (*delta1).dz/d1;
-  grad *= (*ic).sign0*(*ic).sign1;
+  fac = (*ic).sign0*(*ic).sign1;
+  grad *= fac;
+  value *= fac;
   fac = grad/d0;
   (*delta0).gx += fac*(e1[0] - value*e0[0]);
   (*delta0).gy += fac*(e1[1] - value*e0[1]);

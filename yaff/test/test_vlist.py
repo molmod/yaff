@@ -25,7 +25,8 @@ from molmod import bond_length, bend_angle, bend_cos
 
 from yaff import *
 
-from common import get_system_quartz, get_system_water32, check_gradient_part
+from common import get_system_quartz, get_system_water32, get_system_2T, \
+    check_gradient_part
 
 
 def test_vlist_quartz_bonds():
@@ -137,4 +138,50 @@ def test_gradient_bend_angle_water32():
             for i2 in system.topology.neighs1[i1]:
                 if i0 > i2:
                     part.add_term(Harmonic(1.5, 2.0+0.01*i2, BendAngle(i0, i1, i2)))
+    check_gradient_part(system, part, 1e-10)
+
+def test_gradient_2T():
+    system = get_system_2T()
+    rv_table = {
+        ('H', 'Si', 'H'):  1.80861,
+        ('Si', 'O'):       3.24970,
+        ('H', 'O'):        1.96022,
+        ('O', 'Si', 'O'):  2.06457,
+        ('O', 'Si'):       3.24970,
+        ('O', 'Si', 'H'):  1.85401,
+        ('Si', 'O', 'Si'): 1.80173,
+        ('Si', 'O', 'H'):  1.55702,
+        ('H', 'O', 'Si'):  1.55702,
+        ('Si', 'H'):       2.87853,
+        ('H', 'Si'):       2.87853,
+        ('H', 'Si', 'O'):  1.85401,
+        ('O', 'H'):        1.96022,
+    }
+    fc_table = {
+        ('H', 'Si', 'H'):  0.09376,
+        ('Si', 'O'):       0.30978,
+        ('H', 'O'):        0.60322,
+        ('O', 'Si', 'O'):  0.19282,
+        ('O', 'Si'):       0.30978,
+        ('O', 'Si', 'H'):  0.11852,
+        ('Si', 'O', 'Si'): 0.00751,
+        ('Si', 'O', 'H'):  0.04271,
+        ('H', 'O', 'Si'):  0.04271,
+        ('Si', 'H'):       0.18044,
+        ('H', 'Si'):       0.18044,
+        ('H', 'Si', 'O'):  0.11852,
+        ('O', 'H'):        0.60322,
+    }
+
+    part = ValencePart(system)
+    for i, j in system.topology.bonds:
+        key = system.ffatypes[i], system.ffatypes[j]
+        part.add_term(Harmonic(fc_table[key], rv_table[key], Bond(i, j)))
+    for i1 in xrange(system.natom):
+        for i0 in system.topology.neighs1[i1]:
+            for i2 in system.topology.neighs1[i1]:
+                key = system.ffatypes[i0], system.ffatypes[i1], system.ffatypes[i2]
+                if i0 > i2:
+                    part.add_term(Harmonic(fc_table[key], rv_table[key], BendAngle(i0, i1, i2)))
+
     check_gradient_part(system, part, 1e-10)

@@ -33,6 +33,7 @@ __all__ = [
     'get_system_water32', 'get_system_graphene8',
     'get_system_polyethylene4', 'get_system_quartz', 'get_system_glycine',
     'get_system_cyclopropene', 'get_system_caffeine', 'get_system_butanol',
+    'get_system_2T',
 ]
 
 
@@ -286,5 +287,25 @@ def get_system_butanol():
         ffatypes=['O', 'C', 'C', 'C', 'C', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H'],
         bonds=[[0, 1], [0, 12], [1, 2], [1, 3], [1, 5], [2, 4], [2, 6], [2, 7],
                [3, 4], [8, 3], [9, 3], [10, 4], [11, 4]],
+        rvecs=np.array([]),
+    )
+
+
+def get_system_2T():
+    return System(
+        numbers=np.array([14, 14, 8, 1, 1, 1, 1, 1, 1]),
+        pos=np.array([
+            [-2.9835,  0.1405,  0.000],
+            [ 2.9833,  0.1398,  0.000],
+            [ 0.0000, -0.7979,  0.000],
+            [-3.1350,  2.9359, -0.240],
+            [-4.3117, -1.0502, -2.160],
+            [-4.2010, -0.6480,  2.398],
+            [ 3.5767,  1.5031, -2.380],
+            [ 4.6018, -2.1344,  0.211],
+            [ 3.4720,  1.8512,  2.171]
+        ]),
+        ffatypes=['Si', 'Si', 'O', 'H', 'H', 'H', 'H', 'H', 'H'],
+        bonds=np.array([[1, 7], [0, 4], [0, 5], [0, 2], [1, 2], [0, 3], [1, 6], [8, 1]]),
         rvecs=np.array([]),
     )
