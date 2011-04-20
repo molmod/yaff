@@ -120,23 +120,24 @@ cdef class PairPot:
                 np.ndarray[nlists.nlist_row_type, ndim=1] nlist,
                 np.ndarray[pair_pot.scaling_row_type, ndim=1] scaling,
                 np.ndarray[double, ndim=2] gpos):
+        cdef double *my_gpos
+
         assert pair_pot.pair_pot_ready(self._c_pair_pot)
         assert nlist.flags['C_CONTIGUOUS']
         assert scaling.flags['C_CONTIGUOUS']
+
         if gpos is None:
-            return pair_pot.pair_pot_compute(
-                center_index, <nlists.nlist_row_type*>nlist.data, len(nlist),
-                <pair_pot.scaling_row_type*>scaling.data, len(scaling),
-                self._c_pair_pot, NULL
-            )
+            my_gpos = NULL
         else:
             assert gpos.flags['C_CONTIGUOUS']
             assert gpos.shape[1] == 3
-            return pair_pot.pair_pot_compute(
-                center_index, <nlists.nlist_row_type*>nlist.data, len(nlist),
-                <pair_pot.scaling_row_type*>scaling.data, len(scaling),
-                self._c_pair_pot, <double*>gpos.data
-            )
+            my_gpos = <double*>gpos.data
+
+        return pair_pot.pair_pot_compute(
+            center_index, <nlists.nlist_row_type*>nlist.data, len(nlist),
+            <pair_pot.scaling_row_type*>scaling.data, len(scaling),
+            self._c_pair_pot, my_gpos
+        )
 
 
 cdef class PairPotLJ(PairPot):
@@ -179,6 +180,9 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
                        double alpha, np.ndarray[long, ndim=1] gmax,
                        np.ndarray[double, ndim=2] gpos,
                        np.ndarray[double, ndim=1] work):
+    cdef double *my_gpos
+    cdef double *my_work
+
     assert pos.flags['C_CONTIGUOUS']
     assert pos.shape[1] == 3
     assert charges.flags['C_CONTIGUOUS']
@@ -190,21 +194,23 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
     assert alpha > 0
     assert gmax.flags['C_CONTIGUOUS']
     assert gmax.shape[0] == 3
+
     if gpos is None:
-        return ewald.compute_ewald_reci(<double*>pos.data, len(pos),
-                                        <double*>charges.data, <double*>gvecs.data,
-                                        volume, alpha, <long*>gmax.data,
-                                        NULL, NULL)
+        my_gpos = NULL
+        my_work = NULL
     else:
         assert gpos.flags['C_CONTIGUOUS']
         assert gpos.shape[1] == 3
         assert gpos.shape[0] == pos.shape[0]
         assert work.flags['C_CONTIGUOUS']
         assert gpos.shape[0]*2 == work.shape[0]
-        return ewald.compute_ewald_reci(<double*>pos.data, len(pos),
-                                        <double*>charges.data, <double*>gvecs.data,
-                                        volume, alpha, <long*>gmax.data,
-                                        <double*>gpos.data, <double*>work.data)
+        my_gpos = <double*>gpos.data
+        my_work = <double*>work.data
+
+    return ewald.compute_ewald_reci(<double*>pos.data, len(pos),
+                                    <double*>charges.data, <double*>gvecs.data,
+                                    volume, alpha, <long*>gmax.data,
+                                    my_gpos, my_work)
 
 
 def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
@@ -214,6 +220,8 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
                        np.ndarray[double, ndim=2] gvecs, double alpha,
                        np.ndarray[pair_pot.scaling_row_type, ndim=1] scaling,
                        np.ndarray[double, ndim=2] gpos):
+    cdef double *my_gpos
+
     assert pos.flags['C_CONTIGUOUS']
     assert pos.shape[1] == 3
     assert charges.flags['C_CONTIGUOUS']
@@ -226,21 +234,21 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
     assert gvecs.shape[1] == 3
     assert alpha > 0
     assert scaling.flags['C_CONTIGUOUS']
+
     if gpos is None:
-        return ewald.compute_ewald_corr(<double*>pos.data, center_index,
-                                        <double*>charges.data, <double*>rvecs.data,
-                                        <double*>gvecs.data, alpha,
-                                        <pair_pot.scaling_row_type*>scaling.data,
-                                        len(scaling), NULL)
+        my_gpos = NULL
     else:
         assert gpos.flags['C_CONTIGUOUS']
         assert gpos.shape[1] == 3
         assert gpos.shape[0] == pos.shape[0]
-        return ewald.compute_ewald_corr(<double*>pos.data, center_index,
-                                        <double*>charges.data, <double*>rvecs.data,
-                                        <double*>gvecs.data, alpha,
-                                        <pair_pot.scaling_row_type*>scaling.data,
-                                        len(scaling), <double*>gpos.data)
+        my_gpos = <double*>gpos.data
+
+
+    return ewald.compute_ewald_corr(<double*>pos.data, center_index,
+                                    <double*>charges.data, <double*>rvecs.data,
+                                    <double*>gvecs.data, alpha,
+                                    <pair_pot.scaling_row_type*>scaling.data,
+                                    len(scaling), my_gpos)
 
 
 #
