@@ -29,7 +29,7 @@ from yaff import *
 
 
 __all__ = [
-    'check_gpos_part', 'check_vtens_part', 'check_gpos_ff',
+    'check_gpos_part', 'check_vtens_part', 'check_gpos_ff', 'check_vtens_ff',
     'get_system_water32', 'get_system_graphene8',
     'get_system_polyethylene4', 'get_system_quartz', 'get_system_glycine',
     'get_system_cyclopropene', 'get_system_caffeine', 'get_system_butanol',
@@ -103,7 +103,35 @@ def check_gpos_ff(ff, eps):
             return e
 
     x = ff.system.pos.ravel()
-    dxs = np.random.normal(0, 1e-3, (100, len(x)))
+    dxs = np.random.normal(0, 1e-4, (100, len(x)))
+    check_delta(fn, x, dxs, eps)
+
+
+def check_vtens_ff(ff, eps):
+    # Get the reduced coordinates
+    reduced = np.dot(ff.system.pos, ff.system.gvecs.transpose())
+    assert abs(np.dot(reduced, ff.system.rvecs) - ff.system.pos).max() < 1e-10
+
+    def fn(x, do_gradient=False):
+        rvecs = x.reshape(3, 3)
+        ff.update_rvecs(rvecs)
+        ff.update_pos(np.dot(reduced, rvecs))
+        if do_gradient:
+            vtens = np.zeros((3, 3), float)
+            e = ff.compute(vtens=vtens)
+            grvecs = np.dot(ff.system.gvecs, vtens)
+            assert np.isfinite(e)
+            assert np.isfinite(vtens).all()
+            assert np.isfinite(grvecs).all()
+            assert abs(vtens - vtens.transpose()).max() < 1e-10
+            return e, grvecs.ravel()
+        else:
+            e = ff.compute()
+            assert np.isfinite(e)
+            return e
+
+    x = ff.system.rvecs.ravel()
+    dxs = np.random.normal(0, 1e-4, (100, len(x)))
     check_delta(fn, x, dxs, eps)
 
 

@@ -29,7 +29,7 @@ from molmod.io import XYZWriter
 
 from yaff import *
 
-from common import get_system_water32, check_gpos_ff, check_gpos_part
+from common import get_system_water32, check_gpos_ff, check_vtens_ff
 
 def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=False):
     system = get_system_water32()
@@ -64,8 +64,6 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
             epsilons[i] = epsilon_table[system.numbers[i]]
         pair_pot_lj = PairPotLJ(sigmas, epsilons, cutoff, True)
         pair_part_lj = PairPart(nlists, scalings, pair_pot_lj)
-        #check_gpos_part(system, pair_part_lj, 1e-100, nlists)
-        #raise Exception
         parts.append(pair_part_lj)
     # charges
     q0 = 0.417
@@ -89,7 +87,13 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
 
 def test_gpos_water32_full():
     ff = get_ff_water32(True, True, True, True)
-    check_gpos_ff(ff, 1e-8)
+    check_gpos_ff(ff, 1e-10)
+
+
+def test_vtens_water32_full():
+    ff = get_ff_water32(True, True, True, True)
+    check_vtens_ff(ff, 1e-10)
+
 
 def test_md_water32_full():
     dump = False

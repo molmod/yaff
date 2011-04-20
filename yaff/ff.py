@@ -64,12 +64,12 @@ class SumForceField(ForceField):
         ForceField.update_pos(self, pos)
         self.needs_update = True
 
-    def compute(self, gpos=None):
+    def compute(self, gpos=None, vtens=None):
         if self.needs_update:
             if self.nlists is not None:
                 self.nlists.update()
             self.needs_update = False
-        return sum([part.compute(gpos) for part in self.parts])
+        return sum([part.compute(gpos, vtens) for part in self.parts])
 
 
 class PairPart(object):
