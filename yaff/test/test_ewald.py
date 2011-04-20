@@ -25,7 +25,8 @@ import numpy as np
 
 from yaff import *
 
-from common import get_system_water32, get_system_quartz, check_gpos_part
+from common import get_system_water32, get_system_quartz, check_gpos_part, \
+    check_vtens_part
 
 
 def test_ewald_water32():
@@ -111,3 +112,12 @@ def test_ewald_gpos_corr_quartz():
         gmax = np.ceil(alpha*2.0/system.gspacings-0.5).astype(int)
         ewald_corr_part = EwaldCorrectionPart(system, charges, alpha, scalings)
         check_gpos_part(system, ewald_corr_part, eps)
+
+
+def test_ewald_vtens_neut_water32():
+    # fake water model, negative oxygens and neutral hydrogens
+    system = get_system_water32()
+    charges = -(system.numbers == 8)*0.8
+    for alpha, eps in (0.05, 1e-10), (0.1, 1e-10), (0.2, 1e-10):
+        ewald_neut_part = EwaldNeutralizingPart(system, charges, alpha)
+        check_vtens_part(system, ewald_neut_part, eps)

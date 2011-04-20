@@ -127,8 +127,11 @@ class EwaldNeutralizingPart(object):
         self.charges = charges
         self.alpha = alpha
 
-    def compute(self, gpos=None):
-        return self.charges.sum()**2*np.pi/(2.0*system.volume*self.alpha**2)
+    def compute(self, gpos=None, vtens=None):
+        fac = self.charges.sum()**2*np.pi/(2.0*self.system.volume*self.alpha**2)
+        if vtens is not None:
+            vtens.ravel()[::4] -= fac
+        return fac
 
 
 class ValencePart(object):
