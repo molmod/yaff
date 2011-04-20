@@ -29,7 +29,7 @@ from yaff import *
 
 
 __all__ = [
-    'check_gpos_part', 'check_gpos_ff',
+    'check_gpos_part', 'check_vtens_part', 'check_gpos_ff',
     'get_system_water32', 'get_system_graphene8',
     'get_system_polyethylene4', 'get_system_quartz', 'get_system_glycine',
     'get_system_cyclopropene', 'get_system_caffeine', 'get_system_butanol',
@@ -43,11 +43,11 @@ def check_gpos_part(system, part, eps, nlists=None):
         if nlists is not None:
             nlists.update()
         if do_gradient:
-            g = np.zeros(system.pos.shape, float)
-            e = part.compute(g)
+            gpos = np.zeros(system.pos.shape, float)
+            e = part.compute(gpos)
             assert np.isfinite(e)
-            assert np.isfinite(g).all()
-            return e, g.ravel()
+            assert np.isfinite(gpos).all()
+            return e, gpos.ravel()
         else:
             e = part.compute()
             assert np.isfinite(e)
@@ -58,22 +58,51 @@ def check_gpos_part(system, part, eps, nlists=None):
     check_delta(fn, x, dxs, eps)
 
 
+def check_vtens_part(system, part, eps, nlists=None):
+    # Get the reduced coordinates
+    reduced = np.dot(system.pos, system.gvecs.transpose())
+    assert abs(np.dot(reduced, system.rvecs) - system.pos).max() < 1e-10
+
+    def fn(x, do_gradient=False):
+        rvecs = x.reshape(3, 3)
+        system.update_rvecs(rvecs)
+        system.pos[:] = np.dot(reduced, system.rvecs)
+        if nlists is not None:
+            nlists.update()
+        if do_gradient:
+            vtens = np.zeros((3, 3), float)
+            e = part.compute(vtens=vtens)
+            grvecs = np.dot(system.gvecs, vtens)
+            assert np.isfinite(e)
+            assert np.isfinite(vtens).all()
+            assert np.isfinite(grvecs).all()
+            return e, grvecs.ravel()
+        else:
+            e = part.compute()
+            assert np.isfinite(e)
+            return e
+
+    x = system.rvecs.ravel()
+    dxs = np.random.normal(0, 1e-4, (100, len(x)))
+    check_delta(fn, x, dxs, eps)
+
+
 def check_gpos_ff(ff, eps):
     def fn(x, do_gradient=False):
         ff.update_pos(x.reshape(ff.system.natom, 3))
         if do_gradient:
-            g = np.zeros(ff.system.pos.shape, float)
-            e = ff.compute(g)
+            gpos = np.zeros(ff.system.pos.shape, float)
+            e = ff.compute(gpos)
             assert np.isfinite(e)
-            assert np.isfinite(g).all()
-            return e, g.ravel()
+            assert np.isfinite(gpos).all()
+            return e, gpos.ravel()
         else:
             e = ff.compute()
             assert np.isfinite(e)
             return e
 
     x = ff.system.pos.ravel()
-    dxs = np.random.normal(0, 1e-4, (100, len(x)))
+    dxs = np.random.normal(0, 1e-3, (100, len(x)))
     check_delta(fn, x, dxs, eps)
 
 

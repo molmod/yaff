@@ -272,11 +272,31 @@ def dlist_forward(np.ndarray[double, ndim=2] pos,
                         <dlist.dlist_row_type*>deltas.data, ndelta)
 
 def dlist_back(np.ndarray[double, ndim=2] gpos,
+               np.ndarray[double, ndim=2] vtens,
                np.ndarray[dlist.dlist_row_type, ndim=1] deltas, long ndelta):
-    assert gpos.flags['C_CONTIGUOUS']
-    assert gpos.shape[1] == 3
+    cdef double *my_gpos
+    cdef double *my_vtens
+
     assert deltas.flags['C_CONTIGUOUS']
-    dlist.dlist_back(<double*>gpos.data,
+    if gpos is None and vtens is None:
+        raise TypeError('Either gpos or vtens must be given.')
+
+    if gpos is None:
+        my_gpos = NULL
+    else:
+        assert gpos.flags['C_CONTIGUOUS']
+        assert gpos.shape[1] == 3
+        my_gpos = <double*>gpos.data
+
+    if vtens is None:
+        my_vtens = NULL
+    else:
+        assert vtens.flags['C_CONTIGUOUS']
+        assert vtens.shape[0] == 3
+        assert vtens.shape[1] == 3
+        my_vtens = <double*>vtens.data
+
+    dlist.dlist_back(my_gpos, my_vtens,
                      <dlist.dlist_row_type*>deltas.data, ndelta)
 
 #

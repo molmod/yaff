@@ -140,12 +140,12 @@ class ValencePart(object):
     def add_term(self, term):
         self.vlist.add_term(term)
 
-    def compute(self, gpos=None):
+    def compute(self, gpos=None, vtens=None):
         self.dlist.forward()
         self.iclist.forward()
         energy = self.vlist.forward()
-        if gpos is not None:
+        if not ((gpos is None) and (vtens is None)):
             self.vlist.back()
             self.iclist.back()
-            self.dlist.back(gpos)
+            self.dlist.back(gpos, vtens)
         return energy

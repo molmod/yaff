@@ -21,6 +21,7 @@
 // --
 
 
+#include <stdlib.h>
 #include "dlist.h"
 #include "mic.h"
 
@@ -39,16 +40,29 @@ void dlist_forward(double *pos, double *rvecs, double *gvecs, long nvec, dlist_r
   }
 }
 
-void dlist_back(double *gpos, dlist_row_type* deltas, long ndelta) {
+void dlist_back(double *gpos, double *vtens, dlist_row_type* deltas, long ndelta) {
   long k;
   dlist_row_type *delta;
   for (k=0; k<ndelta; k++) {
     delta = (deltas + k);
-    gpos[3*(*delta).i    ] += (*delta).gx;
-    gpos[3*(*delta).i + 1] += (*delta).gy;
-    gpos[3*(*delta).i + 2] += (*delta).gz;
-    gpos[3*(*delta).j    ] -= (*delta).gx;
-    gpos[3*(*delta).j + 1] -= (*delta).gy;
-    gpos[3*(*delta).j + 2] -= (*delta).gz;
+    if (gpos != NULL) {
+      gpos[3*(*delta).i    ] += (*delta).gx;
+      gpos[3*(*delta).i + 1] += (*delta).gy;
+      gpos[3*(*delta).i + 2] += (*delta).gz;
+      gpos[3*(*delta).j    ] -= (*delta).gx;
+      gpos[3*(*delta).j + 1] -= (*delta).gy;
+      gpos[3*(*delta).j + 2] -= (*delta).gz;
+    }
+    if (vtens != NULL) {
+      vtens[0] += (*delta).gx*(*delta).dx;
+      vtens[1] += (*delta).gy*(*delta).dx;
+      vtens[2] += (*delta).gz*(*delta).dx;
+      vtens[3] += (*delta).gx*(*delta).dy;
+      vtens[4] += (*delta).gy*(*delta).dy;
+      vtens[6] += (*delta).gx*(*delta).dz;
+      vtens[5] += (*delta).gz*(*delta).dy;
+      vtens[7] += (*delta).gy*(*delta).dz;
+      vtens[8] += (*delta).gz*(*delta).dz;
+    }
   }
 }
