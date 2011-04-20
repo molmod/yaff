@@ -26,7 +26,8 @@ from scipy.special import erfc
 
 from molmod import angstrom, kcalmol
 
-from common import get_system_water32, get_system_caffeine, check_gpos_part
+from common import get_system_water32, get_system_caffeine, check_gpos_part, \
+    check_vtens_part
 
 from yaff import *
 
@@ -215,9 +216,10 @@ def check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, eps):
     assert abs(energy2 - check_energy) < eps
 
 
-def test_gpos_pair_pot_water_lj_9A():
+def test_gpos_vtens_pair_pot_water_lj_9A():
     system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_water32_9A_lj()
     check_gpos_part(system, pair_part, 1e-10, nlists)
+    check_vtens_part(system, pair_part, 1e-10, nlists)
 
 
 def test_gpos_pair_pot_caffeine_lj_15A():

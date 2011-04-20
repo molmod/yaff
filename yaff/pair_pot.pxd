@@ -44,7 +44,7 @@ cdef extern from "pair_pot.h":
     double pair_pot_compute(long center_index, nlists.nlist_row_type* nlist,
                             long nlist_size, scaling_row_type* scaling,
                             long scaling_size, pair_pot_type* pair_pot,
-                            double *gpos)
+                            double *gpos, double* vtens)
 
     void pair_data_lj_init(pair_pot_type *pair_pot, double *sigma, double *epsilon)
     void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha)

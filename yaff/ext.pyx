@@ -119,8 +119,10 @@ cdef class PairPot:
     def compute(self, long center_index,
                 np.ndarray[nlists.nlist_row_type, ndim=1] nlist,
                 np.ndarray[pair_pot.scaling_row_type, ndim=1] scaling,
-                np.ndarray[double, ndim=2] gpos):
+                np.ndarray[double, ndim=2] gpos,
+                np.ndarray[double, ndim=2] vtens):
         cdef double *my_gpos
+        cdef double *my_vtens
 
         assert pair_pot.pair_pot_ready(self._c_pair_pot)
         assert nlist.flags['C_CONTIGUOUS']
@@ -133,10 +135,18 @@ cdef class PairPot:
             assert gpos.shape[1] == 3
             my_gpos = <double*>gpos.data
 
+        if vtens is None:
+            my_vtens = NULL
+        else:
+            assert vtens.flags['C_CONTIGUOUS']
+            assert vtens.shape[0] == 3
+            assert vtens.shape[1] == 3
+            my_vtens = <double*>vtens.data
+
         return pair_pot.pair_pot_compute(
             center_index, <nlists.nlist_row_type*>nlist.data, len(nlist),
             <pair_pot.scaling_row_type*>scaling.data, len(scaling),
-            self._c_pair_pot, my_gpos
+            self._c_pair_pot, my_gpos, my_vtens
         )
 
 

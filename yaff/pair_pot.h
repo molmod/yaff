@@ -54,7 +54,7 @@ void pair_data_free(pair_pot_type *pair_pot);
 double pair_pot_compute(long center_index, nlist_row_type *nlist,
                         long nlist_size, scaling_row_type *scaling,
                         long scaling_size, pair_pot_type *pair_pot,
-                        double *gpos);
+                        double *gpos, double* vtens);
 
 
 typedef struct {

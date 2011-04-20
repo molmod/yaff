@@ -79,11 +79,11 @@ class PairPart(object):
         self.pair_pot = pair_pot
         self.nlists.request_cutoff(pair_pot.cutoff)
 
-    def compute(self, gpos=None):
+    def compute(self, gpos=None, vtens=None):
         assert len(self.nlists) == len(self.scalings)
         result = 0.0
         for i in xrange(len(self.nlists)):
-            result += self.pair_pot.compute(i, self.nlists[i], self.scalings[i], gpos)
+            result += self.pair_pot.compute(i, self.nlists[i], self.scalings[i], gpos, vtens)
         return result
 
 
