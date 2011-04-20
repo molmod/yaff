@@ -26,7 +26,7 @@ cimport pair_pot
 cdef extern from "ewald.h":
     double compute_ewald_reci(double *pos, long natom, double *charges,
                               double *gvecs, double volume, double alpha,
-                              long *gmax, double *gpos, double *work)
+                              long *gmax, double *gpos, double *work, double* vtens)
     double compute_ewald_corr(double *pos, long center_index, double *charges,
                               double *rvecs, double *gvecs, double alpha, 
                               pair_pot.scaling_row_type *scaling,

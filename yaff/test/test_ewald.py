@@ -76,22 +76,46 @@ def get_electrostatic_energy(alpha, system, charges):
     return ff.compute(gpos), gpos
 
 
-def test_ewald_gpos_reci_water32():
+def test_ewald_gpos_vtens_reci_water32():
     system = get_system_water32()
     charges = -0.8 + (system.numbers == 1)*1.2
     for alpha, eps in (0.05, 1e-17), (0.1, 1e-13), (0.2, 1e-11):
         gmax = np.ceil(alpha*1.5/system.gspacings-0.5).astype(int)
         ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gmax)
         check_gpos_part(system, ewald_reci_part, eps)
+        check_vtens_part(system, ewald_reci_part, eps)
 
 
-def test_ewald_gpos_reci_quartz():
+def test_ewald_gpos_vtens_reci_quartz():
     system = get_system_quartz()
     charges = 1.8 - (system.numbers == 8)*2.7
     for alpha, eps in (0.1, 1e-16), (0.2, 1e-12), (0.5, 1e-12):
         gmax = np.ceil(alpha*2.0/system.gspacings-0.5).astype(int)
         ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gmax)
         check_gpos_part(system, ewald_reci_part, eps)
+        check_vtens_part(system, ewald_reci_part, eps)
+
+
+def test_ewald_reci_volchange_quartz():
+    system = get_system_quartz()
+    charges = 1.8 - (system.numbers == 8)*2.7
+    for alpha in 0.1, 0.2, 0.5:
+        gmax = np.ceil(alpha*2.0/system.gspacings-0.5).astype(int)
+        ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gmax)
+        # compute the energy
+        energy1 = ewald_reci_part.compute()
+        # distort the cell and restore to the original volume
+        volume = system.volume
+        reduced = np.dot(system.pos, system.gvecs.transpose())
+        new_rvecs = system.rvecs * np.random.uniform(0.9, 1.0)
+        new_volume = np.linalg.det(new_rvecs)
+        new_rvecs *= (volume/new_volume)**(1.0/3.0)
+        system.pos[:] = np.dot(reduced, new_rvecs)
+        system.update_rvecs(new_rvecs)
+        # recompute the energy
+        energy2 = ewald_reci_part.compute()
+        # energies must be the same
+        assert abs(energy1 - energy2) < 1e-5*abs(energy1)
 
 
 def test_ewald_gpos_vtens_corr_water32():

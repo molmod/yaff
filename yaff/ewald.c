@@ -30,7 +30,7 @@
 
 double compute_ewald_reci(double *pos, long natom, double *charges,
                           double *gvecs, double volume, double alpha,
-                          long *gmax, double *gpos, double *work) {
+                          long *gmax, double *gpos, double *work, double* vtens) {
   long j0, j1, j2, i;
   double energy, k[3], ksq, cosfac, sinfac, x, c, s, fac1, fac2;
   energy = 0.0;
@@ -58,6 +58,7 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
           }
         }
         c = fac1*exp(-ksq*fac2)/ksq;
+        s = (cosfac*cosfac+sinfac*sinfac);
         energy += c*(cosfac*cosfac+sinfac*sinfac);
         if (gpos != NULL) {
           for (i=0; i<natom; i++) {
@@ -67,8 +68,25 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
             gpos[3*i+2] += k[2]*x;
           }
         }
+        c *= 2.0*(1.0/ksq+fac2)*s;
+        if (vtens != NULL) {
+          vtens[0] += c*k[0]*k[0];
+          vtens[1] += c*k[1]*k[0];
+          vtens[2] += c*k[2]*k[0];
+          vtens[3] += c*k[0]*k[1];
+          vtens[4] += c*k[1]*k[1];
+          vtens[5] += c*k[2]*k[1];
+          vtens[6] += c*k[0]*k[2];
+          vtens[7] += c*k[1]*k[2];
+          vtens[8] += c*k[2]*k[2];
+        }
       }
     }
+  }
+  if (vtens != NULL) {
+    vtens[0] -= energy;
+    vtens[4] -= energy;
+    vtens[8] -= energy;
   }
   return energy;
 }

@@ -96,11 +96,12 @@ class EwaldReciprocalPart(object):
         self.gmax = gmax
         self.work = np.empty(system.natom*2)
 
-    def compute(self, gpos=None):
-        return compute_ewald_reci(
+    def compute(self, gpos=None, vtens=None):
+        energy = compute_ewald_reci(
             self.system.pos, self.charges, self.system.gvecs,
-            self.system.volume, self.alpha, self.gmax, gpos, self.work
+            self.system.volume, self.alpha, self.gmax, gpos, self.work, vtens
         )
+        return energy
 
 
 class EwaldCorrectionPart(object):

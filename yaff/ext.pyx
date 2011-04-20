@@ -179,9 +179,11 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
                        np.ndarray[double, ndim=2] gvecs, double volume,
                        double alpha, np.ndarray[long, ndim=1] gmax,
                        np.ndarray[double, ndim=2] gpos,
-                       np.ndarray[double, ndim=1] work):
+                       np.ndarray[double, ndim=1] work,
+                       np.ndarray[double, ndim=2] vtens):
     cdef double *my_gpos
     cdef double *my_work
+    cdef double *my_vtens
 
     assert pos.flags['C_CONTIGUOUS']
     assert pos.shape[1] == 3
@@ -207,10 +209,18 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
         my_gpos = <double*>gpos.data
         my_work = <double*>work.data
 
+    if vtens is None:
+        my_vtens = NULL
+    else:
+        assert vtens.flags['C_CONTIGUOUS']
+        assert vtens.shape[0] == 3
+        assert vtens.shape[1] == 3
+        my_vtens = <double*>vtens.data
+
     return ewald.compute_ewald_reci(<double*>pos.data, len(pos),
                                     <double*>charges.data, <double*>gvecs.data,
                                     volume, alpha, <long*>gmax.data,
-                                    my_gpos, my_work)
+                                    my_gpos, my_work, my_vtens)
 
 
 def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
