@@ -26,7 +26,7 @@ from scipy.special import erfc
 
 from molmod import angstrom, kcalmol
 
-from common import get_system_water32, get_system_caffeine, check_gradient_part
+from common import get_system_water32, get_system_caffeine, check_gpos_part
 
 from yaff import *
 
@@ -62,8 +62,8 @@ def test_pair_pot_lj_water32_9A():
     nlists.update() # update the neighborlists, once the cutoffs are known.
     # Compute the energy using yaff.
     energy1 = pair_part.compute()
-    gradient = np.zeros(system.pos.shape, float)
-    energy2 = pair_part.compute(gradient)
+    gpos = np.zeros(system.pos.shape, float)
+    energy2 = pair_part.compute(gpos)
     # Compute the energy manually
     check_energy = 0.0
     for i in xrange(system.natom):
@@ -191,8 +191,8 @@ def check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, eps):
     nlists.update() # update the neighborlists, once the cutoffs are known.
     # Compute the energy using yaff.
     energy1 = pair_part.compute()
-    gradient = np.zeros(system.pos.shape, float)
-    energy2 = pair_part.compute(gradient)
+    gpos = np.zeros(system.pos.shape, float)
+    energy2 = pair_part.compute(gpos)
     # Compute the energy manually
     check_energy = 0.0
     for i in xrange(system.natom):
@@ -215,21 +215,21 @@ def check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, eps):
     assert abs(energy2 - check_energy) < eps
 
 
-def test_gradient_pair_pot_water_lj_9A():
+def test_gpos_pair_pot_water_lj_9A():
     system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_water32_9A_lj()
-    check_gradient_part(system, pair_part, 1e-10, nlists)
+    check_gpos_part(system, pair_part, 1e-10, nlists)
 
 
-def test_gradient_pair_pot_caffeine_lj_15A():
+def test_gpos_pair_pot_caffeine_lj_15A():
     system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_lj_15A()
-    check_gradient_part(system, pair_part, 1e-10, nlists)
+    check_gpos_part(system, pair_part, 1e-10, nlists)
 
 
-def test_gradient_pair_pot_caffeine_ei1_10A():
+def test_gpos_pair_pot_caffeine_ei1_10A():
     system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_ei1_10A()
-    check_gradient_part(system, pair_part, 1e-8, nlists)
+    check_gpos_part(system, pair_part, 1e-8, nlists)
 
 
-def test_gradient_pair_pot_caffeine_ei2_10A():
+def test_gpos_pair_pot_caffeine_ei2_10A():
     system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_ei2_10A()
-    check_gradient_part(system, pair_part, 1e-8, nlists)
+    check_gpos_part(system, pair_part, 1e-8, nlists)

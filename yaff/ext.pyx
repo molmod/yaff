@@ -119,23 +119,23 @@ cdef class PairPot:
     def compute(self, long center_index,
                 np.ndarray[nlists.nlist_row_type, ndim=1] nlist,
                 np.ndarray[pair_pot.scaling_row_type, ndim=1] scaling,
-                np.ndarray[double, ndim=2] gradient):
+                np.ndarray[double, ndim=2] gpos):
         assert pair_pot.pair_pot_ready(self._c_pair_pot)
         assert nlist.flags['C_CONTIGUOUS']
         assert scaling.flags['C_CONTIGUOUS']
-        if gradient is None:
-            return pair_pot.pair_pot_energy_gradient(
+        if gpos is None:
+            return pair_pot.pair_pot_compute(
                 center_index, <nlists.nlist_row_type*>nlist.data, len(nlist),
                 <pair_pot.scaling_row_type*>scaling.data, len(scaling),
                 self._c_pair_pot, NULL
             )
         else:
-            assert gradient.flags['C_CONTIGUOUS']
-            assert gradient.shape[1] == 3
-            return pair_pot.pair_pot_energy_gradient(
+            assert gpos.flags['C_CONTIGUOUS']
+            assert gpos.shape[1] == 3
+            return pair_pot.pair_pot_compute(
                 center_index, <nlists.nlist_row_type*>nlist.data, len(nlist),
                 <pair_pot.scaling_row_type*>scaling.data, len(scaling),
-                self._c_pair_pot, <double*>gradient.data
+                self._c_pair_pot, <double*>gpos.data
             )
 
 
@@ -177,7 +177,7 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
                        np.ndarray[double, ndim=1] charges,
                        np.ndarray[double, ndim=2] gvecs, double volume,
                        double alpha, np.ndarray[long, ndim=1] gmax,
-                       np.ndarray[double, ndim=2] gradient,
+                       np.ndarray[double, ndim=2] gpos,
                        np.ndarray[double, ndim=1] work):
     assert pos.flags['C_CONTIGUOUS']
     assert pos.shape[1] == 3
@@ -190,21 +190,21 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
     assert alpha > 0
     assert gmax.flags['C_CONTIGUOUS']
     assert gmax.shape[0] == 3
-    if gradient is None:
+    if gpos is None:
         return ewald.compute_ewald_reci(<double*>pos.data, len(pos),
                                         <double*>charges.data, <double*>gvecs.data,
                                         volume, alpha, <long*>gmax.data,
                                         NULL, NULL)
     else:
-        assert gradient.flags['C_CONTIGUOUS']
-        assert gradient.shape[1] == 3
-        assert gradient.shape[0] == pos.shape[0]
+        assert gpos.flags['C_CONTIGUOUS']
+        assert gpos.shape[1] == 3
+        assert gpos.shape[0] == pos.shape[0]
         assert work.flags['C_CONTIGUOUS']
-        assert gradient.shape[0]*2 == work.shape[0]
+        assert gpos.shape[0]*2 == work.shape[0]
         return ewald.compute_ewald_reci(<double*>pos.data, len(pos),
                                         <double*>charges.data, <double*>gvecs.data,
                                         volume, alpha, <long*>gmax.data,
-                                        <double*>gradient.data, <double*>work.data)
+                                        <double*>gpos.data, <double*>work.data)
 
 
 def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
@@ -213,7 +213,7 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
                        np.ndarray[double, ndim=2] rvecs,
                        np.ndarray[double, ndim=2] gvecs, double alpha,
                        np.ndarray[pair_pot.scaling_row_type, ndim=1] scaling,
-                       np.ndarray[double, ndim=2] gradient):
+                       np.ndarray[double, ndim=2] gpos):
     assert pos.flags['C_CONTIGUOUS']
     assert pos.shape[1] == 3
     assert charges.flags['C_CONTIGUOUS']
@@ -226,21 +226,21 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
     assert gvecs.shape[1] == 3
     assert alpha > 0
     assert scaling.flags['C_CONTIGUOUS']
-    if gradient is None:
+    if gpos is None:
         return ewald.compute_ewald_corr(<double*>pos.data, center_index,
                                         <double*>charges.data, <double*>rvecs.data,
                                         <double*>gvecs.data, alpha,
                                         <pair_pot.scaling_row_type*>scaling.data,
                                         len(scaling), NULL)
     else:
-        assert gradient.flags['C_CONTIGUOUS']
-        assert gradient.shape[1] == 3
-        assert gradient.shape[0] == pos.shape[0]
+        assert gpos.flags['C_CONTIGUOUS']
+        assert gpos.shape[1] == 3
+        assert gpos.shape[0] == pos.shape[0]
         return ewald.compute_ewald_corr(<double*>pos.data, center_index,
                                         <double*>charges.data, <double*>rvecs.data,
                                         <double*>gvecs.data, alpha,
                                         <pair_pot.scaling_row_type*>scaling.data,
-                                        len(scaling), <double*>gradient.data)
+                                        len(scaling), <double*>gpos.data)
 
 
 #
@@ -263,12 +263,12 @@ def dlist_forward(np.ndarray[double, ndim=2] pos,
                         <double*>gvecs.data, len(rvecs),
                         <dlist.dlist_row_type*>deltas.data, ndelta)
 
-def dlist_back(np.ndarray[double, ndim=2] gradient,
+def dlist_back(np.ndarray[double, ndim=2] gpos,
                np.ndarray[dlist.dlist_row_type, ndim=1] deltas, long ndelta):
-    assert gradient.flags['C_CONTIGUOUS']
-    assert gradient.shape[1] == 3
+    assert gpos.flags['C_CONTIGUOUS']
+    assert gpos.shape[1] == 3
     assert deltas.flags['C_CONTIGUOUS']
-    dlist.dlist_back(<double*>gradient.data,
+    dlist.dlist_back(<double*>gpos.data,
                      <dlist.dlist_row_type*>deltas.data, ndelta)
 
 #

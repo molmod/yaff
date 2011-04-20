@@ -41,10 +41,10 @@ cdef extern from "pair_pot.h":
     void pair_pot_set_smooth(pair_pot_type *pair_pot, bint smooth)
     void pair_data_free(pair_pot_type *pair_pot)
     
-    double pair_pot_energy_gradient(long center_index, nlists.nlist_row_type* nlist,
-                                    long nlist_size, scaling_row_type* scaling,
-                                    long scaling_size, pair_pot_type* pair_pot,
-                                    double *gradient)
+    double pair_pot_compute(long center_index, nlists.nlist_row_type* nlist,
+                            long nlist_size, scaling_row_type* scaling,
+                            long scaling_size, pair_pot_type* pair_pot,
+                            double *gpos)
 
     void pair_data_lj_init(pair_pot_type *pair_pot, double *sigma, double *epsilon)
     void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha)

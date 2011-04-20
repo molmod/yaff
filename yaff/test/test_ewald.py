@@ -25,7 +25,7 @@ import numpy as np
 
 from yaff import *
 
-from common import get_system_water32, get_system_quartz, check_gradient_part
+from common import get_system_water32, get_system_quartz, check_gpos_part
 
 
 def test_ewald_water32():
@@ -44,16 +44,16 @@ def check_alpha_depedence(system, charges):
     # Idea: run ewald sum with two different alpha parameters and compare.
     # (this only works if both real and reciprocal part properly converge.)
     energies = []
-    gradients = []
+    gposs = []
     assert abs(charges.sum()) < 1e-10
     for alpha in 0.05, 0.1, 0.2, 0.5, 1.0:
         e, g = get_electrostatic_energy(alpha, system, charges)
         energies.append(e)
-        gradients.append(g)
+        gposs.append(g)
     energies = np.array(energies)
-    gradients = np.array(gradients)
+    gposs = np.array(gposs)
     assert abs(energies - energies.mean()).max() < 1e-8
-    assert abs(gradients - gradients.mean(axis=0)).max() < 1e-8
+    assert abs(gposs - gposs.mean(axis=0)).max() < 1e-8
 
 
 def get_electrostatic_energy(alpha, system, charges):
@@ -71,43 +71,43 @@ def get_electrostatic_energy(alpha, system, charges):
     # Construct the force field
     ff = SumForceField(system, [ewald_real_part, ewald_reci_part, ewald_corr_part], nlists)
     ff.update_pos(system.pos)
-    gradient = np.zeros(system.pos.shape, float)
-    return ff.compute(gradient), gradient
+    gpos = np.zeros(system.pos.shape, float)
+    return ff.compute(gpos), gpos
 
 
-def test_ewald_gradient_reci_water32():
+def test_ewald_gpos_reci_water32():
     system = get_system_water32()
     charges = -0.8 + (system.numbers == 1)*1.2
     for alpha, eps in (0.05, 1e-17), (0.1, 1e-13), (0.2, 1e-11):
         gmax = np.ceil(alpha*1.5/system.gspacings-0.5).astype(int)
         ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gmax)
-        check_gradient_part(system, ewald_reci_part, eps)
+        check_gpos_part(system, ewald_reci_part, eps)
 
 
-def test_ewald_gradient_reci_quartz():
+def test_ewald_gpos_reci_quartz():
     system = get_system_quartz()
     charges = 1.8 - (system.numbers == 8)*2.7
     for alpha, eps in (0.1, 1e-16), (0.2, 1e-12), (0.5, 1e-12):
         gmax = np.ceil(alpha*2.0/system.gspacings-0.5).astype(int)
         ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gmax)
-        check_gradient_part(system, ewald_reci_part, eps)
+        check_gpos_part(system, ewald_reci_part, eps)
 
 
-def test_ewald_gradient_corr_water32():
+def test_ewald_gpos_corr_water32():
     system = get_system_water32()
     charges = -0.8 + (system.numbers == 1)*1.2
     scalings = Scalings(system.topology, 0.0, 0.0, 0.5)
     for alpha, eps in (0.05, 1e-15), (0.1, 1e-15), (0.2, 1e-12):
         gmax = np.ceil(alpha*1.5/system.gspacings-0.5).astype(int)
         ewald_corr_part = EwaldCorrectionPart(system, charges, alpha, scalings)
-        check_gradient_part(system, ewald_corr_part, eps)
+        check_gpos_part(system, ewald_corr_part, eps)
 
 
-def test_ewald_gradient_corr_quartz():
+def test_ewald_gpos_corr_quartz():
     system = get_system_quartz()
     charges = 1.8 - (system.numbers == 8)*2.7
     scalings = Scalings(system.topology, 0.0, 0.0, 0.5)
     for alpha, eps in (0.1, 1e-12), (0.2, 1e-11), (0.5, 1e-11):
         gmax = np.ceil(alpha*2.0/system.gspacings-0.5).astype(int)
         ewald_corr_part = EwaldCorrectionPart(system, charges, alpha, scalings)
-        check_gradient_part(system, ewald_corr_part, eps)
+        check_gpos_part(system, ewald_corr_part, eps)

@@ -29,7 +29,7 @@ from yaff import *
 
 
 __all__ = [
-    'check_gradient_part', 'check_gradient_ff',
+    'check_gpos_part', 'check_gpos_ff',
     'get_system_water32', 'get_system_graphene8',
     'get_system_polyethylene4', 'get_system_quartz', 'get_system_glycine',
     'get_system_cyclopropene', 'get_system_caffeine', 'get_system_butanol',
@@ -37,7 +37,7 @@ __all__ = [
 ]
 
 
-def check_gradient_part(system, part, eps, nlists=None):
+def check_gpos_part(system, part, eps, nlists=None):
     def fn(x, do_gradient=False):
         system.pos[:] = x.reshape(system.natom, 3)
         if nlists is not None:
@@ -58,7 +58,7 @@ def check_gradient_part(system, part, eps, nlists=None):
     check_delta(fn, x, dxs, eps)
 
 
-def check_gradient_ff(ff, eps):
+def check_gpos_ff(ff, eps):
     def fn(x, do_gradient=False):
         ff.update_pos(x.reshape(ff.system.natom, 3))
         if do_gradient:

@@ -39,16 +39,16 @@ void dlist_forward(double *pos, double *rvecs, double *gvecs, long nvec, dlist_r
   }
 }
 
-void dlist_back(double *gradient, dlist_row_type* deltas, long ndelta) {
+void dlist_back(double *gpos, dlist_row_type* deltas, long ndelta) {
   long k;
   dlist_row_type *delta;
   for (k=0; k<ndelta; k++) {
     delta = (deltas + k);
-    gradient[3*(*delta).i    ] += (*delta).gx;
-    gradient[3*(*delta).i + 1] += (*delta).gy;
-    gradient[3*(*delta).i + 2] += (*delta).gz;
-    gradient[3*(*delta).j    ] -= (*delta).gx;
-    gradient[3*(*delta).j + 1] -= (*delta).gy;
-    gradient[3*(*delta).j + 2] -= (*delta).gz;
+    gpos[3*(*delta).i    ] += (*delta).gx;
+    gpos[3*(*delta).i + 1] += (*delta).gy;
+    gpos[3*(*delta).i + 2] += (*delta).gz;
+    gpos[3*(*delta).j    ] -= (*delta).gx;
+    gpos[3*(*delta).j + 1] -= (*delta).gy;
+    gpos[3*(*delta).j + 2] -= (*delta).gz;
   }
 }

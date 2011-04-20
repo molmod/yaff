@@ -91,10 +91,10 @@ double hammer(double d, double c, double *g) {
 }
 
 
-double pair_pot_energy_gradient(long center_index, nlist_row_type *nlist,
-                                long nlist_size, scaling_row_type *scaling,
-                                long scaling_size, pair_pot_type *pair_pot,
-                                double *gradient) {
+double pair_pot_compute(long center_index, nlist_row_type *nlist,
+                        long nlist_size, scaling_row_type *scaling,
+                        long scaling_size, pair_pot_type *pair_pot,
+                        double *gpos) {
   long i, other_index, scaling_counter;
   double s, energy, v, vg, h, hg;
   energy = 0.0;
@@ -112,7 +112,7 @@ double pair_pot_energy_gradient(long center_index, nlist_row_type *nlist,
       }
       // If the scale is non-zero, compute the contribution.
       if (s > 0.0) {
-        if (gradient==NULL) {
+        if (gpos==NULL) {
           // Call the potential function without g argument.
           v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, nlist[i].d, NULL);
           if ((*pair_pot).smooth) v *= hammer(nlist[i].d, (*pair_pot).cutoff, NULL);
@@ -126,12 +126,12 @@ double pair_pot_energy_gradient(long center_index, nlist_row_type *nlist,
             v *= h;
           }
           vg *= s;
-          gradient[3*center_index  ] += nlist[i].dx*vg;
-          gradient[3*center_index+1] += nlist[i].dy*vg;
-          gradient[3*center_index+2] += nlist[i].dz*vg;
-          gradient[3*other_index  ] -= nlist[i].dx*vg;
-          gradient[3*other_index+1] -= nlist[i].dy*vg;
-          gradient[3*other_index+2] -= nlist[i].dz*vg;
+          gpos[3*center_index  ] += nlist[i].dx*vg;
+          gpos[3*center_index+1] += nlist[i].dy*vg;
+          gpos[3*center_index+2] += nlist[i].dz*vg;
+          gpos[3*other_index  ] -= nlist[i].dx*vg;
+          gpos[3*other_index+1] -= nlist[i].dy*vg;
+          gpos[3*other_index+2] -= nlist[i].dz*vg;
         }
         energy += s*v;
       }

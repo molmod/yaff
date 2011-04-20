@@ -70,5 +70,5 @@ class DeltaList(object):
     def forward(self):
         dlist_forward(self.system.pos, self.system.rvecs, self.system.gvecs, self.deltas, self.ndelta)
 
-    def back(self, gradient):
-        dlist_back(gradient, self.deltas, self.ndelta)
+    def back(self, gpos):
+        dlist_back(gpos, self.deltas, self.ndelta)

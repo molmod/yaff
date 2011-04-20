@@ -45,7 +45,7 @@ class ForceField(object):
     def update_pos(self, pos):
         self.system.pos[:] = pos
 
-    def compute(self, gradient=None):
+    def compute(self, gpos=None):
         raise NotImplementedError
 
 
@@ -64,12 +64,12 @@ class SumForceField(ForceField):
         ForceField.update_pos(self, pos)
         self.needs_update = True
 
-    def compute(self, gradient=None):
+    def compute(self, gpos=None):
         if self.needs_update:
             if self.nlists is not None:
                 self.nlists.update()
             self.needs_update = False
-        return sum([part.compute(gradient) for part in self.parts])
+        return sum([part.compute(gpos) for part in self.parts])
 
 
 class PairPart(object):
@@ -79,11 +79,11 @@ class PairPart(object):
         self.pair_pot = pair_pot
         self.nlists.request_cutoff(pair_pot.cutoff)
 
-    def compute(self, gradient=None):
+    def compute(self, gpos=None):
         assert len(self.nlists) == len(self.scalings)
         result = 0.0
         for i in xrange(len(self.nlists)):
-            result += self.pair_pot.compute(i, self.nlists[i], self.scalings[i], gradient)
+            result += self.pair_pot.compute(i, self.nlists[i], self.scalings[i], gpos)
         return result
 
 
@@ -96,10 +96,10 @@ class EwaldReciprocalPart(object):
         self.gmax = gmax
         self.work = np.empty(system.natom*2)
 
-    def compute(self, gradient=None):
+    def compute(self, gpos=None):
         return compute_ewald_reci(
             self.system.pos, self.charges, self.system.gvecs,
-            self.system.volume, self.alpha, self.gmax, gradient, self.work
+            self.system.volume, self.alpha, self.gmax, gpos, self.work
         )
 
 
@@ -111,11 +111,11 @@ class EwaldCorrectionPart(object):
         self.alpha = alpha
         self.scalings = scalings
 
-    def compute(self, gradient=None):
+    def compute(self, gpos=None):
         return sum([
             compute_ewald_corr(self.system.pos, i, self.charges,
                                self.system.rvecs, self.system.gvecs, self.alpha,
-                               self.scalings[i], gradient)
+                               self.scalings[i], gpos)
             for i in xrange(len(self.scalings))
         ])
 
@@ -127,7 +127,7 @@ class EwaldNeutralizingPart(object):
         self.charges = charges
         self.alpha = alpha
 
-    def compute(self, gradient=None):
+    def compute(self, gpos=None):
         return self.charges.sum()**2*np.pi/(2.0*system.volume*self.alpha**2)
 
 
@@ -140,12 +140,12 @@ class ValencePart(object):
     def add_term(self, term):
         self.vlist.add_term(term)
 
-    def compute(self, gradient=None):
+    def compute(self, gpos=None):
         self.dlist.forward()
         self.iclist.forward()
         energy = self.vlist.forward()
-        if gradient is not None:
+        if gpos is not None:
             self.vlist.back()
             self.iclist.back()
-            self.dlist.back(gradient)
+            self.dlist.back(gpos)
         return energy

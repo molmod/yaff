@@ -26,7 +26,7 @@ from molmod import bond_length, bend_angle, bend_cos
 from yaff import *
 
 from common import get_system_quartz, get_system_water32, get_system_2T, \
-    check_gradient_part
+    check_gpos_part
 
 
 def test_vlist_quartz_bonds():
@@ -111,15 +111,15 @@ def test_vlist_quartz_bend_angle():
     assert abs(energy - check_energy) < 1e-8
 
 
-def test_gradient_bond_water32():
+def test_gpos_bond_water32():
     system = get_system_water32()
     part = ValencePart(system)
     for i, j in system.topology.bonds:
         part.add_term(Harmonic(0.3, 1.7, Bond(i, j)))
-    check_gradient_part(system, part, 1e-10)
+    check_gpos_part(system, part, 1e-10)
 
 
-def test_gradient_bend_cos_water32():
+def test_gpos_bend_cos_water32():
     system = get_system_water32()
     part = ValencePart(system)
     for i1 in xrange(system.natom):
@@ -127,10 +127,10 @@ def test_gradient_bend_cos_water32():
             for i2 in system.topology.neighs1[i1]:
                 if i0 > i2:
                     part.add_term(Harmonic(1.1+0.01*i0, -0.2, BendCos(i0, i1, i2)))
-    check_gradient_part(system, part, 1e-10)
+    check_gpos_part(system, part, 1e-10)
 
 
-def test_gradient_bend_angle_water32():
+def test_gpos_bend_angle_water32():
     system = get_system_water32()
     part = ValencePart(system)
     for i1 in xrange(system.natom):
@@ -138,9 +138,9 @@ def test_gradient_bend_angle_water32():
             for i2 in system.topology.neighs1[i1]:
                 if i0 > i2:
                     part.add_term(Harmonic(1.5, 2.0+0.01*i2, BendAngle(i0, i1, i2)))
-    check_gradient_part(system, part, 1e-10)
+    check_gpos_part(system, part, 1e-10)
 
-def test_gradient_2T():
+def test_gpos_2T():
     system = get_system_2T()
     rv_table = {
         ('H', 'Si', 'H'):  1.80861,
@@ -184,4 +184,4 @@ def test_gradient_2T():
                 if i0 > i2:
                     part.add_term(Harmonic(fc_table[key], rv_table[key], BendAngle(i0, i1, i2)))
 
-    check_gradient_part(system, part, 1e-10)
+    check_gpos_part(system, part, 1e-10)

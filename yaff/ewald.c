@@ -30,7 +30,7 @@
 
 double compute_ewald_reci(double *pos, long natom, double *charges,
                           double *gvecs, double volume, double alpha,
-                          long *gmax, double *gradient, double *work) {
+                          long *gmax, double *gpos, double *work) {
   long j0, j1, j2, i;
   double energy, k[3], ksq, cosfac, sinfac, x, c, s, fac1, fac2;
   energy = 0.0;
@@ -52,19 +52,19 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
           s = charges[i]*sin(x);
           cosfac += c;
           sinfac += s;
-          if (gradient != NULL) {
+          if (gpos != NULL) {
             work[2*i] = 2*c;
             work[2*i+1] = -2*s;
           }
         }
         c = fac1*exp(-ksq*fac2)/ksq;
         energy += c*(cosfac*cosfac+sinfac*sinfac);
-        if (gradient != NULL) {
+        if (gpos != NULL) {
           for (i=0; i<natom; i++) {
             x = c*(cosfac*work[2*i+1] + sinfac*work[2*i]);
-            gradient[3*i] += k[0]*x;
-            gradient[3*i+1] += k[1]*x;
-            gradient[3*i+2] += k[2]*x;
+            gpos[3*i] += k[0]*x;
+            gpos[3*i+1] += k[1]*x;
+            gpos[3*i+2] += k[2]*x;
           }
         }
       }
@@ -76,11 +76,11 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
 double compute_ewald_corr(double *pos, long center_index, double *charges,
                           double *rvecs, double *gvecs, double alpha,
                           scaling_row_type *scaling, long scaling_size,
-                          double *gradient) {
+                          double *gpos) {
   long i, other_index;
   double energy, delta[3], d, s, x, g, pot, fac;
   energy = 0.0;
-  // Self-interaction correction (no gradient contribution)
+  // Self-interaction correction (no gpos contribution)
   energy -= alpha/M_SQRT_PI*charges[center_index]*charges[center_index];
   // Scaling corrections
   for (i = 0; i < scaling_size; i++) {
@@ -95,14 +95,14 @@ double compute_ewald_corr(double *pos, long center_index, double *charges,
     x = alpha*d;
     pot = erf(x)/d;
     fac = (1-s)*charges[other_index]*charges[center_index];
-    if (gradient != NULL) {
+    if (gpos != NULL) {
       g = -fac*(M_TWO_DIV_SQRT_PI*alpha*exp(-x*x) - pot)/d/d;
-      gradient[3*center_index  ] += delta[0]*g;
-      gradient[3*center_index+1] += delta[1]*g;
-      gradient[3*center_index+2] += delta[2]*g;
-      gradient[3*other_index  ] -= delta[0]*g;
-      gradient[3*other_index+1] -= delta[1]*g;
-      gradient[3*other_index+2] -= delta[2]*g;
+      gpos[3*center_index  ] += delta[0]*g;
+      gpos[3*center_index+1] += delta[1]*g;
+      gpos[3*center_index+2] += delta[2]*g;
+      gpos[3*other_index  ] -= delta[0]*g;
+      gpos[3*other_index+1] -= delta[1]*g;
+      gpos[3*other_index+2] -= delta[2]*g;
     }
     energy -= fac*pot;
   }

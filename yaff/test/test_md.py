@@ -29,7 +29,7 @@ from molmod.io import XYZWriter
 
 from yaff import *
 
-from common import get_system_water32, check_gradient_ff, check_gradient_part
+from common import get_system_water32, check_gpos_ff, check_gpos_part
 
 def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=False):
     system = get_system_water32()
@@ -64,7 +64,7 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
             epsilons[i] = epsilon_table[system.numbers[i]]
         pair_pot_lj = PairPotLJ(sigmas, epsilons, cutoff, True)
         pair_part_lj = PairPart(nlists, scalings, pair_pot_lj)
-        #check_gradient_part(system, pair_part_lj, 1e-100, nlists)
+        #check_gpos_part(system, pair_part_lj, 1e-100, nlists)
         #raise Exception
         parts.append(pair_part_lj)
     # charges
@@ -87,9 +87,9 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
     return SumForceField(system, parts, nlists)
 
 
-def test_gradient_water32_full():
+def test_gpos_water32_full():
     ff = get_ff_water32(True, True, True, True)
-    check_gradient_ff(ff, 1e-10)
+    check_gpos_ff(ff, 1e-10)
 
 def test_md_water32_full():
     dump = False
