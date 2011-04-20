@@ -76,6 +76,7 @@ def check_vtens_part(system, part, eps, nlists=None):
             assert np.isfinite(e)
             assert np.isfinite(vtens).all()
             assert np.isfinite(grvecs).all()
+            assert abs(vtens - vtens.transpose()).max() < 1e-10
             return e, grvecs.ravel()
         else:
             e = part.compute()

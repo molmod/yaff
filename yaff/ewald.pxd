@@ -30,5 +30,5 @@ cdef extern from "ewald.h":
     double compute_ewald_corr(double *pos, long center_index, double *charges,
                               double *rvecs, double *gvecs, double alpha, 
                               pair_pot.scaling_row_type *scaling,
-                              long scaling_size, double *gpos)
+                              long scaling_size, double *gpos, double *vtens)
 

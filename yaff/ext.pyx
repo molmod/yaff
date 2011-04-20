@@ -219,8 +219,10 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
                        np.ndarray[double, ndim=2] rvecs,
                        np.ndarray[double, ndim=2] gvecs, double alpha,
                        np.ndarray[pair_pot.scaling_row_type, ndim=1] scaling,
-                       np.ndarray[double, ndim=2] gpos):
+                       np.ndarray[double, ndim=2] gpos,
+                       np.ndarray[double, ndim=2] vtens):
     cdef double *my_gpos
+    cdef double *my_vtens
 
     assert pos.flags['C_CONTIGUOUS']
     assert pos.shape[1] == 3
@@ -243,12 +245,19 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
         assert gpos.shape[0] == pos.shape[0]
         my_gpos = <double*>gpos.data
 
+    if vtens is None:
+        my_vtens = NULL
+    else:
+        assert vtens.flags['C_CONTIGUOUS']
+        assert vtens.shape[0] == 3
+        assert vtens.shape[1] == 3
+        my_vtens = <double*>vtens.data
 
     return ewald.compute_ewald_corr(<double*>pos.data, center_index,
                                     <double*>charges.data, <double*>rvecs.data,
                                     <double*>gvecs.data, alpha,
                                     <pair_pot.scaling_row_type*>scaling.data,
-                                    len(scaling), my_gpos)
+                                    len(scaling), my_gpos, my_vtens)
 
 
 #

@@ -59,8 +59,8 @@ void dlist_back(double *gpos, double *vtens, dlist_row_type* deltas, long ndelta
       vtens[2] += (*delta).gz*(*delta).dx;
       vtens[3] += (*delta).gx*(*delta).dy;
       vtens[4] += (*delta).gy*(*delta).dy;
-      vtens[6] += (*delta).gx*(*delta).dz;
       vtens[5] += (*delta).gz*(*delta).dy;
+      vtens[6] += (*delta).gx*(*delta).dz;
       vtens[7] += (*delta).gy*(*delta).dz;
       vtens[8] += (*delta).gz*(*delta).dz;
     }

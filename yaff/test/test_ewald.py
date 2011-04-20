@@ -94,7 +94,7 @@ def test_ewald_gpos_reci_quartz():
         check_gpos_part(system, ewald_reci_part, eps)
 
 
-def test_ewald_gpos_corr_water32():
+def test_ewald_gpos_vtens_corr_water32():
     system = get_system_water32()
     charges = -0.8 + (system.numbers == 1)*1.2
     scalings = Scalings(system.topology, 0.0, 0.0, 0.5)
@@ -102,9 +102,10 @@ def test_ewald_gpos_corr_water32():
         gmax = np.ceil(alpha*1.5/system.gspacings-0.5).astype(int)
         ewald_corr_part = EwaldCorrectionPart(system, charges, alpha, scalings)
         check_gpos_part(system, ewald_corr_part, eps)
+        check_vtens_part(system, ewald_corr_part, eps)
 
 
-def test_ewald_gpos_corr_quartz():
+def test_ewald_gpos_vtens_corr_quartz():
     system = get_system_quartz()
     charges = 1.8 - (system.numbers == 8)*2.7
     scalings = Scalings(system.topology, 0.0, 0.0, 0.5)
@@ -112,6 +113,7 @@ def test_ewald_gpos_corr_quartz():
         gmax = np.ceil(alpha*2.0/system.gspacings-0.5).astype(int)
         ewald_corr_part = EwaldCorrectionPart(system, charges, alpha, scalings)
         check_gpos_part(system, ewald_corr_part, eps)
+        check_vtens_part(system, ewald_corr_part, eps)
 
 
 def test_ewald_vtens_neut_water32():
