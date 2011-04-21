@@ -39,7 +39,7 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
   for (j0=-gmax[0]; j0 <= gmax[0]; j0++) {
     for (j1=-gmax[1]; j1 <= gmax[1]; j1++) {
       for (j2=0; j2 <= gmax[2]; j2++) {
-        if ((j0==0)&&(j1==0)&(j2==0)) continue;
+        if ((j0==0)&&(j1==0)&&(j2==0)) continue;
         k[0] = M_TWO_PI*(j0*gvecs[0] + j1*gvecs[3] + j2*gvecs[6]);
         k[1] = M_TWO_PI*(j0*gvecs[1] + j1*gvecs[4] + j2*gvecs[7]);
         k[2] = M_TWO_PI*(j0*gvecs[2] + j1*gvecs[5] + j2*gvecs[8]);

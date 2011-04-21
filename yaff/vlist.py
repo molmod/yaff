@@ -46,7 +46,7 @@ class ValenceList(object):
         if self.nv >= len(self.vtab):
             self.vtab = np.resize(self.vtab, int(len(self.vtab)*1.5))
         row = self.nv
-        self.vtab['kind'] = term.kind
+        self.vtab[row]['kind'] = term.kind
         for i in xrange(len(term.pars)):
             self.vtab[row]['par%i'%i] = term.pars[i]
         ic_indexes = term.get_ic_indexes(self.iclist)
