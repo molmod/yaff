@@ -46,15 +46,19 @@ def check_alpha_depedence(system, charges):
     # (this only works if both real and reciprocal part properly converge.)
     energies = []
     gposs = []
+    vtenss = []
     assert abs(charges.sum()) < 1e-10
     for alpha in 0.05, 0.1, 0.2, 0.5, 1.0:
-        e, g = get_electrostatic_energy(alpha, system, charges)
-        energies.append(e)
-        gposs.append(g)
+        energy, gpos, vtens = get_electrostatic_energy(alpha, system, charges)
+        energies.append(energy)
+        gposs.append(gpos)
+        vtenss.append(vtens)
     energies = np.array(energies)
     gposs = np.array(gposs)
+    vtenss = np.array(vtenss)
     assert abs(energies - energies.mean()).max() < 1e-8
     assert abs(gposs - gposs.mean(axis=0)).max() < 1e-8
+    assert abs(vtenss - vtenss.mean(axis=0)).max() < 1e-8
 
 
 def get_electrostatic_energy(alpha, system, charges):
@@ -73,7 +77,8 @@ def get_electrostatic_energy(alpha, system, charges):
     ff = SumForceField(system, [ewald_real_part, ewald_reci_part, ewald_corr_part], nlists)
     ff.update_pos(system.pos)
     gpos = np.zeros(system.pos.shape, float)
-    return ff.compute(gpos), gpos
+    vtens = np.zeros((3, 3), float)
+    return ff.compute(gpos, vtens), gpos, vtens
 
 
 def test_ewald_gpos_vtens_reci_water32():

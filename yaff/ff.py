@@ -45,7 +45,7 @@ class ForceField(object):
     def update_pos(self, pos):
         self.system.pos[:] = pos
 
-    def compute(self, gpos=None):
+    def compute(self, gpos=None, vtens=None):
         raise NotImplementedError
 
 
