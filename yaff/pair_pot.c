@@ -127,23 +127,29 @@ double pair_pot_compute(long center_index, nlist_row_type *nlist,
           }
           vg *= s;
           if (gpos!=NULL) {
-            gpos[3*center_index  ] += nlist[i].dx*vg;
-            gpos[3*center_index+1] += nlist[i].dy*vg;
-            gpos[3*center_index+2] += nlist[i].dz*vg;
-            gpos[3*other_index  ] -= nlist[i].dx*vg;
-            gpos[3*other_index+1] -= nlist[i].dy*vg;
-            gpos[3*other_index+2] -= nlist[i].dz*vg;
+            h = nlist[i].dx*vg;
+            gpos[3*center_index  ] += h;
+            gpos[3*other_index   ] -= h;
+            h = nlist[i].dy*vg;
+            gpos[3*center_index+1] += h;
+            gpos[3*other_index +1] -= h;
+            h = nlist[i].dz*vg;
+            gpos[3*center_index+2] += h;
+            gpos[3*other_index +2] -= h;
           }
           if (vtens!=NULL) {
             vtens[0] += nlist[i].dx*nlist[i].dx*vg;
-            vtens[1] += nlist[i].dx*nlist[i].dy*vg;
-            vtens[2] += nlist[i].dx*nlist[i].dz*vg;
-            vtens[3] += nlist[i].dy*nlist[i].dx*vg;
             vtens[4] += nlist[i].dy*nlist[i].dy*vg;
-            vtens[5] += nlist[i].dy*nlist[i].dz*vg;
-            vtens[6] += nlist[i].dz*nlist[i].dx*vg;
-            vtens[7] += nlist[i].dz*nlist[i].dy*vg;
             vtens[8] += nlist[i].dz*nlist[i].dz*vg;
+            h = nlist[i].dx*nlist[i].dy*vg;
+            vtens[1] += h;
+            vtens[3] += h;
+            h = nlist[i].dx*nlist[i].dz*vg;
+            vtens[2] += h;
+            vtens[6] += h;
+            h = nlist[i].dy*nlist[i].dz*vg;
+            vtens[5] += h;
+            vtens[7] += h;
           }
         }
         energy += s*v;

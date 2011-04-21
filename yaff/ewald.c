@@ -38,7 +38,7 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
   fac2 = 0.25/alpha/alpha;
   for (j0=-gmax[0]; j0 <= gmax[0]; j0++) {
     for (j1=-gmax[1]; j1 <= gmax[1]; j1++) {
-      for (j2=-gmax[2]; j2 <= gmax[2]; j2++) {
+      for (j2=0; j2 <= gmax[2]; j2++) {
         if ((j0==0)&&(j1==0)&(j2==0)) continue;
         k[0] = M_TWO_PI*(j0*gvecs[0] + j1*gvecs[3] + j2*gvecs[6]);
         k[1] = M_TWO_PI*(j0*gvecs[1] + j1*gvecs[4] + j2*gvecs[7]);
@@ -53,32 +53,35 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
           cosfac += c;
           sinfac += s;
           if (gpos != NULL) {
-            work[2*i] = 2*c;
-            work[2*i+1] = -2*s;
+            work[2*i] = c;
+            work[2*i+1] = -s;
           }
         }
-        c = fac1*exp(-ksq*fac2)/ksq;
+        c = (1+(j2>0))*fac1*exp(-ksq*fac2)/ksq;
         s = (cosfac*cosfac+sinfac*sinfac);
-        energy += c*(cosfac*cosfac+sinfac*sinfac);
+        energy += c*s;
         if (gpos != NULL) {
           for (i=0; i<natom; i++) {
-            x = c*(cosfac*work[2*i+1] + sinfac*work[2*i]);
+            x = 2.0*c*(cosfac*work[2*i+1] + sinfac*work[2*i]);
             gpos[3*i] += k[0]*x;
             gpos[3*i+1] += k[1]*x;
             gpos[3*i+2] += k[2]*x;
           }
         }
-        c *= 2.0*(1.0/ksq+fac2)*s;
         if (vtens != NULL) {
+          c *= 2.0*(1.0/ksq+fac2)*s;
           vtens[0] += c*k[0]*k[0];
-          vtens[1] += c*k[1]*k[0];
-          vtens[2] += c*k[2]*k[0];
-          vtens[3] += c*k[0]*k[1];
           vtens[4] += c*k[1]*k[1];
-          vtens[5] += c*k[2]*k[1];
-          vtens[6] += c*k[0]*k[2];
-          vtens[7] += c*k[1]*k[2];
           vtens[8] += c*k[2]*k[2];
+          x = c*k[1]*k[0];
+          vtens[1] += x;
+          vtens[3] += x;
+          x = c*k[2]*k[0];
+          vtens[2] += x;
+          vtens[6] += x;
+          x = c*k[2]*k[1];
+          vtens[5] += x;
+          vtens[7] += x;
         }
       }
     }
@@ -96,14 +99,13 @@ double compute_ewald_corr(double *pos, long center_index, double *charges,
                           scaling_row_type *scaling, long scaling_size,
                           double *gpos, double *vtens) {
   long i, other_index;
-  double energy, delta[3], d, s, x, g, pot, fac;
+  double energy, delta[3], d, x, g, pot, fac;
   energy = 0.0;
   // Self-interaction correction (no gpos or vtens contribution)
   energy -= alpha/M_SQRT_PI*charges[center_index]*charges[center_index];
   // Scaling corrections
   for (i = 0; i < scaling_size; i++) {
     other_index = scaling[i].i;
-    s = scaling[i].scale;
     if (other_index >= center_index) continue; // avoid double counting.
     delta[0] = pos[3*center_index    ] - pos[3*other_index    ];
     delta[1] = pos[3*center_index + 1] - pos[3*other_index + 1];
@@ -112,28 +114,34 @@ double compute_ewald_corr(double *pos, long center_index, double *charges,
     d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
     x = alpha*d;
     pot = erf(x)/d;
-    fac = (1-s)*charges[other_index]*charges[center_index];
+    fac = (1-scaling[i].scale)*charges[other_index]*charges[center_index];
     if ((gpos != NULL) || (vtens != NULL)) {
       g = -fac*(M_TWO_DIV_SQRT_PI*alpha*exp(-x*x) - pot)/d/d;
     }
     if (gpos != NULL) {
-      gpos[3*center_index  ] += delta[0]*g;
-      gpos[3*center_index+1] += delta[1]*g;
-      gpos[3*center_index+2] += delta[2]*g;
-      gpos[3*other_index  ] -= delta[0]*g;
-      gpos[3*other_index+1] -= delta[1]*g;
-      gpos[3*other_index+2] -= delta[2]*g;
+      x = delta[0]*g;
+      gpos[3*center_index  ] += x;
+      gpos[3*other_index   ] -= x;
+      x = delta[1]*g;
+      gpos[3*center_index+1] += x;
+      gpos[3*other_index +1] -= x;
+      x = delta[2]*g;
+      gpos[3*center_index+2] += x;
+      gpos[3*other_index +2] -= x;
     }
     if (vtens != NULL) {
       vtens[0] += delta[0]*delta[0]*g;
-      vtens[1] += delta[1]*delta[0]*g;
-      vtens[2] += delta[2]*delta[0]*g;
-      vtens[3] += delta[0]*delta[1]*g;
       vtens[4] += delta[1]*delta[1]*g;
-      vtens[5] += delta[2]*delta[1]*g;
-      vtens[6] += delta[0]*delta[2]*g;
-      vtens[7] += delta[1]*delta[2]*g;
       vtens[8] += delta[2]*delta[2]*g;
+      x = delta[1]*delta[0]*g;
+      vtens[1] += x;
+      vtens[3] += x;
+      x = delta[2]*delta[0]*g;
+      vtens[2] += x;
+      vtens[6] += x;
+      x = delta[2]*delta[1]*g;
+      vtens[5] += x;
+      vtens[7] += x;
     }
     energy -= fac*pot;
   }
