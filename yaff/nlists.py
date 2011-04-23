@@ -72,8 +72,7 @@ class NeighborLists(object):
             while True:
                 done = nlist_update(
                     self.system.pos, i, self.cutoff, self.rmax,
-                    self.system.cell.rvecs, self.system.cell.gvecs,
-                    nlist_status, nlist[last_start:]
+                    self.system.cell, nlist_status, nlist[last_start:]
                 )
                 if done:
                     break

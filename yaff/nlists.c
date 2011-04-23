@@ -26,9 +26,8 @@
 
 
 int nlist_update_low(double *pos, long center_index, double cutoff, long *rmax,
-                     double *rvecs, double *gvecs, long *nlist_status,
-                     nlist_row_type *nlist, long pos_size, long nlist_size,
-                     int nvec) {
+                     cell_type *unitcell, long *nlist_status,
+                     nlist_row_type *nlist, long pos_size, long nlist_size) {
 
   long other_index, row;
   long *r;
@@ -55,7 +54,7 @@ int nlist_update_low(double *pos, long center_index, double cutoff, long *rmax,
       delta0[2] = center_pos[2] - pos[3*other_index+2];
       // Subtract the cell vectors as to make the relative vector as short
       // as possible. (This is the minimum image convention.)
-      mic(delta0, rvecs, gvecs, nvec);
+      mic(delta0, (*unitcell).rvecs, (*unitcell).gvecs, (*unitcell).nvec);
       // Done updating delta0.
       update_delta0 = 0;
     }
@@ -63,10 +62,10 @@ int nlist_update_low(double *pos, long center_index, double cutoff, long *rmax,
     delta[0] = delta0[0];
     delta[1] = delta0[1];
     delta[2] = delta0[2];
-    for (i=0; i<nvec; i++) {
-      delta[0] += r[i]*rvecs[3*i];
-      delta[1] += r[i]*rvecs[3*i+1];
-      delta[2] += r[i]*rvecs[3*i+2];
+    for (i=0; i<(*unitcell).nvec; i++) {
+      delta[0] += r[i]*(*unitcell).rvecs[3*i];
+      delta[1] += r[i]*(*unitcell).rvecs[3*i+1];
+      delta[2] += r[i]*(*unitcell).rvecs[3*i+2];
     }
     // Compute the distance and store the record if distance is below the cutoff.
     d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
@@ -85,15 +84,15 @@ int nlist_update_low(double *pos, long center_index, double cutoff, long *rmax,
       }
     }
     // Increase the appropriate counters in the quadruple loop.
-    if (nvec > 0) {
+    if ((*unitcell).nvec > 0) {
       r[0]++;
       if (r[0] > rmax[0]) {
         r[0] = -rmax[0];
-        if (nvec > 1) {
+        if ((*unitcell).nvec > 1) {
           r[1]++;
           if (r[1] > rmax[1]) {
             r[1] = -rmax[1];
-            if (nvec > 2) {
+            if ((*unitcell).nvec > 2) {
               r[2]++;
               if (r[2] > rmax[2]) {
                 r[2] = -rmax[2];

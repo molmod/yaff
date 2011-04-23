@@ -24,6 +24,8 @@
 #ifndef YAFF_NLISTS_H
 #define YAFF_NLISTS_H
 
+#include "cell.h"
+
 typedef struct {
     long i;
     double d;
@@ -32,7 +34,7 @@ typedef struct {
 } nlist_row_type;
 
 int nlist_update_low(double *pos, long center_index, double cutoff, long *rmax,
-                     double *rvecs, double *gvecs, long *nlist_status, 
-                     nlist_row_type *nlist, long pos_size, long nlist_size, int nvec);
+                     cell_type *unitcell, long *nlist_status, 
+                     nlist_row_type *nlist, long pos_size, long nlist_size);
 
 #endif

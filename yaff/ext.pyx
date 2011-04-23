@@ -159,31 +159,25 @@ def nlist_status_init(center_index, rmax):
     return result
 
 
-def nlist_update(np.ndarray[double, ndim=2] pos, center_index, cutoff,
-                 np.ndarray[long, ndim=1] rmax,
-                 np.ndarray[double, ndim=2] rvecs,
-                 np.ndarray[double, ndim=2] gvecs,
-                 np.ndarray[long, ndim=1] nlist_status,
+def nlist_update(np.ndarray[double, ndim=2] pos, long center_index,
+                 double cutoff, np.ndarray[long, ndim=1] rmax,
+                 Cell unitcell, np.ndarray[long, ndim=1] nlist_status,
                  np.ndarray[nlists.nlist_row_type, ndim=1] nlist):
     assert pos.shape[1] == 3
     assert pos.flags['C_CONTIGUOUS']
+    assert center_index >= 0
+    assert center_index < pos.shape[0]
+    assert cutoff > 0
     assert rmax.shape[0] <= 3
     assert rmax.flags['C_CONTIGUOUS']
-    assert rvecs.shape[0] <= 3
-    assert rvecs.shape[1] == 3
-    assert rvecs.flags['C_CONTIGUOUS']
-    assert gvecs.shape[0] <= 3
-    assert gvecs.shape[1] == 3
-    assert gvecs.flags['C_CONTIGUOUS']
     assert nlist_status.shape[0] == 5
     assert nlist_status.flags['C_CONTIGUOUS']
     assert nlist.flags['C_CONTIGUOUS']
-    assert rmax.shape[0] == rvecs.shape[0]
-    assert rmax.shape[0] == gvecs.shape[0]
+    assert rmax.shape[0] == unitcell.nvec
     return nlists.nlist_update_low(
         <double*>pos.data, center_index, cutoff, <long*>rmax.data,
-        <double*>rvecs.data, <double*>gvecs.data, <long*>nlist_status.data,
-        <nlists.nlist_row_type*>nlist.data, len(pos), len(nlist), rvecs.shape[0]
+        unitcell._c_cell, <long*>nlist_status.data,
+        <nlists.nlist_row_type*>nlist.data, len(pos), len(nlist)
     )
 
 
