@@ -25,11 +25,11 @@
 #define YAFF_EWALD_H
 
 #include "pair_pot.h"
-
+#include "cell.h"
 
 double compute_ewald_reci(double *pos, long natom, double *charges,
-                          double *gvecs, double volume, double alpha,
-                          long *gmax, double *gpos, double *work, double* vtens);
+                          cell_type* cell, double alpha, long *gmax,
+                          double *gpos, double *work, double* vtens);
 double compute_ewald_corr(double *pos, long center_index, double *charges,
                           double *rvecs, double *gvecs, double alpha, 
                           scaling_row_type *scaling, long scaling_size,

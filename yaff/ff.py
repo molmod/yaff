@@ -99,9 +99,8 @@ class EwaldReciprocalPart(object):
 
     def compute(self, gpos=None, vtens=None):
         energy = compute_ewald_reci(
-            self.system.pos, self.charges, self.system.cell.gvecs,
-            self.system.cell.volume, self.alpha, self.gmax, gpos, self.work,
-            vtens
+            self.system.pos, self.charges, self.system.cell, self.alpha,
+            self.gmax, gpos, self.work, vtens
         )
         return energy
 

@@ -29,20 +29,24 @@
 
 
 double compute_ewald_reci(double *pos, long natom, double *charges,
-                          double *gvecs, double volume, double alpha,
-                          long *gmax, double *gpos, double *work, double* vtens) {
+                          cell_type* cell, double alpha, long *gmax,
+                          double *gpos, double *work, double* vtens) {
   long j0, j1, j2, i;
   double energy, k[3], ksq, cosfac, sinfac, x, c, s, fac1, fac2;
+  double kvecs[9];
+  for (i=0; i<9; i++) {
+    kvecs[i] = M_TWO_PI*(*cell).gvecs[i];
+  }
   energy = 0.0;
-  fac1 = M_TWO_PI/volume;
+  fac1 = M_TWO_PI/(*cell).volume;
   fac2 = 0.25/alpha/alpha;
   for (j0=-gmax[0]; j0 <= gmax[0]; j0++) {
     for (j1=-gmax[1]; j1 <= gmax[1]; j1++) {
       for (j2=0; j2 <= gmax[2]; j2++) {
         if ((j0==0)&&(j1==0)&&(j2==0)) continue;
-        k[0] = M_TWO_PI*(j0*gvecs[0] + j1*gvecs[3] + j2*gvecs[6]);
-        k[1] = M_TWO_PI*(j0*gvecs[1] + j1*gvecs[4] + j2*gvecs[7]);
-        k[2] = M_TWO_PI*(j0*gvecs[2] + j1*gvecs[5] + j2*gvecs[8]);
+        k[0] = (j0*kvecs[0] + j1*kvecs[3] + j2*kvecs[6]);
+        k[1] = (j0*kvecs[1] + j1*kvecs[4] + j2*kvecs[7]);
+        k[2] = (j0*kvecs[2] + j1*kvecs[5] + j2*kvecs[8]);
         ksq = k[0]*k[0] + k[1]*k[1] + k[2]*k[2];
         cosfac = 0.0;
         sinfac = 0.0;
