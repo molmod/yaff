@@ -20,12 +20,15 @@
 #
 # --
 
+
+cimport cell
+
 cdef extern from "dlist.h":
     ctypedef struct dlist_row_type:
         double dx, dy, dz
         long i, j
         double gx, gy, gz
 
-    void dlist_forward(double *pos, double *rvecs, double *gvecs, long nvec,
+    void dlist_forward(double *pos, cell.cell_type *unitcell,
                        dlist_row_type* deltas, long ndelta)
     void dlist_back(double *gpos, double *vtens, dlist_row_type* deltas, long ndelta)

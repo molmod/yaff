@@ -375,19 +375,12 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
 
 
 def dlist_forward(np.ndarray[double, ndim=2] pos,
-                  np.ndarray[double, ndim=2] rvecs,
-                  np.ndarray[double, ndim=2] gvecs,
+                  Cell unitcell,
                   np.ndarray[dlist.dlist_row_type, ndim=1] deltas, long ndelta):
     assert pos.flags['C_CONTIGUOUS']
     assert pos.shape[1] == 3
-    assert rvecs.flags['C_CONTIGUOUS']
-    assert rvecs.shape[1] == 3
-    assert gvecs.flags['C_CONTIGUOUS']
-    assert gvecs.shape[0] == rvecs.shape[0]
-    assert gvecs.shape[1] == 3
     assert deltas.flags['C_CONTIGUOUS']
-    dlist.dlist_forward(<double*>pos.data, <double*>rvecs.data,
-                        <double*>gvecs.data, len(rvecs),
+    dlist.dlist_forward(<double*>pos.data, unitcell._c_cell,
                         <dlist.dlist_row_type*>deltas.data, ndelta)
 
 def dlist_back(np.ndarray[double, ndim=2] gpos,
