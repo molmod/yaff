@@ -76,7 +76,7 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
         parts.append(pair_part_ei)
     if do_eireci:
         # Reciprocal-space electrostatics
-        gmax = np.ceil(alpha*1.5/system.gspacings-0.5).astype(int)
+        gmax = np.ceil(alpha*1.5/system.cell.gspacings-0.5).astype(int)
         ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gmax)
         parts.append(ewald_reci_part)
         # Ewald corrections

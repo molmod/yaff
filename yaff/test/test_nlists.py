@@ -108,11 +108,11 @@ def test_nlists_graphene8_9A():
         check = {}
         for j in xrange(system.natom):
             delta = system.pos[i] - system.pos[j]
-            for c in xrange(len(system.rvecs)):
-                delta -= system.rvecs[c]*np.ceil(np.dot(delta, system.gvecs[c]) - 0.5)
+            for c in xrange(system.cell.nvec):
+                delta -= system.cell.rvecs[c]*np.ceil(np.dot(delta, system.cell.gvecs[c]) - 0.5)
             for r0 in xrange(-3, 4):
                 for r1 in xrange(-3, 4):
-                    my_delta = delta + r0*system.rvecs[0] + r1*system.rvecs[1]
+                    my_delta = delta + r0*system.cell.rvecs[0] + r1*system.cell.rvecs[1]
                     d = np.linalg.norm(my_delta)
                     if d <= cutoff:
                         if (r0!=0) or (r1!=0) or (j>i):
@@ -144,10 +144,10 @@ def test_nlists_polyethylene4_9A():
         check = {}
         for j in xrange(system.natom):
             delta = system.pos[i] - system.pos[j]
-            for c in xrange(len(system.rvecs)):
-                delta -= system.rvecs[c]*np.floor(np.dot(delta, system.gvecs[c]) + 0.5)
+            for c in xrange(system.cell.nvec):
+                delta -= system.cell.rvecs[c]*np.floor(np.dot(delta, system.cell.gvecs[c]) + 0.5)
             for r0 in xrange(-3, 3):
-                my_delta = delta + r0*system.rvecs[0]
+                my_delta = delta + r0*system.cell.rvecs[0]
                 d = np.linalg.norm(my_delta)
                 if d <= cutoff:
                     if (r0!=0) or (j>i):
@@ -185,7 +185,7 @@ def test_nlists_quartz_4A_shortest():
                         for r2 in xrange(-1, 1):
                             if (r0==0) and (r1==0) and (r2==0):
                                 continue
-                            delta = delta0 + r0*system.rvecs[0] + r1*system.rvecs[1] + r2*system.rvecs[2]
+                            delta = delta0 + r0*system.cell.rvecs[0] + r1*system.cell.rvecs[1] + r2*system.cell.rvecs[2]
                             assert np.linalg.norm(delta) >= nlist[j]['d']
 
 
@@ -200,12 +200,12 @@ def test_nlists_quartz_9A():
         check = {}
         for j in xrange(system.natom):
             delta = system.pos[i] - system.pos[j]
-            for c in xrange(len(system.rvecs)):
-                delta -= system.rvecs[c]*np.floor(np.dot(delta, system.gvecs[c]) + 0.5)
+            for c in xrange(system.cell.nvec):
+                delta -= system.cell.rvecs[c]*np.floor(np.dot(delta, system.cell.gvecs[c]) + 0.5)
             for r0 in xrange(-3, 3):
                 for r1 in xrange(-3, 3):
                     for r2 in xrange(-3, 3):
-                        my_delta = delta + r0*system.rvecs[0] + r1*system.rvecs[1] + r2*system.rvecs[2]
+                        my_delta = delta + r0*system.cell.rvecs[0] + r1*system.cell.rvecs[1] + r2*system.cell.rvecs[2]
                         d = np.linalg.norm(my_delta)
                         if d <= cutoff:
                             if (r0!=0) or (r1!=0) or (r2!=0) or (j>i):
@@ -231,17 +231,18 @@ def test_nlists_quartz_20A():
     cutoff = 20*angstrom
     nlists.request_cutoff(cutoff)
     nlists.update()
+    rvecs = system.cell.rvecs
     for i in random.sample(xrange(system.natom), 5):
         # compute the distances in the neighborlist manually and check.
         check = {}
         for j in xrange(system.natom):
             delta = system.pos[i] - system.pos[j]
-            for c in xrange(len(system.rvecs)):
-                delta -= system.rvecs[c]*np.floor(np.dot(delta, system.gvecs[c]) + 0.5)
+            for c in xrange(system.cell.nvec):
+                delta -= system.cell.rvecs[c]*np.floor(np.dot(delta, system.cell.gvecs[c]) + 0.5)
             for r0 in xrange(-6, 6):
                 for r1 in xrange(-6, 6):
                     for r2 in xrange(-6, 6):
-                        my_delta = delta + r0*system.rvecs[0] + r1*system.rvecs[1] + r2*system.rvecs[2]
+                        my_delta = delta + r0*rvecs[0] + r1*rvecs[1] + r2*rvecs[2]
                         d = np.linalg.norm(my_delta)
                         if d <= cutoff:
                             if (r0!=0) or (r1!=0) or (r2!=0) or (j>i):

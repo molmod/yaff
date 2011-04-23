@@ -46,8 +46,8 @@ def test_vlist_quartz_bonds():
     check_energy = 0.0
     for i, j in system.topology.bonds:
         delta = system.pos[i] - system.pos[j]
-        for c in xrange(len(system.rvecs)):
-            delta -= system.rvecs[c]*np.ceil(np.dot(delta, system.gvecs[c]) - 0.5)
+        for c in xrange(system.cell.nvec):
+            delta -= system.cell.rvecs[c]*np.ceil(np.dot(delta, system.cell.gvecs[c]) - 0.5)
         d = np.linalg.norm(delta)
         check_energy += 0.5*2.3*(d - 3.04-0.1*i)**2
     assert abs(energy - check_energy) < 1e-8
@@ -72,11 +72,11 @@ def test_vlist_quartz_bend_cos():
     check_energy = 0.0
     for row, (i0, i1, i2) in enumerate(angles):
         delta0 = system.pos[i0] - system.pos[i1]
-        for c in xrange(len(system.rvecs)):
-            delta0 -= system.rvecs[c]*np.ceil(np.dot(delta0, system.gvecs[c]) - 0.5)
+        for c in xrange(system.cell.nvec):
+            delta0 -= system.cell.rvecs[c]*np.ceil(np.dot(delta0, system.cell.gvecs[c]) - 0.5)
         delta2 = system.pos[i2] - system.pos[i1]
-        for c in xrange(len(system.rvecs)):
-            delta2 -= system.rvecs[c]*np.ceil(np.dot(delta2, system.gvecs[c]) - 0.5)
+        for c in xrange(system.cell.nvec):
+            delta2 -= system.cell.rvecs[c]*np.ceil(np.dot(delta2, system.cell.gvecs[c]) - 0.5)
         c = bend_cos(delta0, np.zeros(3, float), delta2)[0]
         check_energy += 0.5*(1.1+0.01*i0)*(c+0.2)**2
     assert abs(energy - check_energy) < 1e-8
@@ -101,11 +101,11 @@ def test_vlist_quartz_bend_angle():
     check_energy = 0.0
     for row, (i0, i1, i2) in enumerate(angles):
         delta0 = system.pos[i0] - system.pos[i1]
-        for c in xrange(len(system.rvecs)):
-            delta0 -= system.rvecs[c]*np.ceil(np.dot(delta0, system.gvecs[c]) - 0.5)
+        for c in xrange(system.cell.nvec):
+            delta0 -= system.cell.rvecs[c]*np.ceil(np.dot(delta0, system.cell.gvecs[c]) - 0.5)
         delta2 = system.pos[i2] - system.pos[i1]
-        for c in xrange(len(system.rvecs)):
-            delta2 -= system.rvecs[c]*np.ceil(np.dot(delta2, system.gvecs[c]) - 0.5)
+        for c in xrange(system.cell.nvec):
+            delta2 -= system.cell.rvecs[c]*np.ceil(np.dot(delta2, system.cell.gvecs[c]) - 0.5)
         angle = bend_angle(delta0, np.zeros(3, float), delta2)[0]
         check_energy += 0.5*1.5*(angle-(2.0+0.01*i2))**2
     assert abs(energy - check_energy) < 1e-8

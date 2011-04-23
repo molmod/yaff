@@ -29,6 +29,7 @@ cimport ewald
 cimport dlist
 cimport iclist
 cimport vlist
+cimport cell
 
 
 __all__ = [
@@ -364,3 +365,104 @@ def vlist_back(np.ndarray[iclist.iclist_row_type, ndim=1] ictab,
     assert vtab.flags['C_CONTIGUOUS']
     vlist.vlist_back(<iclist.iclist_row_type*>ictab.data,
                      <vlist.vlist_row_type*>vtab.data, nv)
+
+
+#
+# Cell
+#
+
+
+cdef class Cell:
+    cdef cell.cell_type* _c_cell
+
+    def __cinit__(self, *args, **kwargs):
+        self._c_cell = cell.cell_new()
+        if self._c_cell is NULL:
+            raise MemoryError()
+
+    def __dealloc__(self):
+        if self._c_cell is not NULL:
+            cell.cell_free(self._c_cell)
+
+    def __init__(self, np.ndarray[double, ndim=2] rvecs):
+        self.update_rvecs(rvecs)
+
+    def update_rvecs(self, np.ndarray[double, ndim=2] rvecs):
+        cdef np.ndarray[double, ndim=2] mod_rvecs
+        cdef np.ndarray[double, ndim=2] gvecs
+        cdef int nvec
+        if rvecs.size == 0:
+            mod_rvecs = np.identity(3, float)
+            gvecs = mod_rvecs
+            nvec = 0
+        else:
+            if not rvecs.ndim==2 or not rvecs.flags['C_CONTIGUOUS'] or rvecs.shape[0] > 3 or rvecs.shape[1] != 3:
+                raise TypeError('rvecs must be a C contiguous array with three columns and at most three rows.')
+            nvec = len(rvecs)
+            Up, Sp, Vt = np.linalg.svd(rvecs, full_matrices=True)
+            S = np.ones(3, float)
+            S[:nvec] = Sp
+            U = np.identity(3, float)
+            U[:nvec,:nvec] = Up
+            mod_rvecs = np.dot(U*S, Vt)
+            mod_rvecs[:nvec] = rvecs
+            gvecs = np.dot(U/S, Vt)
+        cell.cell_update(self._c_cell, <double*>mod_rvecs.data, <double*>gvecs.data, nvec)
+
+    def get_nvec(self):
+        return cell.cell_get_nvec(self._c_cell)
+
+    nvec = property(get_nvec)
+
+    def get_volume(self):
+        return cell.cell_get_volume(self._c_cell)
+
+    volume = property(get_volume)
+
+    def get_rvecs(self, full=False):
+        cdef np.ndarray[double, ndim=2] result
+        if full:
+            result = np.zeros((3, 3), float)
+        else:
+            result = np.zeros((self.nvec, 3), float)
+        cell.cell_copy_rvecs(self._c_cell, <double*>result.data, full)
+        result.setflags(write=False)
+        return result
+
+    rvecs = property(get_rvecs)
+
+    def get_gvecs(self, full=False):
+        cdef np.ndarray[double, ndim=2] result
+        if full:
+            result = np.zeros((3, 3), float)
+        else:
+            result = np.zeros((self.nvec, 3), float)
+        cell.cell_copy_gvecs(self._c_cell, <double*>result.data, full)
+        result.setflags(write=False)
+        return result
+
+    gvecs = property(get_gvecs)
+
+    def get_rspacings(self, full=False):
+        cdef np.ndarray[double, ndim=1] result
+        if full:
+            result = np.zeros(3, float)
+        else:
+            result = np.zeros(self.nvec, float)
+        cell.cell_copy_rspacings(self._c_cell, <double*>result.data, full)
+        result.setflags(write=False)
+        return result
+
+    rspacings = property(get_rspacings)
+
+    def get_gspacings(self, full=False):
+        cdef np.ndarray[double, ndim=1] result
+        if full:
+            result = np.zeros(3, float)
+        else:
+            result = np.zeros(self.nvec, float)
+        cell.cell_copy_gspacings(self._c_cell, <double*>result.data, full)
+        result.setflags(write=False)
+        return result
+
+    gspacings = property(get_gspacings)

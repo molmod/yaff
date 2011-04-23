@@ -24,6 +24,7 @@
 import numpy as np
 
 from yaff.topology import Topology
+from yaff.ext import Cell
 
 
 __all__ = ['System']
@@ -60,27 +61,6 @@ class System(object):
             self.topology = None
         else:
             self.topology = Topology(bonds, self.natom)
-        self.update_rvecs(rvecs)
+        self.cell = Cell(rvecs)
 
     natom = property(lambda self: len(self.pos))
-
-    def update_rvecs(self, rvecs):
-        if rvecs.size == 0:
-            self.rvecs = np.zeros((0,3), float)
-            self.gvecs = np.zeros((0,3), float)
-            self.rspacings = np.zeros((0,), float)
-            self.gspacings = np.zeros((0,), float)
-            self.volume = None
-        else:
-            self.rvecs = rvecs.reshape((-1,3))
-            assert len(self.rvecs) <= 3
-            U, S, Vt = np.linalg.svd(rvecs.transpose(), full_matrices=False)
-            self.gvecs = np.dot(Vt.transpose(), (U/S).transpose())
-            self.rspacings = (self.gvecs**2).sum(axis=1)**(-0.5)
-            self.gspacings = (self.rvecs**2).sum(axis=1)**(-0.5)
-            if len(self.rvecs) == 1:
-                self.volume = np.linalg.norm(self.rvecs[0])
-            elif len(self.rvecs) == 2:
-                self.volume = np.dot(self.rvecs[0], self.rvecs[1])
-            elif len(self.rvecs) == 3:
-                self.volume = np.linalg.det(self.rvecs)

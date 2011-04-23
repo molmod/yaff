@@ -60,19 +60,19 @@ def check_gpos_part(system, part, eps, nlists=None):
 
 def check_vtens_part(system, part, eps, nlists=None):
     # Get the reduced coordinates
-    reduced = np.dot(system.pos, system.gvecs.transpose())
-    assert abs(np.dot(reduced, system.rvecs) - system.pos).max() < 1e-10
+    reduced = np.dot(system.pos, system.cell.gvecs.transpose())
+    assert abs(np.dot(reduced, system.cell.rvecs) - system.pos).max() < 1e-10
 
     def fn(x, do_gradient=False):
         rvecs = x.reshape(3, 3)
-        system.update_rvecs(rvecs)
-        system.pos[:] = np.dot(reduced, system.rvecs)
+        system.cell.update_rvecs(rvecs)
+        system.pos[:] = np.dot(reduced, system.cell.rvecs)
         if nlists is not None:
             nlists.update()
         if do_gradient:
             vtens = np.zeros((3, 3), float)
             e = part.compute(vtens=vtens)
-            grvecs = np.dot(system.gvecs, vtens)
+            grvecs = np.dot(system.cell.gvecs, vtens)
             assert np.isfinite(e)
             assert np.isfinite(vtens).all()
             assert np.isfinite(grvecs).all()
@@ -83,7 +83,7 @@ def check_vtens_part(system, part, eps, nlists=None):
             assert np.isfinite(e)
             return e
 
-    x = system.rvecs.ravel()
+    x = system.cell.rvecs.ravel()
     dxs = np.random.normal(0, 1e-4, (100, len(x)))
     check_delta(fn, x, dxs, eps)
 
@@ -109,8 +109,8 @@ def check_gpos_ff(ff, eps):
 
 def check_vtens_ff(ff, eps):
     # Get the reduced coordinates
-    reduced = np.dot(ff.system.pos, ff.system.gvecs.transpose())
-    assert abs(np.dot(reduced, ff.system.rvecs) - ff.system.pos).max() < 1e-10
+    reduced = np.dot(ff.system.pos, ff.system.cell.gvecs.transpose())
+    assert abs(np.dot(reduced, ff.system.cell.rvecs) - ff.system.pos).max() < 1e-10
 
     def fn(x, do_gradient=False):
         rvecs = x.reshape(3, 3)
@@ -119,7 +119,7 @@ def check_vtens_ff(ff, eps):
         if do_gradient:
             vtens = np.zeros((3, 3), float)
             e = ff.compute(vtens=vtens)
-            grvecs = np.dot(ff.system.gvecs, vtens)
+            grvecs = np.dot(ff.system.cell.gvecs, vtens)
             assert np.isfinite(e)
             assert np.isfinite(vtens).all()
             assert np.isfinite(grvecs).all()
@@ -130,7 +130,7 @@ def check_vtens_ff(ff, eps):
             assert np.isfinite(e)
             return e
 
-    x = ff.system.rvecs.ravel()
+    x = ff.system.cell.rvecs.ravel()
     dxs = np.random.normal(0, 1e-4, (100, len(x)))
     check_delta(fn, x, dxs, eps)
 
@@ -259,7 +259,7 @@ def get_system_glycine():
         ]),
         ffatypes=['N', 'C', 'C', 'O', 'O', 'H', 'H', 'H', 'H', 'H'],
         bonds=np.array([[3, 9], [1, 8], [1, 7], [0, 6], [0, 5], [2, 4], [2, 3], [1, 2], [0, 1]]),
-        rvecs=np.array([]),
+        rvecs=np.zeros((0,3), float),
     )
 
 
@@ -278,7 +278,7 @@ def get_system_cyclopropene():
         ])*angstrom,
         ffatypes=['C', 'C', 'C', 'H', 'H', 'H', 'H'],
         bonds=[[0, 1], [0, 2], [0, 3], [0, 4], [1, 2], [1, 5], [2, 6]],
-        rvecs=np.array([]),
+        rvecs=np.zeros((0,3), float),
     )
 
 
@@ -319,7 +319,7 @@ def get_system_caffeine():
                [3, 12], [8, 4], [9, 4], [4, 13], [5, 7], [10, 5], [6, 7],
                [8, 6], [10, 14], [11, 15], [16, 11], [17, 11], [18, 12],
                [19, 12], [20, 12], [13, 21], [13, 22], [13, 23]],
-        rvecs=np.array([]),
+        rvecs=np.zeros((0,3), float),
     )
 
 
@@ -345,7 +345,7 @@ def get_system_butanol():
         ffatypes=['O', 'C', 'C', 'C', 'C', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H'],
         bonds=[[0, 1], [0, 12], [1, 2], [1, 3], [1, 5], [2, 4], [2, 6], [2, 7],
                [3, 4], [8, 3], [9, 3], [10, 4], [11, 4]],
-        rvecs=np.array([]),
+        rvecs=np.zeros((0,3), float),
     )
 
 
@@ -365,5 +365,5 @@ def get_system_2T():
         ]),
         ffatypes=['Si', 'Si', 'O', 'H', 'H', 'H', 'H', 'H', 'H'],
         bonds=np.array([[1, 7], [0, 4], [0, 5], [0, 2], [1, 2], [0, 3], [1, 6], [8, 1]]),
-        rvecs=np.array([]),
+        rvecs=np.zeros((0,3), float),
     )

@@ -40,7 +40,7 @@ class ForceField(object):
         self.system = system
 
     def update_rvecs(self, rvecs):
-        self.system.update_rvecs(rvecs)
+        self.system.cell.update_rvecs(rvecs)
 
     def update_pos(self, pos):
         self.system.pos[:] = pos
@@ -89,7 +89,8 @@ class PairPart(object):
 
 class EwaldReciprocalPart(object):
     def __init__(self, system, charges, alpha, gmax):
-        assert len(system.rvecs) == 3
+        if not system.cell.nvec == 3:
+            raise TypeError('The system must have a 3D periodic cell')
         self.system = system
         self.charges = charges
         self.alpha = alpha
@@ -98,15 +99,17 @@ class EwaldReciprocalPart(object):
 
     def compute(self, gpos=None, vtens=None):
         energy = compute_ewald_reci(
-            self.system.pos, self.charges, self.system.gvecs,
-            self.system.volume, self.alpha, self.gmax, gpos, self.work, vtens
+            self.system.pos, self.charges, self.system.cell.gvecs,
+            self.system.cell.volume, self.alpha, self.gmax, gpos, self.work,
+            vtens
         )
         return energy
 
 
 class EwaldCorrectionPart(object):
     def __init__(self, system, charges, alpha, scalings):
-        assert len(system.rvecs) == 3
+        if not system.cell.nvec == 3:
+            raise TypeError('The system must have a 3D periodic cell')
         self.system = system
         self.charges = charges
         self.alpha = alpha
@@ -115,21 +118,22 @@ class EwaldCorrectionPart(object):
     def compute(self, gpos=None, vtens=None):
         return sum([
             compute_ewald_corr(self.system.pos, i, self.charges,
-                               self.system.rvecs, self.system.gvecs, self.alpha,
-                               self.scalings[i], gpos, vtens)
+                               self.system.cell.rvecs, self.system.cell.gvecs,
+                               self.alpha, self.scalings[i], gpos, vtens)
             for i in xrange(len(self.scalings))
         ])
 
 
 class EwaldNeutralizingPart(object):
     def __init__(self, system, charges, alpha):
-        assert len(system.rvecs) == 3
+        if not system.cell.nvec == 3:
+            raise TypeError('The system must have a 3D periodic cell')
         self.system = system
         self.charges = charges
         self.alpha = alpha
 
     def compute(self, gpos=None, vtens=None):
-        fac = self.charges.sum()**2*np.pi/(2.0*self.system.volume*self.alpha**2)
+        fac = self.charges.sum()**2*np.pi/(2.0*self.system.cell.volume*self.alpha**2)
         if vtens is not None:
             vtens.ravel()[::4] -= fac
         return fac
