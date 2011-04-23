@@ -28,8 +28,6 @@ cdef extern from "vlist.h":
         long kind
         double par0, par1, par2, par3
         long ic0, ic1
-        
+
     double vlist_forward(iclist.iclist_row_type* ictab, vlist_row_type* vtab, long nv)
     void vlist_back(iclist.iclist_row_type* ictab, vlist_row_type* vtab, long nv)
-
-

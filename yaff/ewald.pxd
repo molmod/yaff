@@ -26,10 +26,9 @@ cimport cell
 
 cdef extern from "ewald.h":
     double compute_ewald_reci(double *pos, long natom, double *charges,
-                              cell.cell_type *cell, double alpha, long *gmax, 
+                              cell.cell_type *cell, double alpha, long *gmax,
                               double *gpos, double *work, double* vtens)
     double compute_ewald_corr(double *pos, long center_index, double *charges,
-                              cell.cell_type *cell, double alpha, 
+                              cell.cell_type *cell, double alpha,
                               pair_pot.scaling_row_type *scaling,
                               long scaling_size, double *gpos, double *vtens)
-

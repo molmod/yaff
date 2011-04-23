@@ -26,8 +26,6 @@ cdef extern from "dlist.h":
         long i, j
         double gx, gy, gz
 
-    void dlist_forward(double *pos, double *rvecs, double *gvecs, long nvec, 
+    void dlist_forward(double *pos, double *rvecs, double *gvecs, long nvec,
                        dlist_row_type* deltas, long ndelta)
     void dlist_back(double *gpos, double *vtens, dlist_row_type* deltas, long ndelta)
-
-

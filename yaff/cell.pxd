@@ -28,11 +28,10 @@ cdef extern from "cell.h":
     cell_type* cell_new()
     void cell_free(cell_type* cell)
     void cell_update(cell_type* cell, double *rvecs, double *gvecs, int nvec)
-    
+
     int cell_get_nvec(cell_type* cell)
     double cell_get_volume(cell_type* cell)
     void cell_copy_rvecs(cell_type* cell, double *rvecs, bint full)
     void cell_copy_gvecs(cell_type* cell, double *gvecs, bint full)
     void cell_copy_rspacings(cell_type* cell, double *rspacings, bint full)
     void cell_copy_gspacings(cell_type* cell, double *gspacings, bint full)
-

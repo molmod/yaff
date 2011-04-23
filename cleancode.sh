@@ -1,6 +1,6 @@
 #!/bin/bash
 echo Cleaning code in \'`pwd`\' and subdirectories
-for file in `find yaff *.c *.py | egrep "(\.py$)|(\.c$)|(\.pyx$)"`; do
+for file in `find yaff *.c *.py | egrep "(\.py$)|(\.c$)|(\.h$)|(\.pyx$)|(\.pxd$)"`; do
   echo Cleaning ${file}
   sed -i -e $'s/\t/    /' ${file}
   sed -i -e $'s/[ \t]\+$//' ${file}

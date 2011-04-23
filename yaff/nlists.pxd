@@ -34,6 +34,3 @@ cdef extern from "nlists.h":
                           long *rmax, cell.cell_type* cell, long
                           *nlist_status, nlist_row_type *nlist, long pos_size,
                           long nlist_size)
-
-
-
