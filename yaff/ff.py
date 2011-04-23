@@ -117,8 +117,8 @@ class EwaldCorrectionPart(object):
     def compute(self, gpos=None, vtens=None):
         return sum([
             compute_ewald_corr(self.system.pos, i, self.charges,
-                               self.system.cell.rvecs, self.system.cell.gvecs,
-                               self.alpha, self.scalings[i], gpos, vtens)
+                               self.system.cell, self.alpha, self.scalings[i],
+                               gpos, vtens)
             for i in xrange(len(self.scalings))
         ])
 
