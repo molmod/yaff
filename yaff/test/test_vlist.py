@@ -21,12 +21,12 @@
 # --
 
 import numpy as np
-from molmod import bond_length, bend_angle, bend_cos
+from molmod import bond_length, bend_angle, bend_cos, dihed_angle, dihed_cos
 
 from yaff import *
 
-from common import get_system_quartz, get_system_water32, get_system_2T, \
-    check_gpos_part, check_vtens_part
+from common import get_system_quartz, get_system_water32, get_system_2T,\
+    get_system_peroxide, check_gpos_part, check_vtens_part
 
 
 def test_vlist_quartz_bonds():
@@ -111,6 +111,54 @@ def test_vlist_quartz_bend_angle():
     assert abs(energy - check_energy) < 1e-8
 
 
+def test_vlist_peroxide_dihed_cos():
+    number_of_tests=50
+    for i in xrange(number_of_tests):
+        system = get_system_peroxide()
+        dlist = DeltaList(system)
+        iclist = InternalCoordinateList(dlist)
+        vlist = ValenceList(iclist)
+        bonds=[]
+        while len(bonds)<3:
+            i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
+            if i0==i1 or (i0,i1) in bonds or (i1,i0) in bonds: continue
+            if (i0,i1) in system.topology.bonds or (i1,i0) in system.topology.bonds:
+                iclist.add_ic(Bond(i0,i1))
+                bonds.append((i0,i1))
+        vlist.add_term(Harmonic(1.1, -0.2 , DihedCos(0,1,2,3)))
+        dlist.forward()
+        iclist.forward()
+        energy = vlist.forward()
+        # calculate energy manually
+        cos = dihed_cos(system.pos[0], system.pos[1], system.pos[2], system.pos[3])[0]
+        check_energy = 0.5*1.1*(cos+0.2)**2
+        assert abs(energy - check_energy) < 1e-8
+
+
+def test_vlist_peroxide_dihed_angle():
+    number_of_tests=50
+    for i in xrange(number_of_tests):
+        system = get_system_peroxide()
+        dlist = DeltaList(system)
+        iclist = InternalCoordinateList(dlist)
+        vlist = ValenceList(iclist)
+        bonds=[]
+        while len(bonds)<3:
+            i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
+            if i0==i1 or (i0,i1) in bonds or (i1,i0) in bonds: continue
+            if (i0,i1) in system.topology.bonds or (i1,i0) in system.topology.bonds:
+                iclist.add_ic(Bond(i0,i1))
+                bonds.append((i0,i1))
+        vlist.add_term(Harmonic(1.5, 0.1 , DihedAngle(0,1,2,3)))
+        dlist.forward()
+        iclist.forward()
+        energy = vlist.forward()
+        # calculate energy manually
+        angle = dihed_angle(system.pos[0], system.pos[1], system.pos[2], system.pos[3])[0]
+        check_energy = 0.5*1.5*(angle-0.1)**2
+        assert abs(energy - check_energy) < 1e-8
+
+
 def test_gpos_vtens_bond_water32():
     system = get_system_water32()
     part = ValencePart(system)
@@ -140,6 +188,22 @@ def test_gpos_vtens_bend_angle_water32():
             for i2 in system.topology.neighs1[i1]:
                 if i0 > i2:
                     part.add_term(Harmonic(1.5, 2.0+0.01*i2, BendAngle(i0, i1, i2)))
+    check_gpos_part(system, part, 1e-10)
+    check_vtens_part(system, part, 1e-8)
+
+
+def test_gpos_vtens_dihed_cos_peroxide():
+    system = get_system_peroxide()
+    part = ValencePart(system)
+    part.add_term(Harmonic(1.1, -0.2, DihedCos(0,1,2,3)))
+    check_gpos_part(system, part, 1e-10)
+    check_vtens_part(system, part, 1e-8)
+
+
+def test_gpos_vtens_dihed_angle_peroxide():
+    system = get_system_peroxide()
+    part = ValencePart(system)
+    part.add_term(Harmonic(1.5, 1.0, DihedAngle(0,1,2,3)))
     check_gpos_part(system, part, 1e-10)
     check_vtens_part(system, part, 1e-8)
 

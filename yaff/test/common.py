@@ -387,3 +387,17 @@ def get_system_2T():
         bonds=np.array([[1, 7], [0, 4], [0, 5], [0, 2], [1, 2], [0, 3], [1, 6], [8, 1]]),
         rvecs=np.zeros((0,3), float),
     )
+
+def get_system_peroxide():
+    return System(
+        numbers=np.array([8,8,1,1]),
+        pos=np.array([
+            [ 0.7247,  0.0000,  0.0000],
+            [-0.7247,  0.0000,  0.0000],
+            [ 0.8233, -0.7000, -0.6676],
+            [-0.8233, -0.6175,  0.7446],
+        ]),
+        ffatypes=['O','O','H','H'],
+        bonds=np.array([[0,1],[0,2],[1,3]]),
+        rvecs=np.zeros((0,3), float),
+    )

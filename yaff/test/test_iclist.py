@@ -22,11 +22,12 @@
 
 
 import numpy as np
-from molmod import bond_length, bend_angle, bend_cos
+from molmod import bond_length, bend_angle, bend_cos, dihed_angle, dihed_cos
+from nose.plugins.skip import SkipTest
 
 from yaff import *
 
-from common import get_system_quartz
+from common import get_system_quartz, get_system_peroxide
 
 
 def test_iclist_quartz_bonds():
@@ -88,3 +89,41 @@ def test_iclist_quartz_bend_angle():
         for c in xrange(system.cell.nvec):
             delta2 -= system.cell.rvecs[c]*np.ceil(np.dot(delta2, system.cell.gvecs[c]) - 0.5)
         assert abs(iclist.ictab[row]['value'] - bend_angle(delta0, np.zeros(3, float), delta2)[0]) < 1e-5
+
+def test_iclist_peroxide_dihedral_cos():
+    number_of_tests=50
+    for i in xrange(number_of_tests):
+        system = get_system_peroxide()
+        dlist = DeltaList(system)
+        iclist = InternalCoordinateList(dlist)
+        bonds=[]
+        while len(bonds)<3:
+            i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
+            if i0==i1 or (i0,i1) in bonds or (i1,i0) in bonds: continue
+            if (i0,i1) in system.topology.bonds or (i1,i0) in system.topology.bonds:
+                iclist.add_ic(Bond(i0,i1))
+                bonds.append((i0,i1))
+        iclist.add_ic(DihedCos(0,1,2,3))
+        dlist.forward()
+        iclist.forward()
+        assert iclist.ictab[3]['kind']==3 #assert the third ic is DihedralCos
+        assert abs(iclist.ictab[3]['value'] - dihed_cos(system.pos[0],system.pos[1],system.pos[2],system.pos[3])[0]) < 1e-5
+
+def test_iclist_peroxide_dihedral_angle():
+    number_of_tests=50
+    for i in xrange(number_of_tests):
+        system = get_system_peroxide()
+        dlist = DeltaList(system)
+        iclist = InternalCoordinateList(dlist)
+        bonds=[]
+        while len(bonds)<3:
+            i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
+            if i0==i1 or (i0,i1) in bonds or (i1,i0) in bonds: continue
+            if (i0,i1) in system.topology.bonds or (i1,i0) in system.topology.bonds:
+                iclist.add_ic(Bond(i0,i1))
+                bonds.append((i0,i1))
+        iclist.add_ic(DihedAngle(0,1,2,3))
+        dlist.forward()
+        iclist.forward()
+        assert iclist.ictab[3]['kind']==4 #assert the third ic is DihedralAngle
+        assert abs(iclist.ictab[3]['value'] - dihed_angle(system.pos[0],system.pos[1],system.pos[2],system.pos[3])[0]) < 1e-5
