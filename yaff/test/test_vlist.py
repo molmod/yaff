@@ -172,6 +172,30 @@ def test_vlist_polyfour_water32():
     assert abs(energy - check_energy) < 1e-8
 
 
+def test_vlist_cross_water32():
+    system = get_system_water32()
+    part = ValencePart(system)
+    for j in xrange(system.natom):
+        if len(system.topology.neighs1[j])==2:
+            i, k = system.topology.neighs1[j]
+            part.add_term(Cross(
+                    1.2,
+                    1.7 + 0.01*i,
+                    1.9 + 0.01*k,
+                    Bond(i, j),
+                    Bond(j, k),
+            ))
+    energy = part.compute()
+    check_energy = 0.0
+    for j in xrange(system.natom):
+        if len(system.topology.neighs1[j])==2:
+            i, k = system.topology.neighs1[j]
+            bond0 = bond_length(system.pos[i],system.pos[j])[0]
+            bond1 = bond_length(system.pos[j],system.pos[k])[0]
+            check_energy += 1.2*(bond0 - 1.7 - 0.01*i)*(bond1 - 1.9 - 0.01*k)
+    assert abs(energy - check_energy) < 1e-8
+
+
 def test_gpos_vtens_bond_water32():
     system = get_system_water32()
     part = ValencePart(system)
@@ -302,5 +326,22 @@ def test_gpos_vtens_polyfour_water32():
     part = ValencePart(system)
     for i, j in system.topology.bonds:
         part.add_term(PolyFour([-0.5, 0.3, -0.16, 0.09], Bond(i, j)))
+    check_gpos_part(system, part, 1e-9)
+    check_vtens_part(system, part, 1e-7)
+
+
+def test_gpos_vtens_cross_water32():
+    system = get_system_water32()
+    part = ValencePart(system)
+    for j in xrange(system.natom):
+        if len(system.topology.neighs1[j])==2:
+            i, k = system.topology.neighs1[j]
+            part.add_term(Cross(
+                    1.2,
+                    1.7,
+                    1.9,
+                    Bond(i, j),
+                    Bond(j, k),
+            ))
     check_gpos_part(system, part, 1e-10)
     check_vtens_part(system, part, 1e-7)
