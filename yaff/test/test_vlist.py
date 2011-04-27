@@ -144,7 +144,7 @@ def test_gpos_vtens_bend_angle_water32():
     check_vtens_part(system, part, 1e-8)
 
 
-def test_gpos_2T():
+def test_gpos_vtens_2T():
     system = get_system_2T()
     rv_table = {
         ('H', 'Si', 'H'):  1.80861,
@@ -189,6 +189,7 @@ def test_gpos_2T():
                     part.add_term(Harmonic(fc_table[key], rv_table[key], BendAngle(i0, i1, i2)))
 
     check_gpos_part(system, part, 1e-10)
+    check_vtens_part(system, part, 1e-10)
 
 
 def test_gpos_vtens_quartz():

@@ -59,20 +59,30 @@ def check_gpos_part(system, part, eps, nlists=None):
 
 
 def check_vtens_part(system, part, eps, nlists=None):
+    # define some rvecs and gvecs
+    if system.cell.nvec == 3:
+        gvecs = system.cell.gvecs
+        rvecs = system.cell.rvecs
+    else:
+        gvecs = np.identity(3, float)
+        rvecs = np.identity(3, float)
+
     # Get the reduced coordinates
-    reduced = np.dot(system.pos, system.cell.gvecs.transpose())
-    assert abs(np.dot(reduced, system.cell.rvecs) - system.pos).max() < 1e-10
+    reduced = np.dot(system.pos, gvecs.transpose())
+    assert abs(np.dot(reduced, rvecs) - system.pos).max() < 1e-10
 
     def fn(x, do_gradient=False):
         rvecs = x.reshape(3, 3)
-        system.cell.update_rvecs(rvecs)
-        system.pos[:] = np.dot(reduced, system.cell.rvecs)
+        if system.cell.nvec == 3:
+            system.cell.update_rvecs(rvecs)
+        system.pos[:] = np.dot(reduced, rvecs)
         if nlists is not None:
             nlists.update()
         if do_gradient:
             vtens = np.zeros((3, 3), float)
             e = part.compute(vtens=vtens)
-            grvecs = np.dot(system.cell.gvecs, vtens)
+            gvecs = np.linalg.inv(rvecs).transpose()
+            grvecs = np.dot(gvecs, vtens)
             assert np.isfinite(e)
             assert np.isfinite(vtens).all()
             assert np.isfinite(grvecs).all()
@@ -83,7 +93,7 @@ def check_vtens_part(system, part, eps, nlists=None):
             assert np.isfinite(e)
             return e
 
-    x = system.cell.rvecs.ravel()
+    x = rvecs.ravel()
     dxs = np.random.normal(0, 1e-4, (100, len(x)))
     check_delta(fn, x, dxs, eps)
 
@@ -108,18 +118,28 @@ def check_gpos_ff(ff, eps):
 
 
 def check_vtens_ff(ff, eps):
+    # define some rvecs and gvecs
+    if ff.system.cell.nvec == 3:
+        gvecs = ff.system.cell.gvecs
+        rvecs = ff.system.cell.rvecs
+    else:
+        gvecs = np.identity(3, float)
+        rvecs = np.identity(3, float)
+
     # Get the reduced coordinates
-    reduced = np.dot(ff.system.pos, ff.system.cell.gvecs.transpose())
-    assert abs(np.dot(reduced, ff.system.cell.rvecs) - ff.system.pos).max() < 1e-10
+    reduced = np.dot(ff.system.pos, gvecs.transpose())
+    assert abs(np.dot(reduced, rvecs) - ff.system.pos).max() < 1e-10
 
     def fn(x, do_gradient=False):
         rvecs = x.reshape(3, 3)
-        ff.update_rvecs(rvecs)
+        if ff.system.cell.nvec == 3:
+            ff.update_rvecs(rvecs)
         ff.update_pos(np.dot(reduced, rvecs))
         if do_gradient:
             vtens = np.zeros((3, 3), float)
             e = ff.compute(vtens=vtens)
-            grvecs = np.dot(ff.system.cell.gvecs, vtens)
+            gvecs = np.linalg.inv(rvecs).transpose()
+            grvecs = np.dot(gvecs, vtens)
             assert np.isfinite(e)
             assert np.isfinite(vtens).all()
             assert np.isfinite(grvecs).all()
@@ -130,7 +150,7 @@ def check_vtens_ff(ff, eps):
             assert np.isfinite(e)
             return e
 
-    x = ff.system.cell.rvecs.ravel()
+    x = rvecs.ravel()
     dxs = np.random.normal(0, 1e-4, (100, len(x)))
     check_delta(fn, x, dxs, eps)
 
