@@ -38,12 +38,15 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
     kvecs[i] = M_TWO_PI*(*cell).gvecs[i];
   }
   energy = 0.0;
-  fac1 = M_TWO_PI/(*cell).volume;
+  fac1 = M_FOUR_PI/(*cell).volume;
   fac2 = 0.25/alpha/alpha;
   for (j0=-gmax[0]; j0 <= gmax[0]; j0++) {
     for (j1=-gmax[1]; j1 <= gmax[1]; j1++) {
       for (j2=0; j2 <= gmax[2]; j2++) {
-        if ((j0==0)&&(j1==0)&&(j2==0)) continue;
+        if (j2==0) {
+          if (j1<0) continue;
+          if ((j1==0)&&(j0<=0)) continue;
+        }
         k[0] = (j0*kvecs[0] + j1*kvecs[3] + j2*kvecs[6]);
         k[1] = (j0*kvecs[1] + j1*kvecs[4] + j2*kvecs[7]);
         k[2] = (j0*kvecs[2] + j1*kvecs[5] + j2*kvecs[8]);
@@ -61,7 +64,7 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
             work[2*i+1] = -s;
           }
         }
-        c = (1+(j2>0))*fac1*exp(-ksq*fac2)/ksq;
+        c = fac1*exp(-ksq*fac2)/ksq;
         s = (cosfac*cosfac+sinfac*sinfac);
         energy += c*s;
         if (gpos != NULL) {
