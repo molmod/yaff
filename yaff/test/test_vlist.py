@@ -159,6 +159,19 @@ def test_vlist_peroxide_dihed_angle():
         assert abs(energy - check_energy) < 1e-8
 
 
+def test_vlist_polyfour_water32():
+    system = get_system_water32()
+    part = ValencePart(system)
+    for i, j in system.topology.bonds:
+        part.add_term(PolyFour([-1.1+0.01*i, 0.8-0.01*j, -0.6-0.01*i, 0.4+0.01*j], Bond(i, j)))
+    energy = part.compute()
+    check_energy = 0.0
+    for i, j in system.topology.bonds:
+        bond = bond_length(system.pos[i],system.pos[j])[0]
+        check_energy += (-1.1+0.01*i)*bond + (0.8-0.01*j)*bond**2 + (-0.6-0.01*i)*bond**3 + (0.4+0.01*j)*bond**4
+    assert abs(energy - check_energy) < 1e-8
+
+
 def test_gpos_vtens_bond_water32():
     system = get_system_water32()
     part = ValencePart(system)
@@ -282,3 +295,12 @@ def test_gpos_vtens_quartz():
 
     check_gpos_part(system, part, 1e-10)
     check_vtens_part(system, part, 1e-10)
+
+
+def test_gpos_vtens_polyfour_water32():
+    system = get_system_water32()
+    part = ValencePart(system)
+    for i, j in system.topology.bonds:
+        part.add_term(PolyFour([-0.5, 0.3, -0.16, 0.09], Bond(i, j)))
+    check_gpos_part(system, part, 1e-10)
+    check_vtens_part(system, part, 1e-7)

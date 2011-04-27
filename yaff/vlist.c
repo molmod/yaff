@@ -32,8 +32,13 @@ double forward_harmonic(vlist_row_type* term, iclist_row_type* ictab) {
   return 0.5*((*term).par0)*x*x;
 }
 
-v_forward_type v_forward_fns[1] = {
-  forward_harmonic
+double forward_polyfour(vlist_row_type* term, iclist_row_type* ictab) {
+  double q = ictab[(*term).ic0].value;
+  return (*term).par0*q + (*term).par1*q*q + (*term).par2*q*q*q + (*term).par3*q*q*q*q;
+}
+
+v_forward_type v_forward_fns[2] = {
+  forward_harmonic, forward_polyfour
 };
 
 double vlist_forward(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
@@ -53,8 +58,13 @@ void back_harmonic(vlist_row_type* term, iclist_row_type* ictab) {
   ictab[(*term).ic0].grad += ((*term).par0)*(ictab[(*term).ic0].value - (*term).par1);
 }
 
-v_back_type v_back_fns[1] = {
-  back_harmonic
+void back_polyfour(vlist_row_type* term, iclist_row_type* ictab) {
+  double q = ictab[(*term).ic0].value;
+  ictab[(*term).ic0].grad += (*term).par0 + 2.0*(*term).par1*q + 3.0*(*term).par2*q*q + 4.0*(*term).par3*q*q*q;
+}
+
+v_back_type v_back_fns[2] = {
+  back_harmonic, back_polyfour
 };
 
 void vlist_back(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
