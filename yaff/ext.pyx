@@ -249,8 +249,8 @@ cdef class PairPot:
 
 
 cdef class PairPotLJ(PairPot):
-    cdef np.ndarray sigmas
-    cdef np.ndarray epsilons
+    cdef np.ndarray _c_sigmas
+    cdef np.ndarray _c_epsilons
 
     def __cinit__(self, np.ndarray[double, ndim=1] sigmas,
                   np.ndarray[double, ndim=1] epsilons, double cutoff, bint smooth):
@@ -262,8 +262,18 @@ cdef class PairPotLJ(PairPot):
         pair_pot.pair_data_lj_init(self._c_pair_pot, <double*>sigmas.data, <double*>epsilons.data)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
-        self.sigmas = sigmas
-        self.epsilons = epsilons
+        self._c_sigmas = sigmas
+        self._c_epsilons = epsilons
+
+    def get_sigmas(self):
+        return self._c_sigmas.view()
+
+    sigmas = property(get_sigmas)
+
+    def get_epsilons(self):
+        return self._c_epsilons.view()
+
+    epsilons = property(get_epsilons)
 
 
 cdef class PairPotEI(PairPot):

@@ -48,6 +48,8 @@ def get_part_water32_9A_lj():
     # Create the pair_pot and pair_part
     cutoff = 9*angstrom
     pair_pot = PairPotLJ(sigmas, epsilons, cutoff, True)
+    assert abs(pair_pot.sigmas - sigmas).max() == 0.0
+    assert abs(pair_pot.epsilons - epsilons).max() == 0.0
     pair_part = PairPart(nlists, scalings, pair_pot)
     # Create a pair function:
     def pair_fn(i, j, d):
