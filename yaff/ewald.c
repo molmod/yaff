@@ -25,7 +25,7 @@
 #include <stdlib.h>
 #include "constants.h"
 #include "ewald.h"
-#include "mic.h"
+#include "cell.h"
 
 
 double compute_ewald_reci(double *pos, long natom, double *charges,
@@ -99,7 +99,7 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
 }
 
 double compute_ewald_corr(double *pos, long center_index, double *charges,
-                          cell_type *cell, double alpha,
+                          cell_type *unitcell, double alpha,
                           scaling_row_type *scaling, long scaling_size,
                           double *gpos, double *vtens) {
   long i, other_index;
@@ -114,7 +114,7 @@ double compute_ewald_corr(double *pos, long center_index, double *charges,
     delta[0] = pos[3*center_index    ] - pos[3*other_index    ];
     delta[1] = pos[3*center_index + 1] - pos[3*other_index + 1];
     delta[2] = pos[3*center_index + 2] - pos[3*other_index + 2];
-    mic(delta, (*cell).rvecs, (*cell).gvecs, 3);
+    cell_mic(delta, unitcell);
     d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
     x = alpha*d;
     pot = erf(x)/d;

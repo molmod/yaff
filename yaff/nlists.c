@@ -22,7 +22,7 @@
 
 #include <math.h>
 #include "nlists.h"
-#include "mic.h"
+#include "cell.h"
 
 
 int nlist_update_low(double *pos, long center_index, double cutoff, long *rmax,
@@ -54,7 +54,7 @@ int nlist_update_low(double *pos, long center_index, double cutoff, long *rmax,
       delta0[2] = center_pos[2] - pos[3*other_index+2];
       // Subtract the cell vectors as to make the relative vector as short
       // as possible. (This is the minimum image convention.)
-      mic(delta0, (*unitcell).rvecs, (*unitcell).gvecs, (*unitcell).nvec);
+      cell_mic(delta0, unitcell);
       // Done updating delta0.
       update_delta0 = 0;
     }

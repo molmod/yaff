@@ -28,10 +28,10 @@
 #include "cell.h"
 
 double compute_ewald_reci(double *pos, long natom, double *charges,
-                          cell_type* cell, double alpha, long *gmax,
+                          cell_type* unitcell, double alpha, long *gmax,
                           double *gpos, double *work, double* vtens);
 double compute_ewald_corr(double *pos, long center_index, double *charges,
-                          cell_type *cell, double alpha,
+                          cell_type *unitcell, double alpha,
                           scaling_row_type *scaling, long scaling_size,
                           double *gpos, double *vtens);
 

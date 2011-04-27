@@ -23,7 +23,7 @@
 
 #include <stdlib.h>
 #include "dlist.h"
-#include "mic.h"
+#include "cell.h"
 
 void dlist_forward(double *pos, cell_type *unitcell, dlist_row_type* deltas, long ndelta) {
   long k;
@@ -33,7 +33,7 @@ void dlist_forward(double *pos, cell_type *unitcell, dlist_row_type* deltas, lon
     (*delta).dx = pos[3*(*delta).i    ] - pos[3*(*delta).j    ];
     (*delta).dy = pos[3*(*delta).i + 1] - pos[3*(*delta).j + 1];
     (*delta).dz = pos[3*(*delta).i + 2] - pos[3*(*delta).j + 2];
-    if ((*unitcell).nvec > 0) mic((double*)delta, (*unitcell).rvecs, (*unitcell).gvecs, (*unitcell).nvec);
+    cell_mic((double*)delta, unitcell);
     (*delta).gx = 0.0;
     (*delta).gy = 0.0;
     (*delta).gz = 0.0;

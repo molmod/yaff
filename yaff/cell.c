@@ -67,6 +67,19 @@ void cell_update(cell_type* cell, double *rvecs, double *gvecs, int nvec) {
   }
 }
 
+cell_mic(double *delta, cell_type* cell) {
+  // applies the Minimum Image Convention.
+  long i;
+  double x;
+  for (i=0; i<(*cell).nvec; i++) {
+    x = (*cell).gvecs[3*i]*delta[0] + (*cell).gvecs[3*i+1]*delta[1] + (*cell).gvecs[3*i+2]*delta[2];
+    x = ceil(x-0.5);
+    delta[0] -= x*(*cell).rvecs[3*i];
+    delta[1] -= x*(*cell).rvecs[3*i+1];
+    delta[2] -= x*(*cell).rvecs[3*i+2];
+  }
+}
+
 int cell_get_nvec(cell_type* cell) {
   return (*cell).nvec;
 }
