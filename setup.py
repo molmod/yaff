@@ -36,7 +36,7 @@ setup(
     author_email='Toon.Verstraelen@UGent.be',
     url='http://molmod.ugent.be/code/',
     package_dir = {'yaff': 'yaff'},
-    packages=['yaff'],
+    packages=['yaff', 'yaff/test'],
     cmdclass = {'build_ext': build_ext},
     ext_modules=[
         Extension("yaff.ext", [
