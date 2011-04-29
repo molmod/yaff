@@ -139,6 +139,10 @@ cdef class Cell:
 
     gspacings = property(get_gspacings)
 
+    def mic(self, np.ndarray[double, ndim=1] delta):
+        assert delta.size == 3
+        cell.cell_mic(<double *>delta.data, self._c_cell)
+
 
 #
 # Neighbor lists
