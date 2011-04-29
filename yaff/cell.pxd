@@ -29,6 +29,8 @@ cdef extern from "cell.h":
     void cell_free(cell_type* cell)
     void cell_update(cell_type* cell, double *rvecs, double *gvecs, int nvec)
 
+    void cell_mic(double *delta, cell_type* cell)
+
     int cell_get_nvec(cell_type* cell)
     double cell_get_volume(cell_type* cell)
     void cell_copy_rvecs(cell_type* cell, double *rvecs, bint full)
