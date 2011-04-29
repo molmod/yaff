@@ -26,7 +26,7 @@ from molmod import bond_length, bend_angle, bend_cos, dihed_angle, dihed_cos
 from yaff import *
 
 from common import get_system_quartz, get_system_water32, get_system_2T,\
-    get_system_peroxide, check_gpos_part, check_vtens_part
+    get_system_peroxide, get_system_mil53, check_gpos_part, check_vtens_part
 
 
 def test_vlist_quartz_bonds():
@@ -163,12 +163,12 @@ def test_vlist_polyfour_water32():
     system = get_system_water32()
     part = ValencePart(system)
     for i, j in system.topology.bonds:
-        part.add_term(PolyFour([-1.1+0.01*i, 0.8-0.01*j, -0.6-0.01*i, 0.4+0.01*j], Bond(i, j)))
+        part.add_term(PolyFour([1.1+0.01*i, 0.8+0.01*j, 0.6+0.01*i, 0.4+0.01*j], Bond(i, j)))
     energy = part.compute()
     check_energy = 0.0
     for i, j in system.topology.bonds:
         bond = bond_length(system.pos[i],system.pos[j])[0]
-        check_energy += (-1.1+0.01*i)*bond + (0.8-0.01*j)*bond**2 + (-0.6-0.01*i)*bond**3 + (0.4+0.01*j)*bond**4
+        check_energy += (1.1+0.01*i)*bond + (0.8+0.01*j)*bond**2 + (0.6+0.01*i)*bond**3 + (0.4+0.01*j)*bond**4
     assert abs(energy - check_energy) < 1e-8
 
 
@@ -194,6 +194,36 @@ def test_vlist_cross_water32():
             bond1 = bond_length(system.pos[j],system.pos[k])[0]
             check_energy += 1.2*(bond0 - 1.7 - 0.01*i)*(bond1 - 1.9 - 0.01*k)
     assert abs(energy - check_energy) < 1e-8
+
+
+def test_vlist_dihedral_cos_mil53():
+    system = get_system_mil53()
+    part = ValencePart(system)
+    for i1, i2 in system.topology.bonds:
+        for i0 in system.topology.neighs1[i1]:
+            if i0==i2: continue
+            for i3 in system.topology.neighs1[i2]:
+                if i3==i1: continue
+                fc = 2.1 + 0.01*(0.3*i1 + 0.7*i2)
+                part.add_term(PolyFour([0.0,-2.0*fc,0.0,0.0],DihedCos(i0,i1,i2,i3)))
+    energy = part.compute()
+    check_energy = 0.0
+    for i1, i2 in system.topology.bonds:
+        for i0 in system.topology.neighs1[i1]:
+            if i0==i2: continue
+            for i3 in system.topology.neighs1[i2]:
+                if i3==i1: continue
+                fc = 2.1 + 0.01*(0.3*i1 + 0.7*i2)
+                delta0 = system.pos[i0] - system.pos[i1]
+                delta1 = system.pos[i2] - system.pos[i1]
+                delta2 = system.pos[i3] - system.pos[i2]
+                system.cell.mic(delta0)
+                system.cell.mic(delta1)
+                system.cell.mic(delta2)
+                cos = dihed_cos(delta0, np.zeros(3, float), delta1, delta1+delta2)[0]
+                check_energy += -2.0*fc*cos**2
+    if not abs(energy - check_energy) < 1e-8:
+        raise AssertionError("Energy should be %10.9e, instead it is %10.9e" %(check_energy, energy))
 
 
 def test_gpos_vtens_bond_water32():

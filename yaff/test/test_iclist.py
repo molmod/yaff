@@ -27,7 +27,7 @@ from nose.plugins.skip import SkipTest
 
 from yaff import *
 
-from common import get_system_quartz, get_system_peroxide
+from common import get_system_quartz, get_system_peroxide, get_system_mil53
 
 
 def test_iclist_quartz_bonds():
@@ -127,3 +127,43 @@ def test_iclist_peroxide_dihedral_angle():
         iclist.forward()
         assert iclist.ictab[3]['kind']==4 #assert the third ic is DihedralAngle
         assert abs(iclist.ictab[3]['value'] - dihed_angle(system.pos[0],system.pos[1],system.pos[2],system.pos[3])[0]) < 1e-5
+
+
+def test_iclist_mil53_dihedral_cos():
+    system = get_system_mil53()
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    rows = []
+    for i1, i2 in system.topology.bonds:
+        for i0 in system.topology.neighs1[i1]:
+            if i0==i2: continue
+            for i3 in system.topology.neighs1[i2]:
+                if i3==i1: continue
+                rows.append(iclist.add_ic(DihedCos(i0,i1,i2,i3)))
+    dlist.forward()
+    iclist.forward()
+    i=-1
+    for i1, i2 in system.topology.bonds:
+        for i0 in system.topology.neighs1[i1]:
+            if i0==i2: continue
+            for i3 in system.topology.neighs1[i2]:
+                if i3==i1: continue
+                i += 1
+                ic = iclist.ictab[rows[i]]
+                cos = ic['value']
+                delta0 = system.pos[i0] - system.pos[i1]
+                delta1 = system.pos[i2] - system.pos[i1]
+                delta2 = system.pos[i3] - system.pos[i2]
+                system.cell.mic(delta0)
+                system.cell.mic(delta1)
+                system.cell.mic(delta2)
+                check_cos = dihed_cos(delta0, np.zeros(3, float), delta1, delta1+delta2)[0]
+                if not abs(cos - check_cos) < 1e-8:
+                    raise AssertionError("Dihedral cos (%s[%i],%s[%i],%s[%i],%s[%i]) should be %10.9e, instead it is %10.9e" %(
+                        system.ffatypes[i0],i0,
+                        system.ffatypes[i1],i1,
+                        system.ffatypes[i2],i2,
+                        system.ffatypes[i3],i3,
+                        check_cos,
+                        cos
+                    ))
