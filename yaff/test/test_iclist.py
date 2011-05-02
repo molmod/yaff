@@ -129,41 +129,91 @@ def test_iclist_peroxide_dihedral_angle():
         assert abs(iclist.ictab[3]['value'] - dihed_angle(system.pos[0],system.pos[1],system.pos[2],system.pos[3])[0]) < 1e-5
 
 
-def test_iclist_mil53_dihedral_cos():
+
+def test_iclist_grad_dihedral_cos_mil53():
     system = get_system_mil53()
-    dlist = DeltaList(system)
-    iclist = InternalCoordinateList(dlist)
-    rows = []
+    forbidden_dihedrals = [
+        ["O_HY","AL","O_HY","AL"],
+        ["O_HY","AL","O_HY","H_HY"],
+        ["O_CA","AL","O_CA","C_CA"],
+    ]
+    idih = -1
     for i1, i2 in system.topology.bonds:
         for i0 in system.topology.neighs1[i1]:
             if i0==i2: continue
             for i3 in system.topology.neighs1[i2]:
                 if i3==i1: continue
-                rows.append(iclist.add_ic(DihedCos(i0,i1,i2,i3)))
-    dlist.forward()
-    iclist.forward()
-    i=-1
-    for i1, i2 in system.topology.bonds:
-        for i0 in system.topology.neighs1[i1]:
-            if i0==i2: continue
-            for i3 in system.topology.neighs1[i2]:
-                if i3==i1: continue
-                i += 1
-                ic = iclist.ictab[rows[i]]
+                types = [system.ffatypes[i0], system.ffatypes[i1], system.ffatypes[i2], system.ffatypes[i3]]
+                if types in forbidden_dihedrals or types[::-1] in forbidden_dihedrals: continue
+                idih += 1
+                dlist = DeltaList(system)
+                iclist = InternalCoordinateList(dlist)
+                iclist.add_ic(DihedCos(i0,i1,i2,i3))
+                print "Ic %i: DihedCos of atoms %s[%i],%s[%i],%s[%i],%s[%i]" %( idih,
+                    system.ffatypes[i0],i0,
+                    system.ffatypes[i1],i1,
+                    system.ffatypes[i2],i2,
+                    system.ffatypes[i3],i3,
+                )
+
+                ic = iclist.ictab[0]
+                dlist.forward()
+                iclist.forward()
+                ic['grad'] = 1.0
+                iclist.back()
                 cos = ic['value']
+                grad_d0 = np.array([dlist.deltas[ic['i0']]['gx'], dlist.deltas[ic['i0']]['gy'], dlist.deltas[ic['i0']]['gz']])
+                grad_d1 = np.array([dlist.deltas[ic['i1']]['gx'], dlist.deltas[ic['i1']]['gy'], dlist.deltas[ic['i1']]['gz']])
+                grad_d2 = np.array([dlist.deltas[ic['i2']]['gx'], dlist.deltas[ic['i2']]['gy'], dlist.deltas[ic['i2']]['gz']])
+
                 delta0 = system.pos[i0] - system.pos[i1]
                 delta1 = system.pos[i2] - system.pos[i1]
                 delta2 = system.pos[i3] - system.pos[i2]
                 system.cell.mic(delta0)
                 system.cell.mic(delta1)
                 system.cell.mic(delta2)
-                check_cos = dihed_cos(delta0, np.zeros(3, float), delta1, delta1+delta2)[0]
-                if not abs(cos - check_cos) < 1e-8:
-                    raise AssertionError("Dihedral cos (%s[%i],%s[%i],%s[%i],%s[%i]) should be %10.9e, instead it is %10.9e" %(
+
+                check_cos, check_grad = dihed_cos(delta0, np.zeros(3, float), delta1, delta1+delta2,deriv=1)
+                check_grad_d0 = -check_grad[0,:]
+                check_grad_d1 = check_grad[0,:] + check_grad[1,:]
+                check_grad_d2 = -check_grad[3,:]
+
+                if not abs(ic['value'] - check_cos) < 1e-8:
+                    raise AssertionError("Dihed cos (%s[%i],%s[%i],%s[%i],%s[%i]) should have value %10.9e, instead it is %10.9e" %(
                         system.ffatypes[i0],i0,
                         system.ffatypes[i1],i1,
                         system.ffatypes[i2],i2,
                         system.ffatypes[i3],i3,
                         check_cos,
                         cos
+                    ))
+                if not np.sqrt(sum( (grad_d0 - check_grad_d0)**2 )) < 1e-8:
+                    raise AssertionError("Dihed cos (%s[%i],%s[%i],%s[%i],%s[%i]) should have delta0_grad [%12.9f,%12.9f,%12.9f], \n"
+                                         "instead it is [%12.9f,%12.9f,%12.9f]" %(
+                                            system.ffatypes[i0],i0,
+                                            system.ffatypes[i1],i1,
+                                            system.ffatypes[i2],i2,
+                                            system.ffatypes[i3],i3,
+                                            check_grad_d0[0], check_grad_d0[1], check_grad_d0[2],
+                                            grad_d0[0], grad_d0[1], grad_d0[2],
+                    ))
+                if not np.sqrt(sum( (grad_d1 - check_grad_d1)**2 )) < 1e-8:
+                    raise AssertionError("Dihed cos (%s[%i],%s[%i],%s[%i],%s[%i]) should have delta1_grad [%12.9f,%12.9f,%12.9f], \n"
+                                         "instead it is [%12.9f,%12.9f,%12.9f]" %(
+                                            system.ffatypes[i0],i0,
+                                            system.ffatypes[i1],i1,
+                                            system.ffatypes[i2],i2,
+                                            system.ffatypes[i3],i3,
+                                            check_grad_d1[0], check_grad_d1[1], check_grad_d1[2],
+                                            grad_d1[0], grad_d1[1], grad_d1[2],
+                    ))
+                if not np.sqrt(sum( (grad_d2 - check_grad_d2)**2 )) < 1e-8:
+                    raise AssertionError("Dihed cos (%s[%i],%s[%i],%s[%i],%s[%i]) should have delta2_grad [%12.9f,%12.9f,%12.9f], \n"
+                                         "instead it is [%12.9f,%12.9f,%12.9f]" %(
+                                            system.ffatypes[i0],i0,
+                                            system.ffatypes[i1],i1,
+                                            system.ffatypes[i2],i2,
+                                            system.ffatypes[i3],i3,
+                                            check_grad_d2[0], check_grad_d2[1], check_grad_d2[2],
+                                            grad_d2[0], grad_d2[1], grad_d2[2],
                     ))
