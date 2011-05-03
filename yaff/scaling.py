@@ -30,6 +30,9 @@ __all__ = ['Scalings']
 class Scalings(object):
     def __init__(self, topology, scale1=0.0, scale2=0.0, scale3=1.0):
         self.items = []
+        self.scale1 = scale1
+        self.scale2 = scale2
+        self.scale3 = scale3
         for i0 in xrange(topology.natom):
             slist = []
             if scale1 < 1.0:
