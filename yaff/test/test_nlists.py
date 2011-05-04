@@ -175,11 +175,26 @@ def test_nlists_quartz_4A_shortest():
     nlists = NeighborLists(system)
     nlists.request_cutoff(4*angstrom)
     nlists.update()
+    check_nlist_shortest(system, nlists)
+
+
+def test_nlists_water_9A_shortest():
+    system = get_system_water32()
+    nlists = NeighborLists(system)
+    nlists.request_cutoff(9*angstrom)
+    nlists.update()
+    check_nlist_shortest(system, nlists)
+
+
+def check_nlist_shortest(system, nlists):
     for i in xrange(system.natom):
         nlist = nlists[i]
         for j in xrange(len(nlist)):
             if (nlist[j]['r0'] == 0) and (nlist[j]['r1'] == 0) and (nlist[j]['r2'] == 0):
                 delta0 = np.array([nlist[j]['dx'], nlist[j]['dy'], nlist[j]['dz']])
+                delta1 = delta0.copy()
+                system.cell.mic(delta1)
+                assert abs(delta0 - delta1).max() < 1e-10
                 for r0 in xrange(-1, 1):
                     for r1 in xrange(-1, 1):
                         for r2 in xrange(-1, 1):
