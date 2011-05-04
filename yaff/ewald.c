@@ -114,9 +114,9 @@ double compute_ewald_corr(double *pos, long center_index, double *charges,
   for (i = 0; i < scaling_size; i++) {
     other_index = scaling[i].i;
     if (other_index >= center_index) continue; // avoid double counting.
-    delta[0] = pos[3*center_index    ] - pos[3*other_index    ];
-    delta[1] = pos[3*center_index + 1] - pos[3*other_index + 1];
-    delta[2] = pos[3*center_index + 2] - pos[3*other_index + 2];
+    delta[0] = pos[3*other_index    ] - pos[3*center_index    ];
+    delta[1] = pos[3*other_index + 1] - pos[3*center_index + 1];
+    delta[2] = pos[3*other_index + 2] - pos[3*center_index + 2];
     cell_mic(delta, unitcell);
     d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
     x = alpha*d;
@@ -127,14 +127,14 @@ double compute_ewald_corr(double *pos, long center_index, double *charges,
     }
     if (gpos != NULL) {
       x = delta[0]*g;
-      gpos[3*center_index  ] += x;
-      gpos[3*other_index   ] -= x;
+      gpos[3*other_index  ] += x;
+      gpos[3*center_index   ] -= x;
       x = delta[1]*g;
-      gpos[3*center_index+1] += x;
-      gpos[3*other_index +1] -= x;
+      gpos[3*other_index+1] += x;
+      gpos[3*center_index +1] -= x;
       x = delta[2]*g;
-      gpos[3*center_index+2] += x;
-      gpos[3*other_index +2] -= x;
+      gpos[3*other_index+2] += x;
+      gpos[3*center_index +2] -= x;
     }
     if (vtens != NULL) {
       vtens[0] += delta[0]*delta[0]*g;

@@ -30,9 +30,9 @@ void dlist_forward(double *pos, cell_type *unitcell, dlist_row_type* deltas, lon
   dlist_row_type *delta;
   for (k=0; k<ndelta; k++) {
     delta = (deltas + k);
-    (*delta).dx = pos[3*(*delta).i    ] - pos[3*(*delta).j    ];
-    (*delta).dy = pos[3*(*delta).i + 1] - pos[3*(*delta).j + 1];
-    (*delta).dz = pos[3*(*delta).i + 2] - pos[3*(*delta).j + 2];
+    (*delta).dx = pos[3*(*delta).j    ] - pos[3*(*delta).i    ];
+    (*delta).dy = pos[3*(*delta).j + 1] - pos[3*(*delta).i + 1];
+    (*delta).dz = pos[3*(*delta).j + 2] - pos[3*(*delta).i + 2];
     cell_mic((double*)delta, unitcell);
     (*delta).gx = 0.0;
     (*delta).gy = 0.0;
@@ -46,12 +46,12 @@ void dlist_back(double *gpos, double *vtens, dlist_row_type* deltas, long ndelta
   for (k=0; k<ndelta; k++) {
     delta = (deltas + k);
     if (gpos != NULL) {
-      gpos[3*(*delta).i    ] += (*delta).gx;
-      gpos[3*(*delta).i + 1] += (*delta).gy;
-      gpos[3*(*delta).i + 2] += (*delta).gz;
-      gpos[3*(*delta).j    ] -= (*delta).gx;
-      gpos[3*(*delta).j + 1] -= (*delta).gy;
-      gpos[3*(*delta).j + 2] -= (*delta).gz;
+      gpos[3*(*delta).j    ] += (*delta).gx;
+      gpos[3*(*delta).j + 1] += (*delta).gy;
+      gpos[3*(*delta).j + 2] += (*delta).gz;
+      gpos[3*(*delta).i    ] -= (*delta).gx;
+      gpos[3*(*delta).i + 1] -= (*delta).gy;
+      gpos[3*(*delta).i + 2] -= (*delta).gz;
     }
     if (vtens != NULL) {
       vtens[0] += (*delta).gx*(*delta).dx;

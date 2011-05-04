@@ -49,9 +49,9 @@ int nlist_update_low(double *pos, long center_index, double cutoff, long *rmax,
     }
     if (update_delta0) {
       // Compute the relative vector.
-      delta0[0] = center_pos[0] - pos[3*other_index];
-      delta0[1] = center_pos[1] - pos[3*other_index+1];
-      delta0[2] = center_pos[2] - pos[3*other_index+2];
+      delta0[0] = pos[3*other_index  ] - center_pos[0];
+      delta0[1] = pos[3*other_index+1] - center_pos[1];
+      delta0[2] = pos[3*other_index+2] - center_pos[2];
       // Subtract the cell vectors as to make the relative vector as short
       // as possible. (This is the minimum image convention.)
       cell_mic(delta0, unitcell);
