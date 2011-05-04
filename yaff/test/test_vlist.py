@@ -403,14 +403,14 @@ def test_gpos_vtens_dihedral_cos_mil53():
                 types = [system.ffatypes[i0], system.ffatypes[i1], system.ffatypes[i2], system.ffatypes[i3]]
                 if types in forbidden_dihedrals or types[::-1] in forbidden_dihedrals: continue
                 idih += 1
-                fc = 2.1 + 0.01*(0.3*i1 + 0.7*i2)
+                lc = 2.1 + 0.01*(0.3*i1 + 0.7*i2)
                 part = ValencePart(system)
-                part.add_term(PolyFour([0.0,-2.0*fc,0.0,0.0],DihedCos(i0,i1,i2,i3)))
+                part.add_term(PolyFour([-2.0*lc,0.0001,0.0,0.0],DihedCos(i0,i1,i2,i3)))
                 print "Term %i: PolyFour(DihedCos) of atoms %s[%i],%s[%i],%s[%i],%s[%i]" %( idih,
                     system.ffatypes[i0],i0,
                     system.ffatypes[i1],i1,
                     system.ffatypes[i2],i2,
                     system.ffatypes[i3],i3,
                 )
-                check_gpos_part(system, part, 1e-8)
-                check_vtens_part(system, part, 1e-7)
+                check_gpos_part(system, part, 1e-9)
+                check_vtens_part(system, part, 1e-9)
