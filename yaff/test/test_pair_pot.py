@@ -46,23 +46,23 @@ def get_part_water32_9A_lj():
         sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
         epsilons[i] = epsilon_table[system.numbers[i]]
     # Create the pair_pot and pair_part
-    cutoff = 9*angstrom
-    pair_pot = PairPotLJ(sigmas, epsilons, cutoff, True)
+    rcut = 9*angstrom
+    pair_pot = PairPotLJ(sigmas, epsilons, rcut, True)
     assert abs(pair_pot.sigmas - sigmas).max() == 0.0
     assert abs(pair_pot.epsilons - epsilons).max() == 0.0
-    pair_part = PairPart(nlists, scalings, pair_pot)
+    pair_part = PairPart(system, nlists, scalings, pair_pot)
     # Create a pair function:
     def pair_fn(i, j, d):
         sigma = 0.5*(sigmas[i]+sigmas[j])
         epsilon = np.sqrt(epsilons[i]*epsilons[j])
         x = (sigma/d)**6
-        return 4*epsilon*(x*(x-1))*np.exp(1.0/(d-cutoff))
+        return 4*epsilon*(x*(x-1))*np.exp(1.0/(d-rcut))
     return system, nlists, scalings, pair_pot, pair_part, pair_fn
 
 
 def test_pair_pot_lj_water32_9A():
     system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_water32_9A_lj()
-    nlists.update() # update the neighborlists, once the cutoffs are known.
+    nlists.update() # update the neighborlists, once the rcuts are known.
     # Compute the energy using yaff.
     energy1 = pair_part.compute()
     gpos = np.zeros(system.pos.shape, float)
@@ -97,7 +97,7 @@ def test_pair_pot_lj_water32_9A():
                         if (l0!=0) or (l1!=0) or (l2!=0) or (j>i):
                             my_delta = delta + np.array([l0,l1,l2])*9.865*angstrom
                             d = np.linalg.norm(my_delta)
-                            if d <= nlists.cutoff:
+                            if d <= nlists.rcut:
                                 check_energy += fac*pair_fn(i, j, d)
     assert abs(energy1 - check_energy) < 1e-15
     assert abs(energy2 - check_energy) < 1e-15
@@ -128,7 +128,7 @@ def get_part_caffeine_lj_15A():
         epsilons[i] = epsilon_table[system.numbers[i]]
     # Construct the pair potential and part
     pair_pot = PairPotLJ(sigmas, epsilons, 15*angstrom, False)
-    pair_part = PairPart(nlists, scalings, pair_pot)
+    pair_part = PairPart(system, nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
         sigma = 0.5*(sigmas[i]+sigmas[j])
@@ -152,10 +152,10 @@ def get_part_caffeine_ei1_10A():
     charges = np.random.uniform(0, 1, system.natom)
     charges -= charges.sum()
     # Construct the pair potential and part
-    cutoff = 10*angstrom
-    alpha = 3.5/cutoff
-    pair_pot = PairPotEI(charges, alpha, cutoff)
-    pair_part = PairPart(nlists, scalings, pair_pot)
+    rcut = 10*angstrom
+    alpha = 3.5/rcut
+    pair_pot = PairPotEI(charges, alpha, rcut)
+    pair_part = PairPart(system, nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
         return charges[i]*charges[j]*erfc(alpha*d)/d
@@ -176,10 +176,10 @@ def get_part_caffeine_ei2_10A():
     charges = np.random.uniform(0, 1, system.natom)
     charges -= charges.sum()
     # Construct the pair potential and part
-    cutoff = 10*angstrom
+    rcut = 10*angstrom
     alpha = 0.0
-    pair_pot = PairPotEI(charges, alpha, cutoff)
-    pair_part = PairPart(nlists, scalings, pair_pot)
+    pair_pot = PairPotEI(charges, alpha, rcut)
+    pair_part = PairPart(system, nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
         return charges[i]*charges[j]*erfc(alpha*d)/d
@@ -191,7 +191,7 @@ def test_pair_pot_ei2_caffeine_10A():
 
 
 def check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, eps):
-    nlists.update() # update the neighborlists, once the cutoffs are known.
+    nlists.update() # update the neighborlists, once the rcuts are known.
     # Compute the energy using yaff.
     energy1 = pair_part.compute()
     gpos = np.zeros(system.pos.shape, float)
@@ -212,7 +212,7 @@ def check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, eps):
             if fac == 0.0:
                 continue
             d = np.linalg.norm(delta)
-            if d <= nlists.cutoff:
+            if d <= nlists.rcut:
                 check_energy += fac*pair_fn(i, j, d)
     assert abs(energy1 - check_energy) < eps
     assert abs(energy2 - check_energy) < eps

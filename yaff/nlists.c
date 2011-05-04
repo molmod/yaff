@@ -25,7 +25,7 @@
 #include "cell.h"
 
 
-int nlist_update_low(double *pos, long center_index, double cutoff, long *rmax,
+int nlist_update_low(double *pos, long center_index, double rcut, long *rmax,
                      cell_type *unitcell, long *nlist_status,
                      nlist_row_type *nlist, long pos_size, long nlist_size) {
 
@@ -67,9 +67,9 @@ int nlist_update_low(double *pos, long center_index, double cutoff, long *rmax,
       delta[1] += r[i]*(*unitcell).rvecs[3*i+1];
       delta[2] += r[i]*(*unitcell).rvecs[3*i+2];
     }
-    // Compute the distance and store the record if distance is below the cutoff.
+    // Compute the distance and store the record if distance is below the rcut.
     d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
-    if (d < cutoff) {
+    if (d < rcut) {
       if ((r[0]!=0)||(r[1]!=0)||(r[2]!=0)||(center_index<other_index)) {
         (*nlist).i = other_index;
         (*nlist).d = d;

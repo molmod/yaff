@@ -33,7 +33,7 @@ pair_pot_type* pair_pot_new(void) {
   if (result != NULL) {
     (*result).pair_data = NULL;
     (*result).pair_fn = NULL;
-    (*result).cutoff = 0.0;
+    (*result).rcut = 0.0;
     (*result).smooth = 0;
   }
   return result;
@@ -47,12 +47,12 @@ int pair_pot_ready(pair_pot_type *pair_pot) {
   return (*pair_pot).pair_data != NULL && (*pair_pot).pair_fn != NULL;
 }
 
-double pair_pot_get_cutoff(pair_pot_type *pair_pot) {
-  return (*pair_pot).cutoff;
+double pair_pot_get_rcut(pair_pot_type *pair_pot) {
+  return (*pair_pot).rcut;
 }
 
-void pair_pot_set_cutoff(pair_pot_type *pair_pot, double cutoff) {
-  (*pair_pot).cutoff = cutoff;
+void pair_pot_set_rcut(pair_pot_type *pair_pot, double rcut) {
+  (*pair_pot).rcut = rcut;
 }
 
 int pair_pot_get_smooth(pair_pot_type *pair_pot) {
@@ -103,7 +103,7 @@ double pair_pot_compute(long center_index, nlist_row_type *nlist,
   // Compute the interactions.
   for (i=0; i<nlist_size; i++) {
     // Find the scale
-    if (nlist[i].d < (*pair_pot).cutoff) {
+    if (nlist[i].d < (*pair_pot).rcut) {
       other_index = nlist[i].i;
       if ((nlist[i].r0 == 0) && (nlist[i].r1 == 0) && (nlist[i].r2 == 0)) {
         s = get_scaling(scaling, center_index, other_index, &scaling_counter, scaling_size);
@@ -115,13 +115,13 @@ double pair_pot_compute(long center_index, nlist_row_type *nlist,
         if ((gpos==NULL) && (vtens==NULL)) {
           // Call the potential function without g argument.
           v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, nlist[i].d, NULL);
-          if ((*pair_pot).smooth) v *= hammer(nlist[i].d, (*pair_pot).cutoff, NULL);
+          if ((*pair_pot).smooth) v *= hammer(nlist[i].d, (*pair_pot).rcut, NULL);
         } else {
           // Call the potential function with vg argument.
           // vg is the derivative of the pair potential divided by the distance.
           v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, nlist[i].d, &vg);
           if ((*pair_pot).smooth) {
-            h = hammer(nlist[i].d, (*pair_pot).cutoff, &hg);
+            h = hammer(nlist[i].d, (*pair_pot).rcut, &hg);
             vg = vg*h + v*hg/nlist[i].d;
             v *= h;
           }

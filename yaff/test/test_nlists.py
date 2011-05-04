@@ -36,8 +36,8 @@ from yaff import *
 def test_nlists_water32_4A():
     system = get_system_water32()
     nlists = NeighborLists(system)
-    cutoff = 4*angstrom
-    nlists.request_cutoff(cutoff)
+    rcut = 4*angstrom
+    nlists.request_rcut(rcut)
     nlists.update()
     assert len(nlists) == system.natom
     for i in random.sample(xrange(system.natom), 5):
@@ -47,14 +47,14 @@ def test_nlists_water32_4A():
             delta = system.pos[j] - system.pos[i]
             delta -= np.floor(delta/(9.865*angstrom)+0.5)*(9.865*angstrom)
             d = np.linalg.norm(delta)
-            if d <= cutoff:
+            if d <= rcut:
                 check[j] = (d, delta)
         # compare
         assert len(nlists[i]) == len(check)
         for row in nlists[i]:
             key = row['i']
             assert key in check
-            assert abs(check[key][0]) <= cutoff
+            assert abs(check[key][0]) <= rcut
             assert abs(check[key][0] - row['d']) < 1e-8
             assert abs(check[key][1][0] - row['dx']) < 1e-8
             assert abs(check[key][1][1] - row['dy']) < 1e-8
@@ -67,8 +67,8 @@ def test_nlists_water32_4A():
 def test_nlists_water32_9A():
     system = get_system_water32()
     nlists = NeighborLists(system)
-    cutoff = 9*angstrom
-    nlists.request_cutoff(cutoff)
+    rcut = 9*angstrom
+    nlists.request_rcut(rcut)
     nlists.update()
     for i in random.sample(xrange(system.natom), 5):
         # compute the distances in the neighborlist manually and check.
@@ -82,7 +82,7 @@ def test_nlists_water32_9A():
                     for l2 in xrange(-1, 2):
                         my_delta = delta + np.array([l0,l1,l2])*9.865*angstrom
                         d = np.linalg.norm(my_delta)
-                        if d <= cutoff:
+                        if d <= rcut:
                             if (l0!=0) or (l1!=0) or (l2!=0) or (j>i):
                                 check[(j, l0, l1, l2)] = (d, my_delta)
         # compare
@@ -90,7 +90,7 @@ def test_nlists_water32_9A():
         for row in nlists[i]:
             key = row['i'], row['r0'], row['r1'], row['r2']
             assert key in check
-            assert abs(check[key][0]) <= cutoff
+            assert abs(check[key][0]) <= rcut
             assert abs(check[key][0] - row['d']) < 1e-8
             assert abs(check[key][1][0] - row['dx']) < 1e-8
             assert abs(check[key][1][1] - row['dy']) < 1e-8
@@ -100,8 +100,8 @@ def test_nlists_water32_9A():
 def test_nlists_graphene8_9A():
     system = get_system_graphene8()
     nlists = NeighborLists(system)
-    cutoff = 9*angstrom
-    nlists.request_cutoff(cutoff)
+    rcut = 9*angstrom
+    nlists.request_rcut(rcut)
     nlists.update()
     for i in xrange(system.natom):
         # compute the distances in the neighborlist manually and check.
@@ -113,18 +113,18 @@ def test_nlists_graphene8_9A():
                 for r1 in xrange(-3, 4):
                     my_delta = delta + r0*system.cell.rvecs[0] + r1*system.cell.rvecs[1]
                     d = np.linalg.norm(my_delta)
-                    if d <= cutoff:
+                    if d <= rcut:
                         if (r0!=0) or (r1!=0) or (j>i):
                             check[(j, r0, r1)] = (d, my_delta)
         # compare
         assert len(nlists[i]) == len(check)
         for row in nlists[i]:
             assert row['r2'] == 0
-            assert row['d'] <= cutoff
+            assert row['d'] <= rcut
             assert row['d'] >= 0
             key = row['i'], row['r0'], row['r1']
             assert key in check
-            assert check[key][0] <= cutoff
+            assert check[key][0] <= rcut
             assert check[key][0] >= 0
             assert abs(check[key][0] - row['d']) < 1e-8
             assert abs(check[key][1][0] - row['dx']) < 1e-8
@@ -135,8 +135,8 @@ def test_nlists_graphene8_9A():
 def test_nlists_polyethylene4_9A():
     system = get_system_polyethylene4()
     nlists = NeighborLists(system)
-    cutoff = 9*angstrom
-    nlists.request_cutoff(cutoff)
+    rcut = 9*angstrom
+    nlists.request_rcut(rcut)
     nlists.update()
     for i in random.sample(xrange(system.natom), 5):
         # compute the distances in the neighborlist manually and check.
@@ -147,7 +147,7 @@ def test_nlists_polyethylene4_9A():
             for r0 in xrange(-3, 3):
                 my_delta = delta + r0*system.cell.rvecs[0]
                 d = np.linalg.norm(my_delta)
-                if d <= cutoff:
+                if d <= rcut:
                     if (r0!=0) or (j>i):
                         check[(j, r0)] = (d, my_delta)
         # compare
@@ -155,11 +155,11 @@ def test_nlists_polyethylene4_9A():
         for row in nlists[i]:
             assert row['r1'] == 0
             assert row['r2'] == 0
-            assert row['d'] <= cutoff
+            assert row['d'] <= rcut
             assert row['d'] >= 0
             key = row['i'], row['r0']
             assert key in check
-            assert check[key][0] <= cutoff
+            assert check[key][0] <= rcut
             assert check[key][0] >= 0
             assert abs(check[key][0] - row['d']) < 1e-8
             assert abs(check[key][1][0] - row['dx']) < 1e-8
@@ -171,7 +171,7 @@ def test_nlists_quartz_4A_shortest():
     raise SkipTest('The mic routine fails to find the shortest distance in small skewed unit cells.')
     system = get_system_quartz()
     nlists = NeighborLists(system)
-    nlists.request_cutoff(4*angstrom)
+    nlists.request_rcut(4*angstrom)
     nlists.update()
     check_nlist_shortest(system, nlists)
 
@@ -179,7 +179,7 @@ def test_nlists_quartz_4A_shortest():
 def test_nlists_water_9A_shortest():
     system = get_system_water32()
     nlists = NeighborLists(system)
-    nlists.request_cutoff(9*angstrom)
+    nlists.request_rcut(9*angstrom)
     nlists.update()
     check_nlist_shortest(system, nlists)
 
@@ -205,8 +205,8 @@ def check_nlist_shortest(system, nlists):
 def test_nlists_quartz_9A():
     system = get_system_quartz()
     nlists = NeighborLists(system)
-    cutoff = 9*angstrom
-    nlists.request_cutoff(cutoff)
+    rcut = 9*angstrom
+    nlists.request_rcut(rcut)
     nlists.update()
     for i in random.sample(xrange(system.natom), 5):
         # compute the distances in the neighborlist manually and check.
@@ -219,17 +219,17 @@ def test_nlists_quartz_9A():
                     for r2 in xrange(-3, 3):
                         my_delta = delta + r0*system.cell.rvecs[0] + r1*system.cell.rvecs[1] + r2*system.cell.rvecs[2]
                         d = np.linalg.norm(my_delta)
-                        if d <= cutoff:
+                        if d <= rcut:
                             if (r0!=0) or (r1!=0) or (r2!=0) or (j>i):
                                 check[(j, r0, r1, r2)] = (d, my_delta)
         # compare
         assert len(nlists[i]) == len(check)
         for row in nlists[i]:
-            assert row['d'] <= cutoff
+            assert row['d'] <= rcut
             assert row['d'] >= 0
             key = row['i'], row['r0'], row['r1'], row['r2']
             assert key in check
-            assert check[key][0] <= cutoff
+            assert check[key][0] <= rcut
             assert check[key][0] >= 0
             assert abs(check[key][0] - row['d']) < 1e-8
             assert abs(check[key][1][0] - row['dx']) < 1e-8
@@ -240,8 +240,8 @@ def test_nlists_quartz_9A():
 def test_nlists_quartz_20A():
     system = get_system_quartz()
     nlists = NeighborLists(system)
-    cutoff = 20*angstrom
-    nlists.request_cutoff(cutoff)
+    rcut = 20*angstrom
+    nlists.request_rcut(rcut)
     nlists.update()
     rvecs = system.cell.rvecs
     for i in random.sample(xrange(system.natom), 5):
@@ -255,17 +255,17 @@ def test_nlists_quartz_20A():
                     for r2 in xrange(-6, 6):
                         my_delta = delta + r0*rvecs[0] + r1*rvecs[1] + r2*rvecs[2]
                         d = np.linalg.norm(my_delta)
-                        if d <= cutoff:
+                        if d <= rcut:
                             if (r0!=0) or (r1!=0) or (r2!=0) or (j>i):
                                 check[(j, r0, r1, r2)] = (d, my_delta)
         # compare
         assert len(nlists[i]) == len(check)
         for row in nlists[i]:
-            assert row['d'] <= cutoff
+            assert row['d'] <= rcut
             assert row['d'] >= 0
             key = row['i'], row['r0'], row['r1'], row['r2']
             assert key in check
-            assert check[key][0] <= cutoff
+            assert check[key][0] <= rcut
             assert check[key][0] >= 0
             assert abs(check[key][0] - row['d']) < 1e-8
             assert abs(check[key][1][0] - row['dx']) < 1e-8
@@ -276,8 +276,8 @@ def test_nlists_quartz_20A():
 def test_nlists_quartz_110A():
     system = get_system_quartz()
     nlists = NeighborLists(system)
-    cutoff = 110*angstrom
-    nlists.request_cutoff(cutoff)
+    rcut = 110*angstrom
+    nlists.request_rcut(rcut)
     nlists.update()
     for i in xrange(len(nlists)):
         assert (nlists[i]['r0'] <= nlists.rmax[0]).all()
@@ -291,8 +291,8 @@ def test_nlists_quartz_110A():
 def test_nlists_glycine_9A():
     system = get_system_glycine()
     nlists = NeighborLists(system)
-    cutoff = 9*angstrom
-    nlists.request_cutoff(cutoff)
+    rcut = 9*angstrom
+    nlists.request_rcut(rcut)
     nlists.update()
     for i in random.sample(xrange(system.natom), 5):
         # compute the distances in the neighborlist manually and check.
@@ -300,7 +300,7 @@ def test_nlists_glycine_9A():
         for j in xrange(i+1, system.natom):
             delta = system.pos[j] - system.pos[i]
             d = np.linalg.norm(delta)
-            if d <= cutoff:
+            if d <= rcut:
                 check[j] = (d, delta)
         # compare
         assert len(nlists[i]) == len(check)
@@ -308,11 +308,11 @@ def test_nlists_glycine_9A():
             assert row['r0'] == 0
             assert row['r1'] == 0
             assert row['r2'] == 0
-            assert row['d'] <= cutoff
+            assert row['d'] <= rcut
             assert row['d'] >= 0
             key = row['i']
             assert key in check
-            assert check[key][0] <= cutoff
+            assert check[key][0] <= rcut
             assert check[key][0] >= 0
             assert abs(check[key][0] - row['d']) < 1e-8
             assert abs(check[key][1][0] - row['dx']) < 1e-8

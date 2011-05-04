@@ -33,7 +33,7 @@ typedef struct {
     long r0, r1, r2;
 } nlist_row_type;
 
-int nlist_update_low(double *pos, long center_index, double cutoff, long *rmax,
+int nlist_update_low(double *pos, long center_index, double rcut, long *rmax,
                      cell_type *unitcell, long *nlist_status,
                      nlist_row_type *nlist, long pos_size, long nlist_size);
 

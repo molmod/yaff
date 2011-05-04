@@ -164,14 +164,14 @@ def nlist_status_init(center_index, rmax):
 
 
 def nlist_update(np.ndarray[double, ndim=2] pos, long center_index,
-                 double cutoff, np.ndarray[long, ndim=1] rmax,
+                 double rcut, np.ndarray[long, ndim=1] rmax,
                  Cell unitcell, np.ndarray[long, ndim=1] nlist_status,
                  np.ndarray[nlists.nlist_row_type, ndim=1] nlist):
     assert pos.shape[1] == 3
     assert pos.flags['C_CONTIGUOUS']
     assert center_index >= 0
     assert center_index < pos.shape[0]
-    assert cutoff > 0
+    assert rcut > 0
     assert rmax.shape[0] <= 3
     assert rmax.flags['C_CONTIGUOUS']
     assert nlist_status.shape[0] == 5
@@ -179,7 +179,7 @@ def nlist_update(np.ndarray[double, ndim=2] pos, long center_index,
     assert nlist.flags['C_CONTIGUOUS']
     assert rmax.shape[0] == unitcell.nvec
     return nlists.nlist_update_low(
-        <double*>pos.data, center_index, cutoff, <long*>rmax.data,
+        <double*>pos.data, center_index, rcut, <long*>rmax.data,
         unitcell._c_cell, <long*>nlist_status.data,
         <nlists.nlist_row_type*>nlist.data, len(pos), len(nlist)
     )
@@ -208,10 +208,10 @@ cdef class PairPot:
         if self._c_pair_pot is not NULL:
             pair_pot.pair_pot_free(self._c_pair_pot)
 
-    def get_cutoff(self):
-        return pair_pot.pair_pot_get_cutoff(self._c_pair_pot)
+    def get_rcut(self):
+        return pair_pot.pair_pot_get_rcut(self._c_pair_pot)
 
-    cutoff = property(get_cutoff)
+    rcut = property(get_rcut)
 
     def get_smooth(self):
         return pair_pot.pair_pot_get_smooth(self._c_pair_pot)
@@ -257,11 +257,11 @@ cdef class PairPotLJ(PairPot):
     cdef np.ndarray _c_epsilons
 
     def __cinit__(self, np.ndarray[double, ndim=1] sigmas,
-                  np.ndarray[double, ndim=1] epsilons, double cutoff, bint smooth):
+                  np.ndarray[double, ndim=1] epsilons, double rcut, bint smooth):
         assert sigmas.flags['C_CONTIGUOUS']
         assert epsilons.flags['C_CONTIGUOUS']
         assert sigmas.shape[0] == epsilons.shape[0]
-        pair_pot.pair_pot_set_cutoff(self._c_pair_pot, cutoff)
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
         pair_pot.pair_pot_set_smooth(self._c_pair_pot, smooth)
         pair_pot.pair_data_lj_init(self._c_pair_pot, <double*>sigmas.data, <double*>epsilons.data)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
@@ -283,9 +283,9 @@ cdef class PairPotLJ(PairPot):
 cdef class PairPotEI(PairPot):
     cdef np.ndarray charges
 
-    def __cinit__(self, np.ndarray[double, ndim=1] charges, double alpha, double cutoff):
+    def __cinit__(self, np.ndarray[double, ndim=1] charges, double alpha, double rcut):
         assert charges.flags['C_CONTIGUOUS']
-        pair_pot.pair_pot_set_cutoff(self._c_pair_pot, cutoff)
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
         pair_pot.pair_data_ei_init(self._c_pair_pot, <double*>charges.data, alpha)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()

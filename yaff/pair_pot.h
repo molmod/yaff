@@ -32,7 +32,7 @@ typedef double (*pair_fn_type)(void*, long, long, double, double*);
 typedef struct {
   void *pair_data;
   pair_fn_type pair_fn;
-  double cutoff;
+  double rcut;
   int smooth;
 } pair_pot_type;
 
@@ -45,8 +45,8 @@ typedef struct {
 pair_pot_type* pair_pot_new(void);
 void pair_pot_free(pair_pot_type *pair_pot);
 int pair_pot_ready(pair_pot_type *pair_pot);
-double pair_pot_get_cutoff(pair_pot_type *pair_pot);
-void pair_pot_set_cutoff(pair_pot_type *pair_pot, double cutoff);
+double pair_pot_get_rcut(pair_pot_type *pair_pot);
+void pair_pot_set_rcut(pair_pot_type *pair_pot, double rcut);
 int pair_pot_get_smooth(pair_pot_type *pair_pot);
 void pair_pot_set_smooth(pair_pot_type *pair_pot, int smooth);
 void pair_data_free(pair_pot_type *pair_pot);

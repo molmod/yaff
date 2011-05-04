@@ -56,6 +56,7 @@ def check_alpha_depedence(system, charges):
     energies = np.array(energies)
     gposs = np.array(gposs)
     vtenss = np.array(vtenss)
+    print energies
     assert abs(energies - energies.mean()).max() < 1e-8
     assert abs(gposs - gposs.mean(axis=0)).max() < 1e-8
     assert abs(vtenss - vtenss.mean(axis=0)).max() < 1e-8
@@ -66,15 +67,13 @@ def get_electrostatic_energy(alpha, system, charges):
     nlists = NeighborLists(system)
     scalings = Scalings(system.topology, 0.0, 0.0, 0.5)
     # Construct the ewald real-space potential and part
-    cutoff = 5.5/alpha
-    ewald_real_pot = PairPotEI(charges, alpha, cutoff)
-    ewald_real_part = PairPart(nlists, scalings, ewald_real_pot)
+    ewald_real_pot = PairPotEI(charges, alpha, rcut=5.5/alpha)
+    ewald_real_part = PairPart(system, nlists, scalings, ewald_real_pot)
     # Construct the ewald reciprocal and correction part
-    gmax = np.ceil(alpha*2.0/system.cell.gspacings-0.5).astype(int)
-    ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gmax)
+    ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gcut=alpha/0.5)
     ewald_corr_part = EwaldCorrectionPart(system, charges, alpha, scalings)
     # Construct the force field
-    ff = SumForceField(system, [ewald_real_part, ewald_reci_part, ewald_corr_part], nlists)
+    ff = ForceField(system, [ewald_real_part, ewald_reci_part, ewald_corr_part], nlists)
     ff.update_pos(system.pos)
     gpos = np.zeros(system.pos.shape, float)
     vtens = np.zeros((3, 3), float)
@@ -85,8 +84,7 @@ def test_ewald_gpos_vtens_reci_water32():
     system = get_system_water32()
     charges = -0.8 + (system.numbers == 1)*1.2
     for alpha, eps in (0.05, 1e-17), (0.1, 1e-13), (0.2, 1e-11):
-        gmax = np.ceil(alpha*1.5/system.cell.gspacings-0.5).astype(int)
-        ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gmax)
+        ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gcut=alpha/0.75)
         check_gpos_part(system, ewald_reci_part, eps)
         check_vtens_part(system, ewald_reci_part, eps)
 
@@ -95,8 +93,7 @@ def test_ewald_gpos_vtens_reci_quartz():
     system = get_system_quartz()
     charges = 1.8 - (system.numbers == 8)*2.7
     for alpha, eps in (0.1, 1e-16), (0.2, 1e-12), (0.5, 1e-12):
-        gmax = np.ceil(alpha*2.0/system.cell.gspacings-0.5).astype(int)
-        ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gmax)
+        ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gcut=alpha/0.5)
         check_gpos_part(system, ewald_reci_part, eps)
         check_vtens_part(system, ewald_reci_part, eps)
 
@@ -105,8 +102,7 @@ def test_ewald_reci_volchange_quartz():
     system = get_system_quartz()
     charges = 1.8 - (system.numbers == 8)*2.7
     for alpha in 0.1, 0.2, 0.5:
-        gmax = np.ceil(alpha*2.0/system.cell.gspacings-0.5).astype(int)
-        ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gmax)
+        ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gcut=alpha/0.5)
         # compute the energy
         energy1 = ewald_reci_part.compute()
         # distort the cell and restore to the original volume

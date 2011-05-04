@@ -38,15 +38,15 @@ nlist_dtype = [
 class NeighborLists(object):
     def __init__(self, system):
         self.system = system
-        self.cutoff = 0.0
+        self.rcut = 0.0
         self.nlists = None
         self.nlist_sizes = None
         self.rmax = None
 
     natom = property(lambda self: self.system.natom)
 
-    def request_cutoff(self, cutoff):
-        self.cutoff = max(self.cutoff, cutoff)
+    def request_rcut(self, rcut):
+        self.rcut = max(self.rcut, rcut)
 
     def __len__(self):
         return len(self.nlists)
@@ -55,13 +55,13 @@ class NeighborLists(object):
         return self.nlists[index][:self.nlist_sizes[index]]
 
     def update(self):
-        assert self.cutoff > 0
+        assert self.rcut > 0
         # if there are no items yet, lets make them first:
         if self.nlists is None:
             self.nlists = [np.empty(10, dtype=nlist_dtype) for i in xrange(self.system.natom)]
             self.nlist_sizes = np.zeros(self.system.natom, dtype=int)
         # determine the number of periodic images
-        self.rmax = np.ceil(self.cutoff/self.system.cell.rspacings-0.5).astype(int)
+        self.rmax = np.ceil(self.rcut/self.system.cell.rspacings-0.5).astype(int)
         # build all neighbor lists
         for i in xrange(self.system.natom):
             # make an initial nlist array
@@ -71,7 +71,7 @@ class NeighborLists(object):
             nlist_status = nlist_status_init(i, self.rmax)
             while True:
                 done = nlist_update(
-                    self.system.pos, i, self.cutoff, self.rmax,
+                    self.system.pos, i, self.rcut, self.rmax,
                     self.system.cell, nlist_status, nlist[last_start:]
                 )
                 if done:

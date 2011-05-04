@@ -33,8 +33,8 @@ from common import get_system_water32, check_gpos_ff, check_vtens_ff
 
 def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=False):
     system = get_system_water32()
-    cutoff = 9*angstrom
-    alpha = 4.5/cutoff
+    rcut = 9*angstrom
+    alpha = 4.5/rcut
     scalings = Scalings(system.topology)
     parts = []
     if do_valence:
@@ -62,8 +62,8 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
         for i in xrange(system.natom):
             sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
             epsilons[i] = epsilon_table[system.numbers[i]]
-        pair_pot_lj = PairPotLJ(sigmas, epsilons, cutoff, True)
-        pair_part_lj = PairPart(nlists, scalings, pair_pot_lj)
+        pair_pot_lj = PairPotLJ(sigmas, epsilons, rcut, True)
+        pair_part_lj = PairPart(system, nlists, scalings, pair_pot_lj)
         parts.append(pair_part_lj)
     # charges
     q0 = 0.417
@@ -71,18 +71,17 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
     assert abs(charges.sum()) < 1e-8
     if do_eireal:
         # Real-space electrostatics
-        pair_pot_ei = PairPotEI(charges, alpha, cutoff)
-        pair_part_ei = PairPart(nlists, scalings, pair_pot_ei)
+        pair_pot_ei = PairPotEI(charges, alpha, rcut)
+        pair_part_ei = PairPart(system, nlists, scalings, pair_pot_ei)
         parts.append(pair_part_ei)
     if do_eireci:
         # Reciprocal-space electrostatics
-        gmax = np.ceil(alpha*1.5/system.cell.gspacings-0.5).astype(int)
-        ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gmax)
+        ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gcut=alpha/0.75)
         parts.append(ewald_reci_part)
         # Ewald corrections
         ewald_corr_part = EwaldCorrectionPart(system, charges, alpha, scalings)
         parts.append(ewald_corr_part)
-    return SumForceField(system, parts, nlists)
+    return ForceField(system, parts, nlists)
 
 
 def test_gpos_water32_full():
