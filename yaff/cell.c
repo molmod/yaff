@@ -67,7 +67,7 @@ void cell_update(cell_type* cell, double *rvecs, double *gvecs, int nvec) {
   }
 }
 
-cell_mic(double *delta, cell_type* cell) {
+void cell_mic(double *delta, cell_type* cell) {
   // applies the Minimum Image Convention.
   long i;
   double x;
