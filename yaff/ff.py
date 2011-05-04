@@ -137,9 +137,10 @@ class EwaldReciprocalPart(ForcePart):
     def _internal_compute(self, gpos, vtens):
         if self.needs_update_gmax:
             self.gmax = np.ceil(self.gcut/self.system.cell.gspacings-0.5).astype(int)
+            self.needs_update_gmax = False
         energy = compute_ewald_reci(
             self.system.pos, self.charges, self.system.cell, self.alpha,
-            self.gmax, gpos, self.work, vtens
+            self.gmax, self.gcut, gpos, self.work, vtens
         )
         return energy
 

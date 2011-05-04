@@ -299,7 +299,8 @@ cdef class PairPotEI(PairPot):
 
 def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
                        np.ndarray[double, ndim=1] charges,
-                       Cell unitcell, double alpha, np.ndarray[long, ndim=1] gmax,
+                       Cell unitcell, double alpha,
+                       np.ndarray[long, ndim=1] jmax, double kcut,
                        np.ndarray[double, ndim=2] gpos,
                        np.ndarray[double, ndim=1] work,
                        np.ndarray[double, ndim=2] vtens):
@@ -313,8 +314,8 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
     assert charges.shape[0] == pos.shape[0]
     assert unitcell.nvec == 3
     assert alpha > 0
-    assert gmax.flags['C_CONTIGUOUS']
-    assert gmax.shape[0] == 3
+    assert jmax.flags['C_CONTIGUOUS']
+    assert jmax.shape[0] == 3
 
     if gpos is None:
         my_gpos = NULL
@@ -339,7 +340,7 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
     return ewald.compute_ewald_reci(<double*>pos.data, len(pos),
                                     <double*>charges.data,
                                     unitcell._c_cell, alpha,
-                                    <long*>gmax.data, my_gpos, my_work,
+                                    <long*>jmax.data, kcut, my_gpos, my_work,
                                     my_vtens)
 
 
