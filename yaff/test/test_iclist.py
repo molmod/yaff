@@ -40,8 +40,7 @@ def test_iclist_quartz_bonds():
     iclist.forward()
     for row, (i, j) in enumerate(system.topology.bonds):
         delta = system.pos[j] - system.pos[i]
-        for c in xrange(system.cell.nvec):
-            delta -= system.cell.rvecs[c]*np.ceil(np.dot(delta, system.cell.gvecs[c]) - 0.5)
+        system.cell.mic(delta)
         assert abs(iclist.ictab[row]['value'] - bond_length(np.zeros(3, float), delta)[0]) < 1e-5
 
 
@@ -60,11 +59,9 @@ def test_iclist_quartz_bend_cos():
     iclist.forward()
     for row, (i0, i1, i2) in enumerate(angles):
         delta0 = system.pos[i1] - system.pos[i0]
-        for c in xrange(system.cell.nvec):
-            delta0 -= system.cell.rvecs[c]*np.ceil(np.dot(delta0, system.cell.gvecs[c]) - 0.5)
+        system.cell.mic(delta0)
         delta2 = system.pos[i1] - system.pos[i2]
-        for c in xrange(system.cell.nvec):
-            delta2 -= system.cell.rvecs[c]*np.ceil(np.dot(delta2, system.cell.gvecs[c]) - 0.5)
+        system.cell.mic(delta2)
         assert abs(iclist.ictab[row]['value'] - bend_cos(delta0, np.zeros(3, float), delta2)[0]) < 1e-5
 
 
@@ -83,11 +80,9 @@ def test_iclist_quartz_bend_angle():
     iclist.forward()
     for row, (i0, i1, i2) in enumerate(angles):
         delta0 = system.pos[i1] - system.pos[i0]
-        for c in xrange(system.cell.nvec):
-            delta0 -= system.cell.rvecs[c]*np.ceil(np.dot(delta0, system.cell.gvecs[c]) - 0.5)
+        system.cell.mic(delta0)
         delta2 = system.pos[i1] - system.pos[i2]
-        for c in xrange(system.cell.nvec):
-            delta2 -= system.cell.rvecs[c]*np.ceil(np.dot(delta2, system.cell.gvecs[c]) - 0.5)
+        system.cell.mic(delta2)
         assert abs(iclist.ictab[row]['value'] - bend_angle(delta0, np.zeros(3, float), delta2)[0]) < 1e-5
 
 

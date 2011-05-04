@@ -108,8 +108,7 @@ def test_nlists_graphene8_9A():
         check = {}
         for j in xrange(system.natom):
             delta = system.pos[j] - system.pos[i]
-            for c in xrange(system.cell.nvec):
-                delta -= system.cell.rvecs[c]*np.ceil(np.dot(delta, system.cell.gvecs[c]) - 0.5)
+            system.cell.mic(delta)
             for r0 in xrange(-3, 4):
                 for r1 in xrange(-3, 4):
                     my_delta = delta + r0*system.cell.rvecs[0] + r1*system.cell.rvecs[1]
@@ -144,8 +143,7 @@ def test_nlists_polyethylene4_9A():
         check = {}
         for j in xrange(system.natom):
             delta = system.pos[j] - system.pos[i]
-            for c in xrange(system.cell.nvec):
-                delta -= system.cell.rvecs[c]*np.floor(np.dot(delta, system.cell.gvecs[c]) + 0.5)
+            system.cell.mic(delta)
             for r0 in xrange(-3, 3):
                 my_delta = delta + r0*system.cell.rvecs[0]
                 d = np.linalg.norm(my_delta)
@@ -215,8 +213,7 @@ def test_nlists_quartz_9A():
         check = {}
         for j in xrange(system.natom):
             delta = system.pos[j] - system.pos[i]
-            for c in xrange(system.cell.nvec):
-                delta -= system.cell.rvecs[c]*np.floor(np.dot(delta, system.cell.gvecs[c]) + 0.5)
+            system.cell.mic(delta)
             for r0 in xrange(-3, 3):
                 for r1 in xrange(-3, 3):
                     for r2 in xrange(-3, 3):
@@ -252,8 +249,7 @@ def test_nlists_quartz_20A():
         check = {}
         for j in xrange(system.natom):
             delta = system.pos[j] - system.pos[i]
-            for c in xrange(system.cell.nvec):
-                delta -= system.cell.rvecs[c]*np.floor(np.dot(delta, system.cell.gvecs[c]) + 0.5)
+            system.cell.mic(delta)
             for r0 in xrange(-6, 6):
                 for r1 in xrange(-6, 6):
                     for r2 in xrange(-6, 6):

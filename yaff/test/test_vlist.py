@@ -46,8 +46,7 @@ def test_vlist_quartz_bonds():
     check_energy = 0.0
     for i, j in system.topology.bonds:
         delta = system.pos[i] - system.pos[j]
-        for c in xrange(system.cell.nvec):
-            delta -= system.cell.rvecs[c]*np.ceil(np.dot(delta, system.cell.gvecs[c]) - 0.5)
+        system.cell.mic(delta)
         d = np.linalg.norm(delta)
         check_energy += 0.5*2.3*(d - 3.04-0.1*i)**2
     assert abs(energy - check_energy) < 1e-8
@@ -72,11 +71,9 @@ def test_vlist_quartz_bend_cos():
     check_energy = 0.0
     for row, (i0, i1, i2) in enumerate(angles):
         delta0 = system.pos[i0] - system.pos[i1]
-        for c in xrange(system.cell.nvec):
-            delta0 -= system.cell.rvecs[c]*np.ceil(np.dot(delta0, system.cell.gvecs[c]) - 0.5)
+        system.cell.mic(delta0)
         delta2 = system.pos[i2] - system.pos[i1]
-        for c in xrange(system.cell.nvec):
-            delta2 -= system.cell.rvecs[c]*np.ceil(np.dot(delta2, system.cell.gvecs[c]) - 0.5)
+        system.cell.mic(delta2)
         c = bend_cos(delta0, np.zeros(3, float), delta2)[0]
         check_energy += 0.5*(1.1+0.01*i0)*(c+0.2)**2
     assert abs(energy - check_energy) < 1e-8
@@ -101,11 +98,9 @@ def test_vlist_quartz_bend_angle():
     check_energy = 0.0
     for row, (i0, i1, i2) in enumerate(angles):
         delta0 = system.pos[i0] - system.pos[i1]
-        for c in xrange(system.cell.nvec):
-            delta0 -= system.cell.rvecs[c]*np.ceil(np.dot(delta0, system.cell.gvecs[c]) - 0.5)
+        system.cell.mic(delta0)
         delta2 = system.pos[i2] - system.pos[i1]
-        for c in xrange(system.cell.nvec):
-            delta2 -= system.cell.rvecs[c]*np.ceil(np.dot(delta2, system.cell.gvecs[c]) - 0.5)
+        system.cell.mic(delta2)
         angle = bend_angle(delta0, np.zeros(3, float), delta2)[0]
         check_energy += 0.5*1.5*(angle-(2.0+0.01*i2))**2
     assert abs(energy - check_energy) < 1e-8
@@ -167,7 +162,9 @@ def test_vlist_polyfour_water32():
     energy = part.compute()
     check_energy = 0.0
     for i, j in system.topology.bonds:
-        bond = bond_length(system.pos[i],system.pos[j])[0]
+        delta = system.pos[j] - system.pos[i]
+        system.cell.mic(delta)
+        bond = np.linalg.norm(delta)
         check_energy += (1.1+0.01*i)*bond + (0.8+0.01*j)*bond**2 + (0.6+0.01*i)*bond**3 + (0.4+0.01*j)*bond**4
     assert abs(energy - check_energy) < 1e-8
 
@@ -190,8 +187,12 @@ def test_vlist_cross_water32():
     for j in xrange(system.natom):
         if len(system.topology.neighs1[j])==2:
             i, k = system.topology.neighs1[j]
-            bond0 = bond_length(system.pos[i],system.pos[j])[0]
-            bond1 = bond_length(system.pos[j],system.pos[k])[0]
+            delta0 = system.pos[j] - system.pos[i]
+            delta1 = system.pos[k] - system.pos[j]
+            system.cell.mic(delta0)
+            system.cell.mic(delta1)
+            bond0 = np.linalg.norm(delta0)
+            bond1 = np.linalg.norm(delta1)
             check_energy += 1.2*(bond0 - 1.7 - 0.01*i)*(bond1 - 1.9 - 0.01*k)
     assert abs(energy - check_energy) < 1e-8
 

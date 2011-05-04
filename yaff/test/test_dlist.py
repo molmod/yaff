@@ -50,8 +50,7 @@ def check_dlist(system, dlist):
         i = row['i']
         j = row['j']
         delta = system.pos[j] - system.pos[i]
-        for c in xrange(system.cell.nvec):
-            delta -= system.cell.rvecs[c]*np.ceil(np.dot(delta, system.cell.gvecs[c]) - 0.5)
+        system.cell.mic(delta)
         assert abs(delta[0] - row['dx']) < 1e-5
         assert abs(delta[1] - row['dy']) < 1e-5
         assert abs(delta[2] - row['dz']) < 1e-5
