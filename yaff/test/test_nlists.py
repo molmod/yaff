@@ -44,7 +44,7 @@ def test_nlists_water32_4A():
         # compute the distances in the neighborlist manually and check.
         check = {}
         for j in xrange(i+1, system.natom):
-            delta = system.pos[i] - system.pos[j]
+            delta = system.pos[j] - system.pos[i]
             delta -= np.floor(delta/(9.865*angstrom)+0.5)*(9.865*angstrom)
             d = np.linalg.norm(delta)
             if d <= cutoff:
@@ -74,7 +74,7 @@ def test_nlists_water32_9A():
         # compute the distances in the neighborlist manually and check.
         check = {}
         for j in xrange(system.natom):
-            delta = system.pos[i] - system.pos[j]
+            delta = system.pos[j] - system.pos[i]
             delta -= np.floor(delta/(9.865*angstrom)+0.5)*(9.865*angstrom)
             assert abs(delta).max() < 0.5*9.865*angstrom
             for l0 in xrange(-1, 2):
@@ -107,7 +107,7 @@ def test_nlists_graphene8_9A():
         # compute the distances in the neighborlist manually and check.
         check = {}
         for j in xrange(system.natom):
-            delta = system.pos[i] - system.pos[j]
+            delta = system.pos[j] - system.pos[i]
             for c in xrange(system.cell.nvec):
                 delta -= system.cell.rvecs[c]*np.ceil(np.dot(delta, system.cell.gvecs[c]) - 0.5)
             for r0 in xrange(-3, 4):
@@ -143,7 +143,7 @@ def test_nlists_polyethylene4_9A():
         # compute the distances in the neighborlist manually and check.
         check = {}
         for j in xrange(system.natom):
-            delta = system.pos[i] - system.pos[j]
+            delta = system.pos[j] - system.pos[i]
             for c in xrange(system.cell.nvec):
                 delta -= system.cell.rvecs[c]*np.floor(np.dot(delta, system.cell.gvecs[c]) + 0.5)
             for r0 in xrange(-3, 3):
@@ -199,7 +199,7 @@ def test_nlists_quartz_9A():
         # compute the distances in the neighborlist manually and check.
         check = {}
         for j in xrange(system.natom):
-            delta = system.pos[i] - system.pos[j]
+            delta = system.pos[j] - system.pos[i]
             for c in xrange(system.cell.nvec):
                 delta -= system.cell.rvecs[c]*np.floor(np.dot(delta, system.cell.gvecs[c]) + 0.5)
             for r0 in xrange(-3, 3):
@@ -236,7 +236,7 @@ def test_nlists_quartz_20A():
         # compute the distances in the neighborlist manually and check.
         check = {}
         for j in xrange(system.natom):
-            delta = system.pos[i] - system.pos[j]
+            delta = system.pos[j] - system.pos[i]
             for c in xrange(system.cell.nvec):
                 delta -= system.cell.rvecs[c]*np.floor(np.dot(delta, system.cell.gvecs[c]) + 0.5)
             for r0 in xrange(-6, 6):
@@ -287,7 +287,7 @@ def test_nlists_glycine_9A():
         # compute the distances in the neighborlist manually and check.
         check = {}
         for j in xrange(i+1, system.natom):
-            delta = system.pos[i] - system.pos[j]
+            delta = system.pos[j] - system.pos[i]
             d = np.linalg.norm(delta)
             if d <= cutoff:
                 check[j] = (d, delta)

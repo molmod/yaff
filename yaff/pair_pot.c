@@ -128,14 +128,14 @@ double pair_pot_compute(long center_index, nlist_row_type *nlist,
           vg *= s;
           if (gpos!=NULL) {
             h = nlist[i].dx*vg;
-            gpos[3*center_index  ] += h;
-            gpos[3*other_index   ] -= h;
+            gpos[3*other_index  ] += h;
+            gpos[3*center_index   ] -= h;
             h = nlist[i].dy*vg;
-            gpos[3*center_index+1] += h;
-            gpos[3*other_index +1] -= h;
+            gpos[3*other_index+1] += h;
+            gpos[3*center_index +1] -= h;
             h = nlist[i].dz*vg;
-            gpos[3*center_index+2] += h;
-            gpos[3*other_index +2] -= h;
+            gpos[3*other_index+2] += h;
+            gpos[3*center_index +2] -= h;
           }
           if (vtens!=NULL) {
             vtens[0] += nlist[i].dx*nlist[i].dx*vg;

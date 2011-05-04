@@ -49,7 +49,7 @@ def check_dlist(system, dlist):
     for row in dlist.deltas[:dlist.ndelta]:
         i = row['i']
         j = row['j']
-        delta = system.pos[i] - system.pos[j]
+        delta = system.pos[j] - system.pos[i]
         for c in xrange(system.cell.nvec):
             delta -= system.cell.rvecs[c]*np.ceil(np.dot(delta, system.cell.gvecs[c]) - 0.5)
         assert abs(delta[0] - row['dx']) < 1e-5
