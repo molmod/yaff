@@ -50,7 +50,8 @@ double vlist_forward(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
   double energy;
   energy = 0.0;
   for (i=0; i<nv; i++) {
-    energy += v_forward_fns[vtab[i].kind](vtab + i, ictab);
+    vtab[i].energy = v_forward_fns[vtab[i].kind](vtab + i, ictab);
+    energy += vtab[i].energy;
   }
   return energy;
 }

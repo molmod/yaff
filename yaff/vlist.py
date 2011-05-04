@@ -33,6 +33,7 @@ vlist_dtype = [
     ('kind', int),
     ('par0', float), ('par1', float), ('par2', float), ('par3', float),
     ('ic0', int), ('ic1', int),
+    ('energy', float),
 ]
 
 

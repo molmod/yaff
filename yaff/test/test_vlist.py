@@ -44,11 +44,15 @@ def test_vlist_quartz_bonds():
     energy = vlist.forward()
     # compute energy manually
     check_energy = 0.0
+    counter = 0
     for i, j in system.topology.bonds:
         delta = system.pos[i] - system.pos[j]
         system.cell.mic(delta)
         d = np.linalg.norm(delta)
-        check_energy += 0.5*2.3*(d - 3.04-0.1*i)**2
+        check_term = 0.5*2.3*(d - 3.04-0.1*i)**2
+        assert abs(check_term - vlist.vtab[counter]['energy']) < 1e-10
+        check_energy += check_term
+        counter += 1
     assert abs(energy - check_energy) < 1e-8
 
 
@@ -69,13 +73,17 @@ def test_vlist_quartz_bend_cos():
     energy = vlist.forward()
     # compute energy manually
     check_energy = 0.0
+    counter = 0
     for row, (i0, i1, i2) in enumerate(angles):
         delta0 = system.pos[i0] - system.pos[i1]
         system.cell.mic(delta0)
         delta2 = system.pos[i2] - system.pos[i1]
         system.cell.mic(delta2)
         c = bend_cos(delta0, np.zeros(3, float), delta2)[0]
-        check_energy += 0.5*(1.1+0.01*i0)*(c+0.2)**2
+        check_term = 0.5*(1.1+0.01*i0)*(c+0.2)**2
+        assert abs(check_term - vlist.vtab[counter]['energy']) < 1e-10
+        check_energy += check_term
+        counter += 1
     assert abs(energy - check_energy) < 1e-8
 
 
