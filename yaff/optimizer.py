@@ -26,6 +26,9 @@ from molmod.units import *
 from molmod.io.xyz import XYZWriter
 from molmod.periodic import periodic as periodictable
 
+from yaff.ext import *
+from yaff.ff import *
+
 __all__ = [
     'Optimizer', 'CellOptimizer', 'ThetaOptimizer',
 ]
@@ -196,7 +199,7 @@ class CellOptimizer(Optimizer):
         else:
             print >> self.out, " Final Geometry (NOT CONVERGED)"
 
-        print >> self.out, " ----------------------------------"
+        print >> self.out, " ------------------------------------------------"
         print >> self.out, ""
         print >> self.out, "    Energy [kcalmol]= %15.9f" %(self.ff.compute()/kcalmol)
         print >> self.out, "    Cell dimensions:"
@@ -213,7 +216,6 @@ class CellOptimizer(Optimizer):
         print >> self.out, "       cell diagonal length   [A] = %9.6f" %(np.sqrt(self.ff.system.cell.rvecs[0,0]**2 + self.ff.system.cell.rvecs[2,2]**2)/angstrom)
         print >> self.out, "       cell diagonal angle  [deg] = %9.6f" %(2.0*np.arctan(self.ff.system.cell.rvecs[2,2]/self.ff.system.cell.rvecs[0,0])/deg)
         print >> self.out, ""
-        print >> self.out, "~"*150
 
 
 class ThetaOptimizer(Optimizer):
@@ -227,12 +229,12 @@ class ThetaOptimizer(Optimizer):
         Optimizer.__init__(self, ff, rvecs_scale=rvecs_scale, search_direction=search_direction, line_search=line_search,
             convergence=convergence, stop_loss=stop_loss, xyz_writer=xyz_writer, out=out)
         self.theta = theta
+        print >> self.out, "~"*150
+        print >> self.out, " Geometry Optimization at theta = %6.3f deg:" %(self.theta/deg)
+        print >> self.out, " ---------------------------------------------"
         print >> self.out, ""
-        print >> self.out, "  Geometry Optimization at theta = %6.3f deg:" %(self.theta/deg)
-        print >> self.out, "  ---------------------------------------------"
-        print >> self.out, ""
-        print >> self.out, "      i  |  Energy [kcalmol]  |   d [A]   b [A]"
-        print >> self.out, "    -------------------------------------------"
+        print >> self.out, "     i  |  Energy [kcalmol]  |   d [A]   b [A]"
+        print >> self.out, "   -------------------------------------------"
 
     def get_xinit(self):
         if self.periodic:
@@ -295,11 +297,11 @@ class ThetaOptimizer(Optimizer):
             ]))
             scaled = m.x[2:].reshape(-1,3)
             pos = np.dot(scaled, rvecs)
-            self.xyzwriter.dump(
+            self.xyz_writer.dump(
                 'Energy = %.10f , d = %6.3f , b = %6.3f' % (m.f, d, b),
                 pos
             )
-            print >> self.out, "     %3i |    %10.6f    | % 5.3f  % 5.3f  " %(
+            print >> self.out, "    %3i |    %10.6f    | % 5.3f  % 5.3f  " %(
                 m.counter,
                 m.f/kcalmol,
                 d/angstrom,
@@ -313,7 +315,7 @@ class ThetaOptimizer(Optimizer):
         # write energy to energy file
         energy = self.ff.compute()
         if ener_writer is not None:
-            ener_writer.write("  %.10f   % .10f\n" %(theta, energy))
+            ener_writer.write("  %.10f   % .10f\n" %(self.theta, energy))
 
         # write vdw contribution to vdw file
         if vdw_writer is not None:
@@ -323,7 +325,7 @@ class ThetaOptimizer(Optimizer):
                     if isinstance(part.pair_pot,PairPotLJ):
                         lj_part = part
             vdw = lj_part._internal_compute(None, None)
-            vdw_writer.write("  %.10f   % .10f\n" %(theta, vdw))
+            vdw_writer.write("  %.10f   % .10f\n" %(self.theta, vdw))
 
         # write xyz to trajectory file
         if xyz_writer is not None:
@@ -353,4 +355,3 @@ class ThetaOptimizer(Optimizer):
         print >> self.out, "       cell diagonal length   [A] = %9.6f" %(np.sqrt(self.ff.system.cell.rvecs[0,0]**2 + self.ff.system.cell.rvecs[2,2]**2)/angstrom)
         print >> self.out, "       cell diagonal angle  [deg] = %9.6f" %(2.0*np.arctan(self.ff.system.cell.rvecs[2,2]/self.ff.system.cell.rvecs[0,0])/deg)
         print >> self.out, ""
-        print >> self.out, "~"*150
