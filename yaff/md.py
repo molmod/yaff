@@ -107,6 +107,7 @@ class MolecularDynamics(object):
     
     def get_total_energy(self):
         return self.energy + self.get_kinetic_energy()
+
     
     def get_dipole(self):
         for part in self.ff.parts:

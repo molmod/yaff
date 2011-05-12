@@ -176,7 +176,7 @@ class CellOptimizer(Optimizer):
         # write energy to energy file
         energy = self.ff.compute()
         if ener_writer is not None:
-            ener_writer.write("  % .10f\n" % energy)
+            ener_writer.write("%15.10f\n" % energy)
 
         # write vdw contribution to vdw file
         if vdw_writer is not None:
@@ -186,7 +186,7 @@ class CellOptimizer(Optimizer):
                     if isinstance(part.pair_pot,PairPotLJ):
                         lj_part = part
             vdw = lj_part._internal_compute(None, None)
-            vdw_writer.write("  %.10f\n" % vdw)
+            vdw_writer.write("%15.10f\n" % vdw)
 
         # write xyz to trajectory file
         if xyz_writer is not None:
@@ -315,7 +315,7 @@ class ThetaOptimizer(Optimizer):
         # write energy to energy file
         energy = self.ff.compute()
         if ener_writer is not None:
-            ener_writer.write("  %.10f   % .10f\n" %(self.theta, energy))
+            ener_writer.write("%15.10f %15.10f\n" %(self.theta, energy))
 
         # write vdw contribution to vdw file
         if vdw_writer is not None:
@@ -325,7 +325,7 @@ class ThetaOptimizer(Optimizer):
                     if isinstance(part.pair_pot,PairPotLJ):
                         lj_part = part
             vdw = lj_part._internal_compute(None, None)
-            vdw_writer.write("  %.10f   % .10f\n" %(self.theta, vdw))
+            vdw_writer.write("%15.10f %15.10f\n" %(self.theta, vdw))
 
         # write xyz to trajectory file
         if xyz_writer is not None:
