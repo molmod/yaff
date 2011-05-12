@@ -26,6 +26,7 @@ from yaff.iclist import *
 from yaff.io import *
 from yaff.vlist import *
 from yaff.ff import *
+from yaff.md import *
 from yaff.nlists import *
 from yaff.optimizer import *
 from yaff.scaling import *

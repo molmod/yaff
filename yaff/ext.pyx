@@ -281,7 +281,7 @@ cdef class PairPotLJ(PairPot):
 
 
 cdef class PairPotEI(PairPot):
-    cdef np.ndarray charges
+    cdef np.ndarray _c_charges
 
     def __cinit__(self, np.ndarray[double, ndim=1] charges, double alpha, double rcut):
         assert charges.flags['C_CONTIGUOUS']
@@ -289,8 +289,12 @@ cdef class PairPotEI(PairPot):
         pair_pot.pair_data_ei_init(self._c_pair_pot, <double*>charges.data, alpha)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
-        self.charges = charges
+        self._c_charges = charges
 
+    def get_charges(self):
+        return self._c_charges.view()
+
+    charges = property(get_charges)
 
 #
 # Ewald summation stuff
