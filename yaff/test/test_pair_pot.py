@@ -103,6 +103,80 @@ def test_pair_pot_lj_water32_9A():
     assert abs(energy2 - check_energy) < 1e-15
 
 
+def get_part_water32_9A_mm3():
+    # Initialize system, topology and scaling
+    system = get_system_water32()
+    nlists = NeighborLists(system)
+    scalings = Scalings(system.topology)
+    # Initialize parameters
+    sigma_table  = {1: 1.62*angstrom, 8: 1.82*angstrom}
+    epsilon_table = {1: 0.020*kcalmol, 8: 0.059*kcalmol}
+    sigmas = np.zeros(96, float)
+    epsilons = np.zeros(96, float)
+    for i in xrange(system.natom):
+        sigmas[i] = sigma_table[system.numbers[i]]
+        epsilons[i] = epsilon_table[system.numbers[i]]
+    # Create the pair_pot and pair_part
+    rcut = 9*angstrom
+    pair_pot = PairPotMM3(sigmas, epsilons, rcut, True)
+    assert abs(pair_pot.sigmas - sigmas).max() == 0.0
+    assert abs(pair_pot.epsilons - epsilons).max() == 0.0
+    pair_part = PairPart(system, nlists, scalings, pair_pot)
+    # Create a pair function:
+    def pair_fn(i, j, d):
+        sigma = 0.5*(sigmas[i]+sigmas[j])
+        epsilon = np.sqrt(epsilons[i]*epsilons[j])
+        x = (sigma/d)
+        if d<rcut:
+            return epsilon*(1.84e5*np.exp(-12.0/x)-2.25*x**6)*np.exp(1.0/(d-rcut))
+        else:
+            return 0.0
+    return system, nlists, scalings, pair_pot, pair_part, pair_fn
+
+
+def test_pair_pot_mm3_water32_9A():
+    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_water32_9A_mm3()
+    nlists.update() # update the neighborlists, once the rcuts are known.
+    # Compute the energy using yaff.
+    energy1 = pair_part.compute()
+    gpos = np.zeros(system.pos.shape, float)
+    energy2 = pair_part.compute(gpos)
+    # Compute the energy manually
+    check_energy = 0.0
+    for i in xrange(system.natom):
+        # compute the distances in the neighborlist manually and check.
+        for j in xrange(0, system.natom):
+            delta = system.pos[i] - system.pos[j]
+            delta -= np.floor(delta/(9.865*angstrom)+0.5)*(9.865*angstrom)
+            assert abs(delta).max() < 0.5*9.865*angstrom
+            for l0 in xrange(-1, 2):
+                for l1 in xrange(-1, 2):
+                    for l2 in xrange(-1, 2):
+                        if l0==0 and l1==0 and l2==0:
+                            if i==j:
+                                continue
+                            # find the scaling
+                            fac = 1.0
+                            for k, s in scalings[j]:
+                                if k == i:
+                                    fac = s
+                                    break
+                            # continue if scaled to zero
+                            if fac == 0.0:
+                                continue
+                        else:
+                            # Interactions with neighboring cells are counted
+                            # half. (The energy per unit cell is computed.)
+                            fac = 0.5
+                        if (l0!=0) or (l1!=0) or (l2!=0) or (j>i):
+                            my_delta = delta + np.array([l0,l1,l2])*9.865*angstrom
+                            d = np.linalg.norm(my_delta)
+                            if d <= nlists.rcut:
+                                check_energy += fac*pair_fn(i, j, d)
+    assert abs(energy1 - check_energy) < 1e-15
+    assert abs(energy2 - check_energy) < 1e-15
+
+
 def get_part_caffeine_lj_15A():
     # Get a system and define scalings
     system = get_system_caffeine()

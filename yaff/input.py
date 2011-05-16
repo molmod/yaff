@@ -46,11 +46,11 @@ units = {
 def get_system(fn_xyz, fn_psf):
     """
         A method for constructing a System object from a xyz and psf file.
-        The cell parameters should be specified in the title of the xyz file by 
+        The cell parameters should be specified in the title of the xyz file by
         putting all the elements of the 3x3 matrix after each other in angstrom:
-        
+
         example of xyz file:
-              
+
                   76
               16.243 0.0 0.0 0.0 6.635 0.0 0.0 0.0 13.494           ==> in angstrom
               Al 0.000 0.000 0.000                                  ==> in bohr
@@ -76,17 +76,17 @@ def get_val_table(fn_val):
         Construct dictionairy containing the valence parameters from FFit2 output.
         Dictionairy with keys consisting of atom types and values of format (term, ic, parameters)
         parameters is a list of elements of format (kind, value)
-        
+
         eg.:
             harmonic bond between C and H  with force constant of 1.1 and rest value of 1.8 is stored as:
                 ('C','H'): ('harm', 'dist', [ ('K', 1.8)  ,  ('q0', 1.8) ])
-                
+
             harmonic bend between O and Al and O  with force constant of 2.2 and rest value of 0.56 is stored as:
                 ('O', 'Al', 'O'): ('harm', 'angle', [ ('K', 2.2)  ,  ('q0', 0.56) ])
-                
+
             Dihedral of type 3.0*cos(2*psi) of quadruplet 'H','C','C','H' is stored as:
                 ('H', 'C', 'C', 'H'): ('cos-m2-0', 'dihed', [ ('K', 3.0) ])
-    """ 
+    """
     val_table = {}
     f = file(fn_val)
     for line in f:

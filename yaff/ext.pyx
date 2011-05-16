@@ -34,7 +34,7 @@ cimport vlist
 
 __all__ = [
     'nlist_status_init', 'nlist_update', 'nlist_status_finish',
-    'PairPot', 'PairPotLJ', 'PairPotEI', 'compute_ewald_reci',
+    'PairPot', 'PairPotLJ', 'PairPotMM3', 'PairPotEI', 'compute_ewald_reci',
     'compute_ewald_corr', 'dlist_forward', 'dlist_back', 'iclist_forward',
     'iclist_back', 'vlist_forward', 'vlist_back',
 ]
@@ -264,6 +264,33 @@ cdef class PairPotLJ(PairPot):
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
         pair_pot.pair_pot_set_smooth(self._c_pair_pot, smooth)
         pair_pot.pair_data_lj_init(self._c_pair_pot, <double*>sigmas.data, <double*>epsilons.data)
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_sigmas = sigmas
+        self._c_epsilons = epsilons
+
+    def get_sigmas(self):
+        return self._c_sigmas.view()
+
+    sigmas = property(get_sigmas)
+
+    def get_epsilons(self):
+        return self._c_epsilons.view()
+
+    epsilons = property(get_epsilons)
+
+
+cdef class PairPotMM3(PairPot):
+    cdef np.ndarray _c_sigmas
+    cdef np.ndarray _c_epsilons
+
+    def __cinit__(self, np.ndarray[double, ndim=1] sigmas, np.ndarray[double, ndim=1] epsilons, double rcut, bint smooth):
+        assert sigmas.flags['C_CONTIGUOUS']
+        assert epsilons.flags['C_CONTIGUOUS']
+        assert sigmas.shape[0] == epsilons.shape[0]
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        pair_pot.pair_pot_set_smooth(self._c_pair_pot, smooth)
+        pair_pot.pair_data_mm3_init(self._c_pair_pot, <double*>sigmas.data, <double*>epsilons.data)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
         self._c_sigmas = sigmas

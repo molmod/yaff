@@ -205,9 +205,10 @@ class ValencePart(ForcePart):
 
 def add_bonds(system, vpart, val_table):
     """
-        Add bonds present in system to vpart (a ValencePart instance) with parameters form the val_table dictionairy
+        Add bonds present in system to vpart (a ValencePart instance) with parameters form the val_table dictionairy.
+        This val_table dictionairy can be retrieved using the get_val_table method of the input module.
         The method returns 2 strings:
-            
+
             warnings = list of warnings (missing terms)
             added    = list of added terms
     """
@@ -220,10 +221,10 @@ def add_bonds(system, vpart, val_table):
         else:
             terminfo = val_table[key]
             if terminfo[0]=="harm" and terminfo[1]=="dist":
-                if terminfo[2][0][0]=="K" and terminfo[2][1][0]=="q0": 
+                if terminfo[2][0][0]=="K" and terminfo[2][1][0]=="q0":
                     fc = terminfo[2][0][1]
                     rv = terminfo[2][1][1]
-                elif terminfo[2][1][0]=="K" and terminfo[2][0][0]=="q0": 
+                elif terminfo[2][1][0]=="K" and terminfo[2][0][0]=="q0":
                     fc = terminfo[2][1][1]
                     rv = terminfo[2][0][1]
                 else:
@@ -237,9 +238,10 @@ def add_bonds(system, vpart, val_table):
 
 def add_bends(system, vpart, val_table):
     """
-        Add bends present in system to vpart (a ValencePart instance) with parameters form the val_table dictionairy
+        Add bends present in system to vpart (a ValencePart instance) with parameters form the val_table dictionairy.
+        This val_table dictionairy can be retrieved using the get_val_table method of the input module.
         The method returns 2 strings:
-            
+
             warnings = list of warnings (missing terms)
             added    = list of added terms
     """
@@ -255,10 +257,10 @@ def add_bends(system, vpart, val_table):
                     else:
                         terminfo = val_table[key]
                         if terminfo[0]=="harm" and terminfo[1]=="angle":
-                            if terminfo[2][0][0]=="K" and terminfo[2][1][0]=="q0": 
+                            if terminfo[2][0][0]=="K" and terminfo[2][1][0]=="q0":
                                 fc = terminfo[2][0][1]
                                 rv = terminfo[2][1][1]
-                            elif terminfo[2][1][0]=="K" and terminfo[2][0][0]=="q0": 
+                            elif terminfo[2][1][0]=="K" and terminfo[2][0][0]=="q0":
                                 fc = terminfo[2][1][1]
                                 rv = terminfo[2][0][1]
                             else:
@@ -279,9 +281,10 @@ def add_bends(system, vpart, val_table):
 
 def add_dihedrals(system, vpart, val_table, only_dihedral_number=None):
     """
-        Add dihedrals present in system to vpart (a ValencePart instance) with parameters form the val_table dictionairy
+        Add dihedrals present in system to vpart (a ValencePart instance) with parameters form the val_table dictionairy.
+        This val_table dictionairy can be retrieved using the get_val_table method of the input module.
         The method returns 2 strings:
-            
+
             warnings = list of warnings (missing terms)
             added    = list of added terms
     """

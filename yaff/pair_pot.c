@@ -196,6 +196,40 @@ double pair_fn_lj(void *pair_data, long center_index, long other_index, double d
 }
 
 
+
+
+void pair_data_mm3_init(pair_pot_type *pair_pot, double *sigma, double *epsilon) {
+  pair_data_mm3_type *pair_data;
+  pair_data = malloc(sizeof(pair_data_mm3_type));
+  (*pair_pot).pair_data = pair_data;
+  (*pair_pot).pair_fn = pair_fn_mm3;
+  (*pair_data).sigma = sigma;
+  (*pair_data).epsilon = epsilon;
+}
+
+double pair_fn_mm3(void *pair_data, long center_index, long other_index, double d, double *g) {
+// E = epsilon*[1.84e5*exp(-12.0*R/sigma) - 2.25(sigma/R)^6]
+  double sigma, epsilon, x, exponent;
+  sigma = 0.5*(
+    (*(pair_data_mm3_type*)pair_data).sigma[center_index]+
+    (*(pair_data_mm3_type*)pair_data).sigma[other_index]
+  );
+  epsilon = sqrt(
+    (*(pair_data_mm3_type*)pair_data).epsilon[center_index]*
+    (*(pair_data_mm3_type*)pair_data).epsilon[other_index]
+  );
+  x = sigma/d;
+  exponent = 1.84e5*exp(-12.0/x);
+  x *= x;
+  x *= 2.25*x*x;
+  if (g != NULL) {
+    *g =epsilon/d*(-12.0/sigma*exponent+6.0/d*x);
+  }
+  return epsilon*(exponent-x);
+}
+
+
+
 void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha) {
   pair_data_ei_type *pair_data;
   pair_data = malloc(sizeof(pair_data_ei_type));

@@ -35,8 +35,8 @@ __all__ = [
 ]
 
 class MolecularDynamics(object):
-    def __init__(self, ff, timestep=1.0*femtosecond, nsteps=100, 
-                 out=None, xyz_writer=None, dipole_writer=None, time_writer=None, 
+    def __init__(self, ff, timestep=1.0*femtosecond, nsteps=100,
+                 out=None, xyz_writer=None, dipole_writer=None, time_writer=None,
                  energy_writer=None, potential_writer=None, kinetic_writer=None, temperature_writer=None):
         self.ff = ff
         self.timestep = timestep
@@ -48,42 +48,42 @@ class MolecularDynamics(object):
         self.vel     = np.zeros([self.natom, 3], float)
         self.gpos    = np.zeros([self.natom, 3], float)
         self.energy  = None
-        
+
         if out is not None :
             if not isinstance(out, file):
                 raise TypeError("out should be of type file")
         else:
             raise TypeError("No output file defined")
         self.out = out
-        
+
         if xyz_writer is not None and not isinstance(xyz_writer, XYZWriter):
             raise TypeError("xyz_writer should be of type XYZWriter")
         self.xyz_writer = xyz_writer
-        
+
         if dipole_writer is not None and not isinstance(dipole_writer, file):
             raise TypeError("dipole_writer should be of type file")
         self.dipole_writer = dipole_writer
-        
+
         if time_writer is not None and not isinstance(time_writer, file):
             raise TypeError("time_writer should be of type file")
         self.time_writer = time_writer
-        
+
         if energy_writer is not None and not isinstance(energy_writer, file):
             raise TypeError("enery_writer should be of type file")
         self.energy_writer = energy_writer
-        
+
         if kinetic_writer is not None and not isinstance(kinetic_writer, file):
             raise TypeError("kinetic_writer should be of type file")
         self.kinetic_writer = kinetic_writer
-        
+
         if potential_writer is not None and not isinstance(potential_writer, file):
             raise TypeError("potential_writer should be of type file")
         self.potential_writer = potential_writer
-        
+
         if temperature_writer is not None and not isinstance(temperature_writer, file):
             raise TypeError("temperature_writer should be of type file")
         self.temperature_writer = temperature_writer
-        
+
         print >> self.out, "~"*150
         print >> self.out, ""
         print >> self.out, "Molecular Dynamics simulation:"
@@ -95,20 +95,20 @@ class MolecularDynamics(object):
 
     def get_inst_temp(self):
         return (self.masses*self.vel**2).sum()/(3*self.natom*boltzmann)
-    
-    
+
+
     def get_kinetic_energy(self):
         return  (0.5*self.masses*self.vel**2).sum()
-    
-    
+
+
     def get_potential_energy(self):
         return self.energy
-    
-    
+
+
     def get_total_energy(self):
         return self.energy + self.get_kinetic_energy()
 
-    
+
     def get_dipole(self):
         for part in self.ff.parts:
             if isinstance(part, PairPart):
@@ -117,12 +117,12 @@ class MolecularDynamics(object):
         dipole       = sum(charges*self.pos)
         dipole_deriv = sum(charges*self.vel)
         return dipole, dipole_deriv
-            
-    
+
+
     def run(self):
         raise NotImplementedError
-    
-    
+
+
     def write_output(self, i):
         if i==-1:
             print >> self.out, "      init  |                                  |  %15.10f" %(self.get_inst_temp()/kelvin)
@@ -130,37 +130,37 @@ class MolecularDynamics(object):
             print >> self.out, "   %7i  |  %30.10f  |  %15.10f" %(i, self.get_total_energy()/kcalmol, self.get_inst_temp()/kelvin)
             if self.energy_writer is not None:
                 self.energy_writer.write("%15.10f\n" %(self.get_total_energy()))
-            
+
             if self.time_writer is not None:
                 self.time_writer.write("%15.10f\n" %(i*self.timestep))
-            
+
             if self.kinetic_writer is not None:
                 self.kinetic_writer.write("%15.10f\n" %(self.get_kinetic_energy()))
-            
+
             if self.potential_writer is not None:
                 self.potential_writer.write("%15.10f\n" %(self.get_potential_energy()))
-            
+
             if self.temperature_writer is not None:
                 self.temperature_writer.write("%15.10f\n" %(self.get_inst_temp()))
-            
+
             if self.xyz_writer is not None:
                 self.xyz_writer.dump(" i = %7i , Energy = %15.10f" %(i, self.get_total_energy()), self.pos)
-            
+
             if self.dipole_writer is not None:
                 dipole, dipole_deriv = self.get_dipole()
                 self.dipole_writer.write("%15.10f %15.10f %15.10f %15.10f %15.10f %15.10f\n" %(
                     dipole[0], dipole[1], dipole[2],
                     dipole_deriv[0], dipole_deriv[1], dipole_deriv[2],
                 ))
-            
+
 
 
 
 class NVE(MolecularDynamics):
-    def __init__(self, ff, temperature=300*kelvin, timestep=1.0*femtosecond, nsteps=100, 
+    def __init__(self, ff, temperature=300*kelvin, timestep=1.0*femtosecond, nsteps=100,
                  out=None, xyz_writer=None, dipole_writer=None, time_writer=None,
                  energy_writer=None, potential_writer=None, kinetic_writer=None, temperature_writer=None):
-        MolecularDynamics.__init__(self, ff, timestep=timestep, nsteps=nsteps, 
+        MolecularDynamics.__init__(self, ff, timestep=timestep, nsteps=nsteps,
                  out=out, xyz_writer=xyz_writer, dipole_writer=dipole_writer, time_writer=time_writer,
                  energy_writer=energy_writer, potential_writer=potential_writer, kinetic_writer=kinetic_writer, temperature_writer=temperature_writer)
         self.temperature = temperature
@@ -172,15 +172,15 @@ class NVE(MolecularDynamics):
         self.vel = np.random.normal(0, 1, (self.natom, 3))*np.sqrt(boltzmann*2.0*self.temperature/self.masses)
         self.prevpos = self.pos - self.vel*self.timestep
         self.write_output(-1)
-    
-    
+
+
     def verlet_integrate(self):
         tmp = self.pos.copy()
         self.pos = 2.0*self.pos - self.prevpos - self.gpos/self.masses*self.timestep**2
         self.vel = (self.pos - self.prevpos)/(2.0*self.timestep)
         self.prevpos = tmp.copy()
-    
-    
+
+
     def run(self):
         for i in xrange(self.nsteps):
             self.ff.update_pos(self.pos)
