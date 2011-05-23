@@ -97,7 +97,7 @@ def terms_str(ff):
         Write force field terms to string.
     """
     types = ff.system.ffatypes
-    vpart, pair_part_lj, pair_part_ei, ewald_reci_part, ewald_corr_part = ff.parts
+    vpart, eipart, vdwpart, ewaldpart, ewaldcorrpart, ewaldneutpart = ff.get_parts()
     vlist = vpart.vlist.vtab
     iclist = vpart.vlist.iclist.ictab
     dlist = vpart.vlist.iclist.dlist.deltas
@@ -185,32 +185,12 @@ def ff_str(ff):
         Write general force field info to string.
     """
     ff_info = ""
-    do_valence = False
-    do_ewald = False
-    do_ei_real = False
-    do_vdw_real = False
-    for part in ff.parts:
-        if isinstance(part,ValencePart):
-            do_valence = True
-            vpart = part
-        if isinstance(part,EwaldReciprocalPart):
-            do_ewald = True
-            ewaldpart = part
-        if isinstance(part,PairPart):
-            if isinstance(part.pair_pot,PairPotEI):
-                do_ei_real = True
-                eipart = part
-            if isinstance(part.pair_pot,PairPotLJ):
-                do_vdw_real = True
-                vdw_kind = "LJ"
-                vdwpart = part
-            if isinstance(part.pair_pot,PairPotMM3):
-                do_vdw_real = True
-                vdw_kind = "MM3"
-                vdwpart = part
-    if do_valence:
+    vpart, eipart, vdwpart, ewaldpart, ewaldcorrpart, ewaldneutpart = ff.get_parts()
+    if vpart is not None:
         ff_info += "    Valence interactions: ON\n"
-    if do_ei_real:
+    else:
+        ff_info += "    Valence interactions: OFF\n"
+    if eipart is not None:
         ff_info += "    Real electrostatics: ON\n"
         ff_info += "        cutoff      [A] = %9.6f\n" %(eipart.pair_pot.rcut/angstrom)
         ff_info += "        1-2 scaling [ ] = %4.3f\n" %eipart.scalings.scale1
@@ -218,18 +198,21 @@ def ff_str(ff):
         ff_info += "        1-4 scaling [ ] = %4.3f\n" %eipart.scalings.scale3
     else:
         ff_info += "    Real electrostatics: OFF\n"
-    if do_ewald:
+    if ewaldpart is not None:
         ff_info += "    Reciprocal electrostatics: EWALD\n"
         ff_info += "        alpha [1/A] = %9.6f\n" %(ewaldpart.alpha*angstrom)
         ff_info += "        gmax  [   ] = %2i,%2i,%2i\n" %(ewaldpart.gmax[0],ewaldpart.gmax[1],ewaldpart.gmax[2])
     else:
         ff_info += "    Reciprocal electrostatics: OFF\n"
-    if do_vdw_real:
+    if vdwpart is not None:
+        if isinstance(vdwpart.pair_pot, PairPotLJ): vdw_kind = "Lennard-Jones"
+        elif isinstance(vdwpart.pair_pot, PairPotMM3): vdw_kind = "MM3"
+        else: raise NotImplementedError
         ff_info += "    Real van der Waals: %s\n" %vdw_kind
         ff_info += "        cutoff      [A] = %9.6f\n" %(vdwpart.pair_pot.rcut/angstrom)
         ff_info += "        1-2 scaling [ ] = %4.3f\n" %vdwpart.scalings.scale1
         ff_info += "        1-3 scaling [ ] = %4.3f\n" %vdwpart.scalings.scale2
         ff_info += "        1-4 scaling [ ] = %4.3f\n" %vdwpart.scalings.scale3
     else:
-        ff_info += "    Real lennard-jones: OFF\n"
+        ff_info += "    Real van der Waals: OFF\n"
     return ff_info
