@@ -102,7 +102,7 @@ def terms_str(ff):
     iclist = vpart.vlist.iclist.ictab
     dlist = vpart.vlist.iclist.dlist.deltas
 
-    vkinds = ['Harmonic', 'PolyFour', 'Cross']
+    vkinds = ['Harmonic', 'PolyFour', 'Fuez', 'Cross']
     eunit = kjmol
     ickinds = ['Bond', 'BendCos', 'BendAngle', 'DihedCos', 'DihedAngle', "UreyBradley"]
     icunits = [angstrom, 1.0, deg, 1.0, deg, angstrom]
@@ -145,7 +145,7 @@ def terms_str(ff):
 
     def get_par_description(term):
         ic0unit = icunits[iclist[term['ic0']]['kind']]
-        if term['kind'] == 0:
+        if term['kind'] in [0,2]:
             unit_rv = ic0unit
             if iclist[term['ic0']]['kind']==2:
                 unit_fc = eunit
@@ -172,7 +172,7 @@ def terms_str(ff):
         term = vlist[i]
         ic0 = iclist[term['ic0']]
         ic0_kind, ic0_indexes = get_ic_description(ic0)
-        if term['kind'] < 2:
+        if term['kind'] < 3:
             par_descr = get_par_description(term)
             terms += "     %3i  | %8s | %10s | %40s |  %s\n" %(i, vkinds[term['kind']], ic0_kind, ic0_indexes, par_descr)
         else:

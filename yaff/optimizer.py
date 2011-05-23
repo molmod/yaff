@@ -38,7 +38,7 @@ class Optimizer(object):
         An abstract Optimizer class.
     """
     def __init__(self, ff, rvecs_scale = 1e-2,
-            search_direction = ConjugateGradient(), line_search = NewtonLineSearch(), convergence = ConvergenceCondition(grad_rms=1e-4, grad_max=3e-4),
+            search_direction = ConjugateGradient(), line_search = NewtonLineSearch(), convergence = ConvergenceCondition(grad_rms=1e-4, grad_max=3.3e-4),
             stop_loss = StopLossCondition(max_iter=1000), xyz_writer=None, out=None):
         self.ff = ff
         self.rvecs_scale = rvecs_scale
@@ -180,12 +180,12 @@ class CellOptimizer(Optimizer):
 
         # write vdw contribution to vdw file
         if vdw_writer is not None:
-            lj_part = None
+            vdw_part = None
             for part in self.ff.parts:
                 if isinstance(part, PairPart):
-                    if isinstance(part.pair_pot,PairPotLJ):
-                        lj_part = part
-            vdw = lj_part._internal_compute(None, None)
+                    if isinstance(part.pair_pot, PairPotLJ) or isinstance(part.pair_pot, PairPotMM3):
+                        vdw_part = part
+            vdw = vdw_part._internal_compute(None, None)
             vdw_writer.write("%15.10f\n" % vdw)
 
         # write xyz to trajectory file

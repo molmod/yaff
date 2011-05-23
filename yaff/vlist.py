@@ -26,7 +26,7 @@ import numpy as np
 from yaff.ext import vlist_forward, vlist_back
 
 
-__all__ = ['ValenceList', 'ValenceTerm', 'Harmonic', 'PolyFour', 'Cross']
+__all__ = ['ValenceList', 'ValenceTerm', 'Harmonic', 'PolyFour', 'Fuez', 'Cross']
 
 
 vlist_dtype = [
@@ -88,7 +88,13 @@ class PolyFour(ValenceTerm):
         ValenceTerm.__init__(self, pars, [ic])
 
 
-class Cross(ValenceTerm):
+class Fuez(ValenceTerm):
     kind = 2
+    def __init__(self, fc, rv, ic):
+        ValenceTerm.__init__(self, [fc, rv], [ic])
+
+
+class Cross(ValenceTerm):
+    kind = 3
     def __init__(self, fc, rv0, rv1, ic0, ic1):
         ValenceTerm.__init__(self,[fc,rv0,rv1],[ic0,ic1])

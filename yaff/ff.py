@@ -207,7 +207,7 @@ class ValencePart(ForcePart):
 
 # Methods to add bonds, bends, ... to ff object from a val_table dictinairy
 
-def add_bonds(system, vpart, val_table):
+def add_bonds(system, vpart, val_table, convert_harmonic_to_fuez=False):
     """
         Add bonds present in system to vpart (a ValencePart instance) with parameters from the val_table dictionairy.
         This val_table dictionairy can be retrieved using the get_val_table method of the input module.
@@ -215,6 +215,9 @@ def add_bonds(system, vpart, val_table):
 
             warnings = list of warnings (missing terms)
             added    = list of added terms
+
+        If convert_harmonic_to_fuez is set to True, all Harmonic bonds will be converted to Fuez bond with numerical identical
+        force constant and rest value.
     """
     warnings = ""
     added = ""
@@ -233,8 +236,12 @@ def add_bonds(system, vpart, val_table):
                     rv = terminfo[2][0][1]
                 else:
                     raise ValueError("Error reading parameters in bond term")
-                vpart.add_term(Harmonic(fc, rv, Bond(i, j)))
-                added += "    Bond    :  Harmonic(%s[%i] - %s[%i])\n" %(key[0], i, key[1], j)
+                if convert_harmonic_to_fuez:
+                    vpart.add_term(Fuez(fc, rv, Bond(i, j)))
+                    added += "    Bond    :  Fuez(%s[%i] - %s[%i])\n" %(key[0], i, key[1], j)
+                else:
+                    vpart.add_term(Harmonic(fc, rv, Bond(i, j)))
+                    added += "    Bond    :  Harmonic(%s[%i] - %s[%i])\n" %(key[0], i, key[1], j)
             else:
                 raise NotImplementedError("Bond term of kind %s(%s) not supported" %(terminfo[0], terminfo[1]) )
     return added, warnings

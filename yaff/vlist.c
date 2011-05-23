@@ -37,12 +37,18 @@ double forward_polyfour(vlist_row_type* term, iclist_row_type* ictab) {
   return (*term).par0*q + (*term).par1*q*q + (*term).par2*q*q*q + (*term).par3*q*q*q*q;
 }
 
+double forward_fuez(vlist_row_type* term, iclist_row_type* ictab) {
+  double x;
+  x = (*term).par1/ictab[(*term).ic0].value;
+  return 0.5*(*term).par0*(*term).par1*(*term).par1*(1.0+x*(x-2.0));
+}
+
 double forward_cross(vlist_row_type* term, iclist_row_type* ictab) {
   return (*term).par0*( ictab[(*term).ic0].value - (*term).par1 )*( ictab[(*term).ic1].value - (*term).par2 );
 }
 
-v_forward_type v_forward_fns[3] = {
-  forward_harmonic, forward_polyfour, forward_cross
+v_forward_type v_forward_fns[4] = {
+  forward_harmonic, forward_polyfour, forward_fuez, forward_cross
 };
 
 double vlist_forward(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
@@ -68,13 +74,18 @@ void back_polyfour(vlist_row_type* term, iclist_row_type* ictab) {
   ictab[(*term).ic0].grad += (*term).par0 + 2.0*(*term).par1*q + 3.0*(*term).par2*q*q + 4.0*(*term).par3*q*q*q;
 }
 
+void back_fuez(vlist_row_type* term, iclist_row_type* ictab) {
+  double x = (*term).par1/ictab[(*term).ic0].value;
+  ictab[(*term).ic0].grad += (*term).par0*(*term).par1*(x*x-x*x*x);
+}
+
 void back_cross(vlist_row_type* term, iclist_row_type* ictab) {
   ictab[(*term).ic0].grad += (*term).par0*( ictab[(*term).ic1].value - (*term).par2 );
   ictab[(*term).ic1].grad += (*term).par0*( ictab[(*term).ic0].value - (*term).par1 );
 }
 
-v_back_type v_back_fns[3] = {
-  back_harmonic, back_polyfour, back_cross
+v_back_type v_back_fns[4] = {
+  back_harmonic, back_polyfour, back_fuez, back_cross
 };
 
 void vlist_back(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
