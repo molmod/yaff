@@ -74,20 +74,29 @@ def get_system(fn_xyz, fn_psf):
 def get_val_table(fn_val):
     """
         Construct dictionairy containing the valence parameters from FFit2 output.
-        Dictionairy with keys consisting of atom types and values of format (term, ic, parameters)
+        The constructed dictionairy is actually a dictionairy of dictionairies:
+
+            val_table = {"bond": bond_dict, "bend": bend_dict, "dihedral": dihedral_table, "ub": ub_table}
+
+        Everey dictionairy (bond_dict, ...) has keys consisting of atom types and values of format (term, ic, parameters)
         parameters is a list of elements of format (kind, value)
 
         eg.:
-            harmonic bond between C and H  with force constant of 1.1 and rest value of 1.8 is stored as:
+            harmonic bond between C and H  with force constant of 1.1 and rest value of 1.8 will be stored in bond_dict as:
                 ('C','H'): ('harm', 'dist', [ ('K', 1.8)  ,  ('q0', 1.8) ])
 
-            harmonic bend between O and Al and O  with force constant of 2.2 and rest value of 0.56 is stored as:
+            harmonic bend between O and Al and O  with force constant of 2.2 and rest value of 0.56 will be stored in bend_dict as:
                 ('O', 'Al', 'O'): ('harm', 'angle', [ ('K', 2.2)  ,  ('q0', 0.56) ])
 
-            Dihedral of type 3.0*cos(2*psi) of quadruplet 'H','C','C','H' is stored as:
+            Dihedral of type 3.0*cos(2*psi) of quadruplet 'H','C','C','H' will be stored in dihedral_dict as:
                 ('H', 'C', 'C', 'H'): ('cos-m2-0', 'dihed', [ ('K', 3.0) ])
     """
-    val_table = {}
+    val_table = {
+        "bond":  {},
+        "bend":  {},
+        "dihed": {},
+        "ub":    {},
+    }
     f = file(fn_val)
     for line in f:
         line = line[:line.find('#')].strip()
@@ -95,20 +104,25 @@ def get_val_table(fn_val):
             words = line.split()
             ic   = words[0]
             term = words[1]
+            if ic=="dist": kind="bond"
+            elif ic in ["angle", "cangle"]: kind="bend"
+            elif ic=="ub": kind="ub"
+            elif ic=="dihed": kind="dihed"
+            else:   raise ValueError("Unable to determine ff kind of ic %s" %ic)
             key  = tuple(words[3].split('.'))
             par  = words[4]
             unit = units[words[5]]
             value = float(words[6])
-            if key in val_table.keys():
-                terminfo = val_table[key]
+            if key in val_table[kind].keys():
+                terminfo = val_table[kind][key]
                 assert terminfo[0]==term
                 assert terminfo[1]==ic
                 terminfo[2].append((par, value*unit))
                 if not key==key[::-1]:
-                    val_table[key[::-1]][2].append((par, value*unit))
+                    val_table[kind][key[::-1]][2].append((par, value*unit))
             else:
-                val_table[key]       = (term, ic, [(par, value*unit)])
+                val_table[kind][key]       = (term, ic, [(par, value*unit)])
                 if not key==key[::-1]:
-                    val_table[key[::-1]] = (term, ic, [(par, value*unit)])
+                    val_table[kind][key[::-1]] = (term, ic, [(par, value*unit)])
     f.close()
     return val_table

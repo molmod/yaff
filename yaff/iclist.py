@@ -28,7 +28,7 @@ from yaff.ext import iclist_forward, iclist_back
 
 __all__ = [
     'InternalCoordinateList', 'InternalCoordinate', 'Bond', 'BendAngle',
-    'BendCos','DihedAngle','DihedCos',
+    'BendCos','DihedAngle','DihedCos','UreyBradley',
 ]
 
 iclist_dtype = [
@@ -106,3 +106,8 @@ class DihedAngle(InternalCoordinate):
     kind = 4
     def __init__(self, i, j, k, l):
         InternalCoordinate.__init__(self, [(j,i), (j,k), (k,l)])
+
+class UreyBradley(InternalCoordinate):
+    kind = 5
+    def __init__(self, i, j, k):
+        InternalCoordinate.__init__(self, [(i, k)])

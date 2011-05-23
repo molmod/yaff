@@ -319,12 +319,14 @@ class ThetaOptimizer(Optimizer):
 
         # write vdw contribution to vdw file
         if vdw_writer is not None:
-            lj_part = None
+            vdw_part = None
             for part in self.ff.parts:
                 if isinstance(part, PairPart):
-                    if isinstance(part.pair_pot,PairPotLJ):
-                        lj_part = part
-            vdw = lj_part._internal_compute(None, None)
+                    if isinstance(part.pair_pot,PairPotLJ) or isinstance(part.pair_pot,PairPotMM3):
+                        vdw_part = part
+            if vdw_part is None:
+                raise TypeError("No vdw part found in ff")
+            vdw = vdw_part._internal_compute(None, None)
             vdw_writer.write("%15.10f %15.10f\n" %(self.theta, vdw))
 
         # write xyz to trajectory file

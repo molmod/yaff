@@ -27,7 +27,7 @@ from nose.plugins.skip import SkipTest
 
 from yaff import *
 
-from common import get_system_quartz, get_system_peroxide, get_system_mil53
+from common import get_system_quartz, get_system_peroxide, get_system_mil53, get_system_water32
 
 
 def test_iclist_quartz_bonds():
@@ -146,12 +146,6 @@ def test_iclist_grad_dihedral_cos_mil53():
                 dlist = DeltaList(system)
                 iclist = InternalCoordinateList(dlist)
                 iclist.add_ic(DihedCos(i0,i1,i2,i3))
-                print "Ic %i: DihedCos of atoms %s[%i],%s[%i],%s[%i],%s[%i]" %( idih,
-                    system.ffatypes[i0],i0,
-                    system.ffatypes[i1],i1,
-                    system.ffatypes[i2],i2,
-                    system.ffatypes[i3],i3,
-                )
 
                 ic = iclist.ictab[0]
                 dlist.forward()
@@ -214,3 +208,22 @@ def test_iclist_grad_dihedral_cos_mil53():
                                             check_grad_d2[0], check_grad_d2[1], check_grad_d2[2],
                                             grad_d2[0], grad_d2[1], grad_d2[2],
                     ))
+
+
+def test_iclist_ub_water():
+    system = get_system_water32()
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    ub = []
+    for i1 in xrange(system.natom):
+        for i0 in system.topology.neighs1[i1]:
+            for i2 in system.topology.neighs1[i1]:
+                if i0 > i2:
+                    iclist.add_ic(UreyBradley(i0, i1, i2))
+                    ub.append((i0, i1, i2))
+    dlist.forward()
+    iclist.forward()
+    for row, (i0, i1, i2) in enumerate(ub):
+        delta = system.pos[i2] - system.pos[i0]
+        system.cell.mic(delta)
+        assert abs(iclist.ictab[row]['value'] - bond_length(np.zeros(3, float), delta)[0]) < 1e-5

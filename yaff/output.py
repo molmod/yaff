@@ -79,7 +79,6 @@ def atom_attr_str(ff):
     """
         Write atom attributes (symbol, fftype, charge, vdW parameters) to string.
     """
-    system = ff.system
     vpart, pair_part_lj, pair_part_ei, ewald_reci_part, ewald_corr_part = ff.parts
     charges = ewald_reci_part.charges
     sigmas = pair_part_lj.pair_pot.sigmas
@@ -89,7 +88,7 @@ def atom_attr_str(ff):
     atom_attr += "    ------------------------------------------------------------------\n"
     for i in xrange(ff.system.natom):
         atom_attr += "     %3i      %2s    %4s    % 5.4f     %6.4f          %7.5f   \n" \
-            %(i, periodic[system.numbers[i]].symbol, system.ffatypes[i], charges[i], sigmas[i]/angstrom, epsilons[i]/kcalmol)
+            %(i, periodic[ff.system.numbers[i]].symbol, ff.system.ffatypes[i], charges[i], sigmas[i]/angstrom, epsilons[i]/kcalmol)
     return atom_attr
 
 
@@ -97,8 +96,7 @@ def terms_str(ff):
     """
         Write force field terms to string.
     """
-    system = ff.system
-    types = system.ffatypes
+    types = ff.system.ffatypes
     vpart, pair_part_lj, pair_part_ei, ewald_reci_part, ewald_corr_part = ff.parts
     vlist = vpart.vlist.vtab
     iclist = vpart.vlist.iclist.ictab
@@ -106,8 +104,8 @@ def terms_str(ff):
 
     vkinds = ['Harmonic', 'PolyFour', 'Cross']
     eunit = kjmol
-    ickinds = ['Bond', 'BendCos', 'BendAngle', 'DihedCos', 'DihedAngle']
-    icunits = [angstrom, 1.0, deg, 1.0, deg]
+    ickinds = ['Bond', 'BendCos', 'BendAngle', 'DihedCos', 'DihedAngle', "UreyBradley"]
+    icunits = [angstrom, 1.0, deg, 1.0, deg, angstrom]
     v_descr = ""
     ic0_descr = ""
     ic1_descr = ""
@@ -116,7 +114,7 @@ def terms_str(ff):
         indexes = ""
         d0 = dlist[ic['i0']]
         atoms = (d0['i'], d0['j'])
-        if ic['kind'] > 0:
+        if ic['kind'] in [1,2,3,4]:
             d1 = dlist[ic['i1']]
             if d1['i']==atoms[0]:
                 atoms = (d1['j'], atoms[0], atoms[1])
@@ -127,8 +125,8 @@ def terms_str(ff):
             elif d1['j']==atoms[1]:
                 atoms = (atoms[0], atoms[1], d1['i'])
             else:
-                raise ValueError("Error in reading bend.")
-        if ic['kind'] > 2:
+                raise ValueError("Error in reading atom triple.")
+        if ic['kind'] in [3,4]:
             d2 = dlist[ic['i2']]
             if d2['i']==atoms[0]:
                 atoms = (d2['j'], atoms[0], atoms[1], atoms[2])
@@ -139,7 +137,7 @@ def terms_str(ff):
             elif d2['j']==atoms[2]:
                 atoms = (atoms[0], atoms[1], atoms[2], d2['i'])
             else:
-                raise ValueError("Error in reading dihedral.")
+                raise ValueError("Error in reading atom quadruple.")
         for atom in atoms:
             indexes += "%4s[%2i], " %(types[atom], atom)
         indexes.rstrip(",")
@@ -190,7 +188,7 @@ def ff_str(ff):
     do_valence = False
     do_ewald = False
     do_ei_real = False
-    do_lj_real = False
+    do_vdw_real = False
     for part in ff.parts:
         if isinstance(part,ValencePart):
             do_valence = True
@@ -203,8 +201,13 @@ def ff_str(ff):
                 do_ei_real = True
                 eipart = part
             if isinstance(part.pair_pot,PairPotLJ):
-                do_lj_real = True
-                ljpart = part
+                do_vdw_real = True
+                vdw_kind = "LJ"
+                vdwpart = part
+            if isinstance(part.pair_pot,PairPotMM3):
+                do_vdw_real = True
+                vdw_kind = "MM3"
+                vdwpart = part
     if do_valence:
         ff_info += "    Valence interactions: ON\n"
     if do_ei_real:
@@ -221,12 +224,12 @@ def ff_str(ff):
         ff_info += "        gmax  [   ] = %2i,%2i,%2i\n" %(ewaldpart.gmax[0],ewaldpart.gmax[1],ewaldpart.gmax[2])
     else:
         ff_info += "    Reciprocal electrostatics: OFF\n"
-    if do_lj_real:
-        ff_info += "    Real lennard-jones: ON\n"
-        ff_info += "        cutoff      [A] = %9.6f\n" %(ljpart.pair_pot.rcut/angstrom)
-        ff_info += "        1-2 scaling [ ] = %4.3f\n" %ljpart.scalings.scale1
-        ff_info += "        1-3 scaling [ ] = %4.3f\n" %ljpart.scalings.scale2
-        ff_info += "        1-4 scaling [ ] = %4.3f\n" %ljpart.scalings.scale3
+    if do_vdw_real:
+        ff_info += "    Real van der Waals: %s\n" %vdw_kind
+        ff_info += "        cutoff      [A] = %9.6f\n" %(vdwpart.pair_pot.rcut/angstrom)
+        ff_info += "        1-2 scaling [ ] = %4.3f\n" %vdwpart.scalings.scale1
+        ff_info += "        1-3 scaling [ ] = %4.3f\n" %vdwpart.scalings.scale2
+        ff_info += "        1-4 scaling [ ] = %4.3f\n" %vdwpart.scalings.scale3
     else:
         ff_info += "    Real lennard-jones: OFF\n"
     return ff_info

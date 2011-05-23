@@ -77,8 +77,8 @@ double forward_dihed_angle(iclist_row_type* ic, dlist_row_type* deltas) {
   return acos(c);
 }
 
-ic_forward_type ic_forward_fns[5] = {
-  forward_bond, forward_bend_cos, forward_bend_angle, forward_dihed_cos, forward_dihed_angle
+ic_forward_type ic_forward_fns[6] = {
+  forward_bond, forward_bend_cos, forward_bend_angle, forward_dihed_cos, forward_dihed_angle, forward_bond
 };
 
 void iclist_forward(dlist_row_type* deltas, iclist_row_type* ictab, long nic) {
@@ -212,8 +212,8 @@ void back_dihed_angle(iclist_row_type* ic, dlist_row_type* deltas, double value,
   back_dihed_cos(ic, deltas, cos(value), -grad/sin(value));
 }
 
-ic_back_type ic_back_fns[5] = {
-  back_bond, back_bend_cos, back_bend_angle, back_dihed_cos, back_dihed_angle
+ic_back_type ic_back_fns[6] = {
+  back_bond, back_bend_cos, back_bend_angle, back_dihed_cos, back_dihed_angle, back_bond
 };
 
 void iclist_back(dlist_row_type* deltas, iclist_row_type* ictab, long nic) {

@@ -81,6 +81,8 @@ class Harmonic(ValenceTerm):
 class PolyFour(ValenceTerm):
     kind = 1
     def __init__(self, pars, ic):
+        if len(pars)>4:
+            raise ValueError("PolyFour term can have maximum 4 parameters, received %i" %len(pars))
         while len(pars)<4:
             pars.append(0.0)
         ValenceTerm.__init__(self, pars, [ic])
