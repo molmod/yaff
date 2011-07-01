@@ -56,13 +56,13 @@ def test_vlist_quartz_bonds():
     assert abs(energy - check_energy) < 1e-8
 
 
-def test_vlist_quartz_bonds_fuez():
+def test_vlist_quartz_bonds_fues():
     system = get_system_quartz()
     dlist = DeltaList(system)
     iclist = InternalCoordinateList(dlist)
     vlist = ValenceList(iclist)
     for i, j in system.topology.bonds:
-        vlist.add_term(Fuez(2.3, 3.04+0.1*i, Bond(i, j)))
+        vlist.add_term(Fues(2.3, 3.04+0.1*i, Bond(i, j)))
     assert dlist.ndelta == len(system.topology.bonds)
     assert iclist.nic == len(system.topology.bonds)
     assert vlist.nv == len(system.topology.bonds)
@@ -273,11 +273,11 @@ def test_gpos_vtens_bond_water32():
     check_vtens_part(system, part, 1e-7)
 
 
-def test_gpos_vtens_bond_fuez_water32():
+def test_gpos_vtens_bond_fues_water32():
     system = get_system_water32()
     part = ValencePart(system)
     for i, j in system.topology.bonds:
-        part.add_term(Fuez(0.3, 1.7, Bond(i, j)))
+        part.add_term(Fues(0.3, 1.7, Bond(i, j)))
     check_gpos_part(system, part, 1e-10)
     check_vtens_part(system, part, 1e-7)
 
@@ -367,11 +367,11 @@ def test_gpos_vtens_2T():
                     part.add_term(Harmonic(fc_table[key], rv_table[key], BendAngle(i0, i1, i2)))
     check_gpos_part(system, part, 1e-10)
     check_vtens_part(system, part, 1e-10)
-    # same test but with Fuez bonds instead of Harmonic bonds
+    # same test but with Fues bonds instead of Harmonic bonds
     part = ValencePart(system)
     for i, j in system.topology.bonds:
         key = system.ffatypes[i], system.ffatypes[j]
-        part.add_term(Fuez(fc_table[key], rv_table[key], Bond(i, j)))
+        part.add_term(Fues(fc_table[key], rv_table[key], Bond(i, j)))
     for i1 in xrange(system.natom):
         for i0 in system.topology.neighs1[i1]:
             for i2 in system.topology.neighs1[i1]:

@@ -230,7 +230,7 @@ class ValencePart(ForcePart):
 
 # Methods to add bonds, bends, ... to ff object from a val_table dictinairy
 
-def add_bonds(system, vpart, val_table, convert_harmonic_to_fuez=False):
+def add_bonds(system, vpart, val_table, convert_harmonic_to_fues=False):
     """
         Add bonds present in system to vpart (a ValencePart instance) with parameters from the val_table dictionairy.
         This val_table dictionairy can be retrieved using the get_val_table method of the input module.
@@ -239,7 +239,7 @@ def add_bonds(system, vpart, val_table, convert_harmonic_to_fuez=False):
             warnings = list of warnings (missing terms)
             added    = list of added terms
 
-        If convert_harmonic_to_fuez is set to True, all Harmonic bonds will be converted to Fuez bond with numerical identical
+        If convert_harmonic_to_fues is set to True, all Harmonic bonds will be converted to Fues bond with numerical identical
         force constant and rest value.
     """
     warnings = ""
@@ -259,9 +259,9 @@ def add_bonds(system, vpart, val_table, convert_harmonic_to_fuez=False):
                     rv = terminfo[2][0][1]
                 else:
                     raise ValueError("Error reading parameters in bond term")
-                if convert_harmonic_to_fuez:
-                    vpart.add_term(Fuez(fc, rv, Bond(i, j)))
-                    added += "    Bond    :  Fuez(%s[%i] - %s[%i])\n" %(key[0], i, key[1], j)
+                if convert_harmonic_to_fues:
+                    vpart.add_term(Fues(fc, rv, Bond(i, j)))
+                    added += "    Bond    :  Fues(%s[%i] - %s[%i])\n" %(key[0], i, key[1], j)
                 else:
                     vpart.add_term(Harmonic(fc, rv, Bond(i, j)))
                     added += "    Bond    :  Harmonic(%s[%i] - %s[%i])\n" %(key[0], i, key[1], j)
