@@ -519,3 +519,12 @@ def get_system_mil53():
         [  0.        ,   0.        ,  25.49996445]
     ])
     return System(numbers=numbers, pos=pos, ffatypes=ffatypes, bonds=bonds, rvecs=rvecs)
+
+def get_system_2atoms():
+    return System(
+        numbers=np.array([6, 6]),
+        pos=np.array([[0.000, 0.000, 0.000], [2.500, 0.000, 0.000]])*angstrom,
+        ffatypes=['C','C'],
+        bonds=np.array([[0, 1]]),
+        rvecs=np.diag([200.0, 200.0, 200.0])*angstrom,
+    )

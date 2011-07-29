@@ -23,7 +23,7 @@
 
 import numpy as np
 
-from yaff.ext import compute_ewald_reci, compute_ewald_corr, PairPotEI, PairPotLJ, PairPotMM3
+from yaff.ext import compute_ewald_reci, compute_ewald_corr, PairPotEI, PairPotLJ, PairPotMM3, PairPotGrimme
 from yaff.dlist import DeltaList
 from yaff.iclist import *
 from yaff.vlist import *
@@ -99,7 +99,7 @@ class ForceField(ForcePart):
             if isinstance(part, PairPart):
                 if isinstance(part.pair_pot, PairPotEI):
                     eipart = part
-                if isinstance(part.pair_pot, PairPotLJ) or isinstance(part.pair_pot, PairPotMM3):
+                if isinstance(part.pair_pot, PairPotLJ) or isinstance(part.pair_pot, PairPotMM3) or isinstance(part.pair_pot, PairPotGrimme):
                     vdwpart = part
             if isinstance(part, EwaldReciprocalPart):
                 ewaldpart = part

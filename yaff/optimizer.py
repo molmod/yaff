@@ -104,7 +104,7 @@ class CellOptimizer(Optimizer):
         An optimizer for performing geometrical optimization of orthorhombic cells in which all cell vector lengths are allowed to change.
     """
     def __init__(self, ff, rvecs_scale = 1e-2, search_direction=ConjugateGradient(), line_search=NewtonLineSearch(),
-            convergence=ConvergenceCondition(grad_rms=1e-4, grad_max=3e-4), stop_loss=StopLossCondition(max_iter=1000),
+            convergence=ConvergenceCondition(grad_rms=1e-4, grad_max=3.3e-4), stop_loss=StopLossCondition(max_iter=1000),
             xyz_writer=None, out=None):
         Optimizer.__init__(self, ff, rvecs_scale=rvecs_scale, search_direction=search_direction, line_search=line_search,
             convergence=convergence, stop_loss=stop_loss, xyz_writer=xyz_writer, out=out)
@@ -224,7 +224,7 @@ class ThetaOptimizer(Optimizer):
         The length of the diagonal and the length of the b cell vector is allowed to change during optimization.
     """
     def __init__(self, ff, theta, rvecs_scale = 1e-2, search_direction=ConjugateGradient(), line_search=NewtonLineSearch(),
-            convergence=ConvergenceCondition(grad_rms=1e-4, grad_max=3e-4), stop_loss=StopLossCondition(max_iter=1000),
+            convergence=ConvergenceCondition(grad_rms=1e-4, grad_max=3.3e-4), stop_loss=StopLossCondition(max_iter=1000),
             xyz_writer=None, out=None):
         Optimizer.__init__(self, ff, rvecs_scale=rvecs_scale, search_direction=search_direction, line_search=line_search,
             convergence=convergence, stop_loss=stop_loss, xyz_writer=xyz_writer, out=out)
@@ -322,7 +322,7 @@ class ThetaOptimizer(Optimizer):
             vdw_part = None
             for part in self.ff.parts:
                 if isinstance(part, PairPart):
-                    if isinstance(part.pair_pot,PairPotLJ) or isinstance(part.pair_pot,PairPotMM3):
+                    if isinstance(part.pair_pot,PairPotLJ) or isinstance(part.pair_pot,PairPotMM3) or isinstance(part.pair_pot,PairPotGrimme):
                         vdw_part = part
             if vdw_part is None:
                 raise TypeError("No vdw part found in ff")
@@ -331,7 +331,15 @@ class ThetaOptimizer(Optimizer):
 
         # write xyz to trajectory file
         if xyz_writer is not None:
-            xyz_writer.dump('Theta[%s]  = %.10f, Energy  = %.10f' % (str(index), self.theta, energy), self.ff.system.pos)
+            xyz_writer.dump(
+                'Theta[%s]  = %.10f, d = %.4f, b = %.4f , Energy  = %.10f' % (
+                    str(index), self.theta,
+                    np.sqrt(self.ff.system.cell.rvecs[0,0]**2 + self.ff.system.cell.rvecs[2,2]**2)/angstrom,
+                    self.ff.system.cell.rvecs[1,1]/angstrom,
+                    energy
+                ),
+                self.ff.system.pos
+            )
 
         # write to general output
         print >> self.out, ""

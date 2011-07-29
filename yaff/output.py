@@ -207,6 +207,7 @@ def ff_str(ff):
     if vdwpart is not None:
         if isinstance(vdwpart.pair_pot, PairPotLJ): vdw_kind = "Lennard-Jones"
         elif isinstance(vdwpart.pair_pot, PairPotMM3): vdw_kind = "MM3"
+        elif isinstance(vdwpart.pair_pot, PairPotGrimme): vdw_kind = "Grimme"
         else: raise NotImplementedError
         ff_info += "    Real van der Waals: %s\n" %vdw_kind
         ff_info += "        cutoff      [A] = %9.6f\n" %(vdwpart.pair_pot.rcut/angstrom)

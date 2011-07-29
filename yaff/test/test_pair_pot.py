@@ -27,7 +27,7 @@ from scipy.special import erfc
 from molmod import angstrom, kcalmol
 
 from common import get_system_water32, get_system_caffeine, check_gpos_part, \
-    check_vtens_part
+    check_vtens_part, get_system_2atoms
 
 from yaff import *
 
@@ -177,6 +177,81 @@ def test_pair_pot_mm3_water32_9A():
     assert abs(energy2 - check_energy) < 1e-15
 
 
+def get_part_water32_9A_grimme():
+    # Initialize system, topology and scaling
+    system = get_system_water32()
+    nlists = NeighborLists(system)
+    scalings = Scalings(system.topology)
+    # Initialize parameters
+    r0_table = {1: 1.001*angstrom, 8: 1.342*angstrom}
+    c6_table = {1: 0.14*1e-3*kjmol*nanometer**6, 8: 0.70*1e-3*kjmol*nanometer**6}
+    r0s = np.zeros(96, float)
+    c6s = np.zeros(96, float)
+    for i in xrange(system.natom):
+        r0s[i] = r0_table[system.numbers[i]]
+        c6s[i] = c6_table[system.numbers[i]]
+    # Create the pair_pot and pair_part
+    rcut = 9*angstrom
+    pair_pot = PairPotGrimme(r0s, c6s, rcut, True)
+    assert abs(pair_pot.r0 - r0s).max() == 0.0
+    assert abs(pair_pot.c6 - c6s).max() == 0.0
+    pair_part = PairPart(system, nlists, scalings, pair_pot)
+    # Create a pair function:
+    def pair_fn(i, j, d):
+        r0 = (r0s[i]+r0s[j])
+        c6 = np.sqrt(c6s[i]*c6s[j])
+        if d<rcut:
+            return -1.1/(1.0 + np.exp(-20.0*(d/r0-1.0)))*c6/d**6*np.exp(1.0/(d-rcut))
+        else:
+            return 0.0
+    return system, nlists, scalings, pair_pot, pair_part, pair_fn
+
+
+def test_pair_pot_grimme_water32_9A():
+    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_water32_9A_grimme()
+    nlists.update() # update the neighborlists, once the rcuts are known.
+    # Compute the energy using yaff.
+    energy1 = pair_part.compute()
+    gpos = np.zeros(system.pos.shape, float)
+    energy2 = pair_part.compute(gpos)
+    # Compute the energy manually
+    check_energy = 0.0
+    for i in xrange(system.natom):
+        # compute the distances in the neighborlist manually and check.
+        for j in xrange(0, system.natom):
+            delta = system.pos[i] - system.pos[j]
+            delta -= np.floor(delta/(9.865*angstrom)+0.5)*(9.865*angstrom)
+            assert abs(delta).max() < 0.5*9.865*angstrom
+            for l0 in xrange(-1, 2):
+                for l1 in xrange(-1, 2):
+                    for l2 in xrange(-1, 2):
+                        if l0==0 and l1==0 and l2==0:
+                            if i==j:
+                                continue
+                            # find the scaling
+                            fac = 1.0
+                            for k, s in scalings[j]:
+                                if k == i:
+                                    fac = s
+                                    break
+                            # continue if scaled to zero
+                            if fac == 0.0:
+                                continue
+                        else:
+                            # Interactions with neighboring cells are counted
+                            # half. (The energy per unit cell is computed.)
+                            fac = 0.5
+                        if (l0!=0) or (l1!=0) or (l2!=0) or (j>i):
+                            my_delta = delta + np.array([l0,l1,l2])*9.865*angstrom
+                            d = np.linalg.norm(my_delta)
+                            if d <= nlists.rcut:
+                                check_energy += fac*pair_fn(i, j, d)
+    print "energy1=%.10f , check_energy=%.10f" %(energy1, check_energy)
+    print "energy2=%.10f , check_energy=%.10f" %(energy2, check_energy)
+    assert abs(energy1 - check_energy) < 1e-10
+    assert abs(energy2 - check_energy) < 1e-10
+
+
 def get_part_caffeine_lj_15A():
     # Get a system and define scalings
     system = get_system_caffeine()
@@ -214,6 +289,45 @@ def get_part_caffeine_lj_15A():
 
 def test_pair_pot_lj_caffeine_15A():
     system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_lj_15A()
+    check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, 1e-15)
+
+
+def get_part_caffeine_grimme_15A():
+    # Get a system and define scalings
+    system = get_system_caffeine()
+    nlists = NeighborLists(system)
+    scalings = Scalings(system.topology, 0.0, 1.0, 0.5)
+    # Initialize (random) parameters
+    r0_table = {
+        1: 1.001*angstrom,
+        6: 1.452*angstrom,
+        7: 1.397*angstrom,
+        8: 1.342*angstrom,
+    }
+    c6_table = {
+        1: 0.14*1e-3*kjmol*nanometer**6,
+        6: 1.75*1e-3*kjmol*nanometer**6,
+        7: 1.23*1e-3*kjmol*nanometer**6,
+        8: 0.70*1e-3*kjmol*nanometer**6,
+    }
+    r0s = np.zeros(96, float)
+    c6s = np.zeros(96, float)
+    for i in xrange(system.natom):
+        r0s[i] = r0_table[system.numbers[i]]
+        c6s[i] = c6_table[system.numbers[i]]
+    # Construct the pair potential and part
+    pair_pot = PairPotGrimme(r0s, c6s, 15*angstrom, False)
+    pair_part = PairPart(system, nlists, scalings, pair_pot)
+    # The pair function
+    def pair_fn(i, j, d):
+        r0 = (r0s[i]+r0s[j])
+        c6 = np.sqrt(c6s[i]*c6s[j])
+        return -1.1/(1.0 + np.exp(-20.0*(d/r0-1.0)))*c6/d**6
+    return system, nlists, scalings, pair_pot, pair_part, pair_fn
+
+
+def test_pair_pot_grimme_caffeine_15A():
+    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_grimme_15A()
     check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, 1e-15)
 
 
@@ -314,3 +428,19 @@ def test_gpos_vtens_pair_pot_caffeine_ei2_10A():
     system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_ei2_10A()
     check_gpos_part(system, pair_part, 1e-8, nlists)
     check_vtens_part(system, pair_part, 1e-7, nlists)
+
+def test_pair_pot_grimme_2atoms():
+    system = get_system_2atoms()
+    nlists = NeighborLists(system)
+    scalings = Scalings(system.topology, 1.0, 1.0, 1.0)
+    R0 = 1.452*angstrom
+    C6 = 1.75*1e-3*kjmol*nanometer**6
+    pair_pot = PairPotGrimme(np.array([R0, R0]), np.array([C6, C6]), 15*angstrom, False)
+    pair_part = PairPart(system, nlists, scalings, pair_pot)
+    nlists.update()
+    energy = pair_part.compute()
+    d = np.sqrt(sum((system.pos[0]-system.pos[1])**2))
+    check_energy=-1.1/( 1.0 + np.exp(-20.0*(d/(2.0*R0)-1.0)) )*C6/d**6
+    print "d=%f" %d
+    print "energy=%f , check_energy=%f" %(energy, check_energy)
+    assert abs(energy-check_energy)<1e-10

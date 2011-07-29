@@ -76,6 +76,15 @@ double pair_fn_mm3(void *pair_data, long center_index, long other_index, double 
 
 
 typedef struct {
+  double *r0;
+  double *c6;
+} pair_data_grimme_type;
+
+void pair_data_grimme_init(pair_pot_type *pair_pot, double *r0, double *c6);
+double pair_fn_grimme(void *pair_data, long center_index, long other_index, double d, double *g);
+
+
+typedef struct {
   double *charges;
   double alpha;
 } pair_data_ei_type;

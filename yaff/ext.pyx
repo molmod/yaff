@@ -34,7 +34,7 @@ cimport vlist
 
 __all__ = [
     'nlist_status_init', 'nlist_update', 'nlist_status_finish',
-    'PairPot', 'PairPotLJ', 'PairPotMM3', 'PairPotEI', 'compute_ewald_reci',
+    'PairPot', 'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotEI', 'compute_ewald_reci',
     'compute_ewald_corr', 'dlist_forward', 'dlist_back', 'iclist_forward',
     'iclist_back', 'vlist_forward', 'vlist_back',
 ]
@@ -305,6 +305,33 @@ cdef class PairPotMM3(PairPot):
         return self._c_epsilons.view()
 
     epsilons = property(get_epsilons)
+
+
+cdef class PairPotGrimme(PairPot):
+    cdef np.ndarray _c_r0
+    cdef np.ndarray _c_c6
+
+    def __cinit__(self, np.ndarray[double, ndim=1] r0, np.ndarray[double, ndim=1] c6, double rcut, bint smooth):
+        assert r0.flags['C_CONTIGUOUS']
+        assert c6.flags['C_CONTIGUOUS']
+        assert r0.shape[0] == c6.shape[0]
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        pair_pot.pair_pot_set_smooth(self._c_pair_pot, smooth)
+        pair_pot.pair_data_grimme_init(self._c_pair_pot, <double*>r0.data, <double*>c6.data)
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_r0 = r0
+        self._c_c6 = c6
+
+    def get_r0(self):
+        return self._c_r0.view()
+
+    r0 = property(get_r0)
+
+    def get_c6(self):
+        return self._c_c6.view()
+
+    c6 = property(get_c6)
 
 
 cdef class PairPotEI(PairPot):

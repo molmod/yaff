@@ -230,6 +230,39 @@ double pair_fn_mm3(void *pair_data, long center_index, long other_index, double 
 
 
 
+void pair_data_grimme_init(pair_pot_type *pair_pot, double *r0, double *c6) {
+  pair_data_grimme_type *pair_data;
+  pair_data = malloc(sizeof(pair_data_grimme_type));
+  (*pair_pot).pair_data = pair_data;
+  (*pair_pot).pair_fn = pair_fn_grimme;
+  (*pair_data).r0 = r0;
+  (*pair_data).c6 = c6;
+}
+
+double pair_fn_grimme(void *pair_data, long center_index, long other_index, double d, double *g) {
+// E = -1.1*damp(r)*c6/r**6 met damp(r)=1.0/(1.0+exp(-20*(r/r0-1.0))) [Grimme2006]
+  double r0, c6, exponent, f, d6, e;
+  r0 = (
+    (*(pair_data_grimme_type*)pair_data).r0[center_index]+
+    (*(pair_data_grimme_type*)pair_data).r0[other_index]
+  );
+  c6 = sqrt(
+    (*(pair_data_grimme_type*)pair_data).c6[center_index]*
+    (*(pair_data_grimme_type*)pair_data).c6[other_index]
+  );
+  exponent = exp(-20.0*(d/r0-1.0));
+  f = 1.0/(1.0+exponent);
+  d6 = d*d*d;
+  d6 *= d6;
+  e = 1.1*f*c6/d6;
+  if (g != NULL) {
+    *g = e/d*(6.0/d-20.0/r0*f*exponent);
+  }
+  return -e;
+}
+
+
+
 void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha) {
   pair_data_ei_type *pair_data;
   pair_data = malloc(sizeof(pair_data_ei_type));
