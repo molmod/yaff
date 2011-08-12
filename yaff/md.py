@@ -125,7 +125,7 @@ class MolecularDynamics(object):
 
     def write_output(self, i):
         if i==-1:
-            print >> self.out, "      init  |                                  |  %15.10f" %(self.get_inst_temp()/kelvin)
+            print >> self.out, "      init  |  %30.10f  |  %15.10f" %(self.energy/kcalmol, self.get_inst_temp()/kelvin)
         else:
             print >> self.out, "   %7i  |  %30.10f  |  %15.10f" %(i, self.get_total_energy()/kcalmol, self.get_inst_temp()/kelvin)
             if self.energy_writer is not None:
@@ -157,31 +157,41 @@ class MolecularDynamics(object):
 
 
 class NVE(MolecularDynamics):
-    def __init__(self, ff, temperature=300*kelvin, timestep=1.0*femtosecond, nsteps=100,
+    def __init__(self, ff, temperature=300*kelvin, temptol=1e-2, timestep=1.0*femtosecond, nsteps=100,
                  out=None, xyz_writer=None, dipole_writer=None, time_writer=None,
                  energy_writer=None, potential_writer=None, kinetic_writer=None, temperature_writer=None):
         MolecularDynamics.__init__(self, ff, timestep=timestep, nsteps=nsteps,
                  out=out, xyz_writer=xyz_writer, dipole_writer=dipole_writer, time_writer=time_writer,
                  energy_writer=energy_writer, potential_writer=potential_writer, kinetic_writer=kinetic_writer, temperature_writer=temperature_writer)
         self.temperature = temperature
+        self.temptol=temptol
         self.verlet_initialize()
 
 
     def verlet_initialize(self):
         self.pos = self.ff.system.pos
-        self.vel = np.random.normal(0, 1, (self.natom, 3))*np.sqrt(boltzmann*2.0*self.temperature/self.masses)
-        self.prevpos = self.pos - self.vel*self.timestep
+        self.gpos = np.zeros(self.pos.shape, float)
+        self.energy = self.ff.compute(self.gpos)
+        temp=10*self.temperature #high enough value to ensure while loop runs initially
+        print "~ Initialising verlet ..."
+        while abs(temp/self.temperature-1.0)>self.temptol:
+            self.vel = np.random.normal(0, 1, (self.natom, 3))*np.sqrt(boltzmann*2.0*self.temperature/self.masses)
+            temp=self.get_inst_temp()/2.0
+            print "    Half temperature of initial velocities = %.1f" %temp
+        print "    Succes!"
+        self.prevpos = self.pos - self.vel*self.timestep - self.gpos/(2.0*self.masses)*(self.timestep)**2
         self.write_output(-1)
 
 
     def verlet_integrate(self):
         tmp = self.pos.copy()
-        self.pos = 2.0*self.pos - self.prevpos - self.gpos/self.masses*self.timestep**2
+        self.pos = 2.0*self.pos - self.prevpos - self.gpos/self.masses*(self.timestep)**2
         self.vel = (self.pos - self.prevpos)/(2.0*self.timestep)
         self.prevpos = tmp.copy()
 
 
     def run(self):
+        print "~ Running verlet integration ..."
         for i in xrange(self.nsteps):
             self.ff.update_pos(self.pos)
             self.gpos = np.zeros(self.pos.shape, float)
