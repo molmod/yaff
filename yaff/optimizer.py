@@ -223,12 +223,14 @@ class ThetaOptimizer(Optimizer):
         An optimizer for performing geometrical optimization at a fixed angle of the diagonal between a and c cell vectors.
         The length of the diagonal and the length of the b cell vector is allowed to change during optimization.
     """
-    def __init__(self, ff, theta, rvecs_scale = 1e-2, search_direction=ConjugateGradient(), line_search=NewtonLineSearch(),
+    def __init__(self, ff, theta, fixed_b=False, rvecs_scale = 1e-2, search_direction=ConjugateGradient(), line_search=NewtonLineSearch(),
             convergence=ConvergenceCondition(grad_rms=1e-4, grad_max=3.3e-4), stop_loss=StopLossCondition(max_iter=1000),
             xyz_writer=None, out=None):
         Optimizer.__init__(self, ff, rvecs_scale=rvecs_scale, search_direction=search_direction, line_search=line_search,
             convergence=convergence, stop_loss=stop_loss, xyz_writer=xyz_writer, out=out)
         self.theta = theta
+        self.fixed_b = fixed_b
+        self.b = None
         print >> self.out, "~"*150
         print >> self.out, " Geometry Optimization at theta = %6.3f deg:" %(self.theta/deg)
         print >> self.out, " ---------------------------------------------"
@@ -238,28 +240,48 @@ class ThetaOptimizer(Optimizer):
 
     def get_xinit(self):
         if self.periodic:
-            x_init = np.concatenate([
-                np.array([
-                    np.sqrt(self.ff.system.cell.rvecs[0,0]**2 + self.ff.system.cell.rvecs[2,2]**2),
-                    self.ff.system.cell.rvecs[1,1]
-                ])*self.rvecs_scale,
-                np.dot(
-                    self.ff.system.pos,
-                    np.linalg.inv(self.ff.system.cell.rvecs)
-                ).ravel(),
-            ])
+            if not self.fixed_b:
+                x_init = np.concatenate([
+                    np.array([
+                        np.sqrt(self.ff.system.cell.rvecs[0,0]**2 + self.ff.system.cell.rvecs[2,2]**2),
+                        self.ff.system.cell.rvecs[1,1]
+                    ])*self.rvecs_scale,
+                    np.dot(
+                        self.ff.system.pos,
+                        np.linalg.inv(self.ff.system.cell.rvecs)
+                    ).ravel(),
+                ])
+            else:
+                x_init = np.concatenate([
+                    np.array([
+                        np.sqrt(self.ff.system.cell.rvecs[0,0]**2 + self.ff.system.cell.rvecs[2,2]**2),
+                    ])*self.rvecs_scale,
+                    np.dot(
+                        self.ff.system.pos,
+                        np.linalg.inv(self.ff.system.cell.rvecs)
+                    ).ravel(),
+                ])
+                self.b = self.ff.system.cell.rvecs[1,1]
         else:
             x_init = self.ff.system.pos.ravel()
         return x_init
 
     def calc_energy(self, x, do_gradient=False):
         if self.periodic:
-            rvecs = np.diag([
-                x[0]*np.cos(self.theta/2.0),
-                x[1],
-                x[0]*np.sin(self.theta/2.0),
-            ])/self.rvecs_scale
-            scaled = x[2:].reshape(-1,3)
+            if not self.fixed_b:
+                rvecs = np.diag([
+                    x[0]*np.cos(self.theta/2.0),
+                    x[1],
+                    x[0]*np.sin(self.theta/2.0),
+                ])/self.rvecs_scale
+                scaled = x[2:].reshape(-1,3)
+            else:
+                rvecs = np.diag([
+                    x[0]*np.cos(self.theta/2.0),
+                    self.b*self.rvecs_scale,
+                    x[0]*np.sin(self.theta/2.0),
+                ])/self.rvecs_scale
+                scaled = x[1:].reshape(-1,3)
             pos = np.dot(scaled, rvecs)
             self.ff.update_rvecs(rvecs)
         else:
@@ -273,13 +295,21 @@ class ThetaOptimizer(Optimizer):
             if self.periodic:
                 grad_rvecs = np.dot(self.ff.system.cell.gvecs, vtens)
                 grad_scaled = np.dot(gpos, rvecs)
-                gradient = np.concatenate([
-                    np.array([
-                        grad_rvecs[0,0]*np.cos(self.theta/2.0) + grad_rvecs[2,2]*np.sin(self.theta/2.0),
-                        grad_rvecs[1,1],
-                    ])/self.rvecs_scale,
-                    grad_scaled.ravel()
-                ])
+                if not self.fixed_b:
+                    gradient = np.concatenate([
+                        np.array([
+                            grad_rvecs[0,0]*np.cos(self.theta/2.0) + grad_rvecs[2,2]*np.sin(self.theta/2.0),
+                            grad_rvecs[1,1],
+                        ])/self.rvecs_scale,
+                        grad_scaled.ravel()
+                    ])
+                else:
+                    gradient = np.concatenate([
+                        np.array([
+                            grad_rvecs[0,0]*np.cos(self.theta/2.0) + grad_rvecs[2,2]*np.sin(self.theta/2.0),
+                        ])/self.rvecs_scale,
+                        grad_scaled.ravel()
+                    ])
             else:
                 gradient = gpos.ravel()
             return energy, gradient
@@ -289,13 +319,23 @@ class ThetaOptimizer(Optimizer):
 
     def callback(self, m):
         if self.periodic:
-            d, b = m.x[:2]/self.rvecs_scale
-            rvecs = np.diag(np.array([
-                d*np.cos(self.theta/2.0),
-                b,
-                d*np.sin(self.theta/2.0),
-            ]))
-            scaled = m.x[2:].reshape(-1,3)
+            if not self.fixed_b:
+                d, b = m.x[:2]/self.rvecs_scale
+                rvecs = np.diag(np.array([
+                    d*np.cos(self.theta/2.0),
+                    b,
+                    d*np.sin(self.theta/2.0),
+                ]))
+                scaled = m.x[2:].reshape(-1,3)
+            else:
+                d = m.x[0]/self.rvecs_scale
+                b = self.b
+                rvecs = np.diag(np.array([
+                    d*np.cos(self.theta/2.0),
+                    self.b,
+                    d*np.sin(self.theta/2.0),
+                ]))
+                scaled = m.x[1:].reshape(-1,3)
             pos = np.dot(scaled, rvecs)
             self.xyz_writer.dump(
                 'Energy = %.10f , d = %6.3f , b = %6.3f' % (m.f, d, b),
