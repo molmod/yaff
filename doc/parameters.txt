@@ -1,0 +1,105 @@
+BEGIN SECTION WATER
+
+
+# Bond stretch
+# ============
+
+# Mathematical form depends on the kind selected below. Few types are supported:
+# - HARM: 0.5*K*(r-R0)**2
+# - FUES: 0.5*K*R0**2*(1+(R0/r)*((R0/r)-2.0))
+BOND:UNIT K kjmol/angstrom**2
+BOND:UNIT R0 angstrom
+# -------------------------------------------------------------------
+# KEY       label0   label1  KIND  K                 R0
+# -------------------------------------------------------------------
+BOND:PARS        O        H  FUES  4.0088096730e+03  1.0238240000e+00
+
+
+# Angle bending
+# =============
+
+# Mathematical form depends on the type selected below. Few types are supported:
+# - HANG: 0.5*K*(theta-Q0)**2
+# - HCOS: 0.5*K*(cos(theta)-Q0)**2
+ANGLE:UNIT K kjmol
+ANGLE:UNIT Q0 1
+# -----------------------------------------------------------------------------
+# KEY        label0   label1   label2  KIND  K                 Q0
+# -----------------------------------------------------------------------------
+ANGLE:PARS        O        H        O  HCOS  3.0230353700e+02 -2.7892000000e-02
+
+
+# Fixed charges
+# =============
+
+# Mathematical form: qA = qA0 + sum'_B pBA
+# where qA0 is the reference charge of atom A. It is mostly zero, sometimes a
+# non-zero integer. The total charge of a fragment is the sum of all reference
+# charges. The parameter pBA is the charge transfered from B to A. Such charge
+# transfers are only carried out over bonds in the FF topology.
+# The charge on an atom is modeled as a Gaussian distribution. The spread on the
+# Gaussian is called the radius R. When the radius is set to zero, point charges
+# will be used instead of smeared charges.
+FIXQ:UNIT Q0 e
+FIXQ:UNIT P e
+FIXQ:UNIT R angstrom
+# ----------------------------------------------------
+# KEY        label  Q0                R               
+# ----------------------------------------------------
+FIXQ:ATOM        O  0.0000000000e+00  0.0000000000e-00
+FIXQ:ATOM        H  0.0000000000e+00  0.0000000000e-00
+# -------------------------------------------
+# KEY       label0   label1  P               
+# -------------------------------------------
+FIXQ:BOND        O        H  3.6841957737e+00
+
+
+# Damped Dispersion
+# =================
+
+# Mathemtacal form:
+#   C6AB*f(r)*r**6
+# where C is a constant and f(r) is the Tang-Toeniess damping factor
+#   f(r) = 1 - exp(-BAB*r)*sum_k=0..6((BAB*r)**k/k!)
+# The pair parameters C6AB and R0AB are derived from atomic parameters using
+# the following mixing rules:
+#   C6AB = 2*C6AA*C6BB/((VOLB/VOLA)**2*C6AA+(VOLA/VOLB)**2*C6BB)
+#   BAB = -0.33*(R0A+R0B)+4.399
+# where
+#   C6AA = homonuclear dispersion coefficient
+#   VOLA = atomic volume
+#   VOLA**2 = proportional to atomic polarizability
+#   R0A = (conventional) vdw radius
+# Idea taken from JCP v132, p234109, y2010.
+DAMPDISP:UNIT C au
+DAMPDISP:UNIT R0 angstrom
+DAMPDISP:UNIT VOL au
+# ---------------------------------------------------------------------------
+# KEY            label  C6(AA)            R0(A)             VOL(A)          
+# ---------------------------------------------------------------------------
+DAMPDISP:PARS        O  1.9550248340e+01  1.7527894904e+00  3.13071058512e+00
+DAMPDISP:PARS        H  2.7982205915e+00  1.4255049395e+00  5.13207980365e+00
+
+
+# Exponential Repulsion
+# =====================
+
+# Mathematical form: A*exp(-B*r)
+EXPREP:UNIT A au
+EXPREP:UNIT B 1/angstrom
+# Remark: this repulsion term does not use mixing rules. This is not yet
+# supported in the Yaff machinery. It also implies that for every FF that gets
+# combined with this water model, we must calibrate cross parameters. We should
+# check on a larger set if some mixing rules are acceptable to keep things
+# simple.
+# ---------------------------------------------------------------
+# KEY         label0   label1  A                 B
+# ---------------------------------------------------------------
+EXPREP:PARS        O        O  4.2117588157e+02  4.4661933834e+00
+EXPREP:PARS        H        O  1.4366580913e+01  4.0521078169e+00
+EXPREP:PARS        H        H  2.3514195495e+00  4.4107388814e+00
+# -----------------------------------------------------------------
+
+END SECTION
+
+
