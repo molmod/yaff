@@ -33,7 +33,7 @@ __all__ = ['System']
 class System(object):
     def __init__(self, numbers, pos, ffatypes, bonds=None, rvecs=None):
         '''
-           *Arguments:*
+           **Arguments:**
 
            numbers
                 A numpy array with atomic numbers
@@ -44,10 +44,10 @@ class System(object):
            ffatypes
                 A list of labels of the force field atom types.
 
-           *Optional arguments:*
+           **Optional arguments:**
 
            bonds
-                a numpy array (N, 2) with atom indexes (counting starts from
+                a numpy array (B,2) with atom indexes (counting starts from
                 zero) to define the chemical bonds.
 
            rvecs
