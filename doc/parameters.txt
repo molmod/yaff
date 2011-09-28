@@ -109,12 +109,12 @@ EXPREP:SCALE 3 1.0
 #   ln(A_AB) = 0.5*(ln(A_AA) + ln(A_BB))*(1-x_A*abs(ln(A_AA/A_BB)))
 #   B_AB = 0.5*(B_AA + B_BB)*(1-x_B*abs(ln(A_AA/A_BB)))
 # with
-#   x_A = XXX
-#   x_B = YYY
+#   x_A = 2.385e-2
+#   x_B = 7.897e-3
 #EXPREP:MIX A GEOMETRIC
-EXPREP:MIX A GEOMETRIC_COR XXX
+EXPREP:MIX A GEOMETRIC_COR 2.385e-2
 #EXPREP:MIX B ARITHMETIC
-EXPREP:MIX A GEOMETRIC_COR YYY
+EXPREP:MIX A GEOMETRIC_COR 7.897e-3
 # -----------------------------------------------------
 # KEY         label  A_AA              B_AA
 # -----------------------------------------------------
