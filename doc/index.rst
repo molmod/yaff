@@ -9,9 +9,10 @@ Contents:
 .. toctree::
    :maxdepth: 2
    :numbered:
-   
+
    howto.rst
-   
+   whishlist.rst
+
 
 Indices and tables
 ==================
@@ -19,4 +20,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-

@@ -26,7 +26,7 @@ four steps given above::
     from yaff import *
     # control the amount of screen output
     log.set_level(log.medium)
-    
+
     # 1) specify the system
     system = System.from_file('system.chk')
     # 2) specify the force field
@@ -37,7 +37,7 @@ four steps given above::
     # 4) perform an analysis, e.g. RDF computation for O_W O_W centers.
     rdf = RDFAnalysis(system, 'O_W', 'O_W', 'output.h5')
     rdf.result.plot('rdf.png')
-    
+
 These steps will be discussed in more detail in the following sections.
 
 Yaff internally works with atomic units, although other unit systems can be used
@@ -49,8 +49,26 @@ the following import statement::
 
 **TODO:**
 
-1. Implement the log object.
+1. Implement the log object. Usage should be as follows::
 
+    if log.do_medium:
+        log('This is a message printed at the medium log level and at higher log levels, e.g. \'high\' and \'debug\'.')
+
+   It would be good to stick to standard terminal width (80 chars, automatic
+   line wrapping) and fix some format conventions that make it easy to recognize
+   which output comes from which part of the program. This could be done by
+   reserving the first 8 characters for a location specifier, e.g. ::
+
+    if log.do_medium:
+        log('FOO', 'This is a message printed at the medium log level and at higher log levels, e.g. \'high\' and \'debug\'.')
+
+   would result in::
+
+    ____FOO This is a message printed at the medium log level and at higher log
+    ____FOO levels, e.g. 'high' and 'debug'.
+
+   The following levels are useful: silent, error, warning, low, medium, high,
+   debug.
 
 Setting up a molecular system
 =============================
@@ -59,12 +77,12 @@ Besides the positions of the atoms (or nuclei or pseudo-atoms) and the periodic
 boundary conditions, two additional pieces of information are needed to be able
 to define a force field energy:
 
-1. the bonds between the atoms (in the form of a list of atom pairs) and 
+1. the bonds between the atoms (in the form of a list of atom pairs) and
 2. atom types.
 
 Other properties such as valence angles, dihedral angles, assignment of energy
 terms, exclusion rules, and so on, can be derived from these basic properties.
-Some force-field models (especially those used for biomolecular simulations) 
+Some force-field models (especially those used for biomolecular simulations)
 have more topological features. However, we will stick to the basics discussed
 here.
 
@@ -80,7 +98,7 @@ some purpose, just make a new instance of the System class. Atomic numbers are
 also stored because they are useful for some output formats.
 
 The system class has the following signature:
-    
+
 .. autoclass:: yaff.System
 
 The constructor arguments can be specified with some python code::
@@ -97,7 +115,7 @@ where the ``*angstrom`` converts the numbers from angstrom to atomic units.
 Alternatively, one can load the system from one or more files::
 
     system = System.from_file('initial.xyz', 'topology.psf', cell=np.identity(3)*9.865*angstrom)
-    
+
 The ``from_file`` class method accepts one or more files and any constructor
 argument from the System class. A system can be easily stored to a file using
 the ``to_file`` method::
@@ -121,19 +139,22 @@ Yaff. It can also be used in the ``from_file`` method.
    can simply be ``system.ffatypes=['O', 'H', 'H, 'O', 'H', 'H, ...]``. It is OK
    that different atoms in different fragments have coinciding atom type names.
    This approach has the following advantages:
-   
+
    * It allows us to develop separate parameter files with sections for
      different sorts of fragments, e.g. WATER, CO2, ALANINE, GLYCINE, MIL-53,
-     ZEO, IONS, ... 
-   
+     ZEO, IONS, ...
+
    * A simple concatenation of parameter files for different fragments gives
      us a big parameter file that can used to model mixed systems.
-      
-   It also introduces some (minor) extra difficulties: 
-   
+
+   * The atom types can be kept short because they only have to be different
+     within one fragment.
+
+   It also introduces some (minor) extra difficulties:
+
    * In some cases, e.g. peptides, chemical bonds connect different fragments.
      In such cases, we should allow fragments to overlap.
-      
+
    * We must introduce mixing rules for all types of non-bonding interactions
      or we have to introduce cross-parameter files. (The latter may be very
      annoying when pursuing more advanced simulations where molecules are
@@ -215,37 +236,42 @@ This is a simple example of a Lennard-Jones force field::
 
 **TODO:**
 
-1. Document the format of ``parameters.txt``. This should be done very
+1. Change name conventions (``pair_part_*`` and ``pot_pair_*``) to make things
+   easier to read. Create ``pair_*`` attributes automatically.
+
+2. Document the format of ``parameters.txt``. This should be done very
    carefully. I'm currently thinking of something along the lines of CHARMM
    parameter file, but then with a few extra features to make the format more
    general:
 
     a. Introduce sections for different namespaces (see above)
     b. Include charges based on reference charges and charge-transfers over
-       bonds.
+       bonds. Dielectric background for fixed charge models.
     c. prefix each line with a keyword that fixes the interpretation of the
        parameters that follow, e.g. ``EXPREP:PARS O H 100.0 4.4``
     d. Configurable units, e.g. ``EXPREP:UNIT A au``.
     e. Allow comments with #
     f. Put multiple related parameters on a single line for the sake of
-       compactness. 
+       compactness.
     g. Make the format very simple, such that it can be easily written/modified
        manually in a text editor.
     h. Make it doable to convert existing sets of parameters to our file format.
     i. Make the format easily extensible, in case we come up with new energy
        terms. (or things like ACKS2)
+    j. Specification of mixing rules.
+    k. Specification of exclusion/scaling rules.
 
    We must keep in mind that not all parameters come from MFit2, or even FFit2
    in general. We just have to make sure that all FFit2 components (and other
    scripts) can write parameters in this format.
-   
-   I've made a tentative example for a (reasonable) non-polarizable water FF: 
+
+   I've made a tentative example for a (reasonable) non-polarizable water FF:
 
    .. literalinclude:: parameters.txt
 
-2. The generate method.
+3. The generate method.
 
-3. If the generate method is slow, we may need a checkpoint file for the
+4. If the generate method is slow, we may need a checkpoint file for the
    ForceField class.
 
 
@@ -255,7 +281,7 @@ Running an FF simulation
 Given a ``ForceField`` instance, it is trivial to run several types of basic
 simulations. For example, the equations of motion in the NVE ensemble can be
 integrated as follows::
-    
+
     nve = NVEIntegrator(ff, 'output.h5', temp_init=300)
     nve.run(5000)
 
@@ -275,7 +301,9 @@ optimizer instead of an integrator::
 
 Again, convergence criteria are controlled through optional arguments of the
 constructor. the ``run`` method has the maximum number of iterations as the only
-argument.
+argument. I would implement the Hessian computation with finite differences also
+at this level, mainly because there are different ways of doing this, e.g. using
+different constraints etc.
 
 **TODO:** implement or transform existing code
 
@@ -298,19 +326,16 @@ analysis, without the need to store huge amounts of data on disk::
     nve = NVEIntegrator(ff, None, temp_init=300, analysis=rdf)
     nve.run(5000)
     rdf.result.plot('rdf.png')
-    
+
 The analysis keyword must obviously also accept a list of analysis objects.
 
 In the former case, the ``RDFAnalsysis`` class will detect that the file
-'output.h5' already contains a trajectory and hence immediately do the analysis.
-In the latter case, the file ``analysis.h5`` must be a new file or at least it
-may not contain a trajectory. For an on-line analysis, the integrator class will
-make the necessary calls to the analysis object.
+'output.h5' already contains a trajectory and hence immediately performs the
+analysis. In the latter case, the file ``analysis.h5`` must be a new file or at
+least it may not contain a trajectory. For an on-line analysis, the integrator
+class will make the necessary calls to the analysis object.
 
 
 **TODO:**
 
 1. The main idea is to port MD-tracks to a new HDF5-based analysis system.
-
-
-
