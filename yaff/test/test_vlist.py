@@ -21,7 +21,7 @@
 # --
 
 import numpy as np
-from molmod import bond_length, bend_angle, bend_cos, dihed_angle, dihed_cos
+from molmod import bend_angle, bend_cos, dihed_angle, dihed_cos
 
 from yaff import *
 
@@ -108,7 +108,7 @@ def test_vlist_quartz_bend_cos():
         system.cell.mic(delta0)
         delta2 = system.pos[i2] - system.pos[i1]
         system.cell.mic(delta2)
-        c = bend_cos(delta0, np.zeros(3, float), delta2)[0]
+        c = bend_cos([delta0, np.zeros(3, float), delta2])[0]
         check_term = 0.5*(1.1+0.01*i0)*(c+0.2)**2
         assert abs(check_term - vlist.vtab[counter]['energy']) < 1e-10
         check_energy += check_term
@@ -138,7 +138,7 @@ def test_vlist_quartz_bend_angle():
         system.cell.mic(delta0)
         delta2 = system.pos[i2] - system.pos[i1]
         system.cell.mic(delta2)
-        angle = bend_angle(delta0, np.zeros(3, float), delta2)[0]
+        angle = bend_angle([delta0, np.zeros(3, float), delta2])[0]
         check_energy += 0.5*1.5*(angle-(2.0+0.01*i2))**2
     assert abs(energy - check_energy) < 1e-8
 
@@ -162,7 +162,7 @@ def test_vlist_peroxide_dihed_cos():
         iclist.forward()
         energy = vlist.forward()
         # calculate energy manually
-        cos = dihed_cos(system.pos[0], system.pos[1], system.pos[2], system.pos[3])[0]
+        cos = dihed_cos(system.pos)[0]
         check_energy = 0.5*1.1*(cos+0.2)**2
         assert abs(energy - check_energy) < 1e-8
 
@@ -186,7 +186,7 @@ def test_vlist_peroxide_dihed_angle():
         iclist.forward()
         energy = vlist.forward()
         # calculate energy manually
-        angle = dihed_angle(system.pos[0], system.pos[1], system.pos[2], system.pos[3])[0]
+        angle = dihed_angle(system.pos)[0]
         check_energy = 0.5*1.5*(angle-0.1)**2
         assert abs(energy - check_energy) < 1e-8
 
@@ -258,7 +258,7 @@ def test_vlist_dihedral_cos_mil53():
                 system.cell.mic(delta0)
                 system.cell.mic(delta1)
                 system.cell.mic(delta2)
-                cos = dihed_cos(delta0, np.zeros(3, float), delta1, delta1+delta2)[0]
+                cos = dihed_cos([delta0, np.zeros(3, float), delta1, delta1+delta2])[0]
                 check_energy += -2.0*fc*cos**2
     if not abs(energy - check_energy) < 1e-8:
         raise AssertionError("Energy should be %10.9e, instead it is %10.9e" %(check_energy, energy))

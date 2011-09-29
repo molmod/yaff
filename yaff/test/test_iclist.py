@@ -41,7 +41,7 @@ def test_iclist_quartz_bonds():
     for row, (i, j) in enumerate(system.topology.bonds):
         delta = system.pos[j] - system.pos[i]
         system.cell.mic(delta)
-        assert abs(iclist.ictab[row]['value'] - bond_length(np.zeros(3, float), delta)[0]) < 1e-5
+        assert abs(iclist.ictab[row]['value'] - bond_length([np.zeros(3, float), delta])[0]) < 1e-5
 
 
 def test_iclist_quartz_bend_cos():
@@ -62,7 +62,7 @@ def test_iclist_quartz_bend_cos():
         system.cell.mic(delta0)
         delta2 = system.pos[i1] - system.pos[i2]
         system.cell.mic(delta2)
-        assert abs(iclist.ictab[row]['value'] - bend_cos(delta0, np.zeros(3, float), delta2)[0]) < 1e-5
+        assert abs(iclist.ictab[row]['value'] - bend_cos([delta0, np.zeros(3, float), delta2])[0]) < 1e-5
 
 
 def test_iclist_quartz_bend_angle():
@@ -83,7 +83,7 @@ def test_iclist_quartz_bend_angle():
         system.cell.mic(delta0)
         delta2 = system.pos[i1] - system.pos[i2]
         system.cell.mic(delta2)
-        assert abs(iclist.ictab[row]['value'] - bend_angle(delta0, np.zeros(3, float), delta2)[0]) < 1e-5
+        assert abs(iclist.ictab[row]['value'] - bend_angle([delta0, np.zeros(3, float), delta2])[0]) < 1e-5
 
 
 def test_iclist_peroxide_dihedral_cos():
@@ -103,7 +103,7 @@ def test_iclist_peroxide_dihedral_cos():
         dlist.forward()
         iclist.forward()
         assert iclist.ictab[3]['kind']==3 #assert the third ic is DihedralCos
-        assert abs(iclist.ictab[3]['value'] - dihed_cos(system.pos[0],system.pos[1],system.pos[2],system.pos[3])[0]) < 1e-5
+        assert abs(iclist.ictab[3]['value'] - dihed_cos(system.pos)[0]) < 1e-5
 
 
 def test_iclist_peroxide_dihedral_angle():
@@ -123,7 +123,7 @@ def test_iclist_peroxide_dihedral_angle():
         dlist.forward()
         iclist.forward()
         assert iclist.ictab[3]['kind']==4 #assert the third ic is DihedralAngle
-        assert abs(iclist.ictab[3]['value'] - dihed_angle(system.pos[0],system.pos[1],system.pos[2],system.pos[3])[0]) < 1e-5
+        assert abs(iclist.ictab[3]['value'] - dihed_angle(system.pos)[0]) < 1e-5
 
 
 
@@ -164,7 +164,7 @@ def test_iclist_grad_dihedral_cos_mil53():
                 system.cell.mic(delta1)
                 system.cell.mic(delta2)
 
-                check_cos, check_grad = dihed_cos(delta0, np.zeros(3, float), delta1, delta1+delta2,deriv=1)
+                check_cos, check_grad = dihed_cos([delta0, np.zeros(3, float), delta1, delta1+delta2],deriv=1)
                 check_grad_d0 = check_grad[0,:]
                 check_grad_d1 = -check_grad[0,:] - check_grad[1,:]
                 check_grad_d2 = check_grad[3,:]
@@ -226,4 +226,4 @@ def test_iclist_ub_water():
     for row, (i0, i1, i2) in enumerate(ub):
         delta = system.pos[i2] - system.pos[i0]
         system.cell.mic(delta)
-        assert abs(iclist.ictab[row]['value'] - bond_length(np.zeros(3, float), delta)[0]) < 1e-5
+        assert abs(iclist.ictab[row]['value'] - bond_length([np.zeros(3, float), delta])[0]) < 1e-5
