@@ -20,17 +20,23 @@
 #
 # --
 
-from yaff.ext import *
-from yaff.dlist import *
-from yaff.iclist import *
-from yaff.input import *
-from yaff.vlist import *
-from yaff.ff import *
-from yaff.log import *
-from yaff.md import *
-from yaff.nlists import *
-from yaff.optimizer import *
-from yaff.output import *
-from yaff.scaling import *
-from yaff.system import *
-from yaff.topology import *
+
+from StringIO import StringIO
+
+from yaff.log import ScreenLog
+
+
+def test_line_wrapping():
+    f = StringIO()
+    log = ScreenLog(f)
+    log('NVE', 'This is just a long test message that should get splitted into two lines properly.')
+    assert f.getvalue() == '_____NVE This is just a long test message that should get splitted into two\n_____NVE lines properly.\n'
+    f.close()
+
+
+def test_levels():
+    log = ScreenLog()
+    assert log.do_medium
+    assert not log.do_high
+    log.set_level(log.low)
+    assert not log.do_medium
