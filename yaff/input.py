@@ -23,15 +23,11 @@
 import numpy as np
 
 from molmod.units import *
-from molmod.molecules import Molecule
-from molmod.unit_cells import UnitCell
-from molmod.io.psf import PSFFile
 
 from yaff.system import System
 
-__all__ = [
-    'get_system', 'get_val_table',
-]
+
+__all__ = ['get_val_table']
 
 
 units = {
@@ -41,34 +37,6 @@ units = {
     'A':            angstrom,
     'deg':          deg,
 }
-
-
-def get_system(fn_xyz, fn_psf):
-    """
-        A method for constructing a System object from a xyz and psf file.
-        The cell parameters should be specified in the title of the xyz file by
-        putting all the elements of the 3x3 matrix after each other in angstrom:
-
-        example of xyz file:
-
-                  76
-              16.243 0.0 0.0 0.0 6.635 0.0 0.0 0.0 13.494           ==> in angstrom
-              Al 0.000 0.000 0.000                                  ==> in bohr
-              Al 0.000 0.000 3.857
-              ...
-    """
-    mol = Molecule.from_file(fn_xyz)
-    rvecs = np.array([float(w) for w in mol.title.split()]).reshape((3,-1))*angstrom
-    mol.unit_cell = UnitCell(rvecs.transpose())
-    mol.set_default_graph()
-    psf = PSFFile(fn_psf)
-    return System(
-        numbers=mol.numbers,
-        pos=mol.coordinates.copy(),
-        ffatypes=psf.atom_types,
-        bonds=psf.bonds,
-        rvecs=rvecs,
-    )
 
 
 def get_val_table(fn_val):
