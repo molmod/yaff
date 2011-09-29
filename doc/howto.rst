@@ -26,7 +26,7 @@ four steps given above::
     from yaff import *
     # control the amount of screen output and the unit system
     log.set_level(log.medium)
-    log.set_units(log.joule)
+    log.set_unitsys(log.joule)
 
     # 1) specify the system
     system = System.from_file('system.chk')
@@ -50,7 +50,7 @@ the following import statement::
 
 **TODO:**
 
-1. [DONE, NOT USED YET] Implement the log object. Usage should be as follows::
+1. [DONE] Implement the log object. Usage should be as follows::
 
     if log.do_medium:
         log('This is a message printed at the medium log level and at higher log levels, e.g. \'high\' and \'debug\'.')
@@ -61,27 +61,30 @@ the following import statement::
    reserving the first 8 characters for a location specifier, e.g. ::
 
     if log.do_medium:
-        log('FOO', 'This is a message printed at the medium log level and at higher log levels, e.g. \'high\' and \'debug\'.')
+        log.set_prefix('FOO')
+        log('This is a message printed at the medium log level and at higher log levels, e.g. \'high\' and \'debug\'.')
+        log('Multiple', 'strings', 'work', 'too.')
 
    would result in::
 
     ____FOO This is a message printed at the medium log level and at higher log
     ____FOO levels, e.g. 'high' and 'debug'.
+    ____FOO Multiple strings work too.'
 
    The following levels are useful: silent,  warning, low, medium, high, debug.
 
-2. A banner should be printed, unless the debug level is silent, when the first
-   System instance is created. This should be followed by some basic info such
-   as user, date, machine, python version, yaff version, ... Then some info
+2. [DONE] A banner should be printed, unless the debug level is silent, when the
+   first call to the logger is made. This should be followed by some basic info
+   such as user, date, machine, python version, yaff version, ... Then some info
    about the units should follow. (See below.)
 
-3. A footer should be printed, unless the debug level is silent, right before
-   the interpreter exits. This can be done with the ``atexit`` module::
+3. [DONE] A footer should be printed, unless the debug level is silent, right
+   before the interpreter exits. This can be done with the ``atexit`` module::
 
     import atexit
     atexit.register(log.footer)
 
-4. Make the logger unit-aware. This should allow the user to have the
+4. [DONE] Make the logger unit-aware. This should allow the user to have the
    human-readable screen output printed in his/her unit of preference. It should
    be configured as follows::
 

@@ -37,3 +37,5 @@ from yaff.output import *
 from yaff.scaling import *
 from yaff.system import *
 from yaff.topology import *
+
+__version__ = '0.0'

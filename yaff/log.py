@@ -21,10 +21,83 @@
 # --
 
 
-import sys
+import sys, atexit, os, datetime
+
+from molmod.units import kjmol, kcalmol, electronvolt, angstrom, nanometer, \
+    femtosecond, picosecond, amu, deg
 
 
 __all__ = ['ScreenLog', 'log']
+
+
+head_banner = r"""
+_____/\\\________/\\\___/\\\\\\\\\______/\\\\\\\\\\\\\\\__/\\\\\\\\\\\\\\\______
+_____\///\\\____/\\\/__/\\\\\\\\\\\\\___\ \\\///////////__\ \\\///////////______
+________\///\\\/\\\/___/\\\/////////\\\__\ \\\_____________\ \\\________________
+___________\///\\\/____\ \\\_______\ \\\__\ \\\\\\\\\\\_____\ \\\\\\\\\\\_______
+______________\ \\\_____\ \\\\\\\\\\\\\\\__\ \\\///////______\ \\\///////_______
+_______________\ \\\_____\ \\\/////////\\\__\ \\\_____________\ \\\_____________
+________________\ \\\_____\ \\\_______\ \\\__\ \\\_____________\ \\\____________
+_________________\ \\\_____\ \\\_______\ \\\__\ \\\_____________\ \\\___________
+__________________\///______\///________\///___\///______________\///___________
+
+
+                 Welcome to YAFF - yet another force field code
+
+                                   Written by
+                  Toon Verstraelen(1)* and Louis Vanduyfhuys(1)
+
+(1) Center for Molecular Modeling, Ghent University Belgium.
+* mailto: Toon.Vesrtraelen@UGent.be
+"""
+
+
+foot_banner = r"""
+__/\\\__________________________________________________________________/\\\____
+  \ \\\                                                                 \ \\\
+   \ \\\      End of file. Thanks for using YAFF! Come back soon!!       \ \\\
+____\///__________________________________________________________________\///__
+"""
+
+
+class UnitSystem(object):
+    def __init__(self, energy, length, time, mass, charge, force, forceconst, velocity, acceleration, angle):
+        self.energy = energy
+        self.length = length
+        self.time = time
+        self.mass = mass
+        self.force = force
+        self.forceconst = forceconst
+        self.velocity = velocity
+        self.angle = angle
+
+    def log_info(self):
+        if log.do_low:
+            log.set_prefix('UNITS')
+            log('The following units will be used below:')
+            log('~'*log.content)
+            log('Type          Conversion             Notation')
+            log('~'*log.content)
+            log('Energy        %21.15e  %s' % self.energy)
+            log('Length        %21.15e  %s' % self.length)
+            log('Time          %21.15e  %s' % self.time)
+            log('Mass          %21.15e  %s' % self.mass)
+            log('Force         %21.15e  %s' % self.force)
+            log('Force Const.  %21.15e  %s' % self.forceconst)
+            log('Veolicty      %21.15e  %s' % self.velocity)
+            log('Acceleration  %21.15e  %s' % self.angle)
+            log('~'*log.content)
+            log('The conversion factor is divided by the internal units to get screen output in these units.')
+
+    def apply(self, some):
+        some.energy = self.energy[1]
+        some.length = self.length[1]
+        some.time = self.time[1]
+        some.mass = self.mass[1]
+        some.force = self.force[1]
+        some.forceconst = self.forceconst[1]
+        some.velocity = self.velocity[1]
+        some.angle = self.angle[1]
 
 
 class ScreenLog(object):
@@ -40,8 +113,75 @@ class ScreenLog(object):
     margin = 8
     content = 71
 
+    # unit systems
+    joule = UnitSystem(
+        energy=(kjmol, 'kJ/mol'),
+        length=(angstrom, 'A'),
+        time=(femtosecond, 'fs'),
+        mass=(amu, 'amu'),
+        charge=(1, 'e'),
+        force=(kjmol/angstrom, 'kJ/mol/A'),
+        forceconst=(kjmol/angstrom**2, 'kJ/mol/A**2'),
+        velocity=(angstrom/femtosecond, 'A/fs'),
+        acceleration=(angstrom/femtosecond**2, 'A/fs**2'),
+        angle=(deg, 'deg'),
+    )
+    cal = UnitSystem(
+        energy=(kcalmol, 'kcal/mol'),
+        length=(angstrom, 'A'),
+        time=(femtosecond, 'fs'),
+        mass=(amu, 'amu'),
+        charge=(1, 'e'),
+        force=(kcalmol/angstrom, 'kcal/mol/A'),
+        forceconst=(kjmol/angstrom**2, 'kcal/mol/A**2'),
+        velocity=(angstrom/femtosecond, 'A/fs'),
+        acceleration=(angstrom/femtosecond**2, 'A/fs**2'),
+        angle=(deg, 'deg'),
+    )
+    solid = UnitSystem(
+        energy=(kcalmol, 'eV/mol'),
+        length=(angstrom, 'A'),
+        time=(femtosecond, 'fs'),
+        mass=(amu, 'amu'),
+        charge=(1, 'e'),
+        force=(kcalmol/angstrom, 'eV/mol/A'),
+        forceconst=(kjmol/angstrom**2, 'eV/mol/A**2'),
+        velocity=(angstrom/femtosecond, 'A/fs'),
+        acceleration=(angstrom/femtosecond**2, 'A/fs**2'),
+        angle=(deg, 'deg'),
+    )
+    bio = UnitSystem(
+        energy=(kcalmol, 'kcal/mol'),
+        length=(nanometer, 'nm'),
+        time=(picosecond, 'ps'),
+        mass=(amu, 'amu'),
+        charge=(1, 'e'),
+        force=(kcalmol/nanometer, 'kcal/mol/nm'),
+        forceconst=(kjmol/nanometer**2, 'kcal/mol/nm**2'),
+        velocity=(nanometer/picosecond, 'A/ps'),
+        acceleration=(nanometer/picosecond**2, 'A/ps**2'),
+        angle=(deg, 'deg'),
+    )
+    atomic = UnitSystem(
+        energy=(1, 'E_h'),
+        length=(1, 'a_0'),
+        time=(1, 'a.u.t'),
+        mass=(1, 'amu'),
+        charge=(1, 'e'),
+        force=(1, 'E_h/a_0'),
+        forceconst=(1, 'E_h/a_0**2'),
+        velocity=(1, 'a_0/a.u.t'),
+        acceleration=(1, 'a_0/a.u.t**2'),
+        angle=(1, 'rad'),
+    )
+
+
     def __init__(self, f=None):
+        self._active = False
         self._level = self.medium
+        self.unitsys = self.joule
+        self.unitsys.apply(self)
+        self.prefix = '_'*(self.margin-1)
         if f is None:
             self._file = sys.stdout
         else:
@@ -58,8 +198,15 @@ class ScreenLog(object):
             raise ValueError('The level must be one of the ScreenLog attributes.')
         self._level = level
 
-    def __call__(self, key, s):
-        key = key.upper().rjust(self.margin, '_')
+    def __call__(self, *words):
+        s = ' '.join(words)
+        if not self.do_low:
+            raise RuntimeError('The runlevel should be at least low when logging.')
+        if not self._active:
+            prefix = self.prefix
+            self.print_header()
+            self.prefix = prefix
+            print >> self._file
         while len(s) > 0:
             if len(s) > self.content:
                 pos = s.rfind(' ', 0, self.content)
@@ -72,7 +219,43 @@ class ScreenLog(object):
             else:
                 current = s
                 s = ''
-            print >> self._file, key, current
+            print >> self._file, self.prefix, current
+
+    def set_prefix(self, prefix):
+        if len(prefix) > self.margin-1:
+            raise ValueError('The prefix must be at most %s characters wide.' % (self.margin-1))
+        self.prefix = prefix.upper().rjust(self.margin-1, '_')
+        if self._active:
+            print >> self._file
+
+    def set_unitsys(self, unitsys):
+        self.unitsys = unitsys
+        self.unitsys.apply(self)
+        if self._active:
+            self.unitsys.log_info()
+
+    def print_header(self):
+        if self.do_low and not self._active:
+            self._active = True
+            print >> self._file, head_banner
+            self._print_basic_info()
+            self.unitsys.log_info()
+
+    def print_footer(self):
+        # Do not show footer when program crashes.
+        if self.do_low and sys.exc_info()[0] is None and self._active:
+            self._print_basic_info()
+            print >> self._file, foot_banner
+
+    def _print_basic_info(self):
+            import yaff
+            log.set_prefix('ENV')
+            log('User:          ', os.getlogin())
+            log('Machine info:  ', *os.uname())
+            log('Time:          ', datetime.datetime.now().isoformat())
+            log('Python version:', sys.version.replace('\n', ''))
+            log('YAFF version:  ', yaff.__version__)
 
 
 log = ScreenLog()
+atexit.register(log.print_footer)

@@ -29,8 +29,11 @@ from yaff.log import ScreenLog
 def test_line_wrapping():
     f = StringIO()
     log = ScreenLog(f)
-    log('NVE', 'This is just a long test message that should get splitted into two lines properly.')
-    assert f.getvalue() == '_____NVE This is just a long test message that should get splitted into two\n_____NVE lines properly.\n'
+    log._active = True
+    log.set_prefix('NVE')
+    log('This is just a long test message that should get splitted into two lines properly.')
+    print (f.getvalue(),)
+    assert f.getvalue() == '\n____NVE This is just a long test message that should get splitted into two\n____NVE lines properly.\n'
     f.close()
 
 

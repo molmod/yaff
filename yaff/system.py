@@ -103,6 +103,7 @@ class System(object):
                 Internal text-based checkpoint format. It just contains a
                 dictionary with the constructor arguments.
         """
+        log.set_prefix('SYS')
         kwargs = {}
         for fn in fns:
             if fn.endswith('.xyz'):
@@ -133,7 +134,7 @@ class System(object):
             else:
                 raise IOError('Can not read from file \'%s\'.' % fn)
             if log.do_high:
-                log('SYS', 'Read system parameters from %s.' % fn)
+                log('Read system parameters from %s.' % fn)
         kwargs.update(user_kwargs)
         return cls(**kwargs)
 
