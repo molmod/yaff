@@ -27,7 +27,7 @@ from molmod.constants import boltzmann
 from molmod.io.xyz import XYZWriter
 from molmod.periodic import periodic
 
-from yaff.ff import PairPart
+from yaff.ff import ForcePartPair
 from yaff.ext import PairPotEI
 
 __all__ = [
@@ -111,7 +111,7 @@ class MolecularDynamics(object):
 
     def get_dipole(self):
         for part in self.ff.parts:
-            if isinstance(part, PairPart):
+            if isinstance(part, ForcePartPair):
                 if isinstance(part.pair_pot, PairPotEI):
                     charges = (part.pair_pot.charges).reshape((-1,1))
         dipole       = sum(charges*self.pos)

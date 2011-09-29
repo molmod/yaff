@@ -193,7 +193,7 @@ def test_vlist_peroxide_dihed_angle():
 
 def test_vlist_polyfour_water32():
     system = get_system_water32()
-    part = ValencePart(system)
+    part = ForcePartValence(system)
     for i, j in system.topology.bonds:
         part.add_term(PolyFour([1.1+0.01*i, 0.8+0.01*j, 0.6+0.01*i, 0.4+0.01*j], Bond(i, j)))
     energy = part.compute()
@@ -208,7 +208,7 @@ def test_vlist_polyfour_water32():
 
 def test_vlist_cross_water32():
     system = get_system_water32()
-    part = ValencePart(system)
+    part = ForcePartValence(system)
     for j in xrange(system.natom):
         if len(system.topology.neighs1[j])==2:
             i, k = system.topology.neighs1[j]
@@ -236,7 +236,7 @@ def test_vlist_cross_water32():
 
 def test_vlist_dihedral_cos_mil53():
     system = get_system_mil53()
-    part = ValencePart(system)
+    part = ForcePartValence(system)
     for i1, i2 in system.topology.bonds:
         for i0 in system.topology.neighs1[i1]:
             if i0==i2: continue
@@ -266,7 +266,7 @@ def test_vlist_dihedral_cos_mil53():
 
 def test_gpos_vtens_bond_water32():
     system = get_system_water32()
-    part = ValencePart(system)
+    part = ForcePartValence(system)
     for i, j in system.topology.bonds:
         part.add_term(Harmonic(0.3, 1.7, Bond(i, j)))
     check_gpos_part(system, part, 1e-10)
@@ -275,7 +275,7 @@ def test_gpos_vtens_bond_water32():
 
 def test_gpos_vtens_bond_fues_water32():
     system = get_system_water32()
-    part = ValencePart(system)
+    part = ForcePartValence(system)
     for i, j in system.topology.bonds:
         part.add_term(Fues(0.3, 1.7, Bond(i, j)))
     check_gpos_part(system, part, 1e-10)
@@ -284,7 +284,7 @@ def test_gpos_vtens_bond_fues_water32():
 
 def test_gpos_vtens_bend_cos_water32():
     system = get_system_water32()
-    part = ValencePart(system)
+    part = ForcePartValence(system)
     for i1 in xrange(system.natom):
         for i0 in system.topology.neighs1[i1]:
             for i2 in system.topology.neighs1[i1]:
@@ -296,7 +296,7 @@ def test_gpos_vtens_bend_cos_water32():
 
 def test_gpos_vtens_bend_angle_water32():
     system = get_system_water32()
-    part = ValencePart(system)
+    part = ForcePartValence(system)
     for i1 in xrange(system.natom):
         for i0 in system.topology.neighs1[i1]:
             for i2 in system.topology.neighs1[i1]:
@@ -308,7 +308,7 @@ def test_gpos_vtens_bend_angle_water32():
 
 def test_gpos_vtens_dihed_cos_peroxide():
     system = get_system_peroxide()
-    part = ValencePart(system)
+    part = ForcePartValence(system)
     part.add_term(Harmonic(1.1, -0.2, DihedCos(0,1,2,3)))
     check_gpos_part(system, part, 1e-10)
     check_vtens_part(system, part, 1e-8)
@@ -316,7 +316,7 @@ def test_gpos_vtens_dihed_cos_peroxide():
 
 def test_gpos_vtens_dihed_angle_peroxide():
     system = get_system_peroxide()
-    part = ValencePart(system)
+    part = ForcePartValence(system)
     part.add_term(Harmonic(1.5, 1.0, DihedAngle(0,1,2,3)))
     check_gpos_part(system, part, 1e-9)
     check_vtens_part(system, part, 1e-8)
@@ -355,7 +355,7 @@ def test_gpos_vtens_2T():
         ('O', 'H'):        0.60322,
     }
 
-    part = ValencePart(system)
+    part = ForcePartValence(system)
     for i, j in system.topology.bonds:
         key = system.ffatypes[i], system.ffatypes[j]
         part.add_term(Harmonic(fc_table[key], rv_table[key], Bond(i, j)))
@@ -368,7 +368,7 @@ def test_gpos_vtens_2T():
     check_gpos_part(system, part, 1e-10)
     check_vtens_part(system, part, 1e-10)
     # same test but with Fues bonds instead of Harmonic bonds
-    part = ValencePart(system)
+    part = ForcePartValence(system)
     for i, j in system.topology.bonds:
         key = system.ffatypes[i], system.ffatypes[j]
         part.add_term(Fues(fc_table[key], rv_table[key], Bond(i, j)))
@@ -395,7 +395,7 @@ def test_gpos_vtens_quartz():
         ('Si', 'O', 'Si'): 0.00751,
     }
 
-    part = ValencePart(system)
+    part = ForcePartValence(system)
     for i, j in system.topology.bonds:
         key = system.ffatypes[i], system.ffatypes[j]
         part.add_term(Harmonic(fc_table[key], rv_table[key], Bond(i, j)))
@@ -412,7 +412,7 @@ def test_gpos_vtens_quartz():
 
 def test_gpos_vtens_polyfour_water32():
     system = get_system_water32()
-    part = ValencePart(system)
+    part = ForcePartValence(system)
     for i, j in system.topology.bonds:
         part.add_term(PolyFour([-0.5, 0.3, -0.16, 0.09], Bond(i, j)))
     check_gpos_part(system, part, 1e-9)
@@ -421,7 +421,7 @@ def test_gpos_vtens_polyfour_water32():
 
 def test_gpos_vtens_cross_water32():
     system = get_system_water32()
-    part = ValencePart(system)
+    part = ForcePartValence(system)
     for j in xrange(system.natom):
         if len(system.topology.neighs1[j])==2:
             i, k = system.topology.neighs1[j]
@@ -462,7 +462,7 @@ def test_gpos_vtens_dihedral_cos_mil53():
                 if types in forbidden_dihedrals or types[::-1] in forbidden_dihedrals: continue
                 idih += 1
                 fc = 2.1 + 0.01*(0.3*i1 + 0.7*i2)
-                part = ValencePart(system)
+                part = ForcePartValence(system)
                 part.add_term(PolyFour([-2.0*fc,0.0001,0.0,0.0],DihedCos(i0,i1,i2,i3)))
                 check_gpos_part(system, part, 1e-9)
                 check_vtens_part(system, part, 1e-9)
@@ -470,7 +470,7 @@ def test_gpos_vtens_dihedral_cos_mil53():
 
 def test_gpos_vtens_ub_water():
     system = get_system_water32()
-    part = ValencePart(system)
+    part = ForcePartValence(system)
     for i1 in xrange(system.natom):
         for i0 in system.topology.neighs1[i1]:
             for i2 in system.topology.neighs1[i1]:

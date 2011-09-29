@@ -23,21 +23,35 @@
 
 import numpy as np
 
-from yaff.ext import compute_ewald_reci, compute_ewald_corr, PairPotEI, PairPotLJ, PairPotMM3, PairPotGrimme
+from yaff.ext import compute_ewald_reci, compute_ewald_corr, PairPotEI, \
+    PairPotLJ, PairPotMM3, PairPotGrimme
 from yaff.dlist import DeltaList
 from yaff.iclist import *
 from yaff.vlist import *
 
 
 __all__ = [
-    'ForcePart', 'ForceField', 'PairPart', 'EwaldReciprocalPart',
-    'EwaldCorrectionPart', 'EwaldNeutralizingPart', 'ValencePart',
-    'add_bonds', 'add_bends', 'add_dihedrals', 'add_ubs'
+    'ForcePart', 'ForceField', 'ForcePartPair', 'ForcePartEwaldReciprocal',
+    'ForcePartEwaldCorrection', 'ForcePartEwaldNeutralizing', 'ForcePartValence',
+    'add_bonds', 'add_bends', 'add_dihedrals', 'add_ubs',
 ]
 
 
 class ForcePart(object):
-    def __init__(self, system):
+    def __init__(self, name, system):
+        """
+           **Arguments:**
+
+           name
+                A name for this part of the force field. This name must adhere
+                to the following conventions: all lower case, no white space,
+                and short. It is used to construct part_* attributes in the
+                ForceField class, where * is the name.
+
+           system
+                The system where this part of the FF is applied to.
+        """
+        self.name = name
         # backup copies of last call to compute:
         self.energy = 0.0
         self.gpos = np.zeros((system.natom, 3), float)
@@ -45,18 +59,41 @@ class ForcePart(object):
         self.clear()
 
     def clear(self):
-        # Fill in bogus values that make things crash and burn
+        """Fill in bogus values that make things crash and burn"""
         self.energy = np.nan
         self.gpos[:] = np.nan
         self.vtens[:] = np.nan
 
     def update_rvecs(self, rvecs):
+
         self.clear()
 
     def update_pos(self, pos):
         self.clear()
 
     def compute(self, gpos=None, vtens=None):
+        """Compute the energy and optionally some derivatives for this FF (part)
+
+           **Optional arguments:**
+
+           gpos
+                The derivatives of the energy towards the Cartesian coordinates
+                of the atoms. ('g' stands for gradient and 'pos' for positions.)
+                This must be a writeable numpy array with shape (N, 3) where N
+                is the number of atoms.
+
+           vtens
+                The force contribution to the pressure tensor. This is also
+                known as the virial tensor. It represents the derivative of the
+                energy towards uniform deformations, including changes in the
+                shape of the unit cell. (v stands for virial and 'tens' stands
+                for tensor.) This must be a writeable numpy array with shape (3,
+                3).
+
+           The energy is returned. The optional arguments are Fortran-style
+           output arguments. When they are present, the corresponding results
+           are computed and **added** to the current contents of the array.
+        """
         if gpos is None:
             my_gpos = None
         else:
@@ -80,34 +117,34 @@ class ForcePart(object):
 
 class ForceField(ForcePart):
     def __init__(self, system, parts, nlists=None):
-        ForcePart.__init__(self, system)
+        """
+           **Arguments:**
+
+           system
+                An instance of the System class.
+
+           parts
+                A list of instances of sublcasses of ForcePart. These are
+                the different types of contributions to the force field, e.g.
+                valence interactions, real-space electrostatics, and so on.
+
+           **Optional arguments:**
+
+           nlists
+                A NeighborLists instance. This is only required if some parts
+                use this.
+        """
+        ForcePart.__init__(self, 'all', system)
         self.system = system
         self.parts = parts
         self.nlists = nlists
         self.needs_nlists_update = nlists is not None
-
-    def get_parts(self):
-        vpart = None
-        eipart = None
-        vdwpart = None
-        ewaldpart = None
-        ewaldcorrpart = None
-        ewaldneutpart = None
-        for part in self.parts:
-            if isinstance(part, ValencePart):
-                vpart = part
-            if isinstance(part, PairPart):
-                if isinstance(part.pair_pot, PairPotEI):
-                    eipart = part
-                if isinstance(part.pair_pot, PairPotLJ) or isinstance(part.pair_pot, PairPotMM3) or isinstance(part.pair_pot, PairPotGrimme):
-                    vdwpart = part
-            if isinstance(part, EwaldReciprocalPart):
-                ewaldpart = part
-            if isinstance(part, EwaldCorrectionPart):
-                ewaldcorrpart = part
-            if isinstance(part, EwaldNeutralizingPart):
-                ewaldneutpart = part
-        return vpart, eipart, vdwpart, ewaldpart, ewaldcorrpart, ewaldneutpart
+        # Make the parts also accessible as simple attributes.
+        for part in parts:
+            name = 'part_%s' % part.name
+            if name in self.__dict__:
+                raise ValueError('The part %s occurs twice in the force field.' % name)
+            self.__dict__[name] = part
 
     def update_rvecs(self, rvecs):
         ForcePart.update_rvecs(self, rvecs)
@@ -128,9 +165,9 @@ class ForceField(ForcePart):
         return sum([part.compute(gpos, vtens) for part in self.parts])
 
 
-class PairPart(ForcePart):
+class ForcePartPair(ForcePart):
     def __init__(self, system, nlists, scalings, pair_pot):
-        ForcePart.__init__(self, system)
+        ForcePart.__init__(self, 'pair_%s' % pair_pot.name, system)
         self.nlists = nlists
         self.scalings = scalings
         self.pair_pot = pair_pot
@@ -144,9 +181,9 @@ class PairPart(ForcePart):
         return result
 
 
-class EwaldReciprocalPart(ForcePart):
+class ForcePartEwaldReciprocal(ForcePart):
     def __init__(self, system, charges, alpha, gcut=0.35):
-        ForcePart.__init__(self, system)
+        ForcePart.__init__(self, 'ewald_reci', system)
         if not system.cell.nvec == 3:
             raise TypeError('The system must have a 3D periodic cell')
         self.system = system
@@ -172,9 +209,9 @@ class EwaldReciprocalPart(ForcePart):
         return energy
 
 
-class EwaldCorrectionPart(ForcePart):
+class ForcePartEwaldCorrection(ForcePart):
     def __init__(self, system, charges, alpha, scalings):
-        ForcePart.__init__(self, system)
+        ForcePart.__init__(self, 'ewald_cor', system)
         if not system.cell.nvec == 3:
             raise TypeError('The system must have a 3D periodic cell')
         self.system = system
@@ -191,9 +228,9 @@ class EwaldCorrectionPart(ForcePart):
         ])
 
 
-class EwaldNeutralizingPart(ForcePart):
+class ForcePartEwaldNeutralizing(ForcePart):
     def __init__(self, system, charges, alpha):
-        ForcePart.__init__(self, system)
+        ForcePart.__init__(self, 'ewald_neut', system)
         if not system.cell.nvec == 3:
             raise TypeError('The system must have a 3D periodic cell')
         self.system = system
@@ -207,9 +244,9 @@ class EwaldNeutralizingPart(ForcePart):
         return fac
 
 
-class ValencePart(ForcePart):
+class ForcePartValence(ForcePart):
     def __init__(self, system):
-        ForcePart.__init__(self, system)
+        ForcePart.__init__(self, 'valence', system)
         self.dlist = DeltaList(system)
         self.iclist = InternalCoordinateList(self.dlist)
         self.vlist = ValenceList(self.iclist)
@@ -228,19 +265,21 @@ class ValencePart(ForcePart):
         return energy
 
 
-# Methods to add bonds, bends, ... to ff object from a val_table dictinairy
+# Methods to add bonds, bends, ... to ff object from a val_table dictionary
 
-def add_bonds(system, vpart, val_table, convert_harmonic_to_fues=False):
+def add_bonds(system, part_valence, val_table, convert_harmonic_to_fues=False):
     """
-        Add bonds present in system to vpart (a ValencePart instance) with parameters from the val_table dictionairy.
-        This val_table dictionairy can be retrieved using the get_val_table method of the input module.
-        The method returns 2 strings:
+        Add bonds present in system to part_valence (a ForcePartValence
+        instance) with parameters from the val_table dictionary. This val_table
+        dictionary can be retrieved using the get_val_table method of the input
+        module. The method returns 2 strings:
 
             warnings = list of warnings (missing terms)
             added    = list of added terms
 
-        If convert_harmonic_to_fues is set to True, all Harmonic bonds will be converted to Fues bond with numerical identical
-        force constant and rest value.
+        If convert_harmonic_to_fues is set to True, all Harmonic bonds will be
+        converted to Fues bond with numerical identical force constant and rest
+        value.
     """
     warnings = ""
     added = ""
@@ -260,21 +299,22 @@ def add_bonds(system, vpart, val_table, convert_harmonic_to_fues=False):
                 else:
                     raise ValueError("Error reading parameters in bond term")
                 if convert_harmonic_to_fues:
-                    vpart.add_term(Fues(fc, rv, Bond(i, j)))
+                    part_valence.add_term(Fues(fc, rv, Bond(i, j)))
                     added += "    Bond    :  Fues(%s[%i] - %s[%i])\n" %(key[0], i, key[1], j)
                 else:
-                    vpart.add_term(Harmonic(fc, rv, Bond(i, j)))
+                    part_valence.add_term(Harmonic(fc, rv, Bond(i, j)))
                     added += "    Bond    :  Harmonic(%s[%i] - %s[%i])\n" %(key[0], i, key[1], j)
             else:
                 raise NotImplementedError("Bond term of kind %s(%s) not supported" %(terminfo[0], terminfo[1]) )
     return added, warnings
 
 
-def add_bends(system, vpart, val_table):
+def add_bends(system, part_valence, val_table):
     """
-        Add bends present in system to vpart (a ValencePart instance) with parameters from the val_table dictionairy.
-        This val_table dictionairy can be retrieved using the get_val_table method of the input module.
-        The method returns 2 strings:
+        Add bends present in system to part_valence (a ForcePartValence
+        instance) with parameters from the val_table dictionary. This val_table
+        dictionary can be retrieved using the get_val_table method of the input
+        module. The method returns 2 strings:
 
             warnings = list of warnings (missing terms)
             added    = list of added terms
@@ -299,25 +339,26 @@ def add_bends(system, vpart, val_table):
                                 rv = terminfo[2][0][1]
                             else:
                                 raise ValueError("Error reading parameters in bond term")
-                            vpart.add_term(Harmonic(fc, rv, BendAngle(i0, i1, i2)))
+                            part_valence.add_term(Harmonic(fc, rv, BendAngle(i0, i1, i2)))
                             added += "    Bend    :  Harmonic(%s[%i] - %s[%i] - %s[%i])\n" %(key[0], i0, key[1], i1, key[2], i2)
                         elif terminfo[0]=="sqbend" and terminfo[1]=="cangle":
                             if terminfo[2][0][0]=="K":
                                 fc = terminfo[2][0][1]
                             else:
                                 raise ValueError("Error reading parameters in bend term")
-                            vpart.add_term(PolyFour([0, fc, fc, 0], BendCos(i0, i1, i2)))
+                            part_valence.add_term(PolyFour([0, fc, fc, 0], BendCos(i0, i1, i2)))
                             added += "    Bend    :  PolyFour(%s[%i] - %s[%i] - %s[%i])\n" %(key[0], i0, key[1], i1, key[2], i2)
                         else:
                             raise NotImplementedError("Bend term of kind %s(%s) not supported" %(terminfo[0], terminfo[1]) )
     return added, warnings
 
 
-def add_dihedrals(system, vpart, val_table, only_dihedral_number=None):
+def add_dihedrals(system, part_valence, val_table, only_dihedral_number=None):
     """
-        Add dihedrals present in system to vpart (a ValencePart instance) with parameters from the val_table dictionairy.
-        This val_table dictionairy can be retrieved using the get_val_table method of the input module.
-        The method returns 2 strings:
+        Add dihedrals present in system to part_valence (a ForcePartValence
+        instance) with parameters from the val_table dictionary. This val_table
+        dictionary can be retrieved using the get_val_table method of the input
+        module. The method returns 2 strings:
 
             warnings = list of warnings (missing terms)
             added    = list of added terms
@@ -342,24 +383,25 @@ def add_dihedrals(system, vpart, val_table, only_dihedral_number=None):
                                 fc = terminfo[2][0][1]
                             else:
                                 raise ValueError("Error reading parameters in dihed term")
-                            vpart.add_term(PolyFour([0.0, -2*fc, 0.0, 0.0], DihedCos(i0, i1, i2, i3)))
+                            part_valence.add_term(PolyFour([0.0, -2*fc, 0.0, 0.0], DihedCos(i0, i1, i2, i3)))
                             added += "    Dihedral:  PolyFour(%s[%i] - %s[%i] - %s[%i] - %s[%i])\n" %(key[0], i0, key[1], i1, key[2], i2, key[3], i3)
                         elif terminfo[0]=="cos-m1-0" and terminfo[1]=="dihed":
                             if terminfo[2][0][0]=="K":
                                 fc = terminfo[2][0][1]
                             else:
                                 raise ValueError("Error reading parameters in dihed term")
-                            vpart.add_term(PolyFour([-fc_table[key], 0.0, 0.0, 0.0], DihedCos(i0, i1, i2, i3)))
+                            part_valence.add_term(PolyFour([-fc_table[key], 0.0, 0.0, 0.0], DihedCos(i0, i1, i2, i3)))
                             added += "    Dihedral:  PolyFour(%s-%s-%s-%s)\n" %(key[0], key[1], key[2], key[3])
                         else:
                             raise NotImplementedError("Dihedral term of kind %s(%s) not supported" %(terminfo[0], terminfo[1]) )
     return added, warnings
 
-def add_ubs(system, vpart, val_table):
+def add_ubs(system, part_valence, val_table):
     """
-        Add Urey-Bradley terms present in system to vpart (a ValencePart instance) with parameters from the val_table dictionairy.
-        This val_table dictionairy can be retrieved using the get_val_table method of the input module.
-        The method returns 2 strings:
+        Add Urey-Bradley terms present in system to part_valence (a
+        ForcePartValence instance) with parameters from the val_table
+        dictionary. This val_table dictionary can be retrieved using the
+        get_val_table method of the input module. The method returns 2 strings:
 
             warnings = list of warnings (missing terms)
             added    = list of added terms
@@ -384,7 +426,7 @@ def add_ubs(system, vpart, val_table):
                                 rv = terminfo[2][0][1]
                             else:
                                 raise ValueError("Error reading parameters in bond term")
-                            vpart.add_term(Harmonic(fc, rv, UreyBradley(i0, i1, i2)))
+                            part_valence.add_term(Harmonic(fc, rv, UreyBradley(i0, i1, i2)))
                             added += "    UreyBrad:  Harmonic(%s[%i] - %s[%i] - %s[%i])\n" %(key[0], i0, key[1], i1, key[2], i2)
                         else:
                             raise NotImplementedError("Urey-Bradley term of kind %s(%s) not supported" %(terminfo[0], terminfo[1]) )
