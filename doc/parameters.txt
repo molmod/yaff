@@ -4,29 +4,31 @@ BEGIN SECTION WATER
 # Bond stretch
 # ============
 
-# Mathematical form depends on the kind selected below. Few types are supported:
-# - HARM: 0.5*K*(r-R0)**2
-# - FUES: 0.5*K*R0**2*(1+(R0/r)*((R0/r)-2.0))
-BOND:UNIT K kjmol/angstrom**2
-BOND:UNIT R0 angstrom
-# -------------------------------------------------------------------
-# KEY       label0   label1  KIND  K                 R0
-# -------------------------------------------------------------------
-BOND:PARS        O        H  FUES  4.0088096730e+03  1.0238240000e+00
+# Mathematical form depends on the kind selected below. Few kinds are supported:
+# - BONDHARM: 0.5*K*(r-R0)**2
+# - BONDFUES: 0.5*K*R0**2*(1+(R0/r)*((R0/r)-2.0))
+# The actual parameters and their units may depend on the kind.
+BONDFUES:UNIT K kjmol/angstrom**2
+BONDFUES:UNIT R0 angstrom
+# -----------------------------------------------------------------
+# KEY           label0   label1  K                 R0
+# -----------------------------------------------------------------
+BONDFUES:PARS        O        H  4.0088096730e+03  1.0238240000e+00
 
 
 # Angle bending
 # =============
 
-# Mathematical form depends on the type selected below. Few types are supported:
-# - HANG: 0.5*K*(theta-Q0)**2
-# - HCOS: 0.5*K*(cos(theta)-Q0)**2
-ANGLE:UNIT K kjmol
-ANGLE:UNIT Q0 1
-# -----------------------------------------------------------------------------
-# KEY        label0   label1   label2  KIND  K                 Q0
-# -----------------------------------------------------------------------------
-ANGLE:PARS        O        H        O  HCOS  3.0230353700e+02 -2.7892000000e-02
+# Mathematical form depends on the kind selected below. Few kinds are supported:
+# - ANGLEHANG: 0.5*K*(theta-Q0)**2
+# - ANGLEHCOS: 0.5*K*(cos(theta)-cost(theta0))**2
+# The actual parameters and their units may depend on the kind.
+ANGLEHCOS:UNIT K kjmol
+ANGLEHCOS:UNIT Q0 1
+# ---------------------------------------------------------------------------
+# KEY            label0   label1   label2  K                 Q0
+# ---------------------------------------------------------------------------
+ANGLEHCOS:PARS        O        H        O  3.0230353700e+02 -2.7892000000e-02
 
 
 # Fixed charges

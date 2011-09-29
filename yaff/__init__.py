@@ -29,6 +29,7 @@ from yaff.iclist import *
 from yaff.input import *
 from yaff.vlist import *
 from yaff.ff import *
+from yaff.ffgen import *
 from yaff.log import *
 from yaff.md import *
 from yaff.nlists import *

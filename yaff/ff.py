@@ -146,6 +146,34 @@ class ForceField(ForcePart):
                 raise ValueError('The part %s occurs twice in the force field.' % name)
             self.__dict__[name] = part
 
+    @classmethod
+    def generate(cls, system, fn_parameters, **kwargs):
+        """Create a force field for the given system with the given parameters.
+
+           **Arguments:**
+
+           system
+                An instance of the System class
+
+           fn_parameters
+                The filename of the parameter file. This must be a text file
+                that adheres to YAFF parameter format.
+
+           See the constructor of the FFArgs class for the available optional
+           arguments.
+
+           This method takes care of setting up the FF object, and configuring
+           all the necessary FF parts. This is a lot easier than creating an FF
+           with the default constructor. Parameters for atom types that are not
+           present in the system, are simply ignored.
+        """
+        from ffgen import ParsedPars, generators, FFArgs
+        parsed_pars = ParsedPars(fn_parameters)
+        ff_args = FFArgs(**kwargs)
+        for generator in generators:
+            nlists = generator(parsed_pars, ff_args)
+        return ForceField(system, ff_args.parts, ff_args.nlists)
+
     def update_rvecs(self, rvecs):
         ForcePart.update_rvecs(self, rvecs)
         self.system.cell.update_rvecs(rvecs)
