@@ -186,22 +186,25 @@ arguments in the ``generate`` method. See XXX for a detailed description of the
 ``generate`` method.
 
 Once an ``ff`` object is created, it can be used to evaluate the energy (and
-optionally the forces) for a given set of Cartesian coordinates::
+optionally the forces) for a given set of Cartesian coordinates and/or cell
+parameters::
 
-    # change the atomic positions in the system object
-    system.pos[:] = new_pos
+    # change the atomic positions and cell parameters
+    ff.update_pos(new_pos)
+    ff.update_rvecs(new_rvecs)
     # compute the energy
     new_energy = ff.compute()
 
 One may also allocate arrays to store the derivative of the energy towards
-the atomic positions and the virial tensor::
+the atomic positions and uniform deformations of the system::
 
     # allocate arrays for the Cartesian gradient of the energy and the virial
     # tensor.
     gpos = np.zeros(system.pos.shape, float)
     vtens = np.zeros((3,3), float)
-    # change the atomic positions in the system object
-    system.pos[:] = new_pos
+    # change the atomic positions and cell parameters
+    ff.update_pos(new_pos)
+    ff.update_rvecs(new_rvecs)
     # compute the energy
     new_energy = ff.compute(gpos, vtens)
 
