@@ -20,6 +20,9 @@
 #
 # --
 
+from molmod.units import *
+from molmod.constants import *
+
 from yaff.ext import *
 from yaff.dlist import *
 from yaff.iclist import *
