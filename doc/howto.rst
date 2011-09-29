@@ -24,7 +24,7 @@ four steps given above::
 
     # import the yaff library
     from yaff import *
-    # control the amount of screen output
+    # control the amount of screen output and the unit system
     log.set_level(log.medium)
 
     # 1) specify the system
@@ -49,7 +49,7 @@ the following import statement::
 
 **TODO:**
 
-1. Implement the log object. Usage should be as follows::
+1. [DONE, NOT USED YET] Implement the log object. Usage should be as follows::
 
     if log.do_medium:
         log('This is a message printed at the medium log level and at higher log levels, e.g. \'high\' and \'debug\'.')
@@ -69,6 +69,7 @@ the following import statement::
 
    The following levels are useful: silent, error, warning, low, medium, high,
    debug.
+
 
 Setting up a molecular system
 =============================
@@ -127,11 +128,11 @@ Yaff. It can also be used in the ``from_file`` method.
 
 **TODO:**
 
-1. Import units in the Yaff name space.
+1. [DONE] Import units in the Yaff name space.
 
-2. Implement ``to_file`` and ``from_file``
+2. [DONE] Implement ``to_file`` and ``from_file``
 
-3. Low priority: Introduce fragment name spaces in the atom types, e.g. instead
+3. [LOW PRIORITY] Introduce fragment name spaces in the atom types, e.g. instead
    of using O_W and H_W, we should have WATER:O, WATER:H. In the system object,
    we should have an extra fragment dictionary to know which atom is part of
    what sort of fragment, e.g. something like: ``system.fragments = {'WATER':,
@@ -165,7 +166,7 @@ Yaff. It can also be used in the ``from_file`` method.
    namespaces. This is convenient when testing a new FF for one sort of
    fragment.
 
-4. Lower priority: provide a simple tool to automatically assign bonds and atom
+4. [LOW PRIORITY] Provide a simple tool to automatically assign bonds and atom
    types using rules. (For the moment we hack our way out with the ``molmod``
    package.)
 
@@ -235,21 +236,21 @@ This is a simple example of a Lennard-Jones force field::
     )
     sigmas = np.array([3.98e-4]*10),
     epsilons = np.array([6.32]*10),
-    pot_pair_lj = PotPairLJ(sigmas, epsilons, rcut=15*angstrom, smooth=True)
+    pair_pot_lj = PairPotLJ(sigmas, epsilons, rcut=15*angstrom, smooth=True)
     nlists = NeighborLists(system)
     scalings = Scalings(system.topology)
-    part_part_lj = PartPair(system, nlists, scalings, pot_pair_lj)
-    ff = ForceField(system, [part_part_lj], nlists)
+    part_pair_lj = ForcePartPair(system, nlists, scalings, pair_pot_lj)
+    ff = ForceField(system, [part_pair_lj], nlists)
 
 
 **TODO:**
 
-1. Change name conventions (``pair_part_*`` and ``pot_pair_*``) to make things
+1. [DONE] Change name conventions (``foo_part`` to ``part_foo``) to make things
    easier to read. Create ``pair_*`` attributes automatically.
 
 2. Document the format of ``parameters.txt``. This should be done very
-   carefully. I'm currently thinking of something along the lines of CHARMM
-   parameter file, but then with a few extra features to make the format more
+   carefully. I'm currently thinking of something along the lines of the CHARMM
+   parameter file, but with a few extra features to make the format more
    general:
 
     a. Introduce sections for different namespaces (see above, low priority)
@@ -279,8 +280,8 @@ This is a simple example of a Lennard-Jones force field::
 
 3. The generate method.
 
-4. If the generate method is slow, we may need a checkpoint file for the
-   ForceField class.
+4. [LOW PRIORITY] If the generate method is slow, we may need a checkpoint file
+   for the ForceField class.
 
 
 Running an FF simulation
@@ -344,6 +345,4 @@ least it may not contain a trajectory. For an on-line analysis, the integrator
 class will make the necessary calls to the analysis object.
 
 
-**TODO:**
-
-1. The main idea is to port MD-tracks to a new HDF5-based analysis system.
+**TODO:** port MD-tracks to a new HDF5-based analysis system.

@@ -45,28 +45,28 @@ def get_part_water32_9A_lj():
     for i in xrange(system.natom):
         sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
         epsilons[i] = epsilon_table[system.numbers[i]]
-    # Create the pair_pot and pair_part
+    # Create the pair_pot and part_pair
     rcut = 9*angstrom
     pair_pot = PairPotLJ(sigmas, epsilons, rcut, True)
     assert abs(pair_pot.sigmas - sigmas).max() == 0.0
     assert abs(pair_pot.epsilons - epsilons).max() == 0.0
-    pair_part = PairPart(system, nlists, scalings, pair_pot)
+    part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     # Create a pair function:
     def pair_fn(i, j, d):
         sigma = 0.5*(sigmas[i]+sigmas[j])
         epsilon = np.sqrt(epsilons[i]*epsilons[j])
         x = (sigma/d)**6
         return 4*epsilon*(x*(x-1))*np.exp(1.0/(d-rcut))
-    return system, nlists, scalings, pair_pot, pair_part, pair_fn
+    return system, nlists, scalings, pair_pot, part_pair, pair_fn
 
 
 def test_pair_pot_lj_water32_9A():
-    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_water32_9A_lj()
+    system, nlists, scalings, pair_pot, part_pair, pair_fn = get_part_water32_9A_lj()
     nlists.update() # update the neighborlists, once the rcuts are known.
     # Compute the energy using yaff.
-    energy1 = pair_part.compute()
+    energy1 = part_pair.compute()
     gpos = np.zeros(system.pos.shape, float)
-    energy2 = pair_part.compute(gpos)
+    energy2 = part_pair.compute(gpos)
     # Compute the energy manually
     check_energy = 0.0
     for i in xrange(system.natom):
@@ -116,12 +116,12 @@ def get_part_water32_9A_mm3():
     for i in xrange(system.natom):
         sigmas[i] = sigma_table[system.numbers[i]]
         epsilons[i] = epsilon_table[system.numbers[i]]
-    # Create the pair_pot and pair_part
+    # Create the pair_pot and part_pair
     rcut = 9*angstrom
     pair_pot = PairPotMM3(sigmas, epsilons, rcut, True)
     assert abs(pair_pot.sigmas - sigmas).max() == 0.0
     assert abs(pair_pot.epsilons - epsilons).max() == 0.0
-    pair_part = PairPart(system, nlists, scalings, pair_pot)
+    part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     # Create a pair function:
     def pair_fn(i, j, d):
         sigma = 0.5*(sigmas[i]+sigmas[j])
@@ -131,16 +131,16 @@ def get_part_water32_9A_mm3():
             return epsilon*(1.84e5*np.exp(-12.0/x)-2.25*x**6)*np.exp(1.0/(d-rcut))
         else:
             return 0.0
-    return system, nlists, scalings, pair_pot, pair_part, pair_fn
+    return system, nlists, scalings, pair_pot, part_pair, pair_fn
 
 
 def test_pair_pot_mm3_water32_9A():
-    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_water32_9A_mm3()
+    system, nlists, scalings, pair_pot, part_pair, pair_fn = get_part_water32_9A_mm3()
     nlists.update() # update the neighborlists, once the rcuts are known.
     # Compute the energy using yaff.
-    energy1 = pair_part.compute()
+    energy1 = part_pair.compute()
     gpos = np.zeros(system.pos.shape, float)
-    energy2 = pair_part.compute(gpos)
+    energy2 = part_pair.compute(gpos)
     # Compute the energy manually
     check_energy = 0.0
     for i in xrange(system.natom):
@@ -190,12 +190,12 @@ def get_part_water32_9A_grimme():
     for i in xrange(system.natom):
         r0s[i] = r0_table[system.numbers[i]]
         c6s[i] = c6_table[system.numbers[i]]
-    # Create the pair_pot and pair_part
+    # Create the pair_pot and part_pair
     rcut = 9*angstrom
     pair_pot = PairPotGrimme(r0s, c6s, rcut, True)
     assert abs(pair_pot.r0 - r0s).max() == 0.0
     assert abs(pair_pot.c6 - c6s).max() == 0.0
-    pair_part = PairPart(system, nlists, scalings, pair_pot)
+    part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     # Create a pair function:
     def pair_fn(i, j, d):
         r0 = (r0s[i]+r0s[j])
@@ -204,16 +204,16 @@ def get_part_water32_9A_grimme():
             return -1.1/(1.0 + np.exp(-20.0*(d/r0-1.0)))*c6/d**6*np.exp(1.0/(d-rcut))
         else:
             return 0.0
-    return system, nlists, scalings, pair_pot, pair_part, pair_fn
+    return system, nlists, scalings, pair_pot, part_pair, pair_fn
 
 
 def test_pair_pot_grimme_water32_9A():
-    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_water32_9A_grimme()
+    system, nlists, scalings, pair_pot, part_pair, pair_fn = get_part_water32_9A_grimme()
     nlists.update() # update the neighborlists, once the rcuts are known.
     # Compute the energy using yaff.
-    energy1 = pair_part.compute()
+    energy1 = part_pair.compute()
     gpos = np.zeros(system.pos.shape, float)
-    energy2 = pair_part.compute(gpos)
+    energy2 = part_pair.compute(gpos)
     # Compute the energy manually
     check_energy = 0.0
     for i in xrange(system.natom):
@@ -277,19 +277,19 @@ def get_part_caffeine_lj_15A():
         epsilons[i] = epsilon_table[system.numbers[i]]
     # Construct the pair potential and part
     pair_pot = PairPotLJ(sigmas, epsilons, 15*angstrom, False)
-    pair_part = PairPart(system, nlists, scalings, pair_pot)
+    part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
         sigma = 0.5*(sigmas[i]+sigmas[j])
         epsilon = np.sqrt(epsilons[i]*epsilons[j])
         x = (sigma/d)**6
         return 4*epsilon*(x*(x-1))
-    return system, nlists, scalings, pair_pot, pair_part, pair_fn
+    return system, nlists, scalings, pair_pot, part_pair, pair_fn
 
 
 def test_pair_pot_lj_caffeine_15A():
-    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_lj_15A()
-    check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, 1e-15)
+    system, nlists, scalings, pair_pot, part_pair, pair_fn = get_part_caffeine_lj_15A()
+    check_pair_pot_caffeine(system, nlists, scalings, part_pair, pair_fn, 1e-15)
 
 
 def get_part_caffeine_grimme_15A():
@@ -317,18 +317,18 @@ def get_part_caffeine_grimme_15A():
         c6s[i] = c6_table[system.numbers[i]]
     # Construct the pair potential and part
     pair_pot = PairPotGrimme(r0s, c6s, 15*angstrom, False)
-    pair_part = PairPart(system, nlists, scalings, pair_pot)
+    part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
         r0 = (r0s[i]+r0s[j])
         c6 = np.sqrt(c6s[i]*c6s[j])
         return -1.1/(1.0 + np.exp(-20.0*(d/r0-1.0)))*c6/d**6
-    return system, nlists, scalings, pair_pot, pair_part, pair_fn
+    return system, nlists, scalings, pair_pot, part_pair, pair_fn
 
 
 def test_pair_pot_grimme_caffeine_15A():
-    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_grimme_15A()
-    check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, 1e-15)
+    system, nlists, scalings, pair_pot, part_pair, pair_fn = get_part_caffeine_grimme_15A()
+    check_pair_pot_caffeine(system, nlists, scalings, part_pair, pair_fn, 1e-15)
 
 
 def get_part_caffeine_ei1_10A():
@@ -343,16 +343,16 @@ def get_part_caffeine_ei1_10A():
     rcut = 10*angstrom
     alpha = 3.5/rcut
     pair_pot = PairPotEI(charges, alpha, rcut)
-    pair_part = PairPart(system, nlists, scalings, pair_pot)
+    part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
         return charges[i]*charges[j]*erfc(alpha*d)/d
-    return system, nlists, scalings, pair_pot, pair_part, pair_fn
+    return system, nlists, scalings, pair_pot, part_pair, pair_fn
 
 
 def test_pair_pot_ei1_caffeine_10A():
-    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_ei1_10A()
-    check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, 1e-9)
+    system, nlists, scalings, pair_pot, part_pair, pair_fn = get_part_caffeine_ei1_10A()
+    check_pair_pot_caffeine(system, nlists, scalings, part_pair, pair_fn, 1e-9)
 
 
 def get_part_caffeine_ei2_10A():
@@ -367,23 +367,23 @@ def get_part_caffeine_ei2_10A():
     rcut = 10*angstrom
     alpha = 0.0
     pair_pot = PairPotEI(charges, alpha, rcut)
-    pair_part = PairPart(system, nlists, scalings, pair_pot)
+    part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
         return charges[i]*charges[j]*erfc(alpha*d)/d
-    return system, nlists, scalings, pair_pot, pair_part, pair_fn
+    return system, nlists, scalings, pair_pot, part_pair, pair_fn
 
 def test_pair_pot_ei2_caffeine_10A():
-    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_ei2_10A()
-    check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, 1e-8)
+    system, nlists, scalings, pair_pot, part_pair, pair_fn = get_part_caffeine_ei2_10A()
+    check_pair_pot_caffeine(system, nlists, scalings, part_pair, pair_fn, 1e-8)
 
 
-def check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, eps):
+def check_pair_pot_caffeine(system, nlists, scalings, part_pair, pair_fn, eps):
     nlists.update() # update the neighborlists, once the rcuts are known.
     # Compute the energy using yaff.
-    energy1 = pair_part.compute()
+    energy1 = part_pair.compute()
     gpos = np.zeros(system.pos.shape, float)
-    energy2 = pair_part.compute(gpos)
+    energy2 = part_pair.compute(gpos)
     # Compute the energy manually
     check_energy = 0.0
     for i in xrange(system.natom):
@@ -407,27 +407,27 @@ def check_pair_pot_caffeine(system, nlists, scalings, pair_part, pair_fn, eps):
 
 
 def test_gpos_vtens_pair_pot_water_lj_9A():
-    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_water32_9A_lj()
-    check_gpos_part(system, pair_part, 1e-10, nlists)
-    check_vtens_part(system, pair_part, 1e-10, nlists)
+    system, nlists, scalings, pair_pot, part_pair, pair_fn = get_part_water32_9A_lj()
+    check_gpos_part(system, part_pair, 1e-10, nlists)
+    check_vtens_part(system, part_pair, 1e-10, nlists)
 
 
 def test_gpos_vtens_pair_pot_caffeine_lj_15A():
-    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_lj_15A()
-    check_gpos_part(system, pair_part, 1e-10, nlists)
-    check_vtens_part(system, pair_part, 1e-8, nlists)
+    system, nlists, scalings, pair_pot, part_pair, pair_fn = get_part_caffeine_lj_15A()
+    check_gpos_part(system, part_pair, 1e-10, nlists)
+    check_vtens_part(system, part_pair, 1e-8, nlists)
 
 
 def test_gpos_vtens_pair_pot_caffeine_ei1_10A():
-    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_ei1_10A()
-    check_gpos_part(system, pair_part, 1e-8, nlists)
-    check_vtens_part(system, pair_part, 1e-6, nlists)
+    system, nlists, scalings, pair_pot, part_pair, pair_fn = get_part_caffeine_ei1_10A()
+    check_gpos_part(system, part_pair, 1e-8, nlists)
+    check_vtens_part(system, part_pair, 1e-6, nlists)
 
 
 def test_gpos_vtens_pair_pot_caffeine_ei2_10A():
-    system, nlists, scalings, pair_pot, pair_part, pair_fn = get_part_caffeine_ei2_10A()
-    check_gpos_part(system, pair_part, 1e-8, nlists)
-    check_vtens_part(system, pair_part, 1e-7, nlists)
+    system, nlists, scalings, pair_pot, part_pair, pair_fn = get_part_caffeine_ei2_10A()
+    check_gpos_part(system, part_pair, 1e-8, nlists)
+    check_vtens_part(system, part_pair, 1e-7, nlists)
 
 def test_pair_pot_grimme_2atoms():
     system = get_system_2atoms()
@@ -436,9 +436,9 @@ def test_pair_pot_grimme_2atoms():
     R0 = 1.452*angstrom
     C6 = 1.75*1e-3*kjmol*nanometer**6
     pair_pot = PairPotGrimme(np.array([R0, R0]), np.array([C6, C6]), 15*angstrom, False)
-    pair_part = PairPart(system, nlists, scalings, pair_pot)
+    part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     nlists.update()
-    energy = pair_part.compute()
+    energy = part_pair.compute()
     d = np.sqrt(sum((system.pos[0]-system.pos[1])**2))
     check_energy=-1.1/( 1.0 + np.exp(-20.0*(d/(2.0*R0)-1.0)) )*C6/d**6
     print "d=%f" %d

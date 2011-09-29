@@ -79,10 +79,9 @@ def atom_attr_str(ff):
     """
         Write atom attributes (symbol, fftype, charge, vdW parameters) to string.
     """
-    vpart, pair_part_lj, pair_part_ei, ewald_reci_part, ewald_corr_part = ff.parts
-    charges = ewald_reci_part.charges
-    sigmas = pair_part_lj.pair_pot.sigmas
-    epsilons = pair_part_lj.pair_pot.epsilons
+    charges = ff.part_ewald_reci.charges
+    sigmas = ff.part_pair_lj.pair_pot.sigmas
+    epsilons = ff.part_pair_lj.pair_pot.epsilons
     atom_attr = ""
     atom_attr += "     number  atom   type     charge    sigma [A]    epsilon [kcalmol] \n"
     atom_attr += "    ------------------------------------------------------------------\n"
@@ -97,10 +96,9 @@ def terms_str(ff):
         Write force field terms to string.
     """
     types = ff.system.ffatypes
-    vpart, eipart, vdwpart, ewaldpart, ewaldcorrpart, ewaldneutpart = ff.get_parts()
-    vlist = vpart.vlist.vtab
-    iclist = vpart.vlist.iclist.ictab
-    dlist = vpart.vlist.iclist.dlist.deltas
+    vlist = ff.part_valence.vlist.vtab
+    iclist = ff.part_valence.vlist.iclist.ictab
+    dlist = ff.part_valence.vlist.iclist.dlist.deltas
 
     vkinds = ['Harmonic', 'PolyFour', 'Fuez', 'Cross']
     eunit = kjmol
@@ -168,7 +166,7 @@ def terms_str(ff):
     terms  = ""
     terms += "       i  |   term   |     ic     |                   atoms                  |        pars [A, deg, kjmol/A^2, kjmol/rad^2, kjmol]              \n"
     terms += "    --------------------------------------------------------------------------------------------------------------------------------------------\n"
-    for i in xrange(vpart.vlist.nv):
+    for i in xrange(ff.part_valence.vlist.nv):
         term = vlist[i]
         ic0 = iclist[term['ic0']]
         ic0_kind, ic0_indexes = get_ic_description(ic0)
@@ -185,35 +183,23 @@ def ff_str(ff):
         Write general force field info to string.
     """
     ff_info = ""
-    vpart, eipart, vdwpart, ewaldpart, ewaldcorrpart, ewaldneutpart = ff.get_parts()
-    if vpart is not None:
+    if ff.part_valence is not None:
         ff_info += "    Valence interactions: ON\n"
     else:
         ff_info += "    Valence interactions: OFF\n"
-    if eipart is not None:
+    if ff.part_pair_ei is not None:
         ff_info += "    Real electrostatics: ON\n"
-        ff_info += "        cutoff      [A] = %9.6f\n" %(eipart.pair_pot.rcut/angstrom)
-        ff_info += "        1-2 scaling [ ] = %4.3f\n" %eipart.scalings.scale1
-        ff_info += "        1-3 scaling [ ] = %4.3f\n" %eipart.scalings.scale2
-        ff_info += "        1-4 scaling [ ] = %4.3f\n" %eipart.scalings.scale3
+        ff_info += "        cutoff      [A] = %9.6f\n" %(ff.part_pair_ei.pair_pot.rcut/angstrom)
+        ff_info += "        1-2 scaling [ ] = %4.3f\n" %ff.part_pair_ei.scalings.scale1
+        ff_info += "        1-3 scaling [ ] = %4.3f\n" %ff.part_pair_ei.scalings.scale2
+        ff_info += "        1-4 scaling [ ] = %4.3f\n" %ff.part_pair_ei.scalings.scale3
     else:
         ff_info += "    Real electrostatics: OFF\n"
-    if ewaldpart is not None:
+    if ff.part_ewald_reci is not None:
         ff_info += "    Reciprocal electrostatics: EWALD\n"
-        ff_info += "        alpha [1/A] = %9.6f\n" %(ewaldpart.alpha*angstrom)
-        ff_info += "        gmax  [   ] = %2i,%2i,%2i\n" %(ewaldpart.gmax[0],ewaldpart.gmax[1],ewaldpart.gmax[2])
+        ff_info += "        alpha [1/A] = %9.6f\n" %(ff.part_ewald_reci.alpha*angstrom)
+        ff_info += "        gmax  [   ] = %2i,%2i,%2i\n" %(ff.part_ewald_reci.gmax[0],ff.part_ewald_reci.gmax[1],ff.part_ewald_reci.gmax[2])
     else:
         ff_info += "    Reciprocal electrostatics: OFF\n"
-    if vdwpart is not None:
-        if isinstance(vdwpart.pair_pot, PairPotLJ): vdw_kind = "Lennard-Jones"
-        elif isinstance(vdwpart.pair_pot, PairPotMM3): vdw_kind = "MM3"
-        elif isinstance(vdwpart.pair_pot, PairPotGrimme): vdw_kind = "Grimme"
-        else: raise NotImplementedError
-        ff_info += "    Real van der Waals: %s\n" %vdw_kind
-        ff_info += "        cutoff      [A] = %9.6f\n" %(vdwpart.pair_pot.rcut/angstrom)
-        ff_info += "        1-2 scaling [ ] = %4.3f\n" %vdwpart.scalings.scale1
-        ff_info += "        1-3 scaling [ ] = %4.3f\n" %vdwpart.scalings.scale2
-        ff_info += "        1-4 scaling [ ] = %4.3f\n" %vdwpart.scalings.scale3
-    else:
-        ff_info += "    Real van der Waals: OFF\n"
+    ff_info += "VDW info is currently not printed. This will be fixed."
     return ff_info

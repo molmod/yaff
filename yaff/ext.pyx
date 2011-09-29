@@ -255,6 +255,7 @@ cdef class PairPot:
 cdef class PairPotLJ(PairPot):
     cdef np.ndarray _c_sigmas
     cdef np.ndarray _c_epsilons
+    name = 'lj'
 
     def __cinit__(self, np.ndarray[double, ndim=1] sigmas,
                   np.ndarray[double, ndim=1] epsilons, double rcut, bint smooth):
@@ -283,6 +284,7 @@ cdef class PairPotLJ(PairPot):
 cdef class PairPotMM3(PairPot):
     cdef np.ndarray _c_sigmas
     cdef np.ndarray _c_epsilons
+    name = 'mm3'
 
     def __cinit__(self, np.ndarray[double, ndim=1] sigmas, np.ndarray[double, ndim=1] epsilons, double rcut, bint smooth):
         assert sigmas.flags['C_CONTIGUOUS']
@@ -310,6 +312,7 @@ cdef class PairPotMM3(PairPot):
 cdef class PairPotGrimme(PairPot):
     cdef np.ndarray _c_r0
     cdef np.ndarray _c_c6
+    name = 'grimme'
 
     def __cinit__(self, np.ndarray[double, ndim=1] r0, np.ndarray[double, ndim=1] c6, double rcut, bint smooth):
         assert r0.flags['C_CONTIGUOUS']
@@ -336,6 +339,7 @@ cdef class PairPotGrimme(PairPot):
 
 cdef class PairPotEI(PairPot):
     cdef np.ndarray _c_charges
+    name = 'ei'
 
     def __cinit__(self, np.ndarray[double, ndim=1] charges, double alpha, double rcut):
         assert charges.flags['C_CONTIGUOUS']

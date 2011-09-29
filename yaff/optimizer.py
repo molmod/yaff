@@ -182,7 +182,7 @@ class CellOptimizer(Optimizer):
         if vdw_writer is not None:
             vdw_part = None
             for part in self.ff.parts:
-                if isinstance(part, PairPart):
+                if isinstance(part, ForcePartPair):
                     if isinstance(part.pair_pot, PairPotLJ) or isinstance(part.pair_pot, PairPotMM3):
                         vdw_part = part
             vdw = vdw_part._internal_compute(None, None)
@@ -361,7 +361,7 @@ class ThetaOptimizer(Optimizer):
         if vdw_writer is not None:
             vdw_part = None
             for part in self.ff.parts:
-                if isinstance(part, PairPart):
+                if isinstance(part, ForcePartPair):
                     if isinstance(part.pair_pot,PairPotLJ) or isinstance(part.pair_pot,PairPotMM3) or isinstance(part.pair_pot,PairPotGrimme):
                         vdw_part = part
             if vdw_part is None:

@@ -40,15 +40,15 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
     parts = []
     if do_valence:
         # Valence part
-        vpart = ValencePart(system)
+        part_valence = ForcePartValence(system)
         for i, j in system.topology.bonds:
-            vpart.add_term(Harmonic(450.0*kcalmol/angstrom**2, 0.9572*angstrom, Bond(i, j)))
+            part_valence.add_term(Harmonic(450.0*kcalmol/angstrom**2, 0.9572*angstrom, Bond(i, j)))
         for i1 in xrange(system.natom):
             for i0 in system.topology.neighs1[i1]:
                 for i2 in system.topology.neighs1[i1]:
                     if i0 > i2:
-                        vpart.add_term(Harmonic(55.000*kcalmol/rad**2, 104.52*deg, BendAngle(i0, i1, i2)))
-        parts.append(vpart)
+                        part_valence.add_term(Harmonic(55.000*kcalmol/rad**2, 104.52*deg, BendAngle(i0, i1, i2)))
+        parts.append(part_valence)
     if do_lj or do_eireal:
         # Neighbor lists, scalings
         nlists = NeighborLists(system)
@@ -64,8 +64,8 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
             sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
             epsilons[i] = epsilon_table[system.numbers[i]]
         pair_pot_lj = PairPotLJ(sigmas, epsilons, rcut, True)
-        pair_part_lj = PairPart(system, nlists, scalings, pair_pot_lj)
-        parts.append(pair_part_lj)
+        part_pair_lj = ForcePartPair(system, nlists, scalings, pair_pot_lj)
+        parts.append(part_pair_lj)
     # charges
     q0 = 0.417
     charges = -2*q0 + (system.numbers == 1)*3*q0
@@ -73,15 +73,15 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
     if do_eireal:
         # Real-space electrostatics
         pair_pot_ei = PairPotEI(charges, alpha, rcut)
-        pair_part_ei = PairPart(system, nlists, scalings, pair_pot_ei)
-        parts.append(pair_part_ei)
+        part_pair_ei = ForcePartPair(system, nlists, scalings, pair_pot_ei)
+        parts.append(part_pair_ei)
     if do_eireci:
         # Reciprocal-space electrostatics
-        ewald_reci_part = EwaldReciprocalPart(system, charges, alpha, gcut=alpha/0.75)
-        parts.append(ewald_reci_part)
+        part_ewald_reci = ForcePartEwaldReciprocal(system, charges, alpha, gcut=alpha/0.75)
+        parts.append(part_ewald_reci)
         # Ewald corrections
-        ewald_corr_part = EwaldCorrectionPart(system, charges, alpha, scalings)
-        parts.append(ewald_corr_part)
+        part_ewald_corr = ForcePartEwaldCorrection(system, charges, alpha, scalings)
+        parts.append(part_ewald_corr)
     return ForceField(system, parts, nlists)
 
 
