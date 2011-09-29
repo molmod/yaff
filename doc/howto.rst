@@ -26,6 +26,7 @@ four steps given above::
     from yaff import *
     # control the amount of screen output and the unit system
     log.set_level(log.medium)
+    log.set_units(log.joule)
 
     # 1) specify the system
     system = System.from_file('system.chk')
@@ -67,8 +68,41 @@ the following import statement::
     ____FOO This is a message printed at the medium log level and at higher log
     ____FOO levels, e.g. 'high' and 'debug'.
 
-   The following levels are useful: silent, error, warning, low, medium, high,
-   debug.
+   The following levels are useful: silent,  warning, low, medium, high, debug.
+
+2. A banner should be printed, unless the debug level is silent, when the first
+   System instance is created. This should be followed by some basic info such
+   as user, date, machine, python version, yaff version, ... Then some info
+   about the units should follow. (See below.)
+
+3. A footer should be printed, unless the debug level is silent, right before
+   the interpreter exits. This can be done with the ``atexit`` module::
+
+    import atexit
+    atexit.register(log.footer)
+
+4. Make the logger unit-aware. This should allow the user to have the
+   human-readable screen output printed in his/her unit of preference. It should
+   be configured as follows::
+
+    log.set_unitsys(log.joule)
+
+   with other options being ``log.cal``, ``log.atomic``, ``log.bio``,
+   ``log.solid``, each having the default units from different molecular
+   simulation subfields. Use the logger as follows::
+
+    energy = ...
+    if log.do_medium:
+        log('ENERGY', 'The total energy is %15.10f' % (energy/log.energy))
+
+   In the beginning of the output, or whenever the screen units are changed, a
+   message is printed with the units that are used for the remainder for the
+   screen output.
+
+   Output written in (binary) HDF5 files will always be in atomic units.
+   When output is written to a format from other projects/programs, the units of
+   that program/project will be used.
+
 
 
 Setting up a molecular system
