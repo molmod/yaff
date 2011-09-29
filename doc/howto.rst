@@ -131,14 +131,14 @@ Yaff. It can also be used in the ``from_file`` method.
 
 2. Implement ``to_file`` and ``from_file``
 
-3. Introduce fragment name spaces in the atom types, e.g. instead of using O_W
-   and H_W, we should have WATER:O, WATER:H. In the system object, we should
-   have an extra fragment dictionary to know which atom is part
-   of what sort of fragment, e.g. something like: ``system.fragments =
-   {'WATER':, np.array([0, 1, 2, 3, 4, 5, ...])}``. The corresponding atom types
-   can simply be ``system.ffatypes=['O', 'H', 'H, 'O', 'H', 'H, ...]``. It is OK
-   that different atoms in different fragments have coinciding atom type names.
-   This approach has the following advantages:
+3. Low priority: Introduce fragment name spaces in the atom types, e.g. instead
+   of using O_W and H_W, we should have WATER:O, WATER:H. In the system object,
+   we should have an extra fragment dictionary to know which atom is part of
+   what sort of fragment, e.g. something like: ``system.fragments = {'WATER':,
+   np.array([0, 1, 2, 3, 4, 5, ...])}``. The corresponding atom types can simply
+   be ``system.ffatypes=['O', 'H', 'H, 'O', 'H', 'H, ...]``. It is OK that
+   different atoms in different fragments have coinciding atom type names. This
+   approach has the following advantages:
 
    * It allows us to develop separate parameter files with sections for
      different sorts of fragments, e.g. WATER, CO2, ALANINE, GLYCINE, MIL-53,
@@ -159,6 +159,11 @@ Yaff. It can also be used in the ``from_file`` method.
      or we have to introduce cross-parameter files. (The latter may be very
      annoying when pursuing more advanced simulations where molecules are
      gradually switched on and off.)
+
+   Final thought: we can make the entire thing optional, i.e. when
+   system.fragments is None, we can have the behavior without separate
+   namespaces. This is convenient when testing a new FF for one sort of
+   fragment.
 
 4. Lower priority: provide a simple tool to automatically assign bonds and atom
    types using rules. (For the moment we hack our way out with the ``molmod``
@@ -244,7 +249,7 @@ This is a simple example of a Lennard-Jones force field::
    parameter file, but then with a few extra features to make the format more
    general:
 
-    a. Introduce sections for different namespaces (see above)
+    a. Introduce sections for different namespaces (see above, low priority)
     b. Include charges based on reference charges and charge-transfers over
        bonds. Dielectric background for fixed charge models.
     c. prefix each line with a keyword that fixes the interpretation of the
