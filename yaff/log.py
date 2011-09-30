@@ -49,7 +49,9 @@ __________________\///______\///________\///___\///______________\///___________
 
 (1) Center for Molecular Modeling, Ghent University Belgium.
 * mailto: Toon.Vesrtraelen@UGent.be
-"""
+
+In a not-too-distant future, this program will be renamed to NJAFF, which stands
+for 'not just another force field code'. Please, bear with us."""
 
 
 foot_banner = r"""
@@ -66,28 +68,32 @@ class UnitSystem(object):
         self.length = length
         self.time = time
         self.mass = mass
+        self.charge = charge
         self.force = force
         self.forceconst = forceconst
         self.velocity = velocity
+        self.acceleration = acceleration
         self.angle = angle
 
     def log_info(self):
         if log.do_low:
             log.set_prefix('UNITS')
             log('The following units will be used below:')
-            log('~'*log.content)
+            log.hline()
             log('Type          Conversion             Notation')
-            log('~'*log.content)
+            log.hline()
             log('Energy        %21.15e  %s' % self.energy)
             log('Length        %21.15e  %s' % self.length)
             log('Time          %21.15e  %s' % self.time)
             log('Mass          %21.15e  %s' % self.mass)
+            log('Charge        %21.15e  %s' % self.charge)
             log('Force         %21.15e  %s' % self.force)
             log('Force Const.  %21.15e  %s' % self.forceconst)
             log('Veolicty      %21.15e  %s' % self.velocity)
-            log('Acceleration  %21.15e  %s' % self.angle)
-            log('~'*log.content)
-            log('The conversion factor is divided by the internal units to get screen output in these units.')
+            log('Acceleration  %21.15e  %s' % self.acceleration)
+            log('Angle         %21.15e  %s' % self.angle)
+            log.hline()
+            log('The internal data is divided by the corresponding conversion factor before it gets printed on screen.')
 
     def apply(self, some):
         some.energy = self.energy[1]
@@ -111,7 +117,7 @@ class ScreenLog(object):
 
     # screen parameters
     margin = 8
-    content = 71
+    width = 71
 
     # unit systems
     joule = UnitSystem(
@@ -181,7 +187,7 @@ class ScreenLog(object):
         self._level = self.medium
         self.unitsys = self.joule
         self.unitsys.apply(self)
-        self.prefix = '_'*(self.margin-1)
+        self.prefix = ' '*(self.margin-1)
         if f is None:
             self._file = sys.stdout
         else:
@@ -207,24 +213,43 @@ class ScreenLog(object):
             self.print_header()
             self.prefix = prefix
             print >> self._file
-        while len(s) > 0:
-            if len(s) > self.content:
-                pos = s.rfind(' ', 0, self.content)
+        # Check for alignment code '&'
+        pos = s.find('&')
+        if pos == -1:
+            lead = ''
+            rest = s
+        else:
+            lead = s[:pos] + ' '
+            rest = s[pos+1:]
+        width = self.width - len(lead)
+        if width < self.width/2:
+            raise ValueError('The lead may not exceed half the width of the terminal.')
+        # break and print the line
+        first = True
+        while len(rest) > 0:
+            if len(rest) > width:
+                pos = rest.rfind(' ', 0, width)
                 if pos == -1:
-                    current = s[:self.content]
-                    s = s[self.content:]
+                    current = rest[:width]
+                    rest = rest[width:]
                 else:
-                    current = s[:pos]
-                    s = s[pos:].lstrip()
+                    current = rest[:pos]
+                    rest = rest[pos:].lstrip()
             else:
-                current = s
-                s = ''
-            print >> self._file, self.prefix, current
+                current = rest
+                rest = ''
+            print >> self._file, '%s %s%s' % (self.prefix, lead, current)
+            if first:
+                lead = ' '*len(lead)
+                first = False
+
+    def hline(self, char='~'):
+        self(char*self.width)
 
     def set_prefix(self, prefix):
         if len(prefix) > self.margin-1:
             raise ValueError('The prefix must be at most %s characters wide.' % (self.margin-1))
-        self.prefix = prefix.upper().rjust(self.margin-1, '_')
+        self.prefix = prefix.upper().rjust(self.margin-1, ' ')
         if self._active:
             print >> self._file
 
@@ -250,11 +275,11 @@ class ScreenLog(object):
     def _print_basic_info(self):
             import yaff
             log.set_prefix('ENV')
-            log('User:          ', os.getlogin())
-            log('Machine info:  ', *os.uname())
-            log('Time:          ', datetime.datetime.now().isoformat())
-            log('Python version:', sys.version.replace('\n', ''))
-            log('YAFF version:  ', yaff.__version__)
+            log('User:          &' + os.getlogin())
+            log('Machine info:  &' + ' '.join(os.uname()))
+            log('Time:          &' + datetime.datetime.now().isoformat())
+            log('Python version:&' + sys.version.replace('\n', ''))
+            log('YAFF version:  &' + yaff.__version__)
 
 
 log = ScreenLog()
