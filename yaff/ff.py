@@ -170,8 +170,11 @@ class ForceField(ForcePart):
         from ffgen import ParsedPars, generators, FFArgs
         parsed_pars = ParsedPars(fn_parameters)
         ff_args = FFArgs(**kwargs)
-        for generator in generators:
-            nlists = generator(parsed_pars, ff_args)
+        for prefix in parsed_args.info:
+            generators.get(prefix)
+            if generator is None:
+                parsed_args.complain(None, 'contains an unknown generator: %s' % prefix)
+            generator(system, parsed_pars, ff_args)
         return ForceField(system, ff_args.parts, ff_args.nlists)
 
     def update_rvecs(self, rvecs):
