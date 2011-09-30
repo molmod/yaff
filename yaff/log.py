@@ -96,14 +96,14 @@ class UnitSystem(object):
             log('The internal data is divided by the corresponding conversion factor before it gets printed on screen.')
 
     def apply(self, some):
-        some.energy = self.energy[1]
-        some.length = self.length[1]
-        some.time = self.time[1]
-        some.mass = self.mass[1]
-        some.force = self.force[1]
-        some.forceconst = self.forceconst[1]
-        some.velocity = self.velocity[1]
-        some.angle = self.angle[1]
+        some.energy = self.energy[0]
+        some.length = self.length[0]
+        some.time = self.time[0]
+        some.mass = self.mass[0]
+        some.force = self.force[0]
+        some.forceconst = self.forceconst[0]
+        some.velocity = self.velocity[0]
+        some.angle = self.angle[0]
 
 
 class ScreenLog(object):

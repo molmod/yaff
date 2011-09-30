@@ -32,8 +32,7 @@ def test_line_wrapping():
     log._active = True
     log.set_prefix('NVE')
     log('This is just a long test message that should get splitted into two lines properly.')
-    print (f.getvalue(),)
-    assert f.getvalue() == '\n____NVE This is just a long test message that should get splitted into two\n____NVE lines properly.\n'
+    assert f.getvalue() == '\n    NVE This is just a long test message that should get splitted into two\n    NVE lines properly.\n'
     f.close()
 
 
@@ -43,3 +42,30 @@ def test_levels():
     assert not log.do_high
     log.set_level(log.low)
     assert not log.do_medium
+
+
+def test_hline():
+    f = StringIO()
+    log = ScreenLog(f)
+    log._active = True
+    log.set_prefix('FOOBAR')
+    log.hline()
+    assert f.getvalue() == '\n FOOBAR ' + '~'*71 + '\n'
+    f.close()
+
+def test_unitsys():
+    from molmod.units import kjmol, kcalmol
+    f = StringIO()
+    log = ScreenLog(f)
+    assert abs(log.energy - kjmol) < 1e-10
+    log.set_unitsys(log.cal)
+    assert abs(log.energy - kcalmol) < 1e-10
+
+def test_lead():
+    f = StringIO()
+    log = ScreenLog(f)
+    log._active = True
+    log.set_prefix('AAA')
+    log('Some prefix:&followed by a long text that needs to be wrapped over multiple lines.')
+    assert f.getvalue() == '\n    AAA Some prefix: followed by a long text that needs to be wrapped over\n    AAA              multiple lines.\n'
+    f.close()
