@@ -1,4 +1,4 @@
-BEGIN SECTION WATER
+# BEGIN SECTION WATER
 
 
 # Bond stretch
@@ -20,15 +20,15 @@ BONDFUES:PARS        O        H  4.0088096730e+03  1.0238240000e+00
 # =============
 
 # Mathematical form depends on the kind selected below. Few kinds are supported:
-# - ANGLEHANG: 0.5*K*(theta-Q0)**2
-# - ANGLEHCOS: 0.5*K*(cos(theta)-cost(theta0))**2
+# - ANGLEHARM: 0.5*K*(theta-THETA0)**2
+# - ANCOSHARM: 0.5*K*(cos(theta)-cos(THETA0))**2
 # The actual parameters and their units may depend on the kind.
-ANGLEHCOS:UNIT K kjmol
-ANGLEHCOS:UNIT Q0 1
+ANCOSHARM:UNIT K kjmol
+ANCOSHARM:UNIT THETA0 deg
 # ---------------------------------------------------------------------------
-# KEY            label0   label1   label2  K                 Q0
+# KEY            label0   label1   label2  K                 THETA0
 # ---------------------------------------------------------------------------
-ANGLEHCOS:PARS        O        H        O  3.0230353700e+02 -2.7892000000e-02
+ANCOSHARM:PARS        O        H        O  3.0230353700e+02  8.8401698835e+01
 
 
 # Fixed charges
@@ -124,4 +124,5 @@ EXPREP:PARS       O  4.2117588157e+02  4.4661933834e+00
 EXPREP:PARS       H  2.3514195495e+00  4.4107388814e+00
 # -----------------------------------------------------
 
-END SECTION
+
+# END SECTION WATER

@@ -61,9 +61,10 @@ the following import statement::
    reserving the first 8 characters for a location specifier, e.g. ::
 
     if log.do_medium:
-        log.set_prefix('FOO')
+        log.enter('FOO')
         log('This is a message printed at the medium log level and at higher log levels, e.g. \'high\' and \'debug\'.')
         log('Multiple', 'strings', 'work', 'too.')
+        log.leave()
 
    would result in::
 
@@ -96,7 +97,7 @@ the following import statement::
 
     energy = ...
     if log.do_medium:
-        log('ENERGY', 'The total energy is %15.10f' % (energy/log.energy))
+        log('The total energy is %15.10f' % (energy/log.energy))
 
    In the beginning of the output, or whenever the screen units are changed, a
    message is printed with the units that are used for the remainder for the
@@ -169,7 +170,12 @@ Yaff. It can also be used in the ``from_file`` method.
 
 2. [DONE] Implement ``to_file`` and ``from_file``
 
-3. [LOW PRIORITY] Introduce fragment name spaces in the atom types, e.g. instead
+3. [LOW PRIORITY] Add charges as a system attribute. This are somehow special
+   parameters that are also used for computing derived properties such as the
+   dipole moment of the system etc. In the long run, these will also become
+   variable.
+
+4. [LOW PRIORITY] Introduce fragment name spaces in the atom types, e.g. instead
    of using O_W and H_W, we should have WATER:O, WATER:H. In the system object,
    we should have an extra fragment dictionary to know which atom is part of
    what sort of fragment, e.g. something like: ``system.fragments = {'WATER':,
@@ -203,7 +209,7 @@ Yaff. It can also be used in the ``from_file`` method.
    namespaces. This is convenient when testing a new FF for one sort of
    fragment.
 
-4. [LOW PRIORITY] Provide a simple tool to automatically assign bonds and atom
+5. [LOW PRIORITY] Provide a simple tool to automatically assign bonds and atom
    types using rules. (For the moment we hack our way out with the ``molmod``
    package.)
 
