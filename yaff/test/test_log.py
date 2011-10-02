@@ -30,7 +30,7 @@ def test_line_wrapping():
     f = StringIO()
     log = ScreenLog(f)
     log._active = True
-    log.set_prefix('NVE')
+    log.enter('NVE')
     log('This is just a long test message that should get splitted into two lines properly.')
     assert f.getvalue() == '\n    NVE This is just a long test message that should get splitted into two\n    NVE lines properly.\n'
     f.close()
@@ -48,7 +48,7 @@ def test_hline():
     f = StringIO()
     log = ScreenLog(f)
     log._active = True
-    log.set_prefix('FOOBAR')
+    log.enter('FOOBAR')
     log.hline()
     assert f.getvalue() == '\n FOOBAR ' + '~'*71 + '\n'
     f.close()
@@ -65,7 +65,19 @@ def test_lead():
     f = StringIO()
     log = ScreenLog(f)
     log._active = True
-    log.set_prefix('AAA')
+    log.enter('AAA')
     log('Some prefix:&followed by a long text that needs to be wrapped over multiple lines.')
     assert f.getvalue() == '\n    AAA Some prefix: followed by a long text that needs to be wrapped over\n    AAA              multiple lines.\n'
     f.close()
+
+def test_enter_leave():
+    f = StringIO()
+    log = ScreenLog(f)
+    log.enter('FOO')
+    assert log.prefix == '    FOO'
+    log.enter('BAR')
+    assert log.prefix == '    BAR'
+    log.leave()
+    assert log.prefix == '    FOO'
+    log.leave()
+    assert log.prefix == '       '

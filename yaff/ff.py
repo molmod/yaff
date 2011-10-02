@@ -169,7 +169,7 @@ class ForceField(ForcePart):
            present in the system, are simply ignored.
         """
         from ffgen import ParsedPars, generators, FFArgs
-        log.set_prefix('GEN')
+        log.enter('GEN')
         parsed_pars = ParsedPars(fn_parameters)
         ff_args = FFArgs(**kwargs)
         for prefix in parsed_pars.info:
@@ -179,6 +179,7 @@ class ForceField(ForcePart):
                     log.warn('There is no generator named %s.' % prefix)
             else:
                 generator(system, parsed_pars.get_section(prefix), ff_args)
+        log.leave()
         return ForceField(system, ff_args.parts, ff_args.nlists)
 
     def update_rvecs(self, rvecs):

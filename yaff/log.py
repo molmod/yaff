@@ -51,7 +51,8 @@ __________________\///______\///________\///___\///______________\///___________
 * mailto: Toon.Vesrtraelen@UGent.be
 
 In a not-too-distant future, this program will be renamed to NJAFF, which stands
-for 'not just another force field code'. Please, bear with us."""
+for 'not just another force field code'. Please, bear with us.
+"""
 
 
 foot_banner = r"""
@@ -77,7 +78,7 @@ class UnitSystem(object):
 
     def log_info(self):
         if log.do_low:
-            log.set_prefix('UNITS')
+            log.enter('UNITS')
             log('The following units will be used below:')
             log.hline()
             log('Type          Conversion             Notation')
@@ -94,6 +95,7 @@ class UnitSystem(object):
             log('Angle         %21.15e  %s' % self.angle)
             log.hline()
             log('The internal data is divided by the corresponding conversion factor before it gets printed on screen.')
+            log.leave()
 
     def apply(self, some):
         some.energy = self.energy[0]
@@ -188,6 +190,8 @@ class ScreenLog(object):
         self.unitsys = self.joule
         self.unitsys.apply(self)
         self.prefix = ' '*(self.margin-1)
+        self.stack = []
+        self.add_newline = False
         if f is None:
             self._file = sys.stdout
         else:
@@ -212,7 +216,9 @@ class ScreenLog(object):
             prefix = self.prefix
             self.print_header()
             self.prefix = prefix
+        if self.add_newline:
             print >> self._file
+            self.add_newline = False
         # Check for alignment code '&'
         pos = s.find('&')
         if pos == -1:
@@ -249,12 +255,17 @@ class ScreenLog(object):
     def hline(self, char='~'):
         self(char*self.width)
 
-    def set_prefix(self, prefix):
+    def enter(self, prefix):
         if len(prefix) > self.margin-1:
             raise ValueError('The prefix must be at most %s characters wide.' % (self.margin-1))
+        self.stack.append(self.prefix)
         self.prefix = prefix.upper().rjust(self.margin-1, ' ')
+        self.add_newline = True
+
+    def leave(self):
+        self.prefix = self.stack.pop(-1)
         if self._active:
-            print >> self._file
+            self.add_newline = True
 
     def set_unitsys(self, unitsys):
         self.unitsys = unitsys
@@ -278,7 +289,7 @@ class ScreenLog(object):
     def _print_basic_info(self):
         if log.do_low:
             import yaff
-            log.set_prefix('ENV')
+            log.enter('ENV')
             log('User:          &' + os.getlogin())
             log('Machine info:  &' + ' '.join(os.uname()))
             log('Time:          &' + datetime.datetime.now().isoformat())
@@ -286,6 +297,7 @@ class ScreenLog(object):
             log('YAFF version:  &' + yaff.__version__)
             log('Current Dir:   &' + os.getcwd())
             log('Command line:  &' + ' '.join(sys.argv))
+            log.leave()
 
 
 log = ScreenLog()
