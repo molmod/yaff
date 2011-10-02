@@ -23,7 +23,7 @@
 
 import numpy as np
 
-from yaff.ext import iclist_forward, iclist_back
+from yaff.pes.ext import iclist_forward, iclist_back
 
 
 __all__ = [

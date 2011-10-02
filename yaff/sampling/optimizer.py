@@ -26,8 +26,8 @@ from molmod.units import *
 from molmod.io.xyz import XYZWriter
 from molmod.periodic import periodic as periodictable
 
-from yaff.ext import *
-from yaff.ff import *
+from yaff.pes.ext import *
+from yaff.pes.ff import *
 
 __all__ = [
     'Optimizer', 'CellOptimizer', 'ThetaOptimizer',

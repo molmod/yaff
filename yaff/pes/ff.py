@@ -23,18 +23,17 @@
 
 import numpy as np
 
-from yaff.ext import compute_ewald_reci, compute_ewald_corr, PairPotEI, \
-    PairPotLJ, PairPotMM3, PairPotGrimme
-from yaff.dlist import DeltaList
 from yaff.log import log
-from yaff.iclist import *
-from yaff.vlist import *
+from yaff.pes.ext import compute_ewald_reci, compute_ewald_corr, PairPotEI, \
+    PairPotLJ, PairPotMM3, PairPotGrimme
+from yaff.pes.dlist import DeltaList
+from yaff.pes.iclist import InternalCoordinateList
+from yaff.pes.vlist import ValenceList
 
 
 __all__ = [
     'ForcePart', 'ForceField', 'ForcePartPair', 'ForcePartEwaldReciprocal',
     'ForcePartEwaldCorrection', 'ForcePartEwaldNeutralizing', 'ForcePartValence',
-    'add_bonds', 'add_bends', 'add_dihedrals', 'add_ubs',
 ]
 
 
@@ -168,7 +167,7 @@ class ForceField(ForcePart):
            with the default constructor. Parameters for atom types that are not
            present in the system, are simply ignored.
         """
-        from ffgen import ParsedPars, generators, FFArgs
+        from yaff.pes.generator import ParsedPars, generators, FFArgs
         log.enter('GEN')
         parsed_pars = ParsedPars(fn_parameters)
         ff_args = FFArgs(**kwargs)
@@ -299,171 +298,3 @@ class ForcePartValence(ForcePart):
             self.iclist.back()
             self.dlist.back(gpos, vtens)
         return energy
-
-
-# Methods to add bonds, bends, ... to ff object from a val_table dictionary
-
-def add_bonds(system, part_valence, val_table, convert_harmonic_to_fues=False):
-    """
-        Add bonds present in system to part_valence (a ForcePartValence
-        instance) with parameters from the val_table dictionary. This val_table
-        dictionary can be retrieved using the get_val_table method of the input
-        module. The method returns 2 strings:
-
-            warnings = list of warnings (missing terms)
-            added    = list of added terms
-
-        If convert_harmonic_to_fues is set to True, all Harmonic bonds will be
-        converted to Fues bond with numerical identical force constant and rest
-        value.
-    """
-    warnings = ""
-    added = ""
-    for i, j in system.topology.bonds:
-        key = system.ffatypes[i], system.ffatypes[j]
-        if not key in val_table["bond"].keys():
-            warnings += "    no bond term detected for atom pair %i,%i %s\n" %(i,j,key)
-        else:
-            terminfo = val_table["bond"][key]
-            if terminfo[0]=="harm" and terminfo[1]=="dist":
-                if terminfo[2][0][0]=="K" and terminfo[2][1][0]=="q0":
-                    fc = terminfo[2][0][1]
-                    rv = terminfo[2][1][1]
-                elif terminfo[2][1][0]=="K" and terminfo[2][0][0]=="q0":
-                    fc = terminfo[2][1][1]
-                    rv = terminfo[2][0][1]
-                else:
-                    raise ValueError("Error reading parameters in bond term")
-                if convert_harmonic_to_fues:
-                    part_valence.add_term(Fues(fc, rv, Bond(i, j)))
-                    added += "    Bond    :  Fues(%s[%i] - %s[%i])\n" %(key[0], i, key[1], j)
-                else:
-                    part_valence.add_term(Harmonic(fc, rv, Bond(i, j)))
-                    added += "    Bond    :  Harmonic(%s[%i] - %s[%i])\n" %(key[0], i, key[1], j)
-            else:
-                raise NotImplementedError("Bond term of kind %s(%s) not supported" %(terminfo[0], terminfo[1]) )
-    return added, warnings
-
-
-def add_bends(system, part_valence, val_table):
-    """
-        Add bends present in system to part_valence (a ForcePartValence
-        instance) with parameters from the val_table dictionary. This val_table
-        dictionary can be retrieved using the get_val_table method of the input
-        module. The method returns 2 strings:
-
-            warnings = list of warnings (missing terms)
-            added    = list of added terms
-    """
-    warnings = ""
-    added = ""
-    for i1 in xrange(system.natom):
-        for i0 in system.topology.neighs1[i1]:
-            for i2 in system.topology.neighs1[i1]:
-                key = system.ffatypes[i0], system.ffatypes[i1], system.ffatypes[i2]
-                if i0 > i2:
-                    if not key in val_table["bend"].keys():
-                        warnings += "    no bend term detected for atom triple %i,%i,%i %s\n" %(i0,i1,i2,key)
-                    else:
-                        terminfo = val_table["bend"][key]
-                        if terminfo[0]=="harm" and terminfo[1]=="angle":
-                            if terminfo[2][0][0]=="K" and terminfo[2][1][0]=="q0":
-                                fc = terminfo[2][0][1]
-                                rv = terminfo[2][1][1]
-                            elif terminfo[2][1][0]=="K" and terminfo[2][0][0]=="q0":
-                                fc = terminfo[2][1][1]
-                                rv = terminfo[2][0][1]
-                            else:
-                                raise ValueError("Error reading parameters in bond term")
-                            part_valence.add_term(Harmonic(fc, rv, BendAngle(i0, i1, i2)))
-                            added += "    Bend    :  Harmonic(%s[%i] - %s[%i] - %s[%i])\n" %(key[0], i0, key[1], i1, key[2], i2)
-                        elif terminfo[0]=="sqbend" and terminfo[1]=="cangle":
-                            if terminfo[2][0][0]=="K":
-                                fc = terminfo[2][0][1]
-                            else:
-                                raise ValueError("Error reading parameters in bend term")
-                            part_valence.add_term(PolyFour([0, fc, fc, 0], BendCos(i0, i1, i2)))
-                            added += "    Bend    :  PolyFour(%s[%i] - %s[%i] - %s[%i])\n" %(key[0], i0, key[1], i1, key[2], i2)
-                        else:
-                            raise NotImplementedError("Bend term of kind %s(%s) not supported" %(terminfo[0], terminfo[1]) )
-    return added, warnings
-
-
-def add_dihedrals(system, part_valence, val_table, only_dihedral_number=None):
-    """
-        Add dihedrals present in system to part_valence (a ForcePartValence
-        instance) with parameters from the val_table dictionary. This val_table
-        dictionary can be retrieved using the get_val_table method of the input
-        module. The method returns 2 strings:
-
-            warnings = list of warnings (missing terms)
-            added    = list of added terms
-    """
-    warnings = ""
-    added = ""
-    idih = -1
-    for i1, i2 in system.topology.bonds:
-        for i0 in system.topology.neighs1[i1]:
-            if i0==i2: continue
-            for i3 in system.topology.neighs1[i2]:
-                if i3==i1: continue
-                key = system.ffatypes[i0], system.ffatypes[i1], system.ffatypes[i2], system.ffatypes[i3]
-                if not key in val_table["dihed"].keys():
-                    warnings += "    no dihed term detected for atom quadruplet %i,%i,%i, %i %s\n" %(i0, i1, i2, i3, key)
-                else:
-                    idih += 1
-                    if idih==only_dihedral_number or only_dihedral_number is None:
-                        terminfo = val_table["dihed"][key]
-                        if terminfo[0]=="cos-m2-0" and terminfo[1]=="dihed":
-                            if terminfo[2][0][0]=="K":
-                                fc = terminfo[2][0][1]
-                            else:
-                                raise ValueError("Error reading parameters in dihed term")
-                            part_valence.add_term(PolyFour([0.0, -2*fc, 0.0, 0.0], DihedCos(i0, i1, i2, i3)))
-                            added += "    Dihedral:  PolyFour(%s[%i] - %s[%i] - %s[%i] - %s[%i])\n" %(key[0], i0, key[1], i1, key[2], i2, key[3], i3)
-                        elif terminfo[0]=="cos-m1-0" and terminfo[1]=="dihed":
-                            if terminfo[2][0][0]=="K":
-                                fc = terminfo[2][0][1]
-                            else:
-                                raise ValueError("Error reading parameters in dihed term")
-                            part_valence.add_term(PolyFour([-fc_table[key], 0.0, 0.0, 0.0], DihedCos(i0, i1, i2, i3)))
-                            added += "    Dihedral:  PolyFour(%s-%s-%s-%s)\n" %(key[0], key[1], key[2], key[3])
-                        else:
-                            raise NotImplementedError("Dihedral term of kind %s(%s) not supported" %(terminfo[0], terminfo[1]) )
-    return added, warnings
-
-def add_ubs(system, part_valence, val_table):
-    """
-        Add Urey-Bradley terms present in system to part_valence (a
-        ForcePartValence instance) with parameters from the val_table
-        dictionary. This val_table dictionary can be retrieved using the
-        get_val_table method of the input module. The method returns 2 strings:
-
-            warnings = list of warnings (missing terms)
-            added    = list of added terms
-    """
-    warnings = ""
-    added = ""
-    for i1 in xrange(system.natom):
-        for i0 in system.topology.neighs1[i1]:
-            for i2 in system.topology.neighs1[i1]:
-                key = system.ffatypes[i0], system.ffatypes[i1], system.ffatypes[i2]
-                if i0 > i2:
-                    if not key in val_table["ub"].keys():
-                        warnings += "    no ub term detected for atom triple %i,%i,%i %s\n" %(i0,i1,i2,key)
-                    else:
-                        terminfo = val_table["ub"][key]
-                        if terminfo[0]=="harm" and terminfo[1]=="ub":
-                            if terminfo[2][0][0]=="K" and terminfo[2][1][0]=="q0":
-                                fc = terminfo[2][0][1]
-                                rv = terminfo[2][1][1]
-                            elif terminfo[2][1][0]=="K" and terminfo[2][0][0]=="q0":
-                                fc = terminfo[2][1][1]
-                                rv = terminfo[2][0][1]
-                            else:
-                                raise ValueError("Error reading parameters in bond term")
-                            part_valence.add_term(Harmonic(fc, rv, UreyBradley(i0, i1, i2)))
-                            added += "    UreyBrad:  Harmonic(%s[%i] - %s[%i] - %s[%i])\n" %(key[0], i0, key[1], i1, key[2], i2)
-                        else:
-                            raise NotImplementedError("Urey-Bradley term of kind %s(%s) not supported" %(terminfo[0], terminfo[1]) )
-    return added, warnings

@@ -39,10 +39,10 @@ setup(
     packages=['yaff', 'yaff/test'],
     cmdclass = {'build_ext': build_ext},
     ext_modules=[
-        Extension("yaff.ext", [
-            'yaff/ext.pyx', 'yaff/nlists.c', 'yaff/pair_pot.c',
-            'yaff/ewald.c', 'yaff/dlist.c', 'yaff/iclist.c', 'yaff/vlist.c',
-            'yaff/cell.c',
+        Extension("yaff.pes.ext", [
+            'yaff/pes/ext.pyx', 'yaff/pes/nlists.c', 'yaff/pes/pair_pot.c',
+            'yaff/pes/ewald.c', 'yaff/pes/dlist.c', 'yaff/pes/iclist.c',
+            'yaff/pes/vlist.c', 'yaff/pes/cell.c',
         ]),
     ],
     classifiers=[

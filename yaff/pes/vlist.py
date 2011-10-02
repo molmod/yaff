@@ -23,7 +23,7 @@
 
 import numpy as np
 
-from yaff.ext import vlist_forward, vlist_back
+from yaff.pes.ext import vlist_forward, vlist_back
 
 
 __all__ = ['ValenceList', 'ValenceTerm', 'Harmonic', 'PolyFour', 'Fues', 'Cross']

@@ -23,7 +23,7 @@
 
 import numpy as np
 
-from yaff.ext import dlist_forward, dlist_back
+from yaff.pes.ext import dlist_forward, dlist_back
 
 
 __all__ = ['DeltaList']

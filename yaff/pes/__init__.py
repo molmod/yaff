@@ -20,11 +20,13 @@
 #
 # --
 
-from molmod.units import *
-from molmod.constants import *
-
-from yaff.log import *
-from yaff.pes import *
-from yaff.sampling import *
-
-__version__ = '0.0'
+from yaff.pes.ext import *
+from yaff.pes.dlist import *
+from yaff.pes.iclist import *
+from yaff.pes.vlist import *
+from yaff.pes.generator import *
+from yaff.pes.ff import *
+from yaff.pes.nlists import *
+from yaff.pes.scaling import *
+from yaff.pes.system import *
+from yaff.pes.topology import *

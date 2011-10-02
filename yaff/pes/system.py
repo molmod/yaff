@@ -23,9 +23,9 @@
 
 import numpy as np
 
-from yaff.topology import Topology
-from yaff.ext import Cell
 from yaff.log import log
+from yaff.pes.topology import Topology
+from yaff.pes.ext import Cell
 
 
 __all__ = ['System']

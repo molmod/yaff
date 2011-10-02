@@ -23,8 +23,8 @@
 
 from molmod.units import parse_unit
 
-from yaff.ff import ForcePartPair, ForcePartValence
-from yaff.nlists import NeighborLists
+from yaff.pes.ff import ForcePartPair, ForcePartValence
+from yaff.pes.nlists import NeighborLists
 
 
 __all__ = ['ParsedPars', 'FFArgs', 'Generator', 'BondHarmGenerator', 'generators']
@@ -226,8 +226,8 @@ class BondHarmGenerator(Generator):
         if system.topology is None:
             raise ValueError('The system must have a topology (i.e. bonds) in order to define valence terms.')
         part_valence = ff_args.get_part_valence(system)
-        from yaff.iclist import Bond
-        from yaff.vlist import Harmonic
+        from yaff.pes.iclist import Bond
+        from yaff.pes.vlist import Harmonic
         for i0, i1 in system.topology.bonds:
             pars = par_table.get((system.ffatypes[i0], system.ffatypes[1]))
             part_valence.add_term(Harmonic(pars[0], pars[1], Bond(i0, i1)))
@@ -246,8 +246,8 @@ class BondFuesGenerator(Generator):
         if system.topology is None:
             raise ValueError('The system must have a topology (i.e. bonds) in order to define valence terms.')
         part_valence = ff_args.get_part_valence(system)
-        from yaff.iclist import Bond
-        from yaff.vlist import Fues
+        from yaff.pes.iclist import Bond
+        from yaff.pes.vlist import Fues
         for i0, i1 in system.topology.bonds:
             pars = par_table.get((system.ffatypes[i0], system.ffatypes[1]))
             part_valence.add_term(Fues(pars[0], pars[1], Bond(i0, i1)))

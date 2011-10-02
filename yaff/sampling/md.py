@@ -27,8 +27,8 @@ from molmod.constants import boltzmann
 from molmod.io.xyz import XYZWriter
 from molmod.periodic import periodic
 
-from yaff.ff import ForcePartPair
-from yaff.ext import PairPotEI
+from yaff.pes.ff import ForcePartPair
+from yaff.pes.ext import PairPotEI
 
 __all__ = [
     'MolecularDynamics', 'NVE',
