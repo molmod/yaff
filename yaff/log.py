@@ -206,8 +206,8 @@ class ScreenLog(object):
 
     def __call__(self, *words):
         s = ' '.join(words)
-        if not self.do_low:
-            raise RuntimeError('The runlevel should be at least low when logging.')
+        if not self.do_warning:
+            raise RuntimeError('The runlevel should be at least warning when logging.')
         if not self._active:
             prefix = self.prefix
             self.print_header()
@@ -243,6 +243,9 @@ class ScreenLog(object):
                 lead = ' '*len(lead)
                 first = False
 
+    def warn(self, *words):
+        self('WARNING!!', *words)
+
     def hline(self, char='~'):
         self(char*self.width)
 
@@ -260,7 +263,7 @@ class ScreenLog(object):
             self.unitsys.log_info()
 
     def print_header(self):
-        if self.do_low and not self._active:
+        if self.do_warning and not self._active:
             self._active = True
             print >> self._file, head_banner
             self._print_basic_info()
@@ -268,11 +271,12 @@ class ScreenLog(object):
 
     def print_footer(self):
         # Do not show footer when program crashes.
-        if self.do_low and sys.exc_info()[0] is None and self._active:
+        if self.do_warning and sys.exc_info()[0] is None and self._active:
             self._print_basic_info()
             print >> self._file, foot_banner
 
     def _print_basic_info(self):
+        if log.do_low:
             import yaff
             log.set_prefix('ENV')
             log('User:          &' + os.getlogin())
@@ -280,6 +284,8 @@ class ScreenLog(object):
             log('Time:          &' + datetime.datetime.now().isoformat())
             log('Python version:&' + sys.version.replace('\n', ''))
             log('YAFF version:  &' + yaff.__version__)
+            log('Current Dir:   &' + os.getcwd())
+            log('Command line:  &' + ' '.join(sys.argv))
 
 
 log = ScreenLog()
