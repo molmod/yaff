@@ -26,6 +26,7 @@ import numpy as np
 from yaff.ext import compute_ewald_reci, compute_ewald_corr, PairPotEI, \
     PairPotLJ, PairPotMM3, PairPotGrimme
 from yaff.dlist import DeltaList
+from yaff.log import log
 from yaff.iclist import *
 from yaff.vlist import *
 
@@ -168,13 +169,16 @@ class ForceField(ForcePart):
            present in the system, are simply ignored.
         """
         from ffgen import ParsedPars, generators, FFArgs
+        log.set_prefix('GEN')
         parsed_pars = ParsedPars(fn_parameters)
         ff_args = FFArgs(**kwargs)
-        for prefix in parsed_args.info:
-            generators.get(prefix)
+        for prefix in parsed_pars.info:
+            generator = generators.get(prefix)
             if generator is None:
-                parsed_args.complain(None, 'contains an unknown generator: %s' % prefix)
-            generator(system, parsed_pars, ff_args)
+                if log.do_warning:
+                    log.warn('There is no generator named %s.' % prefix)
+            else:
+                generator(system, parsed_pars.get_section(prefix), ff_args)
         return ForceField(system, ff_args.parts, ff_args.nlists)
 
     def update_rvecs(self, rvecs):

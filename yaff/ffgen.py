@@ -31,11 +31,25 @@ __all__ = ['ParsedPars', 'FFArgs', 'Generator', 'BondHarmGenerator', 'generators
 
 
 class ParsedPars(object):
-    def __init__(self, fn, info=None):
-        self.fn = fn
+    def __init__(self, f, info=None):
         if info is None:
-            self.load(fn)
+            if isinstance(f, basestring):
+                self.fn = f
+                do_close = True
+                f = open(f)
+            else:
+                if isinstance(f, file):
+                    self.fn = f.name
+                else:
+                    self.fn = str(f)
+                do_close = False
+            try:
+                self.load(f)
+            finally:
+                if do_close:
+                    f.close()
         else:
+            self.fn = f
             self.info = info
 
     def complain(self, counter, message=None):
@@ -44,9 +58,8 @@ class ParsedPars(object):
         else:
             raise IOError('Line %i in the parameter file %s %s.' % (counter, self.fn, message))
 
-    def load(self, fn):
+    def load(self, f):
         self.info = {}
-        f = file(fn)
         counter = 1
         for line in f:
             line = line[:line.find('#')].strip()
@@ -71,13 +84,12 @@ class ParsedPars(object):
                 l2 = l1.setdefault(command, [])
                 l2.append((counter, data))
             counter += 1
-        f.close()
 
     def get_section(self, key):
         if key in self.info:
-            return ParsedPars(self.fn_paramters, self.info[key])
+            return ParsedPars(self.fn, self.info[key])
         else:
-            return ParsedPars(self.fn_paramters, {})
+            return ParsedPars(self.fn, {})
 
 
 class FFArgs(object):
@@ -120,10 +132,10 @@ class FFArgs(object):
                 return part
 
     def get_part_valence(self, system):
-        part_valence = ff_args.get_part(ForcePartValence)
+        part_valence = self.get_part(ForcePartValence)
         if part_valence is None:
             part_valence = ForcePartValence(system)
-            ff_args.append(part_valence)
+            self.parts.append(part_valence)
         return part_valence
 
 
@@ -141,8 +153,8 @@ class Generator(object):
     par_names = None
 
     def __call__(self, system, parsed_pars, ff_args):
-        conversions = self.process_units(parsed_pars.get_section('UNITS'))
-        par_table = self.process_pars(parsed_pars.get_section('UNITS'), conversions)
+        conversions = self.process_units(parsed_pars.get_section('UNIT'))
+        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions)
         if len(par_table) > 0:
             aux_info = self.process_aux(parsed_pars)
             self.apply(par_table, aux_info, system, ff_args)
@@ -150,7 +162,7 @@ class Generator(object):
     def process_units(self, parsed_pars):
         result = {}
         for counter, line in parsed_pars.info:
-            line = words.split()
+            words = line.split()
             if len(words) != 2:
                 parsed_pars.complain(counter, 'should have two arguments in UNIT command.')
             name = words[0].upper()
@@ -160,7 +172,7 @@ class Generator(object):
                 result[name] = parse_unit(words[1])
             except (NameError, ValueError):
                 parsed_pars.complain(counter, 'has a UNIT command with an unknown unit.')
-        if len(results) != len(self.par_names):
+        if len(result) != len(self.par_names):
             raise IOError('Not all units are specified for generator %s in file %s. Got %s, should have %s.' % (
                 self.prefix, parsed_pars.fn, result.keys(), self.par_names
             ))
@@ -189,12 +201,13 @@ class Generator(object):
 
     def process_aux(self, parsed_pars):
         for command, info in parsed_pars.info.iteritems():
-            if command == 'UNITS':
+            if command == 'UNIT':
                 continue
             elif command == 'PARS':
                 continue
             else:
-                raise parsed_pars.complain('contains an unknown command: %s' % command)
+                counter = info[0][0]
+                raise parsed_pars.complain(counter, 'contains an unknown command: %s' % command)
 
     def apply(self, par_table, system, ff_args):
         raise NotImplementedError
@@ -205,11 +218,11 @@ class BondHarmGenerator(Generator):
     num_ffatypes = 2
     par_names = ['K', 'R0']
 
-    def iter_alt_keys(key):
+    def iter_alt_keys(self, key):
         yield key
         yield key[::-1]
 
-    def apply(self, par_table, system, ff_args):
+    def apply(self, par_table, aux_info, system, ff_args):
         if system.topology is None:
             raise ValueError('The system must have a topology (i.e. bonds) in order to define valence terms.')
         part_valence = ff_args.get_part_valence(system)
@@ -217,11 +230,31 @@ class BondHarmGenerator(Generator):
         from yaff.vlist import Harmonic
         for i0, i1 in system.topology.bonds:
             pars = par_table.get((system.ffatypes[i0], system.ffatypes[1]))
-            part_valence.add_term(Harmonic(pars, Bond(i0, i1)))
+            part_valence.add_term(Harmonic(pars[0], pars[1], Bond(i0, i1)))
+
+
+class BondFuesGenerator(Generator):
+    prefix = 'BONDFUES'
+    num_ffatypes = 2
+    par_names = ['K', 'R0']
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def apply(self, par_table, aux_info, system, ff_args):
+        if system.topology is None:
+            raise ValueError('The system must have a topology (i.e. bonds) in order to define valence terms.')
+        part_valence = ff_args.get_part_valence(system)
+        from yaff.iclist import Bond
+        from yaff.vlist import Fues
+        for i0, i1 in system.topology.bonds:
+            pars = par_table.get((system.ffatypes[i0], system.ffatypes[1]))
+            part_valence.add_term(Fues(pars[0], pars[1], Bond(i0, i1)))
 
 
 # Collect all the generators that have a prefix.
 generators = {}
 for x in globals().values():
     if isinstance(x, type) and issubclass(x, Generator) and x.prefix is not None:
-        generators[x.prefix] = x
+        generators[x.prefix] = x()
