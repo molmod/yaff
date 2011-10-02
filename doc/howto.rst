@@ -319,7 +319,7 @@ This is a simple example of a Lennard-Jones force field::
 
    I've made a tentative example for a (reasonable) non-polarizable water FF:
 
-   .. literalinclude:: parameters.txt
+   .. literalinclude:: ../input/parameters_water.txt
 
 3. The generate method.
 

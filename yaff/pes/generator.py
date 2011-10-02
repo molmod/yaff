@@ -35,25 +35,15 @@ __all__ = ['ParsedPars', 'FFArgs', 'Generator', 'BondHarmGenerator', 'generators
 
 
 class ParsedPars(object):
-    def __init__(self, f, info=None):
+    def __init__(self, fn, info=None):
+        self.fn = fn
         if info is None:
-            if isinstance(f, basestring):
-                self.fn = f
-                do_close = True
-                f = open(f)
-            else:
-                if isinstance(f, file):
-                    self.fn = f.name
-                else:
-                    self.fn = str(f)
-                do_close = False
+            f = open(fn)
             try:
                 self.load(f)
             finally:
-                if do_close:
-                    f.close()
+                f.close()
         else:
-            self.fn = f
             self.info = info
 
     def complain(self, counter, message=None):
