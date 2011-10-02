@@ -199,6 +199,7 @@ def get_system_water32():
         ffatypes=['O', 'H', 'H']*32,
         bonds=np.array([[(i/3)*3,i] for i in xrange(96) if i%3!=0]),
         rvecs=np.array([[9.865, 0.0, 0.0], [0.0, 9.865, 0.0], [0.0, 0.0, 9.865]])*angstrom,
+        charges=np.array([-0.834, 0.417, 0.417]*32)
     )
 
 
@@ -259,6 +260,7 @@ def get_system_quartz():
             [1, 4], [0, 4], [2, 3], [0, 3],
         ]),
         rvecs=np.array([[0.0, 0.0, 5.405222], [0.0, 4.913416, 0.0], [-4.255154, 2.456708, 0.0]])*angstrom,
+        charges=np.array([1.8]*3 + [-0.9]*6),
     )
 
 

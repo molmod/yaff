@@ -32,7 +32,7 @@ __all__ = ['System']
 
 
 class System(object):
-    def __init__(self, numbers, pos, ffatypes, bonds=None, rvecs=None):
+    def __init__(self, numbers, pos, ffatypes, bonds=None, rvecs=None, charges=None):
         '''
            **Arguments:**
 
@@ -54,6 +54,9 @@ class System(object):
            rvecs
                 An array whose rows are the unit cell vectors. At most three
                 rows are allowed, each containg three Cartesian coordinates.
+
+           charges
+                An array of atomic charges
         '''
         if len(numbers.shape) != 1:
             raise ValueError('Argument numbers must be a one-dimensional array.')
@@ -69,6 +72,7 @@ class System(object):
         else:
             self.topology = Topology(bonds, self.natom)
         self.cell = Cell(rvecs)
+        self.charges = charges
 
     natom = property(lambda self: len(self.pos))
 
@@ -127,7 +131,8 @@ class System(object):
                 from molmod.io import PSFFile
                 psf = PSFFile(fn)
                 kwargs['ffatypes'] = psf.atom_types
-                kwargs['bonds'] = psf.bonds
+                kwargs['bonds'] = np.array(psf.bonds, copy=False)
+                kwargs['charges'] = np.array(psf.charges, copy=False)
             elif fn.endswith('.chk'):
                 from molmod.io import load_chk
                 kwargs.update(load_chk(fn))
@@ -156,6 +161,7 @@ class System(object):
             'ffatypes': self.ffatypes,
             'bonds': self.topology.bonds,
             'rvecs': self.cell.rvecs,
+            'charges': self.charges
         })
         if log.do_high:
             log('SYS', 'Wrote system to %s.' % fn_chk)

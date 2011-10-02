@@ -31,25 +31,23 @@ from common import get_system_water32, get_system_quartz, check_gpos_part, \
 
 def test_ewald_water32():
     system = get_system_water32()
-    charges = -0.8 + (system.numbers == 1)*1.2
-    check_alpha_depedence(system, charges)
+    check_alpha_depedence(system)
 
 
 def test_ewald_quartz():
     system = get_system_quartz()
-    charges = 1.8 - (system.numbers == 8)*2.7
-    check_alpha_depedence(system, charges)
+    check_alpha_depedence(system)
 
 
-def check_alpha_depedence(system, charges):
+def check_alpha_depedence(system):
     # Idea: run ewald sum with two different alpha parameters and compare.
     # (this only works if both real and reciprocal part properly converge.)
     energies = []
     gposs = []
     vtenss = []
-    assert abs(charges.sum()) < 1e-10
+    assert abs(system.charges.sum()) < 1e-10
     for alpha in 0.05, 0.1, 0.2, 0.5, 1.0:
-        energy, gpos, vtens = get_electrostatic_energy(alpha, system, charges)
+        energy, gpos, vtens = get_electrostatic_energy(alpha, system)
         energies.append(energy)
         gposs.append(gpos)
         vtenss.append(vtens)
@@ -62,16 +60,16 @@ def check_alpha_depedence(system, charges):
     assert abs(vtenss - vtenss.mean(axis=0)).max() < 1e-8
 
 
-def get_electrostatic_energy(alpha, system, charges):
+def get_electrostatic_energy(alpha, system):
     # Creat system
     nlists = NeighborLists(system)
     scalings = Scalings(system.topology, 0.0, 0.0, 0.5)
     # Construct the ewald real-space potential and part
-    ewald_real_pot = PairPotEI(charges, alpha, rcut=5.5/alpha)
+    ewald_real_pot = PairPotEI(system.charges, alpha, rcut=5.5/alpha)
     part_pair_ewald_real = ForcePartPair(system, nlists, scalings, ewald_real_pot)
     # Construct the ewald reciprocal and correction part
-    part_ewald_reci = ForcePartEwaldReciprocal(system, charges, alpha, gcut=alpha/0.5)
-    part_ewald_corr = ForcePartEwaldCorrection(system, charges, alpha, scalings)
+    part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=alpha/0.5)
+    part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
     # Construct the force field
     ff = ForceField(system, [part_pair_ewald_real, part_ewald_reci, part_ewald_corr], nlists)
     ff.update_pos(system.pos)
@@ -82,27 +80,24 @@ def get_electrostatic_energy(alpha, system, charges):
 
 def test_ewald_gpos_vtens_reci_water32():
     system = get_system_water32()
-    charges = -0.8 + (system.numbers == 1)*1.2
     for alpha, eps in (0.05, 1e-17), (0.1, 1e-13), (0.2, 1e-11):
-        part_ewald_reci = ForcePartEwaldReciprocal(system, charges, alpha, gcut=alpha/0.75)
+        part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=alpha/0.75)
         check_gpos_part(system, part_ewald_reci, eps)
         check_vtens_part(system, part_ewald_reci, eps)
 
 
 def test_ewald_gpos_vtens_reci_quartz():
     system = get_system_quartz()
-    charges = 1.8 - (system.numbers == 8)*2.7
     for alpha, eps in (0.1, 1e-16), (0.2, 1e-12), (0.5, 1e-12):
-        part_ewald_reci = ForcePartEwaldReciprocal(system, charges, alpha, gcut=alpha/0.5)
+        part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=alpha/0.5)
         check_gpos_part(system, part_ewald_reci, eps)
         check_vtens_part(system, part_ewald_reci, eps)
 
 
 def test_ewald_reci_volchange_quartz():
     system = get_system_quartz()
-    charges = 1.8 - (system.numbers == 8)*2.7
     for alpha in 0.1, 0.2, 0.5:
-        part_ewald_reci = ForcePartEwaldReciprocal(system, charges, alpha, gcut=alpha/0.5)
+        part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=alpha/0.5)
         # compute the energy
         energy1 = part_ewald_reci.compute()
         # distort the cell and restore to the original volume
@@ -121,20 +116,18 @@ def test_ewald_reci_volchange_quartz():
 
 def test_ewald_gpos_vtens_corr_water32():
     system = get_system_water32()
-    charges = -0.8 + (system.numbers == 1)*1.2
     scalings = Scalings(system.topology, 0.0, 0.0, 0.5)
     for alpha, eps in (0.05, 1e-15), (0.1, 1e-15), (0.2, 1e-12):
-        part_ewald_corr = ForcePartEwaldCorrection(system, charges, alpha, scalings)
+        part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
         check_gpos_part(system, part_ewald_corr, eps)
         check_vtens_part(system, part_ewald_corr, eps)
 
 
 def test_ewald_gpos_vtens_corr_quartz():
     system = get_system_quartz()
-    charges = 1.8 - (system.numbers == 8)*2.7
     scalings = Scalings(system.topology, 0.0, 0.0, 0.5)
     for alpha, eps in (0.1, 1e-12), (0.2, 1e-11), (0.5, 1e-11):
-        part_ewald_corr = ForcePartEwaldCorrection(system, charges, alpha, scalings)
+        part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
         check_gpos_part(system, part_ewald_corr, eps)
         check_vtens_part(system, part_ewald_corr, eps)
 
@@ -142,7 +135,7 @@ def test_ewald_gpos_vtens_corr_quartz():
 def test_ewald_vtens_neut_water32():
     # fake water model, negative oxygens and neutral hydrogens
     system = get_system_water32()
-    charges = -(system.numbers == 8)*0.8
+    system.charges -= 0.1
     for alpha, eps in (0.05, 1e-10), (0.1, 1e-10), (0.2, 1e-10):
-        part_ewald_neut = ForcePartEwaldNeutralizing(system, charges, alpha)
+        part_ewald_neut = ForcePartEwaldNeutralizing(system, alpha)
         check_vtens_part(system, part_ewald_neut, eps)

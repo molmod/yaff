@@ -217,12 +217,13 @@ class ForcePartPair(ForcePart):
 
 
 class ForcePartEwaldReciprocal(ForcePart):
-    def __init__(self, system, charges, alpha, gcut=0.35):
+    def __init__(self, system, alpha, gcut=0.35):
         ForcePart.__init__(self, 'ewald_reci', system)
         if not system.cell.nvec == 3:
-            raise TypeError('The system must have a 3D periodic cell')
+            raise TypeError('The system must have a 3D periodic cell.')
+        if system.charges is None:
+            raise ValueError('The system does not have charges.')
         self.system = system
-        self.charges = charges
         self.alpha = alpha
         self.gcut = gcut
         self.update_gmax()
@@ -238,25 +239,26 @@ class ForcePartEwaldReciprocal(ForcePart):
 
     def _internal_compute(self, gpos, vtens):
         energy = compute_ewald_reci(
-            self.system.pos, self.charges, self.system.cell, self.alpha,
+            self.system.pos, self.system.charges, self.system.cell, self.alpha,
             self.gmax, self.gcut, gpos, self.work, vtens
         )
         return energy
 
 
 class ForcePartEwaldCorrection(ForcePart):
-    def __init__(self, system, charges, alpha, scalings):
+    def __init__(self, system, alpha, scalings):
         ForcePart.__init__(self, 'ewald_cor', system)
         if not system.cell.nvec == 3:
             raise TypeError('The system must have a 3D periodic cell')
+        if system.charges is None:
+            raise ValueError('The system does not have charges.')
         self.system = system
-        self.charges = charges
         self.alpha = alpha
         self.scalings = scalings
 
     def _internal_compute(self, gpos, vtens):
         return sum([
-            compute_ewald_corr(self.system.pos, i, self.charges,
+            compute_ewald_corr(self.system.pos, i, self.system.charges,
                                self.system.cell, self.alpha, self.scalings[i],
                                gpos, vtens)
             for i in xrange(len(self.scalings))
@@ -264,16 +266,17 @@ class ForcePartEwaldCorrection(ForcePart):
 
 
 class ForcePartEwaldNeutralizing(ForcePart):
-    def __init__(self, system, charges, alpha):
+    def __init__(self, system, alpha):
         ForcePart.__init__(self, 'ewald_neut', system)
         if not system.cell.nvec == 3:
             raise TypeError('The system must have a 3D periodic cell')
+        if system.charges is None:
+            raise ValueError('The system does not have charges.')
         self.system = system
-        self.charges = charges
         self.alpha = alpha
 
     def _internal_compute(self, gpos, vtens):
-        fac = self.charges.sum()**2*np.pi/(2.0*self.system.cell.volume*self.alpha**2)
+        fac = self.system.charges.sum()**2*np.pi/(2.0*self.system.cell.volume*self.alpha**2)
         if vtens is not None:
             vtens.ravel()[::4] -= fac
         return fac

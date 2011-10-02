@@ -39,6 +39,7 @@ def test_chk():
         assert system0.ffatypes == list(system1.ffatypes)
         assert (system0.topology.bonds == system1.topology.bonds).all()
         assert abs(system0.cell.rvecs - system1.cell.rvecs).max() < 1e-10
+        assert abs(system0.charges - system1.charges).max() < 1e-10
     finally:
         shutil.rmtree(dirname)
 
@@ -55,5 +56,6 @@ def test_xyz():
         assert abs(system0.pos - system1.pos).max() < 1e-10
         assert system0.ffatypes == system1.ffatypes
         assert abs(system0.cell.rvecs - system1.cell.rvecs).max() < 1e-10
+        assert system1.charges is None
     finally:
         shutil.rmtree(dirname)

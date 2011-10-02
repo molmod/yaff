@@ -337,16 +337,16 @@ def get_part_caffeine_ei1_10A():
     nlists = NeighborLists(system)
     scalings = Scalings(system.topology, 0.0, 1.0, 0.5)
     # Initialize (random) parameters
-    charges = np.random.uniform(0, 1, system.natom)
-    charges -= charges.sum()
+    system.charges = np.random.uniform(0, 1, system.natom)
+    system.charges -= system.charges.sum()
     # Construct the pair potential and part
     rcut = 10*angstrom
     alpha = 3.5/rcut
-    pair_pot = PairPotEI(charges, alpha, rcut)
+    pair_pot = PairPotEI(system.charges, alpha, rcut)
     part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
-        return charges[i]*charges[j]*erfc(alpha*d)/d
+        return system.charges[i]*system.charges[j]*erfc(alpha*d)/d
     return system, nlists, scalings, pair_pot, part_pair, pair_fn
 
 
@@ -361,16 +361,16 @@ def get_part_caffeine_ei2_10A():
     nlists = NeighborLists(system)
     scalings = Scalings(system.topology, 0.0, 1.0, 0.5)
     # Initialize (random) parameters
-    charges = np.random.uniform(0, 1, system.natom)
-    charges -= charges.sum()
+    system.charges = np.random.uniform(0, 1, system.natom)
+    system.charges -= system.charges.sum()
     # Construct the pair potential and part
     rcut = 10*angstrom
     alpha = 0.0
-    pair_pot = PairPotEI(charges, alpha, rcut)
+    pair_pot = PairPotEI(system.charges, alpha, rcut)
     part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
-        return charges[i]*charges[j]*erfc(alpha*d)/d
+        return system.charges[i]*system.charges[j]*erfc(alpha*d)/d
     return system, nlists, scalings, pair_pot, part_pair, pair_fn
 
 def test_pair_pot_ei2_caffeine_10A():

@@ -66,21 +66,18 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
         pair_pot_lj = PairPotLJ(sigmas, epsilons, rcut, True)
         part_pair_lj = ForcePartPair(system, nlists, scalings, pair_pot_lj)
         parts.append(part_pair_lj)
-    # charges
-    q0 = 0.417
-    charges = -2*q0 + (system.numbers == 1)*3*q0
-    assert abs(charges.sum()) < 1e-8
+    # electrostatics
     if do_eireal:
         # Real-space electrostatics
-        pair_pot_ei = PairPotEI(charges, alpha, rcut)
+        pair_pot_ei = PairPotEI(system.charges, alpha, rcut)
         part_pair_ei = ForcePartPair(system, nlists, scalings, pair_pot_ei)
         parts.append(part_pair_ei)
     if do_eireci:
         # Reciprocal-space electrostatics
-        part_ewald_reci = ForcePartEwaldReciprocal(system, charges, alpha, gcut=alpha/0.75)
+        part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=alpha/0.75)
         parts.append(part_ewald_reci)
         # Ewald corrections
-        part_ewald_corr = ForcePartEwaldCorrection(system, charges, alpha, scalings)
+        part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
         parts.append(part_ewald_corr)
     return ForceField(system, parts, nlists)
 

@@ -170,10 +170,9 @@ Yaff. It can also be used in the ``from_file`` method.
 
 2. [DONE] Implement ``to_file`` and ``from_file``
 
-3. [LOW PRIORITY] Add charges as a system attribute. This are somehow special
-   parameters that are also used for computing derived properties such as the
-   dipole moment of the system etc. In the long run, these will also become
-   variable.
+3. [DONE] Add charges as a system attribute. This are somehow special parameters
+   that are also used for computing derived properties such as the dipole moment
+   of the system etc. In the long run, these will also become variable.
 
 4. [LOW PRIORITY] Introduce fragment name spaces in the atom types, e.g. instead
    of using O_W and H_W, we should have WATER:O, WATER:H. In the system object,
