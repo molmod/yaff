@@ -21,10 +21,14 @@
 # --
 
 
+import numpy as np
+
 from molmod.units import parse_unit
 
 from yaff.pes.ff import ForcePartPair, ForcePartValence
 from yaff.pes.nlists import NeighborLists
+from yaff.pes.iclist import Bond, BendAngle, BendCos
+from yaff.pes.vlist import Harmonic, Fues
 
 
 __all__ = ['ParsedPars', 'FFArgs', 'Generator', 'BondHarmGenerator', 'generators']
@@ -188,7 +192,7 @@ class Generator(object):
             key = tuple(words[:self.num_ffatypes])
             try:
                 pars = tuple(
-                    float(words[i+self.num_ffatypes])/conversions[par_name]
+                    float(words[i+self.num_ffatypes])*conversions[par_name]
                     for i, par_name in enumerate(self.par_names)
                 )
             except ValueError:
@@ -209,18 +213,14 @@ class Generator(object):
                 counter = info[0][0]
                 raise parsed_pars.complain(counter, 'contains an unknown command: %s' % command)
 
-    def apply(self, par_table, system, ff_args):
+    def apply(self, par_table, aux_info, system, ff_args):
         raise NotImplementedError
 
 
-class BondHarmGenerator(Generator):
-    prefix = 'BONDHARM'
-    num_ffatypes = 2
-    par_names = ['K', 'R0']
-
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
+class ValenceGenerator(Generator):
+    def mod_pars(self, pars):
+        # By default, the parameters do not have to be transformed.
+        return pars
 
     def apply(self, par_table, aux_info, system, ff_args):
         if system.topology is None:
@@ -228,29 +228,72 @@ class BondHarmGenerator(Generator):
         part_valence = ff_args.get_part_valence(system)
         from yaff.pes.iclist import Bond
         from yaff.pes.vlist import Harmonic
-        for i0, i1 in system.topology.bonds:
-            pars = par_table.get((system.ffatypes[i0], system.ffatypes[1]))
-            part_valence.add_term(Harmonic(pars[0], pars[1], Bond(i0, i1)))
+        for indexes in self.iter_indexes(system):
+            key = tuple(system.ffatypes[i] for i in indexes)
+            pars = par_table.get(key)
+            pars = self.mod_pars(pars)
+            args = pars + (self.ICClass(*indexes),)
+            part_valence.add_term(self.VClass(*args))
 
 
-class BondFuesGenerator(Generator):
-    prefix = 'BONDFUES'
+class BondGenerator(ValenceGenerator):
     num_ffatypes = 2
     par_names = ['K', 'R0']
+    ICClass = Bond
+    VClass = None
 
     def iter_alt_keys(self, key):
         yield key
         yield key[::-1]
 
-    def apply(self, par_table, aux_info, system, ff_args):
-        if system.topology is None:
-            raise ValueError('The system must have a topology (i.e. bonds) in order to define valence terms.')
-        part_valence = ff_args.get_part_valence(system)
-        from yaff.pes.iclist import Bond
-        from yaff.pes.vlist import Fues
+    def iter_indexes(self, system):
         for i0, i1 in system.topology.bonds:
-            pars = par_table.get((system.ffatypes[i0], system.ffatypes[1]))
-            part_valence.add_term(Fues(pars[0], pars[1], Bond(i0, i1)))
+            yield i0, i1
+
+
+class BondHarmGenerator(BondGenerator):
+    prefix = 'BONDHARM'
+    VClass = Harmonic
+
+
+class BondFuesGenerator(BondGenerator):
+    prefix = 'BONDFUES'
+    VClass = Fues
+
+
+class AngleGenerator(ValenceGenerator):
+    num_ffatypes = 3
+    par_names = ['K', 'THETA0']
+    ICClass = None
+    VClass = Harmonic
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        for i1 in xrange(system.natom):
+            for i0 in system.topology.neighs1[i1]:
+                for i2 in system.topology.neighs1[i1]:
+                    if i0 > i2:
+                        yield i0, i1, i2
+
+
+class BendAngleHarmGenerator(AngleGenerator):
+    prefix = 'BENDAHARM'
+    ICClass = BendAngle
+
+
+class BendCosHarmGenerator(AngleGenerator):
+    prefix = 'BENDCHARM'
+    ICClass = BendCos
+
+    def mod_pars(self, pars):
+        # The rest angle has to be transformed into a rest cosine
+        k, a0 = pars
+        c0 = np.cos(a0)
+        return k, c0
+
 
 
 # Collect all the generators that have a prefix.
