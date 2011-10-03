@@ -101,15 +101,42 @@ def test_generator_water32_bendcharm():
     assert part_valence.vlist.nv == 32
 
 
-def test_generator_water32_valence():
+def test_generator_water32_fixq():
     system = get_system_water32()
+    system.charges[:] = 0.0
+    ff = ForceField.generate(system, 'input/parameters_water_fixq.txt')
+    assert len(ff.parts) == 4
+    part_pair_ei = ff.part_pair_ei
+    part_ewald_reci = ff.part_ewald_reci
+    part_ewald_cor = ff.part_ewald_cor
+    part_ewald_neut = ff.part_ewald_neut
+    # check charges
+    for i in xrange(system.natom):
+        if system.numbers[i] == 1:
+            assert abs(system.charges[i] - 3.6841957737e+00) < 1e-5
+        else:
+            assert abs(system.charges[i] + 2*3.6841957737e+00) < 1e-5
+
+
+def test_generator_water32():
+    system = get_system_water32()
+    system.charges[:] = 0.0
     ff = ForceField.generate(system, 'input/parameters_water.txt')
-    assert len(ff.parts) == 1
-    assert isinstance(ff.parts[0], ForcePartValence)
-    part_valence = ff.parts[0]
+    assert len(ff.parts) == 5
+    part_valence = ff.part_valence
+    part_pair_ei = ff.part_pair_ei
+    part_ewald_reci = ff.part_ewald_reci
+    part_ewald_cor = ff.part_ewald_cor
+    part_ewald_neut = ff.part_ewald_neut
+    # check charges
+    for i in xrange(system.natom):
+        if system.numbers[i] == 1:
+            assert abs(system.charges[i] - 3.6841957737e+00) < 1e-5
+        else:
+            assert abs(system.charges[i] + 2*3.6841957737e+00) < 1e-5
+    # check valence
     assert part_valence.dlist.ndelta == 64
     assert part_valence.iclist.nic == 96
-    print part_valence.iclist.ictab['kind']
     assert (part_valence.iclist.ictab['kind'][:64] == 0).all()
     assert (part_valence.iclist.ictab['kind'][64:96] == 1).all()
     assert part_valence.vlist.nv == 96

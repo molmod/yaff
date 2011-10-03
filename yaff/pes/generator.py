@@ -25,9 +25,14 @@ import numpy as np
 
 from molmod.units import parse_unit
 
-from yaff.pes.ff import ForcePartPair, ForcePartValence
-from yaff.pes.nlists import NeighborLists
+from yaff.log import log
+from yaff.pes.ext import PairPotEI
+from yaff.pes.ff import ForcePartPair, ForcePartValence, \
+    ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
+    ForcePartEwaldNeutralizing
 from yaff.pes.iclist import Bond, BendAngle, BendCos
+from yaff.pes.nlists import NeighborLists
+from yaff.pes.scaling import Scalings
 from yaff.pes.vlist import Harmonic, Fues
 
 
@@ -87,8 +92,7 @@ class ParsedPars(object):
 
 
 class FFArgs(object):
-    # TODO: fix default alpha
-    def __init__(self, rcut=18.89726133921252, alpha=0.0, gcut=0.35):
+    def __init__(self, rcut=18.89726133921252):
         """
            **Optional arguments:**
 
@@ -97,18 +101,10 @@ class FFArgs(object):
 
            rcut
                 The real space cutoff used by all pair potentials.
-
-           alpha
-                The alpha parameter in the Ewald summation.
-
-           gcut
-                The reciprocal space cutoff for the Ewald summation.
         """
         self.parts = []
         self.nlists = None
         self.rcut = rcut
-        self.alpha = alpha
-        self.gcut = gcut
 
     def get_nlists(self, system):
         if self.nlists is None:
@@ -132,6 +128,32 @@ class FFArgs(object):
             self.parts.append(part_valence)
         return part_valence
 
+    def add_electrostatic_parts(self, system, scalings):
+        # TODO: make it possible to tune alpha and gcut scaling parameters.
+        # TODO: document the effects of these scaling parameters, i.e. define
+        #       four regimes such as fast, normal, accurate and very_accurate.
+        nlists = self.get_nlists(system)
+        if system.cell.nvec == 0:
+            alpha = 0.0
+        elif system.cell.nvec == 3:
+            alpha = 4.5/self.rcut
+        else:
+            raise NotImplementedError('Only zero- and three-dimensional electrostatics are supported.')
+        # Real-space electrostatics
+        pair_pot_ei = PairPotEI(system.charges, alpha, self.rcut)
+        part_pair_ei = ForcePartPair(system, nlists, scalings, pair_pot_ei)
+        self.parts.append(part_pair_ei)
+        if system.cell.nvec == 3:
+            # Reciprocal-space electrostatics
+            part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=alpha/0.75)
+            self.parts.append(part_ewald_reci)
+            # Ewald corrections
+            part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
+            self.parts.append(part_ewald_corr)
+            # Neutralizing background
+            part_ewald_neut = ForcePartEwaldNeutralizing(system, alpha)
+            self.parts.append(part_ewald_neut)
+
 
 class Generator(object):
     """Creates (part of a) ForceField object automatically.
@@ -145,23 +167,25 @@ class Generator(object):
     prefix = None
     num_ffatypes = None
     par_names = None
+    commands = None
 
     def __call__(self, system, parsed_pars, ff_args):
-        conversions = self.process_units(parsed_pars.get_section('UNIT'))
-        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions)
-        if len(par_table) > 0:
-            aux_info = self.process_aux(parsed_pars)
-            self.apply(par_table, aux_info, system, ff_args)
+        raise NotImplementedError
+
+    def check_sections(self, parsed_pars):
+        for command in parsed_pars.info:
+            if command not in self.commands:
+                parsed_pars.complain('contains a command (%s) that is not recognized by generator %s.' % (command, self.prefix))
 
     def process_units(self, parsed_pars):
         result = {}
         for counter, line in parsed_pars.info:
             words = line.split()
             if len(words) != 2:
-                parsed_pars.complain(counter, 'should have two arguments in UNIT command.')
+                parsed_pars.complain(counter, 'must have two arguments in UNIT command.')
             name = words[0].upper()
             if name not in self.par_names:
-                parsed_pars.complain(counter, 'specifies a unit for an unknown parameter. (Should be one of %s, but got %s.)' % (self.par_names, name))
+                parsed_pars.complain(counter, 'specifies a unit for an unknown parameter. (Must be one of %s, but got %s.)' % (self.par_names, name))
             try:
                 result[name] = parse_unit(words[1])
             except (NameError, ValueError):
@@ -187,32 +211,48 @@ class Generator(object):
                 )
             except ValueError:
                 parsed_pars.complain(counter, 'has parameters that can not be converted to floating point numbers.')
-            if key in par_table and log.do_warning:
-                log('WARNING!! Duplicate parameters found on line %i in %s. Later ones override earlier ones.' % (counter, parsed_pars.fn))
+            if key in par_table:
+                parsed_pars.complain(counter, 'contains duplicate parameters.')
             for key in self.iter_alt_keys(key):
                 par_table[key] = pars
         return par_table
 
-    def process_aux(self, parsed_pars):
-        for command, info in parsed_pars.info.iteritems():
-            if command == 'UNIT':
-                continue
-            elif command == 'PARS':
-                continue
-            else:
-                counter = info[0][0]
-                raise parsed_pars.complain(counter, 'contains an unknown command: %s' % command)
+    def process_scales(self, parsed_pars):
+        result = {}
+        for counter, line in parsed_pars.info:
+            words = line.split()
+            if len(words) != 2:
+                parsed_pars.complain(counter, 'must have 2 arguments.')
+            try:
+                num_bonds = int(words[0])
+                scale = float(words[1])
+            except ValueError:
+                parsed_pars.complain(counter, 'has parameters that can not be converted. The first argument must be an integer. The second argument must be a float.')
+            if num_bonds in result:
+                parsed_pars.complain(counter, 'contains a duplicate scale command.')
+            if scale < 0 or scale > 1:
+                parsed_pars.complain(counter, 'has a scale that is not in the range [0,1].')
+            result[num_bonds] = scale
+        if len(result) != 3:
+            parsed_pars.complain(None, 'must contain three SCALE commands for each non-bonding term.')
+        if 1 not in result or 2 not in result or 3 not in result:
+            parsed_pars.complain(None, 'must contain a scale parameter for atoms separated by 1, 2 and 3 bonds, for each non-bonding term.')
+        return result
 
-    def apply(self, par_table, aux_info, system, ff_args):
-        raise NotImplementedError
+
 
 
 class ValenceGenerator(Generator):
-    def mod_pars(self, pars):
-        # By default, the parameters do not have to be transformed.
-        return pars
+    commands = ['UNIT', 'PARS']
 
-    def apply(self, par_table, aux_info, system, ff_args):
+    def __call__(self, system, parsed_pars, ff_args):
+        self.check_sections(parsed_pars)
+        conversions = self.process_units(parsed_pars.get_section('UNIT'))
+        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions)
+        if len(par_table) > 0:
+            self.apply(par_table, system, ff_args)
+
+    def apply(self, par_table, system, ff_args):
         if system.topology is None:
             raise ValueError('The system must have a topology (i.e. bonds) in order to define valence terms.')
         part_valence = ff_args.get_part_valence(system)
@@ -224,6 +264,10 @@ class ValenceGenerator(Generator):
             pars = self.mod_pars(pars)
             args = pars + (self.ICClass(*indexes),)
             part_valence.add_term(self.VClass(*args))
+
+    def mod_pars(self, pars):
+        # By default, the parameters do not have to be modified.
+        return pars
 
 
 class BondGenerator(ValenceGenerator):
@@ -284,6 +328,104 @@ class BendCosHarmGenerator(AngleGenerator):
         c0 = np.cos(a0)
         return k, c0
 
+
+class FixedChargeGenerator(Generator):
+    prefix = 'FIXQ'
+    commands = ['UNIT', 'SCALE', 'ATOM', 'BOND', 'DIELECTRIC']
+    par_names = ['Q0', 'P', 'R']
+
+    def __call__(self, system, parsed_pars, ff_args):
+        self.check_sections(parsed_pars)
+        conversions = self.process_units(parsed_pars.get_section('UNIT'))
+        atom_table = self.process_atoms(parsed_pars.get_section('ATOM'), conversions)
+        bond_table = self.process_bonds(parsed_pars.get_section('BOND'), conversions)
+        scale_table = self.process_scales(parsed_pars.get_section('SCALE'))
+        dielectric = self.process_dielectric(parsed_pars.get_section('DIELECTRIC'))
+        self.apply(atom_table, bond_table, scale_table, dielectric, system, ff_args)
+
+    def process_atoms(self, parsed_pars, conversions):
+        result = {}
+        for counter, line in parsed_pars.info:
+            words = line.split()
+            if len(words) != 3:
+                parsed_pars.complain(counter, 'should have 3 arguments.')
+            ffatype = words[0]
+            if ffatype in result:
+                parsed_pars.complain(counter, 'has an atom type that was already encountered earlier.')
+            try:
+                charge = float(words[1])*conversions['Q0']
+                radius = float(words[2])*conversions['R']
+            except ValueError:
+                parsed_pars.complain(counter, 'contains a parameter that can not be converted to a floating point number.')
+            result[ffatype] = charge, radius
+        return result
+
+    def process_bonds(self, parsed_pars, conversions):
+        result = {}
+        for counter, line in parsed_pars.info:
+            words = line.split()
+            if len(words) != 3:
+                parsed_pars.complain(counter, 'should have 3 arguments.')
+            key = tuple(words[:2])
+            if key in result:
+                parsed_pars.complain(counter, 'has a combination of atom types that were already encountered earlier.')
+            try:
+                charge_transfer = float(words[2])*conversions['P']
+            except ValueError:
+                parsed_pars.complain(counter, 'contains a parameter that can not be converted to floating point numbers.')
+            result[key] = charge_transfer
+            result[key[::-1]] = -charge_transfer
+        return result
+
+    def process_dielectric(self, parsed_pars):
+        result = None
+        for counter, line in parsed_pars.info:
+            if result is not None:
+                parsed_pars.complain(counter, 'is redundant. The DIELECTRIC command may only occur once.')
+            words = line.split()
+            if len(words) != 1:
+                parsed_pars.complain(counter, 'must have one argument.')
+            try:
+                result = float(words[0])
+            except ValueError:
+                parsed_pars.complain(counter, 'must have a floating point argument.')
+        return result
+
+    def apply(self, atom_table, bond_table, scale_table, dielectric, system, ff_args):
+        if system.charges is None:
+            system.charges = np.zeros(system.natom)
+        else:
+            if log.do_warning:
+                log.warn('Adding charges to system that already has charges.')
+        radii = np.zeros(system.natom)
+
+        # compute the charges
+        for i in xrange(system.natom):
+            pars = atom_table.get(system.ffatypes[i])
+            if pars is None and log.do_warning:
+                log.warn('No charge defined for atom %i with fftype %s.' % (i, system.ffatypes[i]))
+            else:
+                charge, radius = pars
+                if radius > 0:
+                    raise NotImplementedError('TODO: support smeared charges.')
+                system.charges[i] += charge
+                radii[i] = radius
+        for i0, i1 in system.topology.bonds:
+            charge_transfer = bond_table.get((system.ffatypes[i0], system.ffatypes[i1]))
+            if charge_transfer is None and log.do_warning:
+                log.warn('No charge transfer parameter for atom pair (%i,%i) with fftype (%s,%s).' % (i0, i1, system.ffatypes[i0], system.ffatypes[i1]))
+            else:
+                system.charges[i0] += charge_transfer
+                system.charges[i1] -= charge_transfer
+
+        # prepare other parameters
+        scalings = Scalings(system.topology, scale_table[1], scale_table[2], scale_table[3])
+
+        if dielectric != 1.0:
+            raise NotImplementedError('Only a relative dielectric constant of 1 is supported.')
+
+        # Setup the electrostatic pars
+        ff_args.add_electrostatic_parts(system, scalings)
 
 
 # Collect all the generators that have a prefix.
