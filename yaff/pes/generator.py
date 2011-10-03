@@ -26,7 +26,7 @@ import numpy as np
 from molmod.units import parse_unit
 
 from yaff.log import log
-from yaff.pes.ext import PairPotEI
+from yaff.pes.ext import PairPotEI, PairPotExpRep
 from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
     ForcePartEwaldNeutralizing
@@ -39,8 +39,8 @@ from yaff.pes.vlist import Harmonic, Fues
 __all__ = [
     'ParsedPars', 'FFArgs', 'Generator', 'ValenceGenerator', 'BondGenerator',
     'BondHarmGenerator', 'BondFuesGenerator', 'BendGenerator',
-    'BendAngleHarmGenerator', 'BendCosHarmGenerator', 'FixedChargeGenerator',
-    'generators'
+    'BendAngleHarmGenerator', 'BendCosHarmGenerator', 'NonbondedGenerator',
+    'ExpRepGenerator', 'FixedChargeGenerator', 'generators'
 ]
 
 
@@ -97,7 +97,7 @@ class ParsedPars(object):
 
 
 class FFArgs(object):
-    def __init__(self, rcut=18.89726133921252):
+    def __init__(self, rcut=18.89726133921252, smooth=True):
         """
            **Optional arguments:**
 
@@ -106,10 +106,18 @@ class FFArgs(object):
 
            rcut
                 The real space cutoff used by all pair potentials.
+
+           smooth
+                Flag to force the non-bonding terms smoothly to zero at the
+                cutoff distance. This does not apply to the real-space part of
+                the electrostatic term. For non-periodic systems, set the
+                cutoff such that all pairs are included. For periodic systems,
+                the Ewald summation is used.
         """
         self.parts = []
         self.nlists = None
         self.rcut = rcut
+        self.smooth = smooth
 
     def get_nlists(self, system):
         if self.nlists is None:
@@ -123,7 +131,7 @@ class FFArgs(object):
 
     def get_part_pair(self, PairPotClass):
         for part in self.parts:
-            if isinstance(part, ForcePartPair) and isisntance(part.pair_pot, PairPotClass):
+            if isinstance(part, ForcePartPair) and isinstance(part.pair_pot, PairPotClass):
                 return part
 
     def get_part_valence(self, system):
@@ -134,6 +142,8 @@ class FFArgs(object):
         return part_valence
 
     def add_electrostatic_parts(self, system, scalings):
+        if self.get_part_pair(PairPotEI) is not None:
+            return
         # TODO: make it possible to tune alpha and gcut scaling parameters.
         # TODO: document the effects of these scaling parameters, i.e. define
         #       four regimes such as fast, normal, accurate and very_accurate.
@@ -177,10 +187,10 @@ class Generator(object):
     def __call__(self, system, parsed_pars, ff_args):
         raise NotImplementedError
 
-    def check_sections(self, parsed_pars):
+    def check_commands(self, parsed_pars):
         for command in parsed_pars.info:
             if command not in self.commands:
-                parsed_pars.complain('contains a command (%s) that is not recognized by generator %s.' % (command, self.prefix))
+                parsed_pars.complain(None, 'contains a command (%s) that is not recognized by generator %s.' % (command, self.prefix))
 
     def process_units(self, parsed_pars):
         result = {}
@@ -222,36 +232,18 @@ class Generator(object):
                 par_table[key] = pars
         return par_table
 
-    def process_scales(self, parsed_pars):
-        result = {}
-        for counter, line in parsed_pars.info:
-            words = line.split()
-            if len(words) != 2:
-                parsed_pars.complain(counter, 'must have 2 arguments.')
-            try:
-                num_bonds = int(words[0])
-                scale = float(words[1])
-            except ValueError:
-                parsed_pars.complain(counter, 'has parameters that can not be converted. The first argument must be an integer. The second argument must be a float.')
-            if num_bonds in result:
-                parsed_pars.complain(counter, 'contains a duplicate scale command.')
-            if scale < 0 or scale > 1:
-                parsed_pars.complain(counter, 'has a scale that is not in the range [0,1].')
-            result[num_bonds] = scale
-        if len(result) != 3:
-            parsed_pars.complain(None, 'must contain three SCALE commands for each non-bonding term.')
-        if 1 not in result or 2 not in result or 3 not in result:
-            parsed_pars.complain(None, 'must contain a scale parameter for atoms separated by 1, 2 and 3 bonds, for each non-bonding term.')
-        return result
-
-
+    def iter_alt_keys(self, key):
+        if len(key) == 1:
+            yield key
+        else:
+            raise NotImplementedError
 
 
 class ValenceGenerator(Generator):
     commands = ['UNIT', 'PARS']
 
     def __call__(self, system, parsed_pars, ff_args):
-        self.check_sections(parsed_pars)
+        self.check_commands(parsed_pars)
         conversions = self.process_units(parsed_pars.get_section('UNIT'))
         par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions)
         if len(par_table) > 0:
@@ -334,13 +326,120 @@ class BendCosHarmGenerator(BendGenerator):
         return k, c0
 
 
-class FixedChargeGenerator(Generator):
+class NonbondedGenerator(Generator):
+    mixing_rules = None
+
+    def process_scales(self, parsed_pars):
+        result = {}
+        for counter, line in parsed_pars.info:
+            words = line.split()
+            if len(words) != 2:
+                parsed_pars.complain(counter, 'must have 2 arguments.')
+            try:
+                num_bonds = int(words[0])
+                scale = float(words[1])
+            except ValueError:
+                parsed_pars.complain(counter, 'has parameters that can not be converted. The first argument must be an integer. The second argument must be a float.')
+            if num_bonds in result:
+                parsed_pars.complain(counter, 'contains a duplicate scale command.')
+            if scale < 0 or scale > 1:
+                parsed_pars.complain(counter, 'has a scale that is not in the range [0,1].')
+            result[num_bonds] = scale
+        if len(result) != 3:
+            parsed_pars.complain(None, 'must contain three SCALE commands for each non-bonding term.')
+        if 1 not in result or 2 not in result or 3 not in result:
+            parsed_pars.complain(None, 'must contain a scale parameter for atoms separated by 1, 2 and 3 bonds, for each non-bonding term.')
+        return result
+
+    def process_mix(self, parsed_pars):
+        result = {}
+        for counter, line in parsed_pars.info:
+            words = line.split()
+            if len(words) < 2:
+                parsed_pars.complain(counter, 'contains a mixing rule with to few arguments. At least 2 are required.')
+            par_name = words[0].upper()
+            rule_name = words[1].upper()
+            key = par_name, rule_name
+            if key not in self.mixing_rules:
+                parsed_pars.complain(counter, 'contains an unknown mixing rule.')
+            narg, rule_id = self.mixing_rules[key]
+            if len(words) != narg+2:
+                parsed_pars.complain(counter, 'does not have the correct number of arguments. %i arguments are required.' % (narg+2))
+            try:
+                args = tuple([float(word) for word in words[2:]])
+            except ValueError:
+                parsed_pars.complain(counter, 'contains parameters that could not be converted to floating point numbers.')
+            result[par_name] = rule_id, args
+        expected_num_rules = len(set([par_name for par_name, rule_id in self.mixing_rules]))
+        if len(result) != expected_num_rules:
+            parsed_pars.complain(None, 'does not contain enough mixing rules for the generator %s.' % self.prefix)
+        return result
+
+
+class ExpRepGenerator(NonbondedGenerator):
+    prefix = 'EXPREP'
+    commands = ['UNIT', 'SCALE', 'MIX', 'PARS']
+    num_ffatypes = 1
+    par_names = ['A', 'B']
+    mixing_rules = {
+        ('A', 'GEOMETRIC'): (0, 0),
+        ('A', 'GEOMETRIC_COR'): (1, 1),
+        ('B', 'ARITHMETIC'): (0, 0),
+        ('B', 'ARITHMETIC_COR'): (1, 1),
+    }
+
+    def __call__(self, system, parsed_pars, ff_args):
+        self.check_commands(parsed_pars)
+        conversions = self.process_units(parsed_pars.get_section('UNIT'))
+        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions)
+        scale_table = self.process_scales(parsed_pars.get_section('SCALE'))
+        mixing_rules = self.process_mix(parsed_pars.get_section('MIX'))
+        self.apply(par_table, scale_table, mixing_rules, system, ff_args)
+
+    def apply(self, par_table, scale_table, mixing_rules, system, ff_args):
+        # Prepare the atomic parameters
+        amps = np.zeros(system.natom)
+        bs = np.zeros(system.natom)
+        for i in xrange(system.natom):
+            key = (system.ffatypes[i],)
+            pars = par_table.get(key)
+            if pars is None:
+                if log.do_warning:
+                    log.warn('No EXPREP parameters found for atom %i with fftype %s.' % (i, system.ffatypes[i]))
+            else:
+                amps[i], bs[i] = pars
+
+        # Prepare the global parameters
+        scalings = Scalings(system.topology, scale_table[1], scale_table[2], scale_table[3])
+        amp_mix, amp_mix_coeff = mixing_rules['A']
+        if amp_mix == 0:
+            amp_mix_coeff = 0.0
+        elif amp_mix == 1:
+            amp_mix_coeff = amp_mix_coeff[0]
+        b_mix, b_mix_coeff = mixing_rules['B']
+        if b_mix == 0:
+            b_mix_coeff = 0.0
+        elif b_mix == 1:
+            b_mix_coeff = b_mix_coeff[0]
+
+        # Get the part. It should not exist yet.
+        part_pair = ff_args.get_part_pair(PairPotExpRep)
+        if part_pair is not None:
+            raise RuntimeError('Internal inconsistency: the EXPREP part should not be present yet.')
+
+        pair_pot = PairPotExpRep(amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff, ff_args.rcut, ff_args.smooth)
+        nlists = ff_args.get_nlists(system)
+        part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
+        ff_args.parts.append(part_pair)
+
+
+class FixedChargeGenerator(NonbondedGenerator):
     prefix = 'FIXQ'
     commands = ['UNIT', 'SCALE', 'ATOM', 'BOND', 'DIELECTRIC']
     par_names = ['Q0', 'P', 'R']
 
     def __call__(self, system, parsed_pars, ff_args):
-        self.check_sections(parsed_pars)
+        self.check_commands(parsed_pars)
         conversions = self.process_units(parsed_pars.get_section('UNIT'))
         atom_table = self.process_atoms(parsed_pars.get_section('ATOM'), conversions)
         bond_table = self.process_bonds(parsed_pars.get_section('BOND'), conversions)

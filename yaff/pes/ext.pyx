@@ -350,6 +350,10 @@ cdef class PairPotExpRep(PairPot):
         assert amps.flags['C_CONTIGUOUS']
         assert bs.flags['C_CONTIGUOUS']
         assert amps.shape[0] == bs.shape[0]
+        assert amp_mix == 0 or amp_mix == 1
+        assert amp_mix_coeff >= 0 and amp_mix_coeff <= 1
+        assert b_mix == 0 or b_mix == 1
+        assert b_mix_coeff >= 0 and b_mix_coeff <= 1
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
         pair_pot.pair_pot_set_smooth(self._c_pair_pot, smooth)
         pair_pot.pair_data_exprep_init(self._c_pair_pot, <double*>amps.data, amp_mix, amp_mix_coeff, <double*>bs.data, b_mix, b_mix_coeff)

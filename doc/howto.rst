@@ -320,7 +320,7 @@ This is a simple example of a Lennard-Jones force field::
 
    .. literalinclude:: ../input/parameters_water.txt
 
-3. The generate method.
+3. [PART DONE, TODO: TORSION, DAMPDISP] The generate method.
 
 4. [LOW PRIORITY] If the generate method is slow, we may need a checkpoint file
    for the ForceField class.

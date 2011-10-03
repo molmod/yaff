@@ -23,7 +23,7 @@
 
 import numpy as np
 
-from yaff import kjmol, angstrom, deg
+from yaff import kjmol, angstrom, deg, angstrom
 from yaff import ForceField, ForcePartValence
 
 from common import get_system_water32
@@ -118,16 +118,59 @@ def test_generator_water32_fixq():
             assert abs(system.charges[i] + 2*3.6841957737e+00) < 1e-5
 
 
+def test_generator_water32_exprep1():
+    system = get_system_water32()
+    ff = ForceField.generate(system, 'input/parameters_water_exprep1.txt')
+    assert len(ff.parts) == 1
+    part_pair_exprep = ff.part_pair_exprep
+    # check parameters
+    assert part_pair_exprep.pair_pot.amp_mix == 0
+    assert part_pair_exprep.pair_pot.amp_mix_coeff == 0.0
+    assert part_pair_exprep.pair_pot.b_mix == 0
+    assert part_pair_exprep.pair_pot.b_mix_coeff == 0.0
+    assert part_pair_exprep.pair_pot.amps[0] == 4.2117588157e+02
+    assert part_pair_exprep.pair_pot.amps[1] == 2.3514195495e+00
+    assert abs(part_pair_exprep.pair_pot.bs[0] - 4.4661933834e+00/angstrom) < 1e-10
+    assert abs(part_pair_exprep.pair_pot.bs[1] - 4.4107388814e+00/angstrom) < 1e-10
+
+
+def test_generator_water32_exprep2():
+    system = get_system_water32()
+    ff = ForceField.generate(system, 'input/parameters_water_exprep2.txt')
+    assert len(ff.parts) == 1
+    part_pair_exprep = ff.part_pair_exprep
+    # check parameters
+    assert part_pair_exprep.pair_pot.amp_mix == 1
+    assert part_pair_exprep.pair_pot.amp_mix_coeff == 2.385e-2
+    assert part_pair_exprep.pair_pot.b_mix == 1
+    assert part_pair_exprep.pair_pot.b_mix_coeff == 7.897e-3
+    assert part_pair_exprep.pair_pot.amps[0] == 4.2117588157e+02
+    assert part_pair_exprep.pair_pot.amps[1] == 2.3514195495e+00
+    assert abs(part_pair_exprep.pair_pot.bs[0] - 4.4661933834e+00/angstrom) < 1e-10
+    assert abs(part_pair_exprep.pair_pot.bs[1] - 4.4107388814e+00/angstrom) < 1e-10
+
+
 def test_generator_water32():
     system = get_system_water32()
     system.charges[:] = 0.0
     ff = ForceField.generate(system, 'input/parameters_water.txt')
-    assert len(ff.parts) == 5
+    # get all ff parts
+    assert len(ff.parts) == 6
     part_valence = ff.part_valence
+    part_pair_exprep = ff.part_pair_exprep
     part_pair_ei = ff.part_pair_ei
     part_ewald_reci = ff.part_ewald_reci
     part_ewald_cor = ff.part_ewald_cor
     part_ewald_neut = ff.part_ewald_neut
+    # check exprep parameters
+    assert part_pair_exprep.pair_pot.amp_mix == 1
+    assert part_pair_exprep.pair_pot.amp_mix_coeff == 2.385e-2
+    assert part_pair_exprep.pair_pot.b_mix == 1
+    assert part_pair_exprep.pair_pot.b_mix_coeff == 7.897e-3
+    assert part_pair_exprep.pair_pot.amps[0] == 4.2117588157e+02
+    assert part_pair_exprep.pair_pot.amps[1] == 2.3514195495e+00
+    assert abs(part_pair_exprep.pair_pot.bs[0] - 4.4661933834e+00/angstrom) < 1e-10
+    assert abs(part_pair_exprep.pair_pot.bs[1] - 4.4107388814e+00/angstrom) < 1e-10
     # check charges
     for i in xrange(system.natom):
         if system.numbers[i] == 1:

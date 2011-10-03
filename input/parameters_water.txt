@@ -97,7 +97,7 @@ DAMPDISP:PARS        H  2.7982205915e+00  3.4581667399e+00  5.13207980365e+00
 # =====================
 
 # Mathematical form: A_AB*exp(-B_AB*r)
-EXPREP:UNIT A au
+EXPREP:UNIT A au            # Hartree, internal unit
 EXPREP:UNIT B 1/angstrom
 EXPREP:SCALE 1 0.0
 EXPREP:SCALE 2 1.0
@@ -116,7 +116,7 @@ EXPREP:SCALE 3 1.0
 #EXPREP:MIX A GEOMETRIC
 EXPREP:MIX A GEOMETRIC_COR 2.385e-2
 #EXPREP:MIX B ARITHMETIC
-EXPREP:MIX A GEOMETRIC_COR 7.897e-3
+EXPREP:MIX B ARITHMETIC_COR 7.897e-3
 # -----------------------------------------------------
 # KEY         label  A_AA              B_AA
 # -----------------------------------------------------
