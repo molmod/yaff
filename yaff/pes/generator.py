@@ -36,7 +36,12 @@ from yaff.pes.scaling import Scalings
 from yaff.pes.vlist import Harmonic, Fues
 
 
-__all__ = ['ParsedPars', 'FFArgs', 'Generator', 'BondHarmGenerator', 'generators']
+__all__ = [
+    'ParsedPars', 'FFArgs', 'Generator', 'ValenceGenerator', 'BondGenerator',
+    'BondHarmGenerator', 'BondFuesGenerator', 'BendGenerator',
+    'BendAngleHarmGenerator', 'BendCosHarmGenerator', 'FixedChargeGenerator',
+    'generators'
+]
 
 
 class ParsedPars(object):
@@ -295,7 +300,7 @@ class BondFuesGenerator(BondGenerator):
     VClass = Fues
 
 
-class AngleGenerator(ValenceGenerator):
+class BendGenerator(ValenceGenerator):
     num_ffatypes = 3
     par_names = ['K', 'THETA0']
     ICClass = None
@@ -313,12 +318,12 @@ class AngleGenerator(ValenceGenerator):
                         yield i0, i1, i2
 
 
-class BendAngleHarmGenerator(AngleGenerator):
+class BendAngleHarmGenerator(BendGenerator):
     prefix = 'BENDAHARM'
     ICClass = BendAngle
 
 
-class BendCosHarmGenerator(AngleGenerator):
+class BendCosHarmGenerator(BendGenerator):
     prefix = 'BENDCHARM'
     ICClass = BendCos
 
