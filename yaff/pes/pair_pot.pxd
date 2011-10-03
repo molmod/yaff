@@ -47,6 +47,17 @@ cdef extern from "pair_pot.h":
                             double *gpos, double* vtens)
 
     void pair_data_lj_init(pair_pot_type *pair_pot, double *sigma, double *epsilon)
+
     void pair_data_mm3_init(pair_pot_type *pair_pot, double *sigma, double *epsilon)
+
     void pair_data_grimme_init(pair_pot_type *pair_pot, double *r0, double *c6)
+
+    void pair_data_exprep_init(pair_pot_type *pair_pot, double *amp,
+                               int amp_mix, double amp_mix_coeff, double *b,
+                               int b_mix, double b_mix_coeff)
+    int pair_data_exprep_get_amp_mix(pair_pot_type *pair_pot)
+    double pair_data_exprep_get_amp_mix_coeff(pair_pot_type *pair_pot)
+    int pair_data_exprep_get_b_mix(pair_pot_type *pair_pot)
+    double pair_data_exprep_get_b_mix_coeff(pair_pot_type *pair_pot)
+
     void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha)

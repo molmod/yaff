@@ -34,9 +34,10 @@ cimport vlist
 
 __all__ = [
     'nlist_status_init', 'nlist_update', 'nlist_status_finish',
-    'PairPot', 'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotEI', 'compute_ewald_reci',
-    'compute_ewald_corr', 'dlist_forward', 'dlist_back', 'iclist_forward',
-    'iclist_back', 'vlist_forward', 'vlist_back',
+    'PairPot', 'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep',
+    'PairPotEI', 'compute_ewald_reci', 'compute_ewald_corr', 'dlist_forward',
+    'dlist_back', 'iclist_forward', 'iclist_back', 'vlist_forward',
+    'vlist_back',
 ]
 
 
@@ -286,7 +287,8 @@ cdef class PairPotMM3(PairPot):
     cdef np.ndarray _c_epsilons
     name = 'mm3'
 
-    def __cinit__(self, np.ndarray[double, ndim=1] sigmas, np.ndarray[double, ndim=1] epsilons, double rcut, bint smooth):
+    def __cinit__(self, np.ndarray[double, ndim=1] sigmas,
+                  np.ndarray[double, ndim=1] epsilons, double rcut, bint smooth):
         assert sigmas.flags['C_CONTIGUOUS']
         assert epsilons.flags['C_CONTIGUOUS']
         assert sigmas.shape[0] == epsilons.shape[0]
@@ -337,6 +339,56 @@ cdef class PairPotGrimme(PairPot):
     c6 = property(get_c6)
 
 
+cdef class PairPotExpRep(PairPot):
+    cdef np.ndarray _c_amps
+    cdef np.ndarray _c_bs
+    name = 'exprep'
+
+    def __cinit__(self, np.ndarray[double, ndim=1] amps, int amp_mix,
+                  double amp_mix_coeff, np.ndarray[double, ndim=1] bs, int b_mix,
+                  double b_mix_coeff, double rcut, bint smooth):
+        assert amps.flags['C_CONTIGUOUS']
+        assert bs.flags['C_CONTIGUOUS']
+        assert amps.shape[0] == bs.shape[0]
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        pair_pot.pair_pot_set_smooth(self._c_pair_pot, smooth)
+        pair_pot.pair_data_exprep_init(self._c_pair_pot, <double*>amps.data, amp_mix, amp_mix_coeff, <double*>bs.data, b_mix, b_mix_coeff)
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_amps = amps
+        self._c_bs = bs
+
+    def get_amps(self):
+        return self._c_amps.view()
+
+    amps = property(get_amps)
+
+    def get_amp_mix(self):
+        return pair_pot.pair_data_exprep_get_amp_mix(self._c_pair_pot)
+
+    amp_mix = property(get_amp_mix)
+
+    def get_amp_mix_coeff(self):
+        return pair_pot.pair_data_exprep_get_amp_mix_coeff(self._c_pair_pot)
+
+    amp_mix_coeff = property(get_amp_mix_coeff)
+
+    def get_bs(self):
+        return self._c_bs.view()
+
+    bs = property(get_bs)
+
+    def get_b_mix(self):
+        return pair_pot.pair_data_exprep_get_b_mix(self._c_pair_pot)
+
+    b_mix = property(get_b_mix)
+
+    def get_b_mix_coeff(self):
+        return pair_pot.pair_data_exprep_get_b_mix_coeff(self._c_pair_pot)
+
+    b_mix_coeff = property(get_b_mix_coeff)
+
+
 cdef class PairPotEI(PairPot):
     cdef np.ndarray _c_charges
     name = 'ei'
@@ -353,6 +405,8 @@ cdef class PairPotEI(PairPot):
         return self._c_charges.view()
 
     charges = property(get_charges)
+
+
 
 #
 # Ewald summation stuff
