@@ -64,7 +64,7 @@ FIXQ:BOND        O        H  3.6841957737e+00
 # =================
 
 # Mathematical form:
-#   C6_AB*f(r)*r**6
+#   C6_AB*f(r)*r**-6
 # where C is a constant and f(r) is the Tang-Toeniess damping factor
 #   f(r) = 1 - exp(-B_AB*r)*sum_k=0..6((B_AB*r)**k/k!)
 DAMPDISP:UNIT C au
@@ -76,7 +76,7 @@ DAMPDISP:SCALE 3 1.0
 # The pair parameters C6AB and R0AB are derived from atomic parameters using
 # the following mixing rules:
 #   C6_AB = 2*C6_AA*C6_BB/((VOL_B/VOL_A)**2*C6_AA+(VOL_A/VOL_B)**2*C6_BB)
-#   B_AB = 0.5(B_AA*B_BB)
+#   B_AB = 0.5*(B_AA+B_BB)
 # where
 #   C6_AA = homonuclear dispersion coefficient
 #   VOL_A = atomic volume
