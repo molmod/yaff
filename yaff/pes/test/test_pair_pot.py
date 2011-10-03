@@ -317,6 +317,46 @@ def test_pair_pot_lj_caffeine_15A():
     check_pair_pot_caffeine(system, nlists, scalings, part_pair, pair_fn, 1e-15)
 
 
+def get_part_caffeine_mm3_15A():
+    # Get a system and define scalings
+    system = get_system_caffeine()
+    nlists = NeighborLists(system)
+    scalings = Scalings(system.topology, 0.0, 1.0, 0.5)
+    # Initialize (random) parameters
+    rminhalf_table = {
+        1: 0.2245*angstrom,
+        6: 1.6000*angstrom,
+        7: 1.7000*angstrom,
+        8: 1.7682*angstrom
+    }
+    epsilon_table = {
+        1: -0.0460*kcalmol,
+        6: -0.2357*kcalmol,
+        7: -0.1970*kcalmol,
+        8: -0.1521*kcalmol,
+    }
+    sigmas = np.zeros(24, float)
+    epsilons = np.zeros(24, float)
+    for i in xrange(system.natom):
+        sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
+        epsilons[i] = epsilon_table[system.numbers[i]]
+    # Construct the pair potential and part
+    pair_pot = PairPotMM3(sigmas, epsilons, 15*angstrom, False)
+    part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
+    # The pair function
+    def pair_fn(i, j, d):
+        sigma = 0.5*(sigmas[i]+sigmas[j])
+        epsilon = np.sqrt(epsilons[i]*epsilons[j])
+        x = (sigma/d)
+        return epsilon*(1.84e5*np.exp(-12.0/x)-2.25*x**6)
+    return system, nlists, scalings, part_pair, pair_fn
+
+
+def test_pair_pot_mm3_caffeine_15A():
+    system, nlists, scalings, part_pair, pair_fn = get_part_caffeine_mm3_15A()
+    check_pair_pot_caffeine(system, nlists, scalings, part_pair, pair_fn, 1e-15)
+
+
 def get_part_caffeine_grimme_15A():
     # Get a system and define scalings
     system = get_system_caffeine()
@@ -474,6 +514,18 @@ def test_gpos_vtens_pair_pot_water_lj_9A():
 
 def test_gpos_vtens_pair_pot_caffeine_lj_15A():
     system, nlists, scalings, part_pair, pair_fn = get_part_caffeine_lj_15A()
+    check_gpos_part(system, part_pair, 1e-10, nlists)
+    check_vtens_part(system, part_pair, 1e-8, nlists)
+
+
+def test_gpos_vtens_pair_pot_caffeine_mm3_15A():
+    system, nlists, scalings, part_pair, pair_fn = get_part_caffeine_mm3_15A()
+    check_gpos_part(system, part_pair, 1e-10, nlists)
+    check_vtens_part(system, part_pair, 1e-8, nlists)
+
+
+def test_gpos_vtens_pair_pot_caffeine_grimme_15A():
+    system, nlists, scalings, part_pair, pair_fn = get_part_caffeine_grimme_15A()
     check_gpos_part(system, part_pair, 1e-10, nlists)
     check_vtens_part(system, part_pair, 1e-8, nlists)
 
