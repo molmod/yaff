@@ -27,7 +27,8 @@ from nose.plugins.skip import SkipTest
 
 from yaff import *
 
-from common import get_system_quartz, get_system_peroxide, get_system_mil53, get_system_water32
+from yaff.pes.test.common import get_system_quartz, get_system_peroxide, \
+    get_system_mil53, get_system_water32
 
 
 def test_iclist_quartz_bonds():

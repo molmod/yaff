@@ -26,7 +26,7 @@ import numpy as np
 from yaff import kjmol, angstrom, deg, angstrom
 from yaff import ForceField, ForcePartValence
 
-from common import get_system_water32
+from yaff.pes.test.common import get_system_water32
 
 
 def test_generator_water32_bondharm():

@@ -25,7 +25,8 @@ import numpy as np
 
 from yaff import DeltaList
 
-from common import get_system_graphene8, get_system_quartz, get_system_glycine
+from yaff.pes.test.common import get_system_graphene8, get_system_quartz, \
+    get_system_glycine
 
 
 def get_dlist_bonds(system):

@@ -20,7 +20,21 @@
 #
 # --
 
-from yaff.sampling.hooks import *
-from yaff.sampling.io import *
-from yaff.sampling.nve import *
-from yaff.sampling.state import *
+
+from yaff import *
+from yaff.pes.test.common import get_system_water32
+
+
+def test_basic():
+    system = get_system_water32()
+    system.charges[:] = 0.0
+    ff = ForceField.generate(system, 'input/parameters_water.txt')
+    nve = NVEIntegrator(ff, 1.0*femtosecond)
+    nve.run(5)
+
+def test_with_hdf5():
+    system = get_system_water32()
+    system.charges[:] = 0.0
+    ff = ForceField.generate(system, 'input/parameters_water.txt')
+    nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=HDF5TrajectoryHook('tmp.h5', driver='core', backing_store=False))
+    nve.run(5)

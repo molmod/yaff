@@ -25,8 +25,8 @@ import numpy as np
 
 from yaff import *
 
-from common import get_system_water32, get_system_quartz, check_gpos_part, \
-    check_vtens_part
+from yaff.pes.test.common import get_system_water32, get_system_quartz, \
+    check_gpos_part, check_vtens_part
 
 
 def test_ewald_water32():

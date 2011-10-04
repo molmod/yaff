@@ -27,7 +27,7 @@ from nose.plugins.skip import SkipTest
 
 from molmod import angstrom
 
-from common import get_system_water32, get_system_graphene8, \
+from yaff.pes.test.common import get_system_water32, get_system_graphene8, \
     get_system_polyethylene4, get_system_quartz, get_system_glycine
 
 from yaff import *

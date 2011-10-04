@@ -29,7 +29,8 @@ from molmod.io import XYZWriter
 
 from yaff import *
 
-from common import get_system_water32, check_gpos_ff, check_vtens_ff
+from yaff.pes.test.common import get_system_water32, check_gpos_ff, \
+    check_vtens_ff
 
 
 def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=False):

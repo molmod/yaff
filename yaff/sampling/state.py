@@ -20,7 +20,32 @@
 #
 # --
 
-from yaff.sampling.hooks import *
-from yaff.sampling.io import *
-from yaff.sampling.nve import *
-from yaff.sampling.state import *
+
+import numpy as np
+
+
+__all__ = ['StateItem', 'AttributeStateItem']
+
+class StateItem(object):
+    def __init__(self, key):
+        self.key = key
+        self.shape = None
+        self.dtype = None
+
+    def update(self, sampler):
+        self.value = self.get_value(sampler)
+        if self.shape is None:
+            if isinstance(self.value, np.ndarray):
+                self.shape = self.value.shape
+                self.dtype = self.value.dtype
+            else:
+                self.shape = tuple([])
+                self.dtype = type(self.value)
+
+    def get_value(self, sampler):
+        raise NotImplementedError
+
+
+class AttributeStateItem(StateItem):
+    def get_value(self, sampler):
+        return getattr(sampler, self.key)

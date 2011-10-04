@@ -26,8 +26,8 @@ from scipy.special import erfc
 
 from molmod import angstrom, kcalmol
 
-from common import get_system_water32, get_system_caffeine, check_gpos_part, \
-    check_vtens_part, get_system_2atoms
+from yaff.pes.test.common import get_system_water32, get_system_caffeine, \
+    check_gpos_part, check_vtens_part, get_system_2atoms
 
 from yaff import *
 
