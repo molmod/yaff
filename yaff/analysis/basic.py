@@ -29,7 +29,7 @@ from yaff.log import log
 __all__ = ['plot_energies']
 
 
-def plot_energies(fn_hdf5_traj, fn_png, max_data=1000):
+def plot_energies(fn_hdf5_traj, fn_png='energies.png', max_data=1000):
     """Make a plot of the potential and the total energy in the trajectory
 
        **Arguments:**
@@ -38,10 +38,10 @@ def plot_energies(fn_hdf5_traj, fn_png, max_data=1000):
             The filename of the HDF5 file (or an h5py.File instance) containing
             the trajectory data.
 
+       **Optional arguments:**
+
        fn_png
             The png file to write the figure to
-
-       **Optional arguments:**
 
        max_data
             The maximum number of datapoints to use for the plot. When set to
@@ -58,15 +58,20 @@ def plot_energies(fn_hdf5_traj, fn_png, max_data=1000):
     else:
         f = h5py.File(fn_hdf5_traj, mode='r')
 
+    nrow = f['trajectory'].attrs['row']
     if max_data is None or max_data > f['trajectory'].attrs['row']:
         step = 1
     else:
-        step = f['trajectory'].attrs['row']/max_data
-    ekin = f['trajectory/ekin'][::step]/log.energy
-    epot = f['trajectory/epot'][::step]/log.energy
-    time = f['trajectory/time'][::step]/log.time
+        step = nrow/max_data
+    ekin = f['trajectory/ekin'][:nrow:step]/log.energy
+    epot = f['trajectory/epot'][:nrow:step]/log.energy
+    time = f['trajectory/time'][:nrow:step]/log.time
 
     pt.clf()
     pt.plot(time, epot, 'k-', label='E_pot')
     pt.plot(time, epot+ekin, 'r-', label='E_pot+E_kin')
+    pt.xlim(time[0], time[-1])
+    pt.xlabel('Time [%s]' % log.unitsys.time[1])
+    pt.ylabel('Energy [%s]' % log.unitsys.energy[1])
+    pt.legend(loc=0)
     pt.savefig(fn_png)
