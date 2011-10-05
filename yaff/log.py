@@ -209,7 +209,7 @@ class ScreenLog(object):
         self._level = level
 
     def __call__(self, *words):
-        s = ' '.join(words)
+        s = ' '.join(str(w) for w in words)
         if not self.do_warning:
             raise RuntimeError('The runlevel should be at least warning when logging.')
         if not self._active:
