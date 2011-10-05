@@ -155,6 +155,7 @@ class NVEIntegrator(Iterative):
             # TODO: do this via the state items.
             # TODO: add conserved quantity
             # TODO: turn this into more meaningful numbers for error checking
+            # TODO: implement logger through a hook that is included by default.
             delta_rmsd = np.sqrt((delta**2).mean())
             gpos_rmsd = np.sqrt((self.gpos**2).mean())
             log('%7i % 8.1e % 8.1e % 8.1e' % (self.counter, self.epot/log.energy, delta_rmsd/log.length, gpos_rmsd/log.force))
