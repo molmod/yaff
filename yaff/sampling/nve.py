@@ -146,6 +146,7 @@ class NVEIntegrator(Iterative):
     def propagate(self):
         self.pos += self.timestep*self.vel + (0.5*self.timestep**2)*self.acc
         self.ff.update_pos(self.pos)
+        self.gpos[:] = 0.0
         self.epot = self.ff.compute(self.gpos)
         acc = -self.gpos/self.masses.reshape(-1,1)
         self.vel += 0.5*(acc+self.acc)*self.timestep
