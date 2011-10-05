@@ -35,7 +35,7 @@ def get_water_32_simulation():
     system.charges[:] = 0.0
     ff = ForceField.generate(system, 'input/parameters_water.txt')
     # Run a test simulation
-    hdf5_hook = HDF5TrajectoryHook('%s/output.h5' % dn_tmp, start=2)
+    hdf5_hook = HDF5TrajectoryHook('%s/output.h5' % dn_tmp)
     nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=hdf5_hook)
     nve.run(5)
     assert nve.counter == 5
