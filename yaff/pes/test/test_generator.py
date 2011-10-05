@@ -104,7 +104,7 @@ def test_generator_water32_bendcharm():
 def test_generator_water32_fixq():
     system = get_system_water32()
     system.charges[:] = 0.0
-    ff = ForceField.generate(system, 'input/parameters_water_fixq.txt')
+    ff = ForceField.generate(system, 'input/parameters_water_fixq.txt', rcut=15.0*angstrom)
     assert len(ff.parts) == 4
     part_pair_ei = ff.part_pair_ei
     part_ewald_reci = ff.part_ewald_reci
@@ -118,9 +118,18 @@ def test_generator_water32_fixq():
     # check charges
     for i in xrange(system.natom):
         if system.numbers[i] == 1:
-            assert abs(system.charges[i] - 3.6841957737e+00) < 1e-5
+            assert abs(system.charges[i] - 0.417) < 1e-5
         else:
-            assert abs(system.charges[i] + 2*3.6841957737e+00) < 1e-5
+            assert abs(system.charges[i] + 2*0.417) < 1e-5
+
+    system = get_system_water32()
+    system.charges[:] = 0.0
+    ff2 = ForceField.generate(system, 'input/parameters_water_fixq.txt', rcut=15.0*angstrom)
+    energy = ff.compute()
+    energy2 = ff2.compute()
+    print energy
+    print energy2
+    assert abs(energy - energy2) < 1e-3
 
 
 def test_generator_water32_exprep1():
