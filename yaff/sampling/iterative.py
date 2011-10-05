@@ -23,12 +23,15 @@
 
 import numpy as np
 
+from yaff.log import log
+
 
 __all__ = ['Iterative', 'StateItem', 'AttributeStateItem', 'Hook']
 
 
 class Iterative(object):
     default_state = []
+    log_name = 'ITER'
 
     def __init__(self, state=None, hooks=None, counter0=0):
         """
@@ -58,7 +61,9 @@ class Iterative(object):
         else:
             self.hooks = [hooks]
         self.counter = counter0
+        log.enter(self.log_name)
         self.initialize()
+        log.leave()
 
     def initialize(self):
         self.call_hooks()
@@ -74,12 +79,18 @@ class Iterative(object):
                 hook(self.ff, self.state)
 
     def run(self, nstep):
+        log.enter(self.log_name)
         for i in xrange(nstep):
             self.propagate()
+        self.finalize()
+        log.leave()
 
     def propagate(self):
         self.counter += 1
         self.call_hooks()
+
+    def finalize():
+        raise NotImplementedError
 
 
 class StateItem(object):

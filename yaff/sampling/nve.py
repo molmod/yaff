@@ -27,6 +27,7 @@ import numpy as np
 from molmod.periodic import periodic
 from molmod import boltzmann
 
+from yaff.log import log
 from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem
 
 
@@ -63,6 +64,8 @@ class NVEIntegrator(Iterative):
         EKinStateItem(),
         TempStateItem(),
     ]
+
+    log_name = 'NVE'
 
     def __init__(self, ff, timestep, state=None, hooks=None, masses=None, vel0=None, temp0=300, scalevel0=True, time0=0.0, counter0=0):
         """
@@ -142,9 +145,15 @@ class NVEIntegrator(Iterative):
         self.epot = self.ff.compute(self.gpos)
         self.acc = -self.gpos/self.masses.reshape(-1,1)
         Iterative.initialize(self)
+        if log.do_medium:
+            log.hline()
+            log('counter     Epot   d-RMSD   g-RMSD')
+            log.hline()
+            # TODO: avoid empty line when reentering the same section
 
     def propagate(self):
-        self.pos += self.timestep*self.vel + (0.5*self.timestep**2)*self.acc
+        delta = self.timestep*self.vel + (0.5*self.timestep**2)*self.acc
+        self.pos += delta
         self.ff.update_pos(self.pos)
         self.gpos[:] = 0.0
         self.epot = self.ff.compute(self.gpos)
@@ -153,3 +162,14 @@ class NVEIntegrator(Iterative):
         self.acc = acc
         self.time += self.timestep
         Iterative.propagate(self)
+        if log.do_medium:
+            # TODO: do this via the state items.
+            # TODO: add conserved quantity
+            # TODO: turn this into more meaningful numbers for error checking
+            delta_rmsd = np.sqrt((delta**2).mean())
+            gpos_rmsd = np.sqrt((self.gpos**2).mean())
+            log('%7i % 8.1e % 8.1e % 8.1e' % (self.counter, self.epot/log.energy, delta_rmsd/log.length, gpos_rmsd/log.force))
+
+    def finalize(self):
+        if log.do_medium:
+            log.hline()
