@@ -32,7 +32,7 @@ __all__ = ['System']
 
 
 class System(object):
-    def __init__(self, numbers, pos, ffatypes, bonds=None, rvecs=None, charges=None):
+    def __init__(self, numbers, pos, ffatypes, bonds=None, rvecs=None, charges=None, masses=None):
         '''
            **Arguments:**
 
@@ -57,6 +57,9 @@ class System(object):
 
            charges
                 An array of atomic charges
+
+           masses
+                The atomic masses (in atomic units, i.e. m_e)
         '''
         if len(numbers.shape) != 1:
             raise ValueError('Argument numbers must be a one-dimensional array.')
@@ -73,6 +76,7 @@ class System(object):
             self.topology = Topology(bonds, self.natom)
         self.cell = Cell(rvecs)
         self.charges = charges
+        self.masses = masses
 
     natom = property(lambda self: len(self.pos))
 
@@ -144,6 +148,15 @@ class System(object):
         log.leave()
         return cls(**kwargs)
 
+    def set_standard_masses(self):
+        log.enter('SYS')
+        from molmod.periodic import periodic
+        if self.masses is not None:
+            if log.do_warning:
+                log.warn('Overwriting existing masses with default masses.')
+        self.masses = np.array([periodic[n].mass for n in self.numbers])
+        log.leave()
+
     def to_file(self, fn_chk):
         """Write the system in the internal checkpoint format.
 
@@ -161,7 +174,8 @@ class System(object):
             'ffatypes': self.ffatypes,
             'bonds': self.topology.bonds,
             'rvecs': self.cell.rvecs,
-            'charges': self.charges
+            'charges': self.charges,
+            'masses': self.masses,
         })
         if log.do_high:
             log('SYS', 'Wrote system to %s.' % fn_chk)

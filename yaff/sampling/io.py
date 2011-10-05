@@ -73,6 +73,8 @@ class HDF5TrajectoryHook(Hook):
             sgrp.create_dataset('rvecs', data=system.cell.rvecs)
         if system.charges is not None:
             sgrp.create_dataset('charges', data=system.charges)
+        if system.masses is not None:
+            sgrp.create_dataset('masses', data=system.masses)
 
     def init_trajectory(self, state):
         tgrp = self.f.create_group('trajectory')

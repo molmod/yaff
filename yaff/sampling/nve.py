@@ -24,7 +24,6 @@
 
 import numpy as np
 
-from molmod.periodic import periodic
 from molmod import boltzmann
 
 from yaff.log import log
@@ -67,7 +66,7 @@ class NVEIntegrator(Iterative):
 
     log_name = 'NVE'
 
-    def __init__(self, ff, timestep, state=None, hooks=None, masses=None, vel0=None, temp0=300, scalevel0=True, time0=0.0, counter0=0):
+    def __init__(self, ff, timestep, state=None, hooks=None, vel0=None, temp0=300, scalevel0=True, time0=0.0, counter0=0):
         """
            **Arguments:**
 
@@ -87,11 +86,6 @@ class NVEIntegrator(Iterative):
            hooks
                 A function (or a list of functions) that is called after every
                 iterative.
-
-           masses
-                An array with atomic masses (in atomic units). If not given,
-                the standard masses are taken based on the atomic numbers in
-                ff.system.numbers
 
            vel0
                 An array with initial velocities. If not given, random
@@ -115,10 +109,9 @@ class NVEIntegrator(Iterative):
         self.pos = ff.system.pos.copy()
         self.timestep = timestep
         self.time = time0
-        if masses is None:
-            self.masses = self.get_standard_masses(ff.system)
-        else:
-            self.masses = masses
+        if ff.system.masses is None:
+            ff.system.set_standard_masses()
+        self.masses = ff.system.masses
         if vel0 is None:
             self.vel = self.get_initial_vel(temp0, scalevel0)
         else:
@@ -127,9 +120,6 @@ class NVEIntegrator(Iterative):
             self.vel = vel0.copy()
         self.gpos = np.zeros(self.pos.shape, float)
         Iterative.__init__(self, state, hooks, counter0)
-
-    def get_standard_masses(self, system):
-        return np.array([periodic[n].mass for n in system.numbers])
 
     def get_initial_vel(self, temp0, scalevel0):
         result = np.random.normal(0, 1, self.pos.shape)*np.sqrt(boltzmann*temp0/self.masses).reshape(-1,1)
