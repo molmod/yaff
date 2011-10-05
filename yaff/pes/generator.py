@@ -498,9 +498,8 @@ class FixedChargeGenerator(NonbondedGenerator):
     def apply(self, atom_table, bond_table, scale_table, dielectric, system, ff_args):
         if system.charges is None:
             system.charges = np.zeros(system.natom)
-        else:
-            if log.do_warning:
-                log.warn('Adding charges to system that already has charges.')
+        elif log.do_warning and abs(system.charges).max() != 0:
+            log.warn('Adding charges to system that already has charges.')
         radii = np.zeros(system.natom)
 
         # compute the charges

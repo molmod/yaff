@@ -54,7 +54,6 @@ def check_alpha_depedence(system):
     energies = np.array(energies)
     gposs = np.array(gposs)
     vtenss = np.array(vtenss)
-    print energies
     assert abs(energies - energies.mean()).max() < 1e-8
     assert abs(gposs - gposs.mean(axis=0)).max() < 1e-8
     assert abs(vtenss - vtenss.mean(axis=0)).max() < 1e-8
