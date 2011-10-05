@@ -25,16 +25,62 @@ from yaff import *
 from yaff.pes.test.common import get_system_water32
 
 
-def test_basic():
+def get_water_32ff():
     system = get_system_water32()
     system.charges[:] = 0.0
     ff = ForceField.generate(system, 'input/parameters_water.txt')
-    nve = NVEIntegrator(ff, 1.0*femtosecond)
-    nve.run(5)
+    return ff
 
-def test_with_hdf5():
-    system = get_system_water32()
-    system.charges[:] = 0.0
-    ff = ForceField.generate(system, 'input/parameters_water.txt')
-    nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=HDF5TrajectoryHook('tmp.h5', driver='core', backing_store=False))
+
+def test_basic():
+    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond)
     nve.run(5)
+    assert nve.counter == 5
+
+
+def check_hdf5_common(f):
+    assert 'system' in f
+    assert 'numbers' in f['system']
+    assert 'ffatypes' in f['system']
+    assert 'pos' in f['system']
+    assert 'bonds' in f['system']
+    assert 'rvecs' in f['system']
+    assert 'charges' in f['system']
+    assert 'trajectory' in f
+    assert 'counter' in f['trajectory']
+    assert 'time' in f['trajectory']
+    assert 'epot' in f['trajectory']
+    assert 'pos' in f['trajectory']
+    assert 'vel' in f['trajectory']
+    assert 'ekin' in f['trajectory']
+    assert 'temp' in f['trajectory']
+
+
+def test_hdf5():
+    hdf5_hook = HDF5TrajectoryHook('tmp.h5', driver='core', backing_store=False)
+    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=hdf5_hook)
+    nve.run(5)
+    assert nve.counter == 5
+    check_hdf5_common(hdf5_hook.f)
+    assert hdf5_hook.f['trajectory'].attrs['row'] == 6
+    assert hdf5_hook.f['trajectory/counter'][5] == 5
+
+
+def test_hdf5_start():
+    hdf5_hook = HDF5TrajectoryHook('tmp.h5', driver='core', backing_store=False, start=2)
+    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=hdf5_hook)
+    nve.run(5)
+    assert nve.counter == 5
+    check_hdf5_common(hdf5_hook.f)
+    assert hdf5_hook.f['trajectory'].attrs['row'] == 4
+    assert hdf5_hook.f['trajectory/counter'][3] == 5
+
+
+def test_hdf5_step():
+    hdf5_hook = HDF5TrajectoryHook('tmp.h5', driver='core', backing_store=False, step=2)
+    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=hdf5_hook)
+    nve.run(5)
+    assert nve.counter == 5
+    check_hdf5_common(hdf5_hook.f)
+    assert hdf5_hook.f['trajectory'].attrs['row'] == 3
+    assert hdf5_hook.f['trajectory/counter'][2] == 4

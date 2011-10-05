@@ -23,13 +23,22 @@
 
 import h5py
 
+from yaff.sampling.iterative import Hook
+
 
 __all__ = ['HDF5TrajectoryHook']
 
 
-class HDF5TrajectoryHook(object):
+class HDF5TrajectoryHook(Hook):
     def __init__(self, *args, **kwargs):
+        hook_kwargs = {}
+        for key in 'start', 'step':
+            value = kwargs.get(key)
+            if value is not None:
+                hook_kwargs[key] = value
+                del kwargs[key]
         self.f = h5py.File(*args, **kwargs)
+        Hook.__init__(self, **hook_kwargs)
 
     def __del__(self):
         self.f.close()

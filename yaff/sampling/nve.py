@@ -27,7 +27,7 @@ import numpy as np
 from molmod.periodic import periodic
 from molmod import boltzmann
 
-from yaff.sampling.state import StateItem, AttributeStateItem
+from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem
 
 
 __all__ = ['NVEIntegrator']
@@ -50,21 +50,21 @@ class TempStateItem(StateItem):
 
 
 
-nve_minimal_state = [
-    AttributeStateItem('epot'),
-    AttributeStateItem('time'),
-    AttributeStateItem('pos'),
-]
+class NVEIntegrator(Iterative):
+    minimal_state = [
+        AttributeStateItem('counter'),
+        AttributeStateItem('time'),
+        AttributeStateItem('epot'),
+        AttributeStateItem('pos'),
+    ]
 
-nve_normal_state = nve_minimal_state + [
-    AttributeStateItem('vel'),
-    EKinStateItem(),
-    TempStateItem(),
-]
+    default_state = minimal_state + [
+        AttributeStateItem('vel'),
+        EKinStateItem(),
+        TempStateItem(),
+    ]
 
-
-class NVEIntegrator(object):
-    def __init__(self, ff, timestep, state=None, hooks=None, masses=None, vel0=None, temp0=300, scalevel0=True, time0=0.0):
+    def __init__(self, ff, timestep, state=None, hooks=None, masses=None, vel0=None, temp0=300, scalevel0=True, time0=0.0, counter0=0):
         """
            **Arguments:**
 
@@ -78,12 +78,12 @@ class NVEIntegrator(object):
 
            state
                 A list with state items. State items are simple objects
-                that take are derive a property from the current state of the
-                integrator.
+                that take or derive a property from the current state of the
+                iterative algorithm.
 
            hooks
                 A function (or a list of functions) that is called after every
-                time step.
+                iterative.
 
            masses
                 An array with atomic masses (in atomic units). If not given,
@@ -103,23 +103,15 @@ class NVEIntegrator(object):
                 that the instantaneous temperature coincides with temp0.
 
            time0
-                The time associated with the initial structure.
+                The time associated with the initial state.
+
+           counter0
+                The counter value associated with the initial state.
         """
         self.ff = ff
         self.pos = ff.system.pos.copy()
         self.timestep = timestep
         self.time = time0
-        if state is None:
-            self.state_list = list(nve_normal_state)
-        else:
-            self.state_list = state
-        self.state = dict((item.key, item) for item in self.state_list)
-        if hooks is None:
-            self.hooks = []
-        elif hasattr(hooks, '__length__'):
-            self.hooks = hooks
-        else:
-            self.hooks = [hooks]
         if masses is None:
             self.masses = self.get_standard_masses(ff.system)
         else:
@@ -131,7 +123,7 @@ class NVEIntegrator(object):
                 raise TypeError('The vel0 argument does not have the right shape.')
             self.vel = vel0.copy()
         self.gpos = np.zeros(self.pos.shape, float)
-        self.init_verlet()
+        Iterative.__init__(self, state, hooks, counter0)
 
     def get_standard_masses(self, system):
         return np.array([periodic[n].mass for n in system.numbers])
@@ -144,24 +136,14 @@ class NVEIntegrator(object):
             result *= scale
         return result
 
-    def init_verlet(self):
+    def initialize(self):
         self.gpos[:] = 0.0
         self.ff.update_pos(self.pos)
         self.epot = self.ff.compute(self.gpos)
         self.acc = -self.gpos/self.masses.reshape(-1,1)
-        self.call_hooks()
+        Iterative.initialize(self)
 
-    def call_hooks(self):
-        for item in self.state_list:
-            item.update(self)
-        for hook in self.hooks:
-            hook(self.ff, self.state)
-
-    def run(self, nstep):
-        for i in xrange(nstep):
-            self.prop_verlet()
-
-    def prop_verlet(self):
+    def propagate(self):
         self.pos += self.timestep*self.vel + (0.5*self.timestep**2)*self.acc
         self.ff.update_pos(self.pos)
         self.epot = self.ff.compute(self.gpos)
@@ -169,4 +151,4 @@ class NVEIntegrator(object):
         self.vel += 0.5*(acc+self.acc)*self.timestep
         self.acc = acc
         self.time += self.timestep
-        self.call_hooks()
+        Iterative.propagate(self)
