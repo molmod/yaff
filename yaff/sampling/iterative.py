@@ -26,7 +26,10 @@ import numpy as np
 from yaff.log import log
 
 
-__all__ = ['Iterative', 'StateItem', 'AttributeStateItem', 'Hook']
+__all__ = [
+    'Iterative', 'StateItem', 'AttributeStateItem', 'RMSDAttributeStateItem',
+    'Hook'
+]
 
 
 class Iterative(object):
@@ -116,6 +119,15 @@ class StateItem(object):
 class AttributeStateItem(StateItem):
     def get_value(self, sampler):
         return getattr(sampler, self.key)
+
+
+class RMSDAttributeStateItem(StateItem):
+    def __init__(self, key):
+        StateItem.__init__(self, 'rmsd_%s' % key)
+        self.atname = key
+
+    def get_value(self, sampler):
+        return np.sqrt((getattr(sampler, self.atname)**2).mean())
 
 
 class Hook(object):

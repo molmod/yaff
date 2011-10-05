@@ -27,7 +27,8 @@ import numpy as np
 from molmod import boltzmann
 
 from yaff.log import log
-from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem
+from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
+    RMSDAttributeStateItem, Hook
 
 
 __all__ = ['NVEIntegrator']
@@ -49,19 +50,48 @@ class TempStateItem(StateItem):
         return (sampler.state['ekin'].value/sampler.ff.system.natom*2/boltzmann)
 
 
+class EConsStateItem(StateItem):
+    def __init__(self):
+        StateItem.__init__(self, 'econs')
+
+    def get_value(self, sampler):
+        return (sampler.state['ekin'].value + sampler.epot)
+
+
+class NVEScreenLogHook(Hook):
+    def __init__(self, start=0, step=1):
+        Hook.__init__(self, start, step)
+        self.ref_econs = None
+
+    def __call__(self, ff, state):
+        if log.do_medium:
+            if self.ref_econs is None:
+                self.ref_econs = state['econs'].value
+                if log.do_medium:
+                    log.hline()
+                    log('counter ch.Econs     Ekin   d-RMSD   g-RMSD')
+                    log.hline()
+            log('%7i % 8.1e % 8.1e % 8.1e % 8.1e' % (
+                state['counter'].value,
+                (state['econs'].value - self.ref_econs)/log.energy,
+                state['ekin'].value/log.energy,
+                state['rmsd_delta'].value/log.length,
+                state['rmsd_gpos'].value/log.force)
+            )
+
 
 class NVEIntegrator(Iterative):
-    minimal_state = [
+    default_state = [
         AttributeStateItem('counter'),
         AttributeStateItem('time'),
         AttributeStateItem('epot'),
         AttributeStateItem('pos'),
-    ]
-
-    default_state = minimal_state + [
         AttributeStateItem('vel'),
         EKinStateItem(),
         TempStateItem(),
+        EConsStateItem(),
+        RMSDAttributeStateItem('delta'),
+        RMSDAttributeStateItem('gpos'),
     ]
 
     log_name = 'NVE'
@@ -119,7 +149,10 @@ class NVEIntegrator(Iterative):
                 raise TypeError('The vel0 argument does not have the right shape.')
             self.vel = vel0.copy()
         self.gpos = np.zeros(self.pos.shape, float)
+        self.delta = np.zeros(self.pos.shape, float)
         Iterative.__init__(self, state, hooks, counter0)
+        if not any(isinstance(hook, NVEScreenLogHook) for hook in self.hooks):
+            self.hooks.append(NVEScreenLogHook())
 
     def get_initial_vel(self, temp0, scalevel0):
         result = np.random.normal(0, 1, self.pos.shape)*np.sqrt(boltzmann*temp0/self.masses).reshape(-1,1)
@@ -135,14 +168,10 @@ class NVEIntegrator(Iterative):
         self.epot = self.ff.compute(self.gpos)
         self.acc = -self.gpos/self.masses.reshape(-1,1)
         Iterative.initialize(self)
-        if log.do_medium:
-            log.hline()
-            log('counter     Epot   d-RMSD   g-RMSD')
-            log.hline()
 
     def propagate(self):
-        delta = self.timestep*self.vel + (0.5*self.timestep**2)*self.acc
-        self.pos += delta
+        self.delta[:] = self.timestep*self.vel + (0.5*self.timestep**2)*self.acc
+        self.pos += self.delta
         self.ff.update_pos(self.pos)
         self.gpos[:] = 0.0
         self.epot = self.ff.compute(self.gpos)
@@ -151,14 +180,6 @@ class NVEIntegrator(Iterative):
         self.acc = acc
         self.time += self.timestep
         Iterative.propagate(self)
-        if log.do_medium:
-            # TODO: do this via the state items.
-            # TODO: add conserved quantity
-            # TODO: turn this into more meaningful numbers for error checking
-            # TODO: implement logger through a hook that is included by default.
-            delta_rmsd = np.sqrt((delta**2).mean())
-            gpos_rmsd = np.sqrt((self.gpos**2).mean())
-            log('%7i % 8.1e % 8.1e % 8.1e' % (self.counter, self.epot/log.energy, delta_rmsd/log.length, gpos_rmsd/log.force))
 
     def finalize(self):
         if log.do_medium:
