@@ -19,13 +19,3 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 # --
-
-from molmod.units import *
-from molmod.constants import *
-
-from yaff.log import *
-from yaff.pes import *
-from yaff.sampling import *
-from yaff.analysis import *
-
-__version__ = '0.0'

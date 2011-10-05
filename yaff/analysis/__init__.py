@@ -20,12 +20,5 @@
 #
 # --
 
-from molmod.units import *
-from molmod.constants import *
 
-from yaff.log import *
-from yaff.pes import *
-from yaff.sampling import *
-from yaff.analysis import *
-
-__version__ = '0.0'
+from yaff.analysis.basic import *
