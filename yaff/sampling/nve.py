@@ -46,7 +46,7 @@ class TempStateItem(StateItem):
         StateItem.__init__(self, 'temp')
 
     def get_value(self, sampler):
-        return (sampler.state['ekin'].value/sampler.ff.system.natom/3.0)
+        return (sampler.state['ekin'].value/sampler.ff.system.natom*2/boltzmann)
 
 
 
