@@ -23,6 +23,7 @@
 
 import numpy as np
 
+from yaff.log import log
 from yaff.pes.ext import vlist_forward, vlist_back
 
 
@@ -71,11 +72,18 @@ class ValenceTerm(object):
     def get_ic_indexes(self, iclist):
         return [iclist.add_ic(ic) for ic in self.ics]
 
+    def get_log(self):
+        raise NotImplementedError
+
 
 class Harmonic(ValenceTerm):
     kind = 0
     def __init__(self, fc, rv, ic):
         ValenceTerm.__init__(self, [fc, rv], [ic])
+
+    def get_log(self):
+        c = self.ics[0].get_conversion()
+        return '%s(FC=%.5e,RV=%.5e)' % (self.__class__.__name__, self.pars[0]/(log.energy/c**2), self.pars[1]/c)
 
 
 class PolyFour(ValenceTerm):
@@ -87,14 +95,37 @@ class PolyFour(ValenceTerm):
             pars.append(0.0)
         ValenceTerm.__init__(self, pars, [ic])
 
+    def get_log(self):
+        u = self.ics[0].get_conversion()
+        return '%s(C1=%.5e,C2=%.5e,C3=%.5e,C4=%.5e)' % (
+            self.__class__.__name__,
+            self.pars[0]/(log.energy/u),
+            self.pars[1]/(log.energy/u**2),
+            self.pars[2]/(log.energy/u**3),
+            self.pars[3]/(log.energy/u**4),
+        )
 
 class Fues(ValenceTerm):
     kind = 2
     def __init__(self, fc, rv, ic):
         ValenceTerm.__init__(self, [fc, rv], [ic])
 
+    def get_log(self):
+        c = self.ics[0].get_conversion()
+        return '%s(FC=%.5e,RV=%.5e)' % (self.__class__.__name__, self.pars[0]/(log.energy/c**2), self.pars[1]/c)
+
 
 class Cross(ValenceTerm):
     kind = 3
     def __init__(self, fc, rv0, rv1, ic0, ic1):
         ValenceTerm.__init__(self,[fc,rv0,rv1],[ic0,ic1])
+
+    def get_log(self):
+        c0 = self.ics[0].get_conversion()
+        c1 = self.ics[1].get_conversion()
+        return '%s(FC=%.5e,RV0=%.5e,RV1=%.5e)' % (
+            self.__class__.__name__,
+            self.pars[0]/(log.energy/c0/c1),
+            self.pars[1]/c0,
+            self.pars[2]/c1,
+        )

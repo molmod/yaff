@@ -23,6 +23,7 @@
 
 import numpy as np
 
+from yaff.log import log
 from yaff.pes.ext import iclist_forward, iclist_back
 
 
@@ -79,17 +80,31 @@ class InternalCoordinate(object):
     def get_rows_signs(self, dlist):
         return [dlist.add_delta(i, j) for i, j in self.index_pairs]
 
+    def get_conversion(self):
+        raise NotImplementedError
+
+    def get_log(self):
+        return '%s(%s)' % (
+            self.__class__.__name__,
+            ','.join('%i-%i' % pair for pair in self.index_pairs)
+        )
+
 
 class Bond(InternalCoordinate):
     kind = 0
     def __init__(self, i, j):
         InternalCoordinate.__init__(self, [(i, j)])
 
+    def get_conversion(self):
+        return log.length
 
 class BendCos(InternalCoordinate):
     kind = 1
     def __init__(self, i, j, k):
         InternalCoordinate.__init__(self, [(j, i), (j, k)])
+
+    def get_conversion(self):
+        return 1.0
 
 
 class BendAngle(InternalCoordinate):
@@ -97,17 +112,32 @@ class BendAngle(InternalCoordinate):
     def __init__(self, i, j, k):
         InternalCoordinate.__init__(self, [(j, i), (j, k)])
 
+    def get_conversion(self):
+        return log.angle
+
+
 class DihedCos(InternalCoordinate):
     kind = 3
     def __init__(self, i, j, k, l):
         InternalCoordinate.__init__(self, [(j,i), (j,k), (k,l)])
+
+    def get_conversion(self):
+        return 1.0
+
 
 class DihedAngle(InternalCoordinate):
     kind = 4
     def __init__(self, i, j, k, l):
         InternalCoordinate.__init__(self, [(j,i), (j,k), (k,l)])
 
+    def get_conversion(self):
+        return log.angle
+
+
 class UreyBradley(InternalCoordinate):
     kind = 5
     def __init__(self, i, j, k):
         InternalCoordinate.__init__(self, [(i, k)])
+
+    def get_conversion(self):
+        return log.length

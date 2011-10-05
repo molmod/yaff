@@ -86,6 +86,11 @@ class NeighborLists(object):
             self.nlists[i] = nlist
             self.nlist_sizes[i] = nlist_status_finish(nlist_status)
         if log.do_debug:
-            log('rmax x,y,z   = %i,%i,%i' % tuple(self.rmax))
+            if len(self.rmax) == 1:
+                log('rmax a       = %i' % tuple(self.rmax))
+            elif len(self.rmax) == 2:
+                log('rmax a,b     = %i,%i' % tuple(self.rmax))
+            elif len(self.rmax) == 3:
+                log('rmax a,b,c   = %i,%i,%i' % tuple(self.rmax))
             log('min/max size = %i/%i' % (self.nlist_sizes.min(), self.nlist_sizes.max()))
         log.leave()

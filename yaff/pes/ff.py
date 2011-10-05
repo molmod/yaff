@@ -65,7 +65,6 @@ class ForcePart(object):
         self.vtens[:] = np.nan
 
     def update_rvecs(self, rvecs):
-
         self.clear()
 
     def update_pos(self, pos):
@@ -145,6 +144,14 @@ class ForceField(ForcePart):
             if name in self.__dict__:
                 raise ValueError('The part %s occurs twice in the force field.' % name)
             self.__dict__[name] = part
+        if log.do_medium:
+            log.enter('FFINIT')
+            log('Force field with %i parts:&%s.' % (
+                len(self.parts), ', '.join(part.name for part in self.parts)
+            ))
+            log('Neighborlists present: %s' % (self.nlists is not None))
+            log.leave()
+
 
     @classmethod
     def generate(cls, system, fn_parameters, **kwargs):
@@ -207,6 +214,16 @@ class ForcePartPair(ForcePart):
         self.scalings = scalings
         self.pair_pot = pair_pot
         self.nlists.request_rcut(pair_pot.rcut)
+        if log.do_medium:
+            log.enter('FPINIT')
+            log('Force part: %s' % self.name)
+            log.hline()
+            log('  scalings:          %5.3f %5.3f %5.3f' % (scalings.scale1, scalings.scale2, scalings.scale3))
+            log('  real space cutoff: %5.3f' % (pair_pot.rcut/log.length))
+            log('  smooth cutoff:     %s' % pair_pot.smooth)
+            self.pair_pot.log()
+            log.hline()
+            log.leave()
 
     def _internal_compute(self, gpos, vtens):
         assert len(self.nlists) == len(self.scalings)
@@ -229,9 +246,22 @@ class ForcePartEwaldReciprocal(ForcePart):
         self.update_gmax()
         self.work = np.empty(system.natom*2)
         self.needs_update_gmax = True
+        if log.do_medium:
+            log.enter('FPINIT')
+            log('Force part: %s' % self.name)
+            log.hline()
+            log('  alpha:             %.3f' % (self.alpha*log.length))
+            log('  gcut:              %.3f' % (self.gcut*log.length))
+            log.hline()
+            log.leave()
+
 
     def update_gmax(self):
         self.gmax = np.ceil(self.gcut/self.system.cell.gspacings-0.5).astype(int)
+        if log.do_debug:
+            log.enter('EWALD')
+            log('gmax a,b,c   = %i,%i,%i' % tuple(self.gmax))
+            log.leave()
 
     def update_rvecs(self, rvecs):
         ForcePart.update_rvecs(self, rvecs)
@@ -255,6 +285,14 @@ class ForcePartEwaldCorrection(ForcePart):
         self.system = system
         self.alpha = alpha
         self.scalings = scalings
+        if log.do_medium:
+            log.enter('FPINIT')
+            log('Force part: %s' % self.name)
+            log.hline()
+            log('  alpha:             %.3f' % (self.alpha*log.length))
+            log('  scalings:          %5.3f %5.3f %5.3f' % (scalings.scale1, scalings.scale2, scalings.scale3))
+            log.hline()
+            log.leave()
 
     def _internal_compute(self, gpos, vtens):
         return sum([
@@ -274,6 +312,13 @@ class ForcePartEwaldNeutralizing(ForcePart):
             raise ValueError('The system does not have charges.')
         self.system = system
         self.alpha = alpha
+        if log.do_medium:
+            log.enter('FPINIT')
+            log('Force part: %s' % self.name)
+            log.hline()
+            log('  alpha:             %.3f' % (self.alpha*log.length))
+            log.hline()
+            log.leave()
 
     def _internal_compute(self, gpos, vtens):
         fac = self.system.charges.sum()**2*np.pi/(2.0*self.system.cell.volume*self.alpha**2)
@@ -288,8 +333,17 @@ class ForcePartValence(ForcePart):
         self.dlist = DeltaList(system)
         self.iclist = InternalCoordinateList(self.dlist)
         self.vlist = ValenceList(self.iclist)
+        if log.do_medium:
+            log.enter('FPINIT')
+            log('Force part: %s' % self.name)
+            log.hline()
+            log.leave()
 
     def add_term(self, term):
+        if log.do_high:
+            log.enter('VTERM')
+            log('%7i %s %s' % (self.vlist.nv, term.get_log(), ' '.join(ic.get_log() for ic in term.ics)))
+            log.leave()
         self.vlist.add_term(term)
 
     def _internal_compute(self, gpos, vtens):

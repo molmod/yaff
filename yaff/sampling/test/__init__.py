@@ -19,3 +19,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 # --
+
+from yaff.log import log
+
+log.set_level(log.debug)

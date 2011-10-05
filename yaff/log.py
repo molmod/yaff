@@ -102,9 +102,11 @@ class UnitSystem(object):
         some.length = self.length[0]
         some.time = self.time[0]
         some.mass = self.mass[0]
+        some.charge = self.charge[0]
         some.force = self.force[0]
         some.forceconst = self.forceconst[0]
         some.velocity = self.velocity[0]
+        some.acceleration = self.acceleration[0]
         some.angle = self.angle[0]
 
 

@@ -31,6 +31,8 @@ cimport dlist
 cimport iclist
 cimport vlist
 
+from yaff.log import log
+
 
 __all__ = [
     'nlist_status_init', 'nlist_update', 'nlist_status_finish',
@@ -271,6 +273,14 @@ cdef class PairPotLJ(PairPot):
         self._c_sigmas = sigmas
         self._c_epsilons = epsilons
 
+    def log(self):
+        if log.do_high:
+            log.hline()
+            log('   Atom      Sigma    Epsilon')
+            log.hline()
+            for i in xrange(self._c_sigmas.shape[0]):
+                log('%7i %10.5f %10.5f' % (i, self._c_sigmas[i]/log.length, self._c_epsilons[i]/log.energy))
+
     def get_sigmas(self):
         return self._c_sigmas.view()
 
@@ -300,6 +310,14 @@ cdef class PairPotMM3(PairPot):
         self._c_sigmas = sigmas
         self._c_epsilons = epsilons
 
+    def log(self):
+        if log.do_high:
+            log.hline()
+            log('   Atom      Sigma    Epsilon')
+            log.hline()
+            for i in xrange(self._c_sigmas.shape[0]):
+                log('%7i %10.5f %10.5f' % (i, self._c_sigmas[i]/log.length, self._c_epsilons[i]/log.energy))
+
     def get_sigmas(self):
         return self._c_sigmas.view()
 
@@ -327,6 +345,14 @@ cdef class PairPotGrimme(PairPot):
             raise MemoryError()
         self._c_r0 = r0
         self._c_c6 = c6
+
+    def log(self):
+        if log.do_high:
+            log.hline()
+            log('   Atom         r0         c6')
+            log.hline()
+            for i in xrange(self._c_r0.shape[0]):
+                log('%7i %10.5f %10.5f' % (i, self._c_r0[i]/log.length, self._c_c6[i]/(log.energy*log.length**6)))
 
     def get_r0(self):
         return self._c_r0.view()
@@ -361,6 +387,25 @@ cdef class PairPotExpRep(PairPot):
             raise MemoryError()
         self._c_amps = amps
         self._c_bs = bs
+
+    def log(self):
+        if log.do_medium:
+            if self.amp_mix == 0:
+                log('  A Mixing rule:     geometric')
+            else:
+                log('  A Mixing rule:     geometric with correction')
+                log('  A Mixing corr:     %10.3e' % self.amp_mix_coeff)
+            if self.b_mix == 0:
+                log('  B Mixing rule:     arithmetic')
+            else:
+                log('  B Mixing rule:     arithmetic with correction')
+                log('  B Mixing corr:     %10.3e' % self.b_mix_coeff)
+        if log.do_high:
+            log.hline()
+            log('   Atom          A          B')
+            log.hline()
+            for i in xrange(self._c_amps.shape[0]):
+                log('%7i %10.4e %10.4e' % (i, self._c_amps[i]/log.energy, self._c_bs[i]*log.length))
 
     def get_amps(self):
         return self._c_amps.view()
@@ -404,6 +449,16 @@ cdef class PairPotEI(PairPot):
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
         self._c_charges = charges
+
+    def log(self):
+        if log.do_medium:
+            log('  alpha:             %.3f' % (self.alpha*log.length))
+        if log.do_high:
+            log.hline()
+            log('   Atom     Charge')
+            log.hline()
+            for i in xrange(self._c_charges.shape[0]):
+                log('%7i %10.5f' % (i, self._c_charges[i]/log.charge))
 
     def get_charges(self):
         return self._c_charges.view()
