@@ -26,7 +26,7 @@ import h5py
 from yaff.sampling.iterative import Hook
 
 
-__all__ = ['HDF5TrajectoryHook']
+__all__ = ['HDF5TrajectoryHook', 'XYZWriterHook']
 
 
 class HDF5TrajectoryHook(Hook):
@@ -83,3 +83,20 @@ class HDF5TrajectoryHook(Hook):
             shape = (10,) + item.shape
             dset = tgrp.create_dataset(key, shape, maxshape=maxshape, dtype=item.dtype)
         tgrp.attrs['row'] = 0
+
+
+class XYZWriterHook(Hook):
+    def __init__(self, fn_xyz, start=0, step=1):
+        self.fn_xyz = fn_xyz
+        self.xyz_writer = None
+        Hook.__init__(self, start, step)
+
+    def __call__(self, ff, state):
+        from molmod import angstrom
+        if self.xyz_writer is None:
+            from molmod.periodic import periodic
+            from molmod.io import XYZWriter
+            symbols = [periodic[n].symbol for n in ff.system.numbers]
+            self.xyz_writer = XYZWriter(self.fn_xyz, symbols)
+        title = '%7i E_pot = %.10f' % (state['counter'].value, state['epot'].value)
+        self.xyz_writer.dump(title, state['pos'].value)

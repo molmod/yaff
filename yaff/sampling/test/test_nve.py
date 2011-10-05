@@ -84,3 +84,10 @@ def test_hdf5_step():
     check_hdf5_common(hdf5_hook.f)
     assert hdf5_hook.f['trajectory'].attrs['row'] == 3
     assert hdf5_hook.f['trajectory/counter'][2] == 4
+
+
+def test_xyz():
+    xyz_hook = XYZWriterHook('/dev/null')
+    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=[xyz_hook])
+    nve.run(15)
+    assert nve.counter == 15
