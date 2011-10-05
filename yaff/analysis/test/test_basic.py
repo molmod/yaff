@@ -55,3 +55,14 @@ def test_plot_energies():
         assert os.path.isfile(fn_png)
     finally:
         shutil.rmtree(dn_tmp)
+
+
+
+def test_plot_temp_dist():
+    dn_tmp, nve, f = get_water_32_simulation()
+    try:
+        fn_png = '%s/temp_dist.png' % dn_tmp
+        plot_temp_dist(f, fn_png)
+        assert os.path.isfile(fn_png)
+    finally:
+        shutil.rmtree(dn_tmp)
