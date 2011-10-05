@@ -410,6 +410,11 @@ cdef class PairPotEI(PairPot):
 
     charges = property(get_charges)
 
+    def get_alpha(self):
+        return pair_pot.pair_data_ei_get_alpha(self._c_pair_pot)
+
+    alpha = property(get_alpha)
+
 
 
 #

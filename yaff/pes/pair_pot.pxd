@@ -61,3 +61,4 @@ cdef extern from "pair_pot.h":
     double pair_data_exprep_get_b_mix_coeff(pair_pot_type *pair_pot)
 
     void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha)
+    double pair_data_ei_get_alpha(pair_pot_type *pair_pot)

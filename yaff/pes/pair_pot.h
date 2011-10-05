@@ -108,6 +108,7 @@ typedef struct {
 
 void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha);
 double pair_fn_ei(void *pair_data, long center_index, long other_index, double d, double *g);
+double pair_data_ei_get_alpha(pair_pot_type *pair_pot);
 
 
 #endif

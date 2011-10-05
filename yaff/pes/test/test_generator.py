@@ -110,6 +110,11 @@ def test_generator_water32_fixq():
     part_ewald_reci = ff.part_ewald_reci
     part_ewald_cor = ff.part_ewald_cor
     part_ewald_neut = ff.part_ewald_neut
+    # check part settings
+    assert part_pair_ei.pair_pot.alpha > 0
+    assert part_pair_ei.pair_pot.alpha == part_ewald_reci.alpha
+    assert part_pair_ei.pair_pot.alpha == part_ewald_cor.alpha
+    assert part_pair_ei.pair_pot.alpha == part_ewald_neut.alpha
     # check charges
     for i in xrange(system.natom):
         if system.numbers[i] == 1:

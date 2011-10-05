@@ -363,3 +363,7 @@ double pair_fn_ei(void *pair_data, long center_index, long other_index, double d
   pot *= qprod;
   return pot;
 }
+
+double pair_data_ei_get_alpha(pair_pot_type *pair_pot) {
+  return (*(pair_data_ei_type*)((*pair_pot).pair_data)).alpha;
+}

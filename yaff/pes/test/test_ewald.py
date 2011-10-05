@@ -67,9 +67,12 @@ def get_electrostatic_energy(alpha, system):
     # Construct the ewald real-space potential and part
     ewald_real_pot = PairPotEI(system.charges, alpha, rcut=5.5/alpha)
     part_pair_ewald_real = ForcePartPair(system, nlists, scalings, ewald_real_pot)
+    assert part_pair_ewald_real.pair_pot.alpha == alpha
     # Construct the ewald reciprocal and correction part
     part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=alpha/0.5)
+    assert part_ewald_reci.alpha == alpha
     part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
+    assert part_ewald_corr.alpha == alpha
     # Construct the force field
     ff = ForceField(system, [part_pair_ewald_real, part_ewald_reci, part_ewald_corr], nlists)
     ff.update_pos(system.pos)
