@@ -56,7 +56,7 @@ class Iterative(object):
         self.state = dict((item.key, item) for item in self.state_list)
         if hooks is None:
             self.hooks = []
-        elif hasattr(hooks, '__length__'):
+        elif hasattr(hooks, '__len__'):
             self.hooks = hooks
         else:
             self.hooks = [hooks]
