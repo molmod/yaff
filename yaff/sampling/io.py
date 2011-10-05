@@ -31,12 +31,17 @@ __all__ = ['HDF5TrajectoryHook']
 
 class HDF5TrajectoryHook(Hook):
     def __init__(self, *args, **kwargs):
+        # Extract the arguments for the Hook base class.
         hook_kwargs = {}
         for key in 'start', 'step':
             value = kwargs.get(key)
             if value is not None:
                 hook_kwargs[key] = value
                 del kwargs[key]
+        # By default, the trajectory file is overwritten.
+        if not 'mode' in kwargs:
+            kwargs['mode'] = 'w'
+        # Create file and wrap up
         self.f = h5py.File(*args, **kwargs)
         Hook.__init__(self, **hook_kwargs)
 
