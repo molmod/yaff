@@ -52,7 +52,7 @@ class HDF5TrajectoryHook(Hook):
         row = tgrp.attrs['row']
         for key, item in state.iteritems():
             ds = tgrp[key]
-            if ds.shape[0] < row:
+            if ds.shape[0] <= row:
                 ds.resize(int(row*1.2)+5, axis=0)
             ds[row] = item.value
         tgrp.attrs['row'] += 1

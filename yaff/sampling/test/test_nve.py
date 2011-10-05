@@ -59,11 +59,11 @@ def check_hdf5_common(f):
 def test_hdf5():
     hdf5_hook = HDF5TrajectoryHook('tmp.h5', driver='core', backing_store=False)
     nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=hdf5_hook)
-    nve.run(5)
-    assert nve.counter == 5
+    nve.run(15)
+    assert nve.counter == 15
     check_hdf5_common(hdf5_hook.f)
-    assert hdf5_hook.f['trajectory'].attrs['row'] == 6
-    assert hdf5_hook.f['trajectory/counter'][5] == 5
+    assert hdf5_hook.f['trajectory'].attrs['row'] == 16
+    assert hdf5_hook.f['trajectory/counter'][15] == 15
 
 
 def test_hdf5_start():
