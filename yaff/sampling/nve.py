@@ -149,7 +149,6 @@ class NVEIntegrator(Iterative):
             log.hline()
             log('counter     Epot   d-RMSD   g-RMSD')
             log.hline()
-            # TODO: avoid empty line when reentering the same section
 
     def propagate(self):
         delta = self.timestep*self.vel + (0.5*self.timestep**2)*self.acc

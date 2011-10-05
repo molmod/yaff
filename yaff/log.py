@@ -190,6 +190,7 @@ class ScreenLog(object):
         self.unitsys = self.joule
         self.unitsys.apply(self)
         self.prefix = ' '*(self.margin-1)
+        self._last_used_prefix = None
         self.stack = []
         self.add_newline = False
         if f is None:
@@ -216,7 +217,7 @@ class ScreenLog(object):
             prefix = self.prefix
             self.print_header()
             self.prefix = prefix
-        if self.add_newline:
+        if self.add_newline and self.prefix != self._last_used_prefix:
             print >> self._file
             self.add_newline = False
         # Check for alignment code '&'
@@ -248,6 +249,7 @@ class ScreenLog(object):
             if first:
                 lead = ' '*len(lead)
                 first = False
+        self._last_used_prefix = self.prefix
 
     def warn(self, *words):
         self('WARNING!!', *words)
