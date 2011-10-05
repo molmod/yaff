@@ -188,9 +188,9 @@ def test_generator_water32():
     # check charges
     for i in xrange(system.natom):
         if system.numbers[i] == 1:
-            assert abs(system.charges[i] - 3.6841957737e+00) < 1e-5
+            assert abs(system.charges[i] - 3.6841957737e-01) < 1e-5
         else:
-            assert abs(system.charges[i] + 2*3.6841957737e+00) < 1e-5
+            assert abs(system.charges[i] + 2*3.6841957737e-01) < 1e-5
     # check valence
     assert part_valence.dlist.ndelta == 64
     assert part_valence.iclist.nic == 96
