@@ -57,6 +57,20 @@ def test_plot_energies():
         shutil.rmtree(dn_tmp)
 
 
+def test_plot_temperature():
+    dn_tmp, nve, f = get_water_32_simulation()
+    try:
+        fn_png = '%s/temperature1.png' % dn_tmp
+        plot_temperature(f, fn_png)
+        assert os.path.isfile(fn_png)
+        fn_hdf5_traj = f.filename
+        f.flush()
+        fn_png = '%s/temperature2.png' % dn_tmp
+        plot_temperature(fn_hdf5_traj, fn_png)
+        assert os.path.isfile(fn_png)
+    finally:
+        shutil.rmtree(dn_tmp)
+
 
 def test_plot_temp_dist():
     dn_tmp, nve, f = get_water_32_simulation()

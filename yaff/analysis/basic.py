@@ -29,7 +29,7 @@ from molmod import boltzmann
 from yaff.log import log
 
 
-__all__ = ['plot_energies', 'plot_temp_dist']
+__all__ = ['plot_energies', 'plot_temperature', 'plot_temp_dist']
 
 
 def get_hdf5_file(fn_hdf5_traj):
@@ -56,7 +56,7 @@ def get_slice(f, start, end, max_sample):
 
 
 def plot_energies(fn_hdf5_traj, fn_png='energies.png', start=0, end=-1, max_sample=1000):
-    """Make a plot of the potential and the total energy in the trajectory
+    """Make a plot of the potential and the total energy as function of time
 
        **Arguments:**
 
@@ -104,7 +104,53 @@ def plot_energies(fn_hdf5_traj, fn_png='energies.png', start=0, end=-1, max_samp
         f.close()
 
 
-def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', start=0, end=-1, max_sample=50):
+def plot_temperature(fn_hdf5_traj, fn_png='temperature.png', start=0, end=-1, max_sample=1000):
+    """Make a plot of the temperature as function of time
+
+       **Arguments:**
+
+       fn_hdf5_traj
+            The filename of the HDF5 file (or an h5py.File instance) containing
+            the trajectory data.
+
+       **Optional arguments:**
+
+       fn_png
+            The png file to write the figure to
+
+       start
+            The first sample to consider.
+
+       end
+            The last sample to consider + 1.
+
+       max_sample
+            The maximum number of data points to use for the plot. When set to
+            None, all data from the trajectory is used. However, this is not
+            recommended.
+
+       The units for making the plot are taken from the yaff screen logger. This
+       type of plot is essential for checking the sanity of a simulation.
+    """
+    import matplotlib.pyplot as pt
+    f, do_close = get_hdf5_file(fn_hdf5_traj)
+    start, end, step = get_slice(f, start, end, max_sample)
+
+    temp = f['trajectory/temp'][start:end:step]
+    time = f['trajectory/time'][start:end:step]/log.time
+
+    pt.clf()
+    pt.plot(time, temp, 'k-')
+    pt.xlim(time[0], time[-1])
+    pt.xlabel('Time [%s]' % log.unitsys.time[1])
+    pt.ylabel('Temperature [K]')
+    pt.savefig(fn_png)
+
+    if do_close:
+        f.close()
+
+
+def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', start=0, end=-1, max_sample=200):
     """Plots the distribution of the weighted atomic velocities
 
        **Arguments:**
@@ -138,49 +184,41 @@ def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', start=0, end=-1, max_sa
        warm compared to the total average temperature. This helps to determine
        (the lack of) thermal equilibrium.
     """
-    # TODO: switch to temperatures.
-    # TODO: add mean temperature to plot.
-    # TODO: move away from cumulative
     import matplotlib.pyplot as pt
     f, do_close = get_hdf5_file(fn_hdf5_traj)
     start, end, step = get_slice(f, start, end, max_sample)
 
     # get the mean temperature
     temp_mean = f['trajectory/temp'][start:end:step].mean()
-    wvel_sigma = np.sqrt(temp_mean*boltzmann)
-    wvel_step = wvel_sigma/100
-    wvel_grid = np.arange(-2*wvel_sigma, wvel_sigma*2 + 0.5*wvel_step, wvel_step)
+    temp_step = temp_mean/100
+    temp_grid = np.arange(0, temp_mean*3 + 0.5*temp_step, temp_step)
 
     # build up the distribution
-    counts = np.zeros(len(wvel_grid)-1, int)
+    counts = np.zeros(len(temp_grid)-1, int)
     total = 0.0
-    weights = np.sqrt(np.array(f['system/masses']).reshape(-1,1))
+    weights = np.array(f['system/masses'])/boltzmann
     for i in xrange(start, end, step):
-        wvel = f['trajectory/vel'][i]*weights
-        counts += np.histogram(wvel.ravel(), bins=wvel_grid)[0]
-        total += wvel.size
+        temps = (f['trajectory/vel'][i]**2).sum(axis=1)*weights
+        counts += np.histogram(temps.ravel(), bins=temp_grid)[0]
+        total += temps.size
 
     # transform into cumulative
-    x = wvel_grid[:-1]+0.5*wvel_step
-    emp = counts.cumsum()/total
+    x = temp_grid[:-1]+0.5*temp_step
+    emp = counts/total/temp_step
 
     # the analytical form
-    from scipy.special import erf
-    ana = (1 + erf(x/wvel_sigma))/2
+    x0 = temp_mean/3
+    ana = np.sqrt(x/x0)*np.exp(-0.5*(x/x0))/np.sqrt(2*np.pi)/x0
 
     # Make the plot of the cumulative histograms
-    unit = np.sqrt(log.energy)
     pt.clf()
-    pt.plot(x/unit, emp, 'k-', label='Empirical')
-    pt.plot(x/unit, ana, 'r-', label='Analytical')
-    pt.axvline(-wvel_sigma/unit, color='k', ls='--')
-    pt.axvline(0, color='k', ls='-')
-    pt.axvline(wvel_sigma/unit, color='k', ls='--')
-    pt.xlim(x[0]/unit, x[-1]/unit)
-    pt.ylim(0, 1)
-    pt.ylabel('Cumulative probability')
-    pt.xlabel('Velocity/sqrt(mass) [sqrt(%s)]' % log.unitsys.energy[1])
-    pt.title('Distribution of weighted atomic velocities')
+    pt.plot(x, emp*1000, 'k-', label='Empirical')
+    pt.plot(x, ana*1000, 'r-', label='Analytical')
+    pt.axvline(temp_mean, color='k', ls='--')
+    pt.xlim(x[0], x[-1])
+    #pt.ylim(0, emp.max()/temp_step)
+    pt.ylabel('Probability density [0.001/K]')
+    pt.xlabel('Temperature [K]')
     pt.legend(loc=0)
     pt.savefig(fn_png)
 
