@@ -33,112 +33,54 @@ four steps given above::
     # 2) specify the force field
     ff = ForceField.generate(system, 'parameters.txt')
     # 3) Integrate Newton's equation of motion and write the trajectory in HDF5 format.
-    nve = NVEIntegrateor(ff, 'output.h5', temp_init=300)
+    nve = NVEIntegrateor(ff, 1*femtosecond, hooks=HDF5TrajectoryHook('output.h5'), temp0=300)
     nve.run(5000)
     # 4) perform an analysis, e.g. RDF computation for O_W O_W centers.
-    rdf = RDFAnalysis(system, 'O_W', 'O_W', 'output.h5')
+    indexes = ssytem.get_indexes('O_W')
+    rdf = RDFAnalysis('output.h5', indexes)
     rdf.result.plot('rdf.png')
 
 These steps will be discussed in more detail in the following sections.
 
 Yaff internally works with atomic units, although other unit systems can be used
-in input and (some) output files. Numpy and Cython are used extensively in Yaff
-for numerical efficiency. The examples below often use Numpy too, assuming
-the following import statement::
+in input and (some) output files. The units used for the screen output are
+controlled with the ``log.set_unitsys`` method. Output written in (binary) HDF5
+files will always be in atomic units. When output is written to a format from
+other projects/programs, the units of that program/project will be used.
+
+Numpy and Cython are used extensively in Yaff for numerical efficiency. The
+examples below often use Numpy too, assuming the following import statement::
 
     import numpy as np
-
-**TODO:**
-
-1. [DONE] Implement the log object. Usage should be as follows::
-
-    if log.do_medium:
-        log('This is a message printed at the medium log level and at higher log levels, e.g. \'high\' and \'debug\'.')
-
-   It would be good to stick to standard terminal width (80 chars, automatic
-   line wrapping) and fix some format conventions that make it easy to recognize
-   which output comes from which part of the program. This could be done by
-   reserving the first 8 characters for a location specifier, e.g. ::
-
-    if log.do_medium:
-        log.enter('FOO')
-        log('This is a message printed at the medium log level and at higher log levels, e.g. \'high\' and \'debug\'.')
-        log('Multiple', 'strings', 'work', 'too.')
-        log.leave()
-
-   would result in::
-
-    ____FOO This is a message printed at the medium log level and at higher log
-    ____FOO levels, e.g. 'high' and 'debug'.
-    ____FOO Multiple strings work too.'
-
-   The following levels are useful: silent,  warning, low, medium, high, debug.
-
-2. [DONE] A banner should be printed, unless the debug level is silent, when the
-   first call to the logger is made. This should be followed by some basic info
-   such as user, date, machine, python version, yaff version, ... Then some info
-   about the units should follow. (See below.)
-
-3. [DONE] A footer should be printed, unless the debug level is silent, right
-   before the interpreter exits. This can be done with the ``atexit`` module::
-
-    import atexit
-    atexit.register(log.footer)
-
-4. [DONE] Make the logger unit-aware. This should allow the user to have the
-   human-readable screen output printed in his/her unit of preference. It should
-   be configured as follows::
-
-    log.set_unitsys(log.joule)
-
-   with other options being ``log.cal``, ``log.atomic``, ``log.bio``,
-   ``log.solid``, each having the default units from different molecular
-   simulation subfields. Use the logger as follows::
-
-    energy = ...
-    if log.do_medium:
-        log('The total energy is %15.10f' % (energy/log.energy))
-
-   In the beginning of the output, or whenever the screen units are changed, a
-   message is printed with the units that are used for the remainder for the
-   screen output.
-
-   Output written in (binary) HDF5 files will always be in atomic units.
-   When output is written to a format from other projects/programs, the units of
-   that program/project will be used.
-
 
 
 Setting up a molecular system
 =============================
 
-Besides the positions of the atoms (or nuclei or pseudo-atoms) and the periodic
-boundary conditions, two additional pieces of information are needed to be able
-to define a force field energy:
+A ``System`` instance in Yaff contains all the physical properties of a
+molecular system plus some extra information that is needed to define a force
+field.
 
-1. the bonds between the atoms (in the form of a list of atom pairs) and
-2. atom types.
+**Basic physical properties:**
+
+#. Atomic numbers
+#. Positions of the atoms
+#. 0, 1, 2, or 3 Cell parameters (optional)
+#. Atomic charges (optional)
+#. Atomic masses (optional)
+
+**Basic auxiliary properties:** (needed to define FF)
+
+#. The bonds between the atoms (in the form of a list of atom pairs)
+#. Atom types.
 
 Other properties such as valence angles, dihedral angles, assignment of energy
 terms, exclusion rules, and so on, can be derived from these basic properties.
-Some force-field models (especially those used for biomolecular simulations)
-have more topological features. However, we will stick to the basics discussed
-here.
 
-In Yaff, the ``System`` class is used to keep track of the following data:
-
-* Positions of the atoms (in Cartesian coordinates, Bohr unit).
-* 0, 1, 2 or 3 Cell vectors (in Cartesian coordinates, Bohr unit).
-* Bonds (an array with pairs of atoms) and some derived properties.
-* Atom types and atomic numbers.
-
-The latter two are fixed during a simulation. If these need to be changed for
-some purpose, just make a new instance of the System class. Atomic numbers are
-also stored because they are useful for some output formats.
-
-The system class has the following signature:
-
-.. autoclass:: yaff.System
+The positions and the cell parameters
+may change during the simulation. All other properties (including the number of
+atoms and cell vectors) do not change during a simulation. If such changes seem
+to be necessary, one should create a new System class instead.
 
 The constructor arguments can be specified with some python code::
 
@@ -166,15 +108,9 @@ Yaff. It can also be used in the ``from_file`` method.
 
 **TODO:**
 
-1. [DONE] Import units in the Yaff name space.
+#. Add possibility to read system from a HDF5 output file.
 
-2. [DONE] Implement ``to_file`` and ``from_file``
-
-3. [DONE] Add charges as a system attribute. This are somehow special parameters
-   that are also used for computing derived properties such as the dipole moment
-   of the system etc. In the long run, these will also become variable.
-
-4. [LOW PRIORITY] Introduce fragment name spaces in the atom types, e.g. instead
+#. [LOW PRIORITY] Introduce fragment name spaces in the atom types, e.g. instead
    of using O_W and H_W, we should have WATER:O, WATER:H. In the system object,
    we should have an extra fragment dictionary to know which atom is part of
    what sort of fragment, e.g. something like: ``system.fragments = {'WATER':,
@@ -208,7 +144,7 @@ Yaff. It can also be used in the ``from_file`` method.
    namespaces. This is convenient when testing a new FF for one sort of
    fragment.
 
-5. [LOW PRIORITY] Provide a simple tool to automatically assign bonds and atom
+#. [LOW PRIORITY] Provide a simple tool to automatically assign bonds and atom
    types using rules. (For the moment we hack our way out with the ``molmod``
    package.)
 
@@ -217,7 +153,7 @@ Setting up an FF
 ================
 
 Once the system is defined, one can continue with the specification of the force
-field model. The simplest way to create a force-field as as follows::
+field model. The simplest way to create a force-field is as follows::
 
     ff = ForceField.generate(system, 'parameters.txt')
 
@@ -287,10 +223,7 @@ This is a simple example of a Lennard-Jones force field::
 
 **TODO:**
 
-1. [DONE] Change name conventions (``foo_part`` to ``part_foo``) to make things
-   easier to read. Create ``pair_*`` attributes automatically.
-
-2. Document the format of ``parameters.txt``. This should be done very
+#. Document the format of ``parameters.txt``. This should be done very
    carefully. I'm currently thinking of something along the lines of the CHARMM
    parameter file, but with a few extra features to make the format more
    general:
@@ -320,20 +253,19 @@ This is a simple example of a Lennard-Jones force field::
 
    .. literalinclude:: ../input/parameters_water.txt
 
-3. [PART DONE, TODO: TORSION, DAMPDISP] The generate method.
-
-4. [LOW PRIORITY] If the generate method is slow, we may need a checkpoint file
-   for the ForceField class.
+#. [PARTIALLY DONE, TODO: TORSION, DAMPDISP] The generate method.
 
 
 Running an FF simulation
 ========================
 
-Given a ``ForceField`` instance, it is trivial to run several types of basic
-simulations. For example, the equations of motion in the NVE ensemble can be
-integrated as follows::
 
-    nve = NVEIntegrator(ff, 'output.h5', temp_init=300)
+Molecular Dynacmis
+------------------
+
+The equations of motion in the NVE ensemble can be integrated as follows::
+
+    nve = NVEIntegrateor(ff, 1*femtosecond, hooks=HDF5TrajectoryHook('output.h5'), temp0=300)
     nve.run(5000)
 
 The parameters of the integrator can be tuned with several optional arguments of
@@ -341,50 +273,166 @@ the ``NVEIntegrator`` constructor. See XXX for more details. Once the integrator
 is created, the ``run`` method can be used to compute a given number of time
 steps. The trajectory output is written to a HDF5 file. The exact contents of
 the HDF5 file depends on the integrator used and the optional arguments. All
-data is stored in atomic units.
+data in the HDF5 file is stored in atomic units.
+
+The ``hooks`` argument can be used to specify callback routines that are called
+after every iteration or, using the ``start`` and ``step`` arguments, at
+selected iterations. For example, this HDF5 hook will write data every 100
+steps, after the first 1000 iterations are carried out::
+
+    HDF5TrajectoryHook('output.h5', start=1000, step=100)
+
+The hooks argument may also be a list of hook objects, e.g. to reset the
+velocities every 200 steps, one may include the ``AndersonTHook``::
+
+    hooks=[
+        HDF5TrajectoryHook('output.h5', start=1000, step=100),
+        AndersonTHook(temp=300, step=200)
+    ]
+
+By default a screen logging hook is added (if not yet present) to write one
+line per iteration with some critical integrator parameters.
 
 Other integrators are implemented such as NVTNoseIntegrator,
-NVTAndersenIntegrator and NVTLangevinIntegrator. One may also use a geometry
-optimizer instead of an integrator::
+NVTLangevinIntegrator, and so on.
 
-    opt = BFGSOptimizer(ff, 'output.h5')
+Geometry optimization
+---------------------
+
+One may also use a geometry optimizer instead of an integrator::
+
+    opt = CGOptimizer(ff, hooks=HDF5TrajectoryHook('output.h5', start=1000, step=100))
     opt.run(5000)
 
 Again, convergence criteria are controlled through optional arguments of the
 constructor. the ``run`` method has the maximum number of iterations as the only
-argument. I would implement the Hessian computation with finite differences also
-at this level, mainly because there are different ways of doing this, e.g. using
-different constraints etc.
+argument. By default the positions of the atoms or optimized, without changing
+the cell vectors. This behavior can be changed through the ``dof_transform``
+argument::
 
-**TODO:** implement or transform existing code
+    opt = CGOptimizer(ff, dof_transform=cell_opt, hooks=HDF5TrajectoryHook('output.h5', start=1000, step=100))
+    opt.run(5000)
+
+This will transform the degrees of freedom (DOF's) of the system (cell vectors
+and cartesian atomic coordinates) into a new set of DOF's (scaled cell vectors
+and reduced coordinates) to allow an efficient optimization of both cell
+parameters atomic positions. Several other dof_transform options are discussed
+in XXX.
+
+
+**TODO:**
+
+#. The ``AndersonTHook``. Check if we can do something similar to simulate a
+   constant pressure ensemble.
+
+#. Check how to append data efficiently in HDF5 file. Add rows one by one or
+   add rows in blocks.
+
+#. Optimizer stuff. We should use the molmod optimizer, but change it such
+   that the main loop of the optimizer is done in Yaff instead of in molmod.
+
+#. Numerical (partial) Hessian
 
 
 Analyzing the results
 =====================
 
 The analysis of the results is (in the first place) based on the output
-file ``output.h5``. Several analysis routines are implemented, e.g. for the
-computation of an RDF, the following can be used::
+file ``output.h5``. On-line analysis (during the iterative algorithm, without
+writing data to disk) is also possible.
 
-    rdf = RDFAnalysis(system, 'WATER:O', 'WATER:O', 'output.h5')
+Slicing the data
+----------------
+
+All the analysis routines below have at least the following four optional
+arguments:
+
+* ``start``: the first sample to consider for the analysis
+* ``end``: the last sample to consider for the analysis
+* ``step``: consider only a sample each ``step`` iterations.
+* ``max_sample``: consider at most ``max_sample`` number of samples.
+
+The last option is only possible when ``step`` is not specified and the total
+number of samples (or ``end``) is known. The optimal value for ``step`` will be
+derived from ``max_sample``.
+
+**TODO:**
+
+#. Support these arguments in all analysis routines.
+
+
+Basic analysis
+--------------
+
+A few basic analysis routines are provided to quickly check the sanity of an MD
+simulation:
+
+* ``plot_energies`` makes a plot of the kinetic and the total energy as function
+  of time. For example::
+
+    plot_energies('output.h5')
+
+  makes a figure ``energies.png``.
+
+* ``plot_temperate`` is similar, but plots the temperature as function of time.
+
+* ``plot_temp_dist`` plots the distribution (both pdf and cdf) of the
+  instantaneous atomic and system temperatures and compares these with the
+  expected analytical result for a constant-temperature ensemble. For example:
+
+    plot_temp_dist('output.h5')
+
+  makes a figure ``temp_dist.png``
+
+All these functions accept optional arguments to tune their behavior. See XXX
+for more details.
+
+**TODO:**
+
+#. Add cdf and system temperature dist to ``plot_temp_dist``.
+
+
+Advanced analysis
+-----------------
+
+Yaff also includes analysis tools that can extract relevant macroscopic
+properties from a simulation. These analysis tools require some additional
+computations that can either be done in a post-processing step, or on-line.
+
+* A radial distribution function is computed as follows::
+
+    indexes = system.get_indexes('O_W')
+    rdf = RDFAnalysis('output.h5', indexes)
     rdf.result.plot('rdf.png')
 
-The results are included in the HDF5 file, and optionally plotted using
-matplotlib. Alternatively, we want the same code to be usable for on-line
-analysis, without the need to store huge amounts of data on disk::
+  The results are included in the HDF5 file, and optionally plotted using
+  matplotlib. Alternatively, the same ``RDFAnalysis`` class can be used for
+  on-line analysis, without the need to store huge amounts of data on disk::
 
-    rdf = RDFAnalysis(system, 'WATER:O', 'WATER:O', 'analysis.h5')
-    nve = NVEIntegrator(ff, None, temp_init=300, analysis=rdf)
+    indexes = system.get_indexes('O_W')
+    rdf = RDFAnalysis(None, indexes)
+    nve = NVEIntegrator(ff, hooks=rdf, temp0=300)
     nve.run(5000)
     rdf.result.plot('rdf.png')
 
-The analysis keyword must obviously also accept a list of analysis objects.
-
-In the former case, the ``RDFAnalsysis`` class will detect that the file
-'output.h5' already contains a trajectory and hence immediately performs the
-analysis. In the latter case, the file ``analysis.h5`` must be a new file or at
-least it may not contain a trajectory. For an on-line analysis, the integrator
-class will make the necessary calls to the analysis object.
+  The analysis keyword must obviously also accept a list of analysis objects.
 
 
-**TODO:** port MD-tracks to a new HDF5-based analysis system.
+**TODO:**
+
+#. Implement RDF. Check how we can write things to files in the on-line case.
+   Is it OK that both RDFAnalysis and HDF5TrajectoryHook open the same HDF5 file
+   for writing data? Is this OK or not? ::
+
+    indexes = system.get_indexes('O_W')
+    rdf = RDFAnalysis('output.h5', indexes, on_line=True)
+    hdf5 = HDF5TrajectoryHook('output.h5', start=1000, step=100)
+    nve = NVEIntegrator(ff, hooks=[rdf, hdf5], temp0=300)
+    nve.run(5000)
+    rdf.result.plot('rdf.png')
+
+#. Implement spectral analysis.
+
+#. Implement autocorrelation function.
+
+#. Port other things from Yaff.

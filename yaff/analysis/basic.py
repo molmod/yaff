@@ -184,6 +184,8 @@ def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', start=0, end=-1, max_sa
        warm compared to the total average temperature. This helps to determine
        (the lack of) thermal equilibrium.
     """
+    # TODO: include cumulative
+    # TODO: include similar plots for system temperature
     import matplotlib.pyplot as pt
     f, do_close = get_hdf5_file(fn_hdf5_traj)
     start, end, step = get_slice(f, start, end, max_sample)
