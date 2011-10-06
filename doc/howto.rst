@@ -253,7 +253,7 @@ This is a simple example of a Lennard-Jones force field::
 
    .. literalinclude:: ../input/parameters_water.txt
 
-#. [PARTIALLY DONE, TODO: TORSION, DAMPDISP] The generate method.
+#. [PARTIALLY DONE, TODO: TORSION, DAMPDISP, LJ, MM3, GRIMME] The generate method.
 
 
 Running an FF simulation
@@ -322,11 +322,16 @@ in XXX.
 
 **TODO:**
 
-#. The ``AndersonTHook``. Check if we can do something similar to simulate a
-   constant pressure ensemble.
+#. The ``AndersonTHook`` with an annealing and mask (for subset of atoms)
+   option. Check if we can do something similar to simulate a constant pressure
+   ensemble.
+
+#. ``AnnealingHook``.
 
 #. Check how to append data efficiently in HDF5 file. Add rows one by one or
    add rows in blocks.
+
+#. ``RefTraj`` derivative of the Iterative class.
 
 #. Optimizer stuff. We should use the molmod optimizer, but change it such
    that the main loop of the optimizer is done in Yaff instead of in molmod.
@@ -431,8 +436,11 @@ computations that can either be done in a post-processing step, or on-line.
     nve.run(5000)
     rdf.result.plot('rdf.png')
 
+   The RDF analysis must have a real-space cutoff that is smaller than the
+   smallest spacing of the periodic cells.
+
 #. Implement spectral analysis.
 
 #. Implement autocorrelation function.
 
-#. Port other things from Yaff.
+#. Port other things from MD-Tracks, including the conversion stuff.

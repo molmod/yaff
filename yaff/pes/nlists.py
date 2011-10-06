@@ -63,6 +63,9 @@ class NeighborLists(object):
             self.nlists = [np.empty(10, dtype=nlist_dtype) for i in xrange(self.system.natom)]
             self.nlist_sizes = np.zeros(self.system.natom, dtype=int)
         # determine the number of periodic images
+        # TODO: move the next line to a separate routine because it is only
+        # needed when the cell parameters change. The main idea is to make
+        # the screen output more intuitive.
         self.rmax = np.ceil(self.rcut/self.system.cell.rspacings-0.5).astype(int)
         # build all neighbor lists
         for i in xrange(self.system.natom):
