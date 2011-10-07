@@ -48,14 +48,14 @@ class HDF5TrajectoryHook(Hook):
     def __del__(self):
         self.f.close()
 
-    def __call__(self, ff, state):
+    def __call__(self, iterative):
         if 'system' not in self.f:
-            self.dump_system(ff.system)
+            self.dump_system(iterative.ff.system)
         if 'trajectory' not in self.f:
-            self.init_trajectory(state)
+            self.init_trajectory(iterative.state)
         tgrp = self.f['trajectory']
         row = tgrp.attrs['row']
-        for key, item in state.iteritems():
+        for key, item in iterative.state.iteritems():
             ds = tgrp[key]
             if ds.shape[0] <= row:
                 ds.resize(int(row*1.2)+5, axis=0)
@@ -91,12 +91,12 @@ class XYZWriterHook(Hook):
         self.xyz_writer = None
         Hook.__init__(self, start, step)
 
-    def __call__(self, ff, state):
+    def __call__(self, iterative):
         from molmod import angstrom
         if self.xyz_writer is None:
             from molmod.periodic import periodic
             from molmod.io import XYZWriter
-            symbols = [periodic[n].symbol for n in ff.system.numbers]
+            symbols = [periodic[n].symbol for n in iterative.ff.system.numbers]
             self.xyz_writer = XYZWriter(self.fn_xyz, symbols)
-        title = '%7i E_pot = %.10f' % (state['counter'].value, state['epot'].value)
-        self.xyz_writer.dump(title, state['pos'].value)
+        title = '%7i E_pot = %.10f' % (iterative.counter, iterative.epot)
+        self.xyz_writer.dump(title, iterative.pos)

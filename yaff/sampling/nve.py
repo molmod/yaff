@@ -28,7 +28,7 @@ from molmod import boltzmann
 
 from yaff.log import log
 from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
-    RMSDAttributeStateItem, Hook
+    Hook
 
 
 __all__ = ['NVEIntegrator']
@@ -39,7 +39,7 @@ class EKinStateItem(StateItem):
         StateItem.__init__(self, 'ekin')
 
     def get_value(self, sampler):
-        return 0.5*(sampler.vel**2*sampler.masses.reshape(-1,1)).sum()
+        return
 
 
 class TempStateItem(StateItem):
@@ -63,20 +63,20 @@ class NVEScreenLogHook(Hook):
         Hook.__init__(self, start, step)
         self.ref_econs = None
 
-    def __call__(self, ff, state):
+    def __call__(self, iterative):
         if log.do_medium:
             if self.ref_econs is None:
-                self.ref_econs = state['econs'].value
+                self.ref_econs = iterative.econs
                 if log.do_medium:
                     log.hline()
                     log('counter ch.Econs     Ekin   d-RMSD   g-RMSD')
                     log.hline()
             log('%7i % 8.1e % 8.1e % 8.1e % 8.1e' % (
-                state['counter'].value,
-                (state['econs'].value - self.ref_econs)/log.energy,
-                state['ekin'].value/log.energy,
-                state['rmsd_delta'].value/log.length,
-                state['rmsd_gpos'].value/log.force)
+                iterative.counter,
+                (iterative.econs - self.ref_econs)/log.energy,
+                iterative.ekin/log.energy,
+                iterative.rmsd_delta/log.length,
+                iterative.rmsd_gpos/log.force)
             )
 
 
@@ -87,11 +87,12 @@ class NVEIntegrator(Iterative):
         AttributeStateItem('epot'),
         AttributeStateItem('pos'),
         AttributeStateItem('vel'),
-        EKinStateItem(),
-        TempStateItem(),
-        EConsStateItem(),
-        RMSDAttributeStateItem('delta'),
-        RMSDAttributeStateItem('gpos'),
+        AttributeStateItem('rmsd_delta'),
+        AttributeStateItem('rmsd_gpos'),
+        AttributeStateItem('ekin'),
+        AttributeStateItem('temp'),
+        AttributeStateItem('etot'),
+        AttributeStateItem('econs'),
     ]
 
     log_name = 'NVE'
@@ -135,7 +136,6 @@ class NVEIntegrator(Iterative):
            counter0
                 The counter value associated with the initial state.
         """
-        self.ff = ff
         self.pos = ff.system.pos.copy()
         self.timestep = timestep
         self.time = time0
@@ -150,7 +150,7 @@ class NVEIntegrator(Iterative):
             self.vel = vel0.copy()
         self.gpos = np.zeros(self.pos.shape, float)
         self.delta = np.zeros(self.pos.shape, float)
-        Iterative.__init__(self, state, hooks, counter0)
+        Iterative.__init__(self, ff, state, hooks, counter0)
         if not any(isinstance(hook, NVEScreenLogHook) for hook in self.hooks):
             self.hooks.append(NVEScreenLogHook())
 
@@ -167,6 +167,7 @@ class NVEIntegrator(Iterative):
         self.ff.update_pos(self.pos)
         self.epot = self.ff.compute(self.gpos)
         self.acc = -self.gpos/self.masses.reshape(-1,1)
+        self.compute_properties()
         Iterative.initialize(self)
 
     def propagate(self):
@@ -179,7 +180,16 @@ class NVEIntegrator(Iterative):
         self.vel += 0.5*(acc+self.acc)*self.timestep
         self.acc = acc
         self.time += self.timestep
+        self.compute_properties()
         Iterative.propagate(self)
+
+    def compute_properties(self):
+        self.rmsd_gpos = np.sqrt((self.gpos**2).mean())
+        self.rmsd_delta = np.sqrt((self.delta**2).mean())
+        self.ekin = 0.5*(self.vel**2*self.masses.reshape(-1,1)).sum()
+        self.temp = self.ekin/self.ff.system.natom*2/boltzmann
+        self.etot = self.ekin + self.epot
+        self.econs = self.etot
 
     def finalize(self):
         if log.do_medium:

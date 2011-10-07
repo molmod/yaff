@@ -26,18 +26,20 @@ import numpy as np
 from yaff.log import log
 
 
-__all__ = [
-    'Iterative', 'StateItem', 'AttributeStateItem', 'RMSDAttributeStateItem',
-    'Hook'
-]
+__all__ = ['Iterative', 'StateItem', 'AttributeStateItem', 'Hook']
 
 
 class Iterative(object):
     default_state = []
     log_name = 'ITER'
 
-    def __init__(self, state=None, hooks=None, counter0=0):
+    def __init__(self, ff, state=None, hooks=None, counter0=0):
         """
+           **Arguments:**
+
+           ff
+                The ForceField instance used in the iterative algorithm
+
            **Optional arguments:**
 
            state
@@ -52,6 +54,7 @@ class Iterative(object):
            counter0
                 The counter value associated with the initial state.
         """
+        self.ff = ff
         if state is None:
             self.state_list = list(self.default_state)
         else:
@@ -79,7 +82,7 @@ class Iterative(object):
                     for item in self.state_list:
                         item.update(self)
                     state_updated = True
-                hook(self.ff, self.state)
+                hook(self)
 
     def run(self, nstep):
         log.enter(self.log_name)
@@ -121,19 +124,10 @@ class AttributeStateItem(StateItem):
         return getattr(sampler, self.key)
 
 
-class RMSDAttributeStateItem(StateItem):
-    def __init__(self, key):
-        StateItem.__init__(self, 'rmsd_%s' % key)
-        self.atname = key
-
-    def get_value(self, sampler):
-        return np.sqrt((getattr(sampler, self.atname)**2).mean())
-
-
 class Hook(object):
     def __init__(self, start=0, step=1):
         self.start = start
         self.step = step
 
-    def __call__(self, ff, state):
+    def __call__(self, iterative):
         raise NotImplementedError
