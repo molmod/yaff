@@ -52,8 +52,12 @@ def check_hdf5_common(f):
     assert 'epot' in f['trajectory']
     assert 'pos' in f['trajectory']
     assert 'vel' in f['trajectory']
+    assert 'rmsd_delta' in f['trajectory']
+    assert 'rmsd_gpos' in f['trajectory']
     assert 'ekin' in f['trajectory']
     assert 'temp' in f['trajectory']
+    assert 'etot' in f['trajectory']
+    assert 'econs' in f['trajectory']
 
 
 def test_hdf5():
@@ -91,3 +95,15 @@ def test_xyz():
     nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=[xyz_hook])
     nve.run(15)
     assert nve.counter == 15
+
+
+def test_andersen_t_hook():
+    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=AndersenTHook(300))
+    nve.run(5)
+    assert nve.counter == 5
+
+
+def test_andersen_t_hook_mask():
+    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=AndersenTHook(300, mask=[1,2,5]))
+    nve.run(5)
+    assert nve.counter == 5

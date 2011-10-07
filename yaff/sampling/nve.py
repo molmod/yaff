@@ -31,31 +31,7 @@ from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
     Hook
 
 
-__all__ = ['NVEIntegrator']
-
-
-class EKinStateItem(StateItem):
-    def __init__(self):
-        StateItem.__init__(self, 'ekin')
-
-    def get_value(self, sampler):
-        return
-
-
-class TempStateItem(StateItem):
-    def __init__(self):
-        StateItem.__init__(self, 'temp')
-
-    def get_value(self, sampler):
-        return (sampler.state['ekin'].value/sampler.ff.system.natom*2/boltzmann)
-
-
-class EConsStateItem(StateItem):
-    def __init__(self):
-        StateItem.__init__(self, 'econs')
-
-    def get_value(self, sampler):
-        return (sampler.state['ekin'].value + sampler.epot)
+__all__ = ['NVEScreenLogHook', 'AndersenTHook', 'NVEIntegrator']
 
 
 class NVEScreenLogHook(Hook):
@@ -78,6 +54,38 @@ class NVEScreenLogHook(Hook):
                 iterative.rmsd_delta/log.length,
                 iterative.rmsd_gpos/log.force)
             )
+
+
+class AndersenTHook(Hook):
+    def __init__(self, temp, start=0, step=1, mask=None):
+        """
+           **Arguments:**
+
+           temp
+                The average temperature if the NVT ensemble
+
+           **Optional arguments:**
+
+           start
+                The first iteration at which this hook is called
+
+           step
+                The number of iterations between two subsequent calls to this
+                hook.
+
+           mask
+                An array mask to indicate which atoms controlled by the
+                thermostat.
+        """
+        self.temp = temp
+        self.mask = mask
+        Hook.__init__(self, start, step)
+
+    def __call__(self, iterative):
+        if self.mask is None:
+            iterative.vel[:] = iterative.get_random_vel(self.temp, False)
+        else:
+            iterative.vel[self.mask] = iterative.get_random_vel(self.temp, False)[self.mask]
 
 
 class NVEIntegrator(Iterative):
@@ -143,7 +151,7 @@ class NVEIntegrator(Iterative):
             ff.system.set_standard_masses()
         self.masses = ff.system.masses
         if vel0 is None:
-            self.vel = self.get_initial_vel(temp0, scalevel0)
+            self.vel = self.get_random_vel(temp0, scalevel0)
         else:
             if vel.shape != self.pos.shape:
                 raise TypeError('The vel0 argument does not have the right shape.')
@@ -154,7 +162,7 @@ class NVEIntegrator(Iterative):
         if not any(isinstance(hook, NVEScreenLogHook) for hook in self.hooks):
             self.hooks.append(NVEScreenLogHook())
 
-    def get_initial_vel(self, temp0, scalevel0):
+    def get_random_vel(self, temp0, scalevel0):
         result = np.random.normal(0, 1, self.pos.shape)*np.sqrt(boltzmann*temp0/self.masses).reshape(-1,1)
         if scalevel0:
             temp = (result**2*self.masses.reshape(-1,1)).mean()/boltzmann
