@@ -192,7 +192,7 @@ def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', start=0, end=-1, max_sa
 
     # get the mean temperature
     temp_mean = f['trajectory/temp'][start:end:step].mean()
-    temp_step = temp_mean/100
+    temp_step = temp_mean/20
     temp_grid = np.arange(0, temp_mean*3 + 0.5*temp_step, temp_step)
 
     # build up the distribution
@@ -204,17 +204,17 @@ def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', start=0, end=-1, max_sa
         counts += np.histogram(temps.ravel(), bins=temp_grid)[0]
         total += temps.size
 
-    # transform into cumulative
+    # transform into empirical pdf
     x = temp_grid[:-1]+0.5*temp_step
     emp = counts/total/temp_step
 
     # the analytical form
-    x0 = temp_mean/3
+    x0 = temp_mean
     ana = np.sqrt(x/x0)*np.exp(-0.5*(x/x0))/np.sqrt(2*np.pi)/x0
 
     # Make the plot of the cumulative histograms
     pt.clf()
-    pt.plot(x, emp*1000, 'k-', label='Empirical')
+    pt.plot(x, emp*1000, 'k-', label='Empirical', drawstyle='steps-mid')
     pt.plot(x, ana*1000, 'r-', label='Analytical')
     pt.axvline(temp_mean, color='k', ls='--')
     pt.xlim(x[0], x[-1])

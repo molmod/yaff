@@ -45,12 +45,12 @@ class NVEScreenLogHook(Hook):
                 self.ref_econs = iterative.econs
                 if log.do_medium:
                     log.hline()
-                    log('counter ch.Econs     Ekin   d-RMSD   g-RMSD')
+                    log('counter ch.Econs     Temp   d-RMSD   g-RMSD')
                     log.hline()
-            log('%7i % 8.1e % 8.1e % 8.1e % 8.1e' % (
+            log('%7i % 8.1e % 8.0f % 8.1e % 8.1e' % (
                 iterative.counter,
                 (iterative.econs - self.ref_econs)/log.energy,
-                iterative.ekin/log.energy,
+                iterative.temp,
                 iterative.rmsd_delta/log.length,
                 iterative.rmsd_gpos/log.force)
             )
@@ -169,6 +169,7 @@ class NVEIntegrator(Iterative):
         if not any(isinstance(hook, NVEScreenLogHook) for hook in self.hooks):
             self.hooks.append(NVEScreenLogHook())
 
+
     def get_random_vel(self, temp0, scalevel0):
         result = np.random.normal(0, 1, self.pos.shape)*np.sqrt(boltzmann*temp0/self.masses).reshape(-1,1)
         if scalevel0:
@@ -202,7 +203,7 @@ class NVEIntegrator(Iterative):
         self.rmsd_gpos = np.sqrt((self.gpos**2).mean())
         self.rmsd_delta = np.sqrt((self.delta**2).mean())
         self.ekin = 0.5*(self.vel**2*self.masses.reshape(-1,1)).sum()
-        self.temp = self.ekin/self.ff.system.natom*2/boltzmann
+        self.temp = self.ekin/self.ff.system.natom/3.0*2.0/boltzmann
         self.etot = self.ekin + self.epot
         self.econs = self.etot
 
