@@ -322,11 +322,8 @@ in XXX.
 
 **TODO:**
 
-#. The ``AndersonTHook`` with an annealing and mask (for subset of atoms)
-   option. Check if we can do something similar to simulate a constant pressure
-   ensemble.
-
-#. ``AnnealingHook``.
+#. Check if we can do something like the Andersen thermostat to simulate a
+   constant pressure ensemble.
 
 #. Check how to append data efficiently in HDF5 file. Add rows one by one or
    add rows in blocks.
