@@ -57,7 +57,7 @@ class NVEScreenLogHook(Hook):
 
 
 class AndersenTHook(Hook):
-    def __init__(self, temp, start=0, step=1, mask=None):
+    def __init__(self, temp, start=0, step=1, mask=None, annealing=1.0):
         """
            **Arguments:**
 
@@ -76,9 +76,15 @@ class AndersenTHook(Hook):
            mask
                 An array mask to indicate which atoms controlled by the
                 thermostat.
+
+           annealing
+                After every call to this hook, the temperature is multiplied
+                with this annealing factor. This effectively cools down the
+                system.
         """
         self.temp = temp
         self.mask = mask
+        self.annealing = annealing
         Hook.__init__(self, start, step)
 
     def __call__(self, iterative):
@@ -86,6 +92,7 @@ class AndersenTHook(Hook):
             iterative.vel[:] = iterative.get_random_vel(self.temp, False)
         else:
             iterative.vel[self.mask] = iterative.get_random_vel(self.temp, False)[self.mask]
+        self.temp *= self.annealing
 
 
 class NVEIntegrator(Iterative):

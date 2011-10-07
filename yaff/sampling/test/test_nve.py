@@ -107,3 +107,9 @@ def test_andersen_t_hook_mask():
     nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=AndersenTHook(300, mask=[1,2,5]))
     nve.run(5)
     assert nve.counter == 5
+
+
+def test_andersen_t_hook_annealing():
+    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=AndersenTHook(300, annealing=0.9))
+    nve.run(5)
+    assert nve.counter == 5
