@@ -184,44 +184,95 @@ def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', start=0, end=-1, max_sa
        warm compared to the total average temperature. This helps to determine
        (the lack of) thermal equilibrium.
     """
-    # TODO: include cumulative
-    # TODO: include similar plots for system temperature
     import matplotlib.pyplot as pt
+    from scipy.special import gammainc, erf
     f, do_close = get_hdf5_file(fn_hdf5_traj)
     start, end, step = get_slice(f, start, end, max_sample)
+    temps = f['trajectory/temp'][start:end:step]
+    temp_mean = temps.mean()
 
-    # get the mean temperature
-    temp_mean = f['trajectory/temp'][start:end:step].mean()
-    temp_step = temp_mean/20
-    temp_grid = np.arange(0, temp_mean*3 + 0.5*temp_step, temp_step)
+    # A) ATOMS
 
-    # build up the distribution
+    # setup the temperature grid
+    temp_step = temp_mean/10
+    temp_grid = np.arange(0, temp_mean*5 + 0.5*temp_step, temp_step)
+
+    # build up the distribution for the atoms
     counts = np.zeros(len(temp_grid)-1, int)
     total = 0.0
     weights = np.array(f['system/masses'])/boltzmann
     for i in xrange(start, end, step):
-        temps = (f['trajectory/vel'][i]**2).sum(axis=1)*weights
-        counts += np.histogram(temps.ravel(), bins=temp_grid)[0]
-        total += temps.size
+        atom_temps = (f['trajectory/vel'][i]**2).sum(axis=1)*weights
+        counts += np.histogram(atom_temps.ravel(), bins=temp_grid)[0]
+        total += atom_temps.size
 
-    # transform into empirical pdf
-    x = temp_grid[:-1]+0.5*temp_step
-    emp = counts/total/temp_step
+    # transform into empirical pdf and cdf
+    x_atom = temp_grid[:-1]+0.5*temp_step
+    emp_atom_pdf = counts/total/temp_step
+    emp_atom_cdf = counts.cumsum()/total
 
     # the analytical form
-    x0 = temp_mean
-    ana = np.sqrt(x/x0)*np.exp(-0.5*(x/x0))/np.sqrt(2*np.pi)/x0
+    ana_atom_pdf = np.sqrt(x_atom/temp_mean)*np.exp(-0.5*(x_atom/temp_mean))/np.sqrt(2*np.pi)/temp_mean
+    ana_atom_cdf = gammainc(1.5, x_atom/(temp_mean*2))
 
-    # Make the plot of the cumulative histograms
+    # B) SYSTEM
+
+    # setup the temperature grid and make the histogram
+    temp_step = temp_mean/25
+    temp_grid = np.arange(0, temp_mean*2 + 0.5*temp_step, temp_step)
+    counts = np.histogram(temps.ravel(), bins=temp_grid)[0]
+    total = float(len(temps))
+
+    # transform into empirical pdf and cdf
+    x_sys = temp_grid[:-1]+0.5*temp_step
+    emp_sys_pdf = counts/total/temp_step
+    emp_sys_cdf = counts.cumsum()/total
+
+    # the analytical form
+    ndof = 3*f['system/numbers'].shape[0]
+    sigma = temp_mean/np.sqrt(ndof)
+    ana_sys_pdf = np.exp(-((x_sys-temp_mean)/sigma)**2)/np.sqrt(2*np.pi)/sigma
+    ana_sys_cdf = (erf((x_sys - temp_mean)/sigma)+1)/2
+
+
+    # C) Make the plots
     pt.clf()
-    pt.plot(x, emp*1000, 'k-', label='Empirical', drawstyle='steps-mid')
-    pt.plot(x, ana*1000, 'r-', label='Analytical')
+
+    pt.subplot(2,2,1)
+    pt.title('Atom (mean T=%.0fK)' % temp_mean)
+    scale = 1/emp_atom_pdf.max()
+    pt.plot(x_atom, emp_atom_pdf*scale, 'k-', drawstyle='steps-mid')
+    pt.plot(x_atom, ana_atom_pdf*scale, 'r-')
     pt.axvline(temp_mean, color='k', ls='--')
-    pt.xlim(x[0], x[-1])
-    #pt.ylim(0, emp.max()/temp_step)
-    pt.ylabel('Probability density [0.001/K]')
+    pt.xlim(x_atom[0], x_atom[-1])
+    pt.ylabel('Recaled PDF')
+    #pt.legend(loc=0)
+
+    pt.subplot(2,2,2)
+    pt.title('System')
+    scale = 1/emp_sys_pdf.max()
+    pt.plot(x_sys, emp_sys_pdf*scale, 'k-', drawstyle='steps-mid')
+    pt.plot(x_sys, ana_sys_pdf*scale, 'r-')
+    pt.axvline(temp_mean, color='k', ls='--')
+    pt.xlim(x_sys[0], x_sys[-1])
+
+    pt.subplot(2,2,3)
+    pt.plot(x_atom, emp_atom_cdf, 'k-', drawstyle='steps-mid')
+    pt.plot(x_atom, ana_atom_cdf, 'r-')
+    pt.axvline(temp_mean, color='k', ls='--')
+    pt.xlim(x_atom[0], x_atom[-1])
+    pt.ylim(0, 1)
+    pt.ylabel('CDF')
     pt.xlabel('Temperature [K]')
-    pt.legend(loc=0)
+
+    pt.subplot(2,2,4)
+    pt.plot(x_sys, emp_sys_cdf, 'k-', drawstyle='steps-mid')
+    pt.plot(x_sys, ana_sys_cdf, 'r-')
+    pt.axvline(temp_mean, color='k', ls='--')
+    pt.xlim(x_sys[0], x_sys[-1])
+    pt.ylim(0, 1)
+    pt.xlabel('Temperature [K]')
+
     pt.savefig(fn_png)
 
     if do_close:
