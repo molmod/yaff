@@ -325,9 +325,6 @@ in XXX.
 #. Check if we can do something like the Andersen thermostat to simulate a
    constant pressure ensemble.
 
-#. Check how to append data efficiently in HDF5 file. Add rows one by one or
-   add rows in blocks.
-
 #. ``RefTraj`` derivative of the Iterative class.
 
 #. Optimizer stuff. We should use the molmod optimizer, but change it such
