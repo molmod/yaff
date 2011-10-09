@@ -185,16 +185,18 @@ def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', start=0, end=-1, max_sa
        (the lack of) thermal equilibrium.
     """
     import matplotlib.pyplot as pt
-    from scipy.special import gammainc, erf
+    from matplotlib.ticker import MaxNLocator
+    from scipy.stats import chi2
     f, do_close = get_hdf5_file(fn_hdf5_traj)
     start, end, step = get_slice(f, start, end, max_sample)
     temps = f['trajectory/temp'][start:end:step]
     temp_mean = temps.mean()
 
     # A) ATOMS
+    ndof = 3
+    temp_step = temp_mean/10
 
     # setup the temperature grid
-    temp_step = temp_mean/10
     temp_grid = np.arange(0, temp_mean*5 + 0.5*temp_step, temp_step)
 
     # build up the distribution for the atoms
@@ -202,59 +204,66 @@ def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', start=0, end=-1, max_sa
     total = 0.0
     weights = np.array(f['system/masses'])/boltzmann
     for i in xrange(start, end, step):
-        atom_temps = (f['trajectory/vel'][i]**2).sum(axis=1)*weights
+        atom_temps = (f['trajectory/vel'][i]**2).mean(axis=1)*weights
         counts += np.histogram(atom_temps.ravel(), bins=temp_grid)[0]
         total += atom_temps.size
 
     # transform into empirical pdf and cdf
-    x_atom = temp_grid[:-1]+0.5*temp_step
     emp_atom_pdf = counts/total/temp_step
     emp_atom_cdf = counts.cumsum()/total
 
     # the analytical form
-    ana_atom_pdf = np.sqrt(x_atom/temp_mean)*np.exp(-0.5*(x_atom/temp_mean))/np.sqrt(2*np.pi)/temp_mean
-    ana_atom_cdf = gammainc(1.5, x_atom/(temp_mean*2))
+    rv = chi2(ndof, 0, temp_mean/ndof)
+    x_atom = temp_grid[:-1]+0.5*temp_step
+    ana_atom_pdf = rv.pdf(x_atom)
+    ana_atom_cdf = rv.cdf(x_atom)
+
 
     # B) SYSTEM
+    ndof = 3*f['system/numbers'].shape[0]
+    sigma = temp_mean*np.sqrt(2.0/ndof)
+    temp_step = sigma/5
 
     # setup the temperature grid and make the histogram
-    temp_step = temp_mean/25
-    temp_grid = np.arange(0, temp_mean*2 + 0.5*temp_step, temp_step)
+    temp_grid = np.arange(temp_mean-3*sigma, temp_mean+3*sigma, temp_step)
     counts = np.histogram(temps.ravel(), bins=temp_grid)[0]
     total = float(len(temps))
 
     # transform into empirical pdf and cdf
-    x_sys = temp_grid[:-1]+0.5*temp_step
     emp_sys_pdf = counts/total/temp_step
     emp_sys_cdf = counts.cumsum()/total
 
     # the analytical form
-    ndof = 3*f['system/numbers'].shape[0]
-    sigma = temp_mean/np.sqrt(ndof)
-    ana_sys_pdf = np.exp(-((x_sys-temp_mean)/sigma)**2)/np.sqrt(2*np.pi)/sigma
-    ana_sys_cdf = (erf((x_sys - temp_mean)/sigma)+1)/2
+    rv = chi2(ndof, 0, temp_mean/ndof)
+    x_sys = temp_grid[:-1]+0.5*temp_step
+    ana_sys_pdf = rv.pdf(x_sys)
+    ana_sys_cdf = rv.cdf(x_sys)
 
 
     # C) Make the plots
     pt.clf()
+    pt.suptitle('Mean T=%.0fK' % temp_mean)
 
     pt.subplot(2,2,1)
-    pt.title('Atom (mean T=%.0fK)' % temp_mean)
+    pt.title('Atom (k=3)')
     scale = 1/emp_atom_pdf.max()
     pt.plot(x_atom, emp_atom_pdf*scale, 'k-', drawstyle='steps-mid')
     pt.plot(x_atom, ana_atom_pdf*scale, 'r-')
     pt.axvline(temp_mean, color='k', ls='--')
     pt.xlim(x_atom[0], x_atom[-1])
+    pt.ylim(ymin=0)
+    pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
     pt.ylabel('Recaled PDF')
-    #pt.legend(loc=0)
 
     pt.subplot(2,2,2)
-    pt.title('System')
+    pt.title('System (k=%i)' % ndof)
     scale = 1/emp_sys_pdf.max()
     pt.plot(x_sys, emp_sys_pdf*scale, 'k-', drawstyle='steps-mid')
     pt.plot(x_sys, ana_sys_pdf*scale, 'r-')
     pt.axvline(temp_mean, color='k', ls='--')
+    pt.ylim(ymin=0)
     pt.xlim(x_sys[0], x_sys[-1])
+    pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
 
     pt.subplot(2,2,3)
     pt.plot(x_atom, emp_atom_cdf, 'k-', drawstyle='steps-mid')
@@ -262,6 +271,7 @@ def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', start=0, end=-1, max_sa
     pt.axvline(temp_mean, color='k', ls='--')
     pt.xlim(x_atom[0], x_atom[-1])
     pt.ylim(0, 1)
+    pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
     pt.ylabel('CDF')
     pt.xlabel('Temperature [K]')
 
@@ -271,6 +281,7 @@ def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', start=0, end=-1, max_sa
     pt.axvline(temp_mean, color='k', ls='--')
     pt.xlim(x_sys[0], x_sys[-1])
     pt.ylim(0, 1)
+    pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
     pt.xlabel('Temperature [K]')
 
     pt.savefig(fn_png)
