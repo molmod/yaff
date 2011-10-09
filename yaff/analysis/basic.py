@@ -42,20 +42,68 @@ def get_hdf5_file(fn_hdf5_traj):
     return f, do_close
 
 
-def get_slice(f, start, end, max_sample):
-    nrow = f['trajectory'].attrs['row']
-    if end == -1 or end < nrow:
-        end = nrow
-    if start < 0:
-        start = 0
-    if max_sample is None or max_sample > (end-start):
-        step = 1
+def get_slice(f, start=0, end=-1, max_sample=None, step=None):
+    """
+       **Argument:**
+
+       f
+            A HDF5.File instance, may be None if it is not available.
+
+       **Optional arguments:**
+
+       start
+            The first sample to be considered for analysis. This may be negative
+            to indicate that the analysis should start from the -start last
+            samples.
+
+       end
+            The last sample to be considered for analysis. This may be negative
+            to indicate that the last -end sample should not be considered.
+
+       max_sample
+            When given, step is set such that the number of samples does not
+            exceed max_sample.
+
+       step
+            The spacing between the samples used for the analysis
+
+       The optional arguments can be given to all of the analysis routines. Just
+       make sure you never specify step and max_sample at the same time. The
+       max_sample argument assures that the step is set such that the number of
+       samples does (just) not exceed max_sample. The max_sample option only
+       works when f is not None, or when end is positive.
+
+       if f is present or start and end are positive, and max_sample and step or
+       not given, max_sample defaults to 1000.
+
+       Returns start, end and step. When f is given, start and end are always
+       positive.
+    """
+    if f is None:
+        nrow = None
     else:
-        step = (end-start)/max_sample
+        nrow = f['trajectory'].attrs['row']
+        if end < 0:
+            end = nrow + end + 1
+        else:
+            end = min(end, nrow)
+        if start < 0:
+            start = nrow + start + 1
+    if start > 0 and end > 0 and step is None and max_sample is None:
+        max_sample = 1000
+    if step is None:
+        if max_sample is None:
+            return start, end, 1
+        else:
+            if end < 0:
+                raise ValueError('When max_sample is given and end is negative, a file must be present.')
+            step = max(1, (end - start)/max_sample + 1)
+    elif max_sample is not None:
+        raise ValueError('Both step and max_sample are given at the same time.')
     return start, end, step
 
 
-def plot_energies(fn_hdf5_traj, fn_png='energies.png', start=0, end=-1, max_sample=1000):
+def plot_energies(fn_hdf5_traj, fn_png='energies.png', **kwargs):
     """Make a plot of the potential and the total energy as function of time
 
        **Arguments:**
@@ -69,23 +117,15 @@ def plot_energies(fn_hdf5_traj, fn_png='energies.png', start=0, end=-1, max_samp
        fn_png
             The png file to write the figure to
 
-       start
-            The first sample to consider.
-
-       end
-            The last sample to consider + 1.
-
-       max_sample
-            The maximum number of data points to use for the plot. When set to
-            None, all data from the trajectory is used. However, this is not
-            recommended.
+       The optional arguments of the ``get_slice`` function are also accepted in
+       the form of keyword arguments.
 
        The units for making the plot are taken from the yaff screen logger. This
        type of plot is essential for checking the sanity of a simulation.
     """
     import matplotlib.pyplot as pt
     f, do_close = get_hdf5_file(fn_hdf5_traj)
-    start, end, step = get_slice(f, start, end, max_sample)
+    start, end, step = get_slice(f, **kwargs)
 
     ekin = f['trajectory/ekin'][start:end:step]/log.energy
     epot = f['trajectory/epot'][start:end:step]/log.energy
@@ -104,7 +144,7 @@ def plot_energies(fn_hdf5_traj, fn_png='energies.png', start=0, end=-1, max_samp
         f.close()
 
 
-def plot_temperature(fn_hdf5_traj, fn_png='temperature.png', start=0, end=-1, max_sample=1000):
+def plot_temperature(fn_hdf5_traj, fn_png='temperature.png', **kwargs):
     """Make a plot of the temperature as function of time
 
        **Arguments:**
@@ -118,23 +158,15 @@ def plot_temperature(fn_hdf5_traj, fn_png='temperature.png', start=0, end=-1, ma
        fn_png
             The png file to write the figure to
 
-       start
-            The first sample to consider.
-
-       end
-            The last sample to consider + 1.
-
-       max_sample
-            The maximum number of data points to use for the plot. When set to
-            None, all data from the trajectory is used. However, this is not
-            recommended.
+       The optional arguments of the ``get_slice`` function are also accepted in
+       the form of keyword arguments.
 
        The units for making the plot are taken from the yaff screen logger. This
        type of plot is essential for checking the sanity of a simulation.
     """
     import matplotlib.pyplot as pt
     f, do_close = get_hdf5_file(fn_hdf5_traj)
-    start, end, step = get_slice(f, start, end, max_sample)
+    start, end, step = get_slice(f, **kwargs)
 
     temp = f['trajectory/temp'][start:end:step]
     time = f['trajectory/time'][start:end:step]/log.time
@@ -150,7 +182,7 @@ def plot_temperature(fn_hdf5_traj, fn_png='temperature.png', start=0, end=-1, ma
         f.close()
 
 
-def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', start=0, end=-1, max_sample=200):
+def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', **kwargs):
     """Plots the distribution of the weighted atomic velocities
 
        **Arguments:**
@@ -164,16 +196,8 @@ def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', start=0, end=-1, max_sa
        fn_png
             The png file to write the figure to
 
-       start
-            The first sample to consider.
-
-       end
-            The last sample to consider + 1.
-
-       max_sample
-            The maximum number of data points to use for the plot. When set to
-            None, all data from the trajectory is used. However, this is not
-            recommended.
+       The optional arguments of the ``get_slice`` function are also accepted in
+       the form of keyword arguments.
 
        This type of plot is essential for checking the sanity of a simulation.
        The empirical cumulative distribution is plotted and overlayed with the
@@ -188,7 +212,7 @@ def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', start=0, end=-1, max_sa
     from matplotlib.ticker import MaxNLocator
     from scipy.stats import chi2
     f, do_close = get_hdf5_file(fn_hdf5_traj)
-    start, end, step = get_slice(f, start, end, max_sample)
+    start, end, step = get_slice(f, **kwargs)
     temps = f['trajectory/temp'][start:end:step]
     temp_mean = temps.mean()
 

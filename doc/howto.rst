@@ -355,10 +355,6 @@ The last option is only possible when ``step`` is not specified and the total
 number of samples (or ``end``) is known. The optimal value for ``step`` will be
 derived from ``max_sample``.
 
-**TODO:**
-
-#. Support these arguments in all analysis routines.
-
 
 Basic analysis
 --------------
@@ -385,10 +381,6 @@ simulation:
 
 All these functions accept optional arguments to tune their behavior. See XXX
 for more details.
-
-**TODO:**
-
-#. Add cdf and system temperature dist to ``plot_temp_dist``.
 
 
 Advanced analysis
