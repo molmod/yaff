@@ -35,6 +35,56 @@ __all__ = ['Spectrum']
 
 class Spectrum(object):
     def __init__(self, fn_hdf5, start=0, end=-1, step=1, bsize=4096, path='trajectory/vel'):
+        """
+           **Argument:**
+
+           fn_hdf5
+                The filename of the HDF5 file (or an h5py.File instance)
+                containing the trajectory data.
+
+           **Optional arguments:**
+
+           start
+                The first sample to be considered for analysis. This may be
+                negative to indicate that the analysis should start from the
+                -start last samples.
+
+           end
+                The last sample to be considered for analysis. This may be
+                negative to indicate that the last -end sample should not be
+                considered.
+
+           step
+                The spacing between the samples used for the analysis
+
+           bsize
+                The size of the blocks used for individual FFT calls.
+
+           path
+                The path of the dataset that contains the time dependent data in
+                the HDF5 file. The first axis of the array must be the time axis
+                the spectra are summed over the other axes.
+
+           The max_sample argument from get_slice is not used because the choice
+           step value is an important parameter: it is best to choose step*bsize
+           such that it coincides with a part of the trajectory in which the
+           velocities (or other data) are continuous.
+
+           The block size should be set such that it corresponds to a decent
+           resolution on the frequency axis, i.e. 33356 fs of MD data
+           corresponds to a resolution of about 1 cm^-1. The step size should be
+           set such that the highest frequency is above the highest relevant
+           frequency in the spectrum, e.g. a step of 10 fs corresponds to a
+           frequency maximum of 3336 cm^-1. The total number of FFT's, i.e.
+           length of the simulation divided by the block size multiplied by the
+           number of time-dependent functions in the data, determines the noise
+           reduction on the (the amplitude of) spectrum. If there is sufficient
+           data to perform 10K FFT's, one should get a reasonably smooth
+           spectrum.
+
+           Depending on the FFT implementation in numpy, it may be interesting
+           to tune the bsize argument. A power of 2 is typically a good choice.
+        """
         self.f, self.do_close = get_hdf5_file(fn_hdf5)
         self.start, self.end, self.step = get_slice(self.f, start, end, step=step)
         self.bsize = bsize
@@ -44,6 +94,8 @@ class Spectrum(object):
             self.compute_offline()
             if self.do_close:
                 self.f.close()
+        else:
+            raise NotImplementedError
 
     def compute_offline(self):
         current = self.start
