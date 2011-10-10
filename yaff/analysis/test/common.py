@@ -21,6 +21,23 @@
 # --
 
 
-from yaff.analysis.basic import *
-from yaff.analysis.spectrum import *
-from yaff.analysis.utils import *
+import tempfile
+
+
+from yaff import *
+from yaff.pes.test.common import get_system_water32
+
+
+def get_water_32_simulation():
+    # Make a temporary directory
+    dn_tmp = tempfile.mkdtemp(suffix='yaff', prefix='water_32')
+    # Setup a test FF
+    system = get_system_water32()
+    system.charges[:] = 0.0
+    ff = ForceField.generate(system, 'input/parameters_water.txt')
+    # Run a test simulation
+    hdf5_hook = HDF5TrajectoryHook('%s/output.h5' % dn_tmp)
+    nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=hdf5_hook)
+    nve.run(5)
+    assert nve.counter == 5
+    return dn_tmp, nve, hdf5_hook.f

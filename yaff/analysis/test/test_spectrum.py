@@ -20,48 +20,22 @@
 #
 # --
 
-
 import shutil, os
 
 from yaff import *
 from yaff.analysis.test.common import get_water_32_simulation
 
 
-def test_plot_energies():
+def test_spectrum_offline():
     dn_tmp, nve, f = get_water_32_simulation()
     try:
-        fn_png = '%s/energies1.png' % dn_tmp
-        plot_energies(f, fn_png)
-        assert os.path.isfile(fn_png)
-        fn_hdf5_traj = f.filename
-        f.flush()
-        fn_png = '%s/energies2.png' % dn_tmp
-        plot_energies(fn_hdf5_traj, fn_png)
-        assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn_tmp)
-
-
-def test_plot_temperature():
-    dn_tmp, nve, f = get_water_32_simulation()
-    try:
-        fn_png = '%s/temperature1.png' % dn_tmp
-        plot_temperature(f, fn_png)
-        assert os.path.isfile(fn_png)
-        fn_hdf5_traj = f.filename
-        f.flush()
-        fn_png = '%s/temperature2.png' % dn_tmp
-        plot_temperature(fn_hdf5_traj, fn_png)
-        assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn_tmp)
-
-
-def test_plot_temp_dist():
-    dn_tmp, nve, f = get_water_32_simulation()
-    try:
-        fn_png = '%s/temp_dist.png' % dn_tmp
-        plot_temp_dist(f, fn_png)
-        assert os.path.isfile(fn_png)
+        for bsize in 2, 4, 5:
+            spectrum = Spectrum(f, bsize=bsize)
+            fn_png = '%s/spectrum%i.png' % (dn_tmp, bsize)
+            spectrum.plot(fn_png)
+            assert os.path.isfile(fn_png)
+            fn_png = '%s/ac%i.png' % (dn_tmp, bsize)
+            spectrum.plot_ac(fn_png)
+            assert os.path.isfile(fn_png)
     finally:
         shutil.rmtree(dn_tmp)

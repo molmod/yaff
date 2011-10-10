@@ -54,6 +54,12 @@ examples below often use Numpy too, assuming the following import statement::
     import numpy as np
 
 
+**TODO:**
+
+#. Make a Unit class with the following attributes: ``conversion``, ``short``,
+``format``.
+
+
 Setting up a molecular system
 =============================
 
@@ -425,8 +431,6 @@ computations that can either be done in a post-processing step, or on-line.
    The RDF analysis must have a real-space cutoff that is smaller than the
    smallest spacing of the periodic cells.
 
-#. Implement spectral analysis.
-
-#. Implement autocorrelation function.
+   Note: we could allow a h5py.File object as argument instead of a filename.
 
 #. Port other things from MD-Tracks, including the conversion stuff.

@@ -27,80 +27,10 @@ import numpy as np
 
 from molmod import boltzmann
 from yaff.log import log
+from yaff.analysis.utils import get_hdf5_file, get_slice
 
 
 __all__ = ['plot_energies', 'plot_temperature', 'plot_temp_dist']
-
-
-def get_hdf5_file(fn_hdf5_traj):
-    if isinstance(fn_hdf5_traj, h5py.File):
-        f = fn_hdf5_traj
-        do_close = False
-    else:
-        f = h5py.File(fn_hdf5_traj, mode='r')
-        do_close = True
-    return f, do_close
-
-
-def get_slice(f, start=0, end=-1, max_sample=None, step=None):
-    """
-       **Argument:**
-
-       f
-            A HDF5.File instance, may be None if it is not available.
-
-       **Optional arguments:**
-
-       start
-            The first sample to be considered for analysis. This may be negative
-            to indicate that the analysis should start from the -start last
-            samples.
-
-       end
-            The last sample to be considered for analysis. This may be negative
-            to indicate that the last -end sample should not be considered.
-
-       max_sample
-            When given, step is set such that the number of samples does not
-            exceed max_sample.
-
-       step
-            The spacing between the samples used for the analysis
-
-       The optional arguments can be given to all of the analysis routines. Just
-       make sure you never specify step and max_sample at the same time. The
-       max_sample argument assures that the step is set such that the number of
-       samples does (just) not exceed max_sample. The max_sample option only
-       works when f is not None, or when end is positive.
-
-       if f is present or start and end are positive, and max_sample and step or
-       not given, max_sample defaults to 1000.
-
-       Returns start, end and step. When f is given, start and end are always
-       positive.
-    """
-    if f is None:
-        nrow = None
-    else:
-        nrow = f['trajectory'].attrs['row']
-        if end < 0:
-            end = nrow + end + 1
-        else:
-            end = min(end, nrow)
-        if start < 0:
-            start = nrow + start + 1
-    if start > 0 and end > 0 and step is None and max_sample is None:
-        max_sample = 1000
-    if step is None:
-        if max_sample is None:
-            return start, end, 1
-        else:
-            if end < 0:
-                raise ValueError('When max_sample is given and end is negative, a file must be present.')
-            step = max(1, (end - start)/max_sample + 1)
-    elif max_sample is not None:
-        raise ValueError('Both step and max_sample are given at the same time.')
-    return start, end, step
 
 
 def plot_energies(fn_hdf5_traj, fn_png='energies.png', **kwargs):
