@@ -61,7 +61,14 @@ examples below often use Numpy too, assuming the following import statement::
 **TODO:**
 
 #. Make a Unit class with the following attributes: ``conversion``, ``short``,
-``format``.
+   ``format``. This is helpful when formatting numbers of which the order of
+   magnitude depends on the unit. Try something along the following lines::
+
+    log('Some number is %s' % log.time(sometime))
+
+   where the time method returns a string representation after a unit conversion
+   in a fixed number of characters (that does not depend on the unit of choice,
+   but may depend on the type of unit.)
 
 
 Setting up a molecular system
@@ -441,4 +448,5 @@ computations that can either be done in a post-processing step, or on-line.
    The RDF analysis must have a real-space cutoff that is smaller than the
    smallest spacing of the periodic cells.
 
+#. Something to estimate diffusion constants.
 #. Port other things from MD-Tracks, including the conversion stuff.
