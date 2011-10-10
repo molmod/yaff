@@ -26,7 +26,7 @@ import numpy as np
 from molmod.constants import lightspeed
 from molmod.units import centimeter
 from yaff.log import log
-from yaff.analysis.utils import get_hdf5_file, get_slice
+from yaff.analysis.utils import get_slice
 
 
 
@@ -34,13 +34,15 @@ __all__ = ['Spectrum']
 
 
 class Spectrum(object):
-    def __init__(self, fn_hdf5, start=0, end=-1, step=1, bsize=4096, path='trajectory/vel'):
+    def __init__(self, f, start=0, end=-1, step=1, bsize=4096, path='trajectory/vel'):
+        # TODO: write the results back to the hdf5 file.
         """
            **Argument:**
 
-           fn_hdf5
-                The filename of the HDF5 file (or an h5py.File instance)
-                containing the trajectory data.
+           f
+                An h5py.File instance containing the trajectory data. The
+                results of the spectral analysis will also be written to this
+                file in the folder '%s_spectrum/' % path
 
            **Optional arguments:**
 
@@ -85,15 +87,13 @@ class Spectrum(object):
            Depending on the FFT implementation in numpy, it may be interesting
            to tune the bsize argument. A power of 2 is typically a good choice.
         """
-        self.f, self.do_close = get_hdf5_file(fn_hdf5)
+        self.f = f
         self.start, self.end, self.step = get_slice(self.f, start, end, step=step)
         self.bsize = bsize
         self.path = path
         self.online = self.f is None or path not in self.f
         if not self.online:
             self.compute_offline()
-            if self.do_close:
-                self.f.close()
         else:
             raise NotImplementedError
 

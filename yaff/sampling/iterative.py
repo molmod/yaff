@@ -126,6 +126,15 @@ class AttributeStateItem(StateItem):
 
 class Hook(object):
     def __init__(self, start=0, step=1):
+        """
+           **Optional arguments:**
+
+           start
+                The first iteration at which this hook should be called.
+
+           step
+                The hook will be called every `step` iterations.
+        """
         self.start = start
         self.step = step
 

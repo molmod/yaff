@@ -27,20 +27,19 @@ import numpy as np
 
 from molmod import boltzmann
 from yaff.log import log
-from yaff.analysis.utils import get_hdf5_file, get_slice
+from yaff.analysis.utils import get_slice
 
 
 __all__ = ['plot_energies', 'plot_temperature', 'plot_temp_dist']
 
 
-def plot_energies(fn_hdf5_traj, fn_png='energies.png', **kwargs):
+def plot_energies(f, fn_png='energies.png', **kwargs):
     """Make a plot of the potential and the total energy as function of time
 
        **Arguments:**
 
-       fn_hdf5_traj
-            The filename of the HDF5 file (or an h5py.File instance) containing
-            the trajectory data.
+       f
+            An h5py.File instance containing the trajectory data.
 
        **Optional arguments:**
 
@@ -54,7 +53,6 @@ def plot_energies(fn_hdf5_traj, fn_png='energies.png', **kwargs):
        type of plot is essential for checking the sanity of a simulation.
     """
     import matplotlib.pyplot as pt
-    f, do_close = get_hdf5_file(fn_hdf5_traj)
     start, end, step = get_slice(f, **kwargs)
 
     ekin = f['trajectory/ekin'][start:end:step]/log.energy
@@ -70,18 +68,14 @@ def plot_energies(fn_hdf5_traj, fn_png='energies.png', **kwargs):
     pt.legend(loc=0)
     pt.savefig(fn_png)
 
-    if do_close:
-        f.close()
 
-
-def plot_temperature(fn_hdf5_traj, fn_png='temperature.png', **kwargs):
+def plot_temperature(f, fn_png='temperature.png', **kwargs):
     """Make a plot of the temperature as function of time
 
        **Arguments:**
 
-       fn_hdf5_traj
-            The filename of the HDF5 file (or an h5py.File instance) containing
-            the trajectory data.
+       f
+            An h5py.File instance containing the trajectory data.
 
        **Optional arguments:**
 
@@ -95,7 +89,6 @@ def plot_temperature(fn_hdf5_traj, fn_png='temperature.png', **kwargs):
        type of plot is essential for checking the sanity of a simulation.
     """
     import matplotlib.pyplot as pt
-    f, do_close = get_hdf5_file(fn_hdf5_traj)
     start, end, step = get_slice(f, **kwargs)
 
     temp = f['trajectory/temp'][start:end:step]
@@ -108,18 +101,14 @@ def plot_temperature(fn_hdf5_traj, fn_png='temperature.png', **kwargs):
     pt.ylabel('Temperature [K]')
     pt.savefig(fn_png)
 
-    if do_close:
-        f.close()
 
-
-def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', **kwargs):
+def plot_temp_dist(f, fn_png='temp_dist.png', **kwargs):
     """Plots the distribution of the weighted atomic velocities
 
        **Arguments:**
 
-       fn_hdf5_traj
-            The filename of the HDF5 file (or an h5py.File instance) containing
-            the trajectory data.
+       f
+            An h5py.File instance containing the trajectory data.
 
        **Optional arguments:**
 
@@ -141,7 +130,6 @@ def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', **kwargs):
     import matplotlib.pyplot as pt
     from matplotlib.ticker import MaxNLocator
     from scipy.stats import chi2
-    f, do_close = get_hdf5_file(fn_hdf5_traj)
     start, end, step = get_slice(f, **kwargs)
     temps = f['trajectory/temp'][start:end:step]
     temp_mean = temps.mean()
@@ -239,6 +227,3 @@ def plot_temp_dist(fn_hdf5_traj, fn_png='temp_dist.png', **kwargs):
     pt.xlabel('Temperature [K]')
 
     pt.savefig(fn_png)
-
-    if do_close:
-        f.close()

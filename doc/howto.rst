@@ -28,16 +28,20 @@ four steps given above::
     log.set_level(log.medium)
     log.set_unitsys(log.joule)
 
+    # import the h5py library to write output in the HDF5 format.
+
     # 1) specify the system
     system = System.from_file('system.chk')
     # 2) specify the force field
     ff = ForceField.generate(system, 'parameters.txt')
     # 3) Integrate Newton's equation of motion and write the trajectory in HDF5 format.
-    nve = NVEIntegrateor(ff, 1*femtosecond, hooks=HDF5TrajectoryHook('output.h5'), temp0=300)
+    f = h5py.File('output.h5')
+    hdf5_writer = HDF5Writer(f)
+    nve = NVEIntegrateor(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
     nve.run(5000)
     # 4) perform an analysis, e.g. RDF computation for O_W O_W centers.
     indexes = ssytem.get_indexes('O_W')
-    rdf = RDFAnalysis('output.h5', indexes)
+    rdf = RDFAnalysis(f, indexes)
     rdf.result.plot('rdf.png')
 
 These steps will be discussed in more detail in the following sections.
@@ -271,7 +275,8 @@ Molecular Dynacmis
 
 The equations of motion in the NVE ensemble can be integrated as follows::
 
-    nve = NVEIntegrateor(ff, 1*femtosecond, hooks=HDF5TrajectoryHook('output.h5'), temp0=300)
+    hdf5_writer = HDF5Writer(h5py.File('output.h5'))
+    nve = NVEIntegrateor(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
     nve.run(5000)
 
 The parameters of the integrator can be tuned with several optional arguments of
@@ -286,14 +291,14 @@ after every iteration or, using the ``start`` and ``step`` arguments, at
 selected iterations. For example, this HDF5 hook will write data every 100
 steps, after the first 1000 iterations are carried out::
 
-    HDF5TrajectoryHook('output.h5', start=1000, step=100)
+    hdf5_writer = HDF5Writer(h5py.File('output.h5'), start=1000, step=100)
 
 The hooks argument may also be a list of hook objects, e.g. to reset the
-velocities every 200 steps, one may include the ``AndersonTHook``::
+velocities every 200 steps, one may include the ``AndersonThermostat``::
 
     hooks=[
-        HDF5TrajectoryHook('output.h5', start=1000, step=100),
-        AndersonTHook(temp=300, step=200)
+        HDF5Writer(h5py.File('output.h5'))
+        AndersonThermostat(temp=300, step=200)
     ]
 
 By default a screen logging hook is added (if not yet present) to write one
@@ -307,7 +312,7 @@ Geometry optimization
 
 One may also use a geometry optimizer instead of an integrator::
 
-    opt = CGOptimizer(ff, hooks=HDF5TrajectoryHook('output.h5', start=1000, step=100))
+    opt = CGOptimizer(ff, hooks=HDF5Writer(h5py.File('output.h5')))
     opt.run(5000)
 
 Again, convergence criteria are controlled through optional arguments of the
@@ -316,7 +321,7 @@ argument. By default the positions of the atoms or optimized, without changing
 the cell vectors. This behavior can be changed through the ``dof_transform``
 argument::
 
-    opt = CGOptimizer(ff, dof_transform=cell_opt, hooks=HDF5TrajectoryHook('output.h5', start=1000, step=100))
+    opt = CGOptimizer(ff, dof_transform=cell_opt, hooks=HDF5Writer(h5py.File('output.h5')))
     opt.run(5000)
 
 This will transform the degrees of freedom (DOF's) of the system (cell vectors
@@ -353,13 +358,14 @@ All the analysis routines below have at least the following four optional
 arguments:
 
 * ``start``: the first sample to consider for the analysis
-* ``end``: the last sample to consider for the analysis
 * ``step``: consider only a sample each ``step`` iterations.
 * ``max_sample``: consider at most ``max_sample`` number of samples.
 
 The last option is only possible when ``step`` is not specified and the total
 number of samples (or ``end``) is known. The optimal value for ``step`` will be
-derived from ``max_sample``.
+derived from ``max_sample``. Some analysis may not have the max_sample argument,
+e.g. the spectrum analysis, because the choice of the step size for such
+analysis is a critical parameter that needs to be set carefully.
 
 
 Basic analysis
@@ -371,7 +377,8 @@ simulation:
 * ``plot_energies`` makes a plot of the kinetic and the total energy as function
   of time. For example::
 
-    plot_energies('output.h5')
+    f = h5py.File('output.h5')
+    plot_energies(f)
 
   makes a figure ``energies.png``.
 
@@ -381,7 +388,7 @@ simulation:
   instantaneous atomic and system temperatures and compares these with the
   expected analytical result for a constant-temperature ensemble. For example:
 
-    plot_temp_dist('output.h5')
+    plot_temp_dist(f)
 
   makes a figure ``temp_dist.png``
 
@@ -399,7 +406,8 @@ computations that can either be done in a post-processing step, or on-line.
 * A radial distribution function is computed as follows::
 
     indexes = system.get_indexes('O_W')
-    rdf = RDFAnalysis('output.h5', indexes)
+    f = h5py.File('output.h5')
+    rdf = RDFAnalysis(f, indexes)
     rdf.result.plot('rdf.png')
 
   The results are included in the HDF5 file, and optionally plotted using
@@ -418,19 +426,19 @@ computations that can either be done in a post-processing step, or on-line.
 **TODO:**
 
 #. Implement RDF. Check how we can write things to files in the on-line case.
-   Is it OK that both RDFAnalysis and HDF5TrajectoryHook open the same HDF5 file
-   for writing data? Is this OK or not? ::
+   Is it OK that both RDFAnalysis and HDF5Writer open the same HDF5 file
+   for writing data? It is OK as shown below, i.e. when they just use the same
+   file object. ::
 
     indexes = system.get_indexes('O_W')
-    rdf = RDFAnalysis('output.h5', indexes, on_line=True)
-    hdf5 = HDF5TrajectoryHook('output.h5', start=1000, step=100)
+    f = h5py.File('output.h5')
+    rdf = RDFAnalysis(f, indexes, on_line=True)
+    hdf5 = HDF5Writer(f, start=1000, step=100)
     nve = NVEIntegrator(ff, hooks=[rdf, hdf5], temp0=300)
     nve.run(5000)
     rdf.result.plot('rdf.png')
 
    The RDF analysis must have a real-space cutoff that is smaller than the
    smallest spacing of the periodic cells.
-
-   Note: we could allow a h5py.File object as argument instead of a filename.
 
 #. Port other things from MD-Tracks, including the conversion stuff.

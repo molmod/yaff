@@ -21,6 +21,8 @@
 # --
 
 
+import h5py
+
 from yaff import *
 from yaff.pes.test.common import get_system_water32
 
@@ -61,55 +63,58 @@ def check_hdf5_common(f):
 
 
 def test_hdf5():
-    hdf5_hook = HDF5TrajectoryHook('tmp.h5', driver='core', backing_store=False)
-    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=hdf5_hook)
+    f = h5py.File('tmp.h5', driver='core', backing_store=False)
+    hdf5 = HDF5Writer(f)
+    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=hdf5)
     nve.run(15)
     assert nve.counter == 15
-    check_hdf5_common(hdf5_hook.f)
-    assert hdf5_hook.f['trajectory'].attrs['row'] == 16
-    assert hdf5_hook.f['trajectory/counter'][15] == 15
+    check_hdf5_common(hdf5.f)
+    assert hdf5.f['trajectory'].attrs['row'] == 16
+    assert hdf5.f['trajectory/counter'][15] == 15
 
 
 def test_hdf5_start():
-    hdf5_hook = HDF5TrajectoryHook('tmp.h5', driver='core', backing_store=False, start=2)
-    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=hdf5_hook)
+    f = h5py.File('tmp.h5', driver='core', backing_store=False)
+    hdf5 = HDF5Writer(f, start=2)
+    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=hdf5)
     nve.run(5)
     assert nve.counter == 5
-    check_hdf5_common(hdf5_hook.f)
-    assert hdf5_hook.f['trajectory'].attrs['row'] == 4
-    assert hdf5_hook.f['trajectory/counter'][3] == 5
+    check_hdf5_common(hdf5.f)
+    assert hdf5.f['trajectory'].attrs['row'] == 4
+    assert hdf5.f['trajectory/counter'][3] == 5
 
 
 def test_hdf5_step():
-    hdf5_hook = HDF5TrajectoryHook('tmp.h5', driver='core', backing_store=False, step=2)
-    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=hdf5_hook)
+    f = h5py.File('tmp.h5', driver='core', backing_store=False)
+    hdf5 = HDF5Writer(f, step=2)
+    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=hdf5)
     nve.run(5)
     assert nve.counter == 5
-    check_hdf5_common(hdf5_hook.f)
-    assert hdf5_hook.f['trajectory'].attrs['row'] == 3
-    assert hdf5_hook.f['trajectory/counter'][2] == 4
+    check_hdf5_common(hdf5.f)
+    assert hdf5.f['trajectory'].attrs['row'] == 3
+    assert hdf5.f['trajectory/counter'][2] == 4
 
 
 def test_xyz():
-    xyz_hook = XYZWriterHook('/dev/null')
-    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=[xyz_hook])
+    xyz = XYZWriter('/dev/null')
+    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=[xyz])
     nve.run(15)
     assert nve.counter == 15
 
 
-def test_andersen_t_hook():
-    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=AndersenTHook(300))
+def test_at():
+    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=AndersenThermostat(300))
     nve.run(5)
     assert nve.counter == 5
 
 
-def test_andersen_t_hook_mask():
-    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=AndersenTHook(300, mask=[1,2,5]))
+def test_at_mask():
+    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=AndersenThermostat(300, mask=[1,2,5]))
     nve.run(5)
     assert nve.counter == 5
 
 
-def test_andersen_t_hook_annealing():
-    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=AndersenTHook(300, annealing=0.9))
+def test_at_annealing():
+    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=AndersenThermostat(300, annealing=0.9))
     nve.run(5)
     assert nve.counter == 5

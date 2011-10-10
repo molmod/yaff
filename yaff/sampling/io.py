@@ -21,29 +21,30 @@
 # --
 
 
-import h5py
-
 from yaff.sampling.iterative import Hook
 
 
-__all__ = ['HDF5TrajectoryHook', 'XYZWriterHook']
+__all__ = ['HDF5Writer', 'XYZWriter']
 
 
-class HDF5TrajectoryHook(Hook):
-    def __init__(self, *args, **kwargs):
-        # Extract the arguments for the Hook base class.
-        hook_kwargs = {}
-        for key in 'start', 'step':
-            value = kwargs.get(key)
-            if value is not None:
-                hook_kwargs[key] = value
-                del kwargs[key]
-        # By default, the trajectory file is overwritten.
-        if not 'mode' in kwargs:
-            kwargs['mode'] = 'w'
-        # Create file and wrap up
-        self.f = h5py.File(*args, **kwargs)
-        Hook.__init__(self, **hook_kwargs)
+class HDF5Writer(Hook):
+    def __init__(self, f, start=0, step=1):
+        """
+           **Argument:**
+
+           f
+                A h5py.File object to write the trajectory to.
+
+           **Optional arguments:**
+
+           start
+                The first iteration at which this hook should be called.
+
+           step
+                The hook will be called every `step` iterations.
+        """
+        self.f = f
+        Hook.__init__(self, start, step)
 
     def __del__(self):
         self.f.close()
@@ -92,8 +93,22 @@ class HDF5TrajectoryHook(Hook):
         tgrp.attrs['row'] = 0
 
 
-class XYZWriterHook(Hook):
+class XYZWriter(Hook):
     def __init__(self, fn_xyz, start=0, step=1):
+        """
+           **Argument:**
+
+           fn_xyz
+                A filename to write the XYZ trajectory too.
+
+           **Optional arguments:**
+
+           start
+                The first iteration at which this hook should be called.
+
+           step
+                The hook will be called every `step` iterations.
+        """
         self.fn_xyz = fn_xyz
         self.xyz_writer = None
         Hook.__init__(self, start, step)

@@ -33,11 +33,6 @@ def test_plot_energies():
         fn_png = '%s/energies1.png' % dn_tmp
         plot_energies(f, fn_png)
         assert os.path.isfile(fn_png)
-        fn_hdf5_traj = f.filename
-        f.flush()
-        fn_png = '%s/energies2.png' % dn_tmp
-        plot_energies(fn_hdf5_traj, fn_png)
-        assert os.path.isfile(fn_png)
     finally:
         shutil.rmtree(dn_tmp)
 
@@ -47,11 +42,6 @@ def test_plot_temperature():
     try:
         fn_png = '%s/temperature1.png' % dn_tmp
         plot_temperature(f, fn_png)
-        assert os.path.isfile(fn_png)
-        fn_hdf5_traj = f.filename
-        f.flush()
-        fn_png = '%s/temperature2.png' % dn_tmp
-        plot_temperature(fn_hdf5_traj, fn_png)
         assert os.path.isfile(fn_png)
     finally:
         shutil.rmtree(dn_tmp)

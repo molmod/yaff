@@ -24,17 +24,7 @@
 import h5py
 
 
-__all__ = ['get_hdf5_file', 'get_slice']
-
-
-def get_hdf5_file(fn_hdf5):
-    if isinstance(fn_hdf5, h5py.File):
-        f = fn_hdf5
-        do_close = False
-    else:
-        f = h5py.File(fn_hdf5, mode='r')
-        do_close = True
-    return f, do_close
+__all__ = ['get_slice']
 
 
 def get_slice(f, start=0, end=-1, max_sample=None, step=None):

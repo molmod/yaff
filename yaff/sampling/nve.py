@@ -31,10 +31,10 @@ from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
     Hook
 
 
-__all__ = ['NVEScreenLogHook', 'AndersenTHook', 'NVEIntegrator']
+__all__ = ['NVEScreenLog', 'AndersenThermostat', 'NVEIntegrator']
 
 
-class NVEScreenLogHook(Hook):
+class NVEScreenLog(Hook):
     def __init__(self, start=0, step=1):
         Hook.__init__(self, start, step)
         self.ref_econs = None
@@ -56,7 +56,7 @@ class NVEScreenLogHook(Hook):
             )
 
 
-class AndersenTHook(Hook):
+class AndersenThermostat(Hook):
     def __init__(self, temp, start=0, step=1, mask=None, annealing=1.0):
         """
            **Arguments:**
@@ -166,9 +166,8 @@ class NVEIntegrator(Iterative):
         self.gpos = np.zeros(self.pos.shape, float)
         self.delta = np.zeros(self.pos.shape, float)
         Iterative.__init__(self, ff, state, hooks, counter0)
-        if not any(isinstance(hook, NVEScreenLogHook) for hook in self.hooks):
-            self.hooks.append(NVEScreenLogHook())
-
+        if not any(isinstance(hook, NVEScreenLog) for hook in self.hooks):
+            self.hooks.append(NVEScreenLog())
 
     def get_random_vel(self, temp0, scalevel0):
         result = np.random.normal(0, 1, self.pos.shape)*np.sqrt(boltzmann*temp0/self.masses).reshape(-1,1)

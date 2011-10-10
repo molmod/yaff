@@ -21,8 +21,7 @@
 # --
 
 
-import tempfile
-
+import tempfile, h5py
 
 from yaff import *
 from yaff.pes.test.common import get_system_water32
@@ -36,7 +35,8 @@ def get_water_32_simulation():
     system.charges[:] = 0.0
     ff = ForceField.generate(system, 'input/parameters_water.txt')
     # Run a test simulation
-    hdf5_hook = HDF5TrajectoryHook('%s/output.h5' % dn_tmp)
+    f = h5py.File('%s/output.h5' % dn_tmp)
+    hdf5_hook = HDF5Writer(f)
     nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=hdf5_hook)
     nve.run(5)
     assert nve.counter == 5
