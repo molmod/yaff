@@ -34,7 +34,7 @@ __all__ = ['plot_energies', 'plot_temperature', 'plot_temp_dist']
 
 
 def plot_energies(f, fn_png='energies.png', **kwargs):
-    """Make a plot of the potential and the total energy as function of time
+    """Make a plot of the potential, total and conserved energy as f. of time
 
        **Arguments:**
 
@@ -55,13 +55,15 @@ def plot_energies(f, fn_png='energies.png', **kwargs):
     import matplotlib.pyplot as pt
     start, end, step = get_slice(f, **kwargs)
 
-    ekin = f['trajectory/ekin'][start:end:step]/log.energy.conversion
     epot = f['trajectory/epot'][start:end:step]/log.energy.conversion
+    etot = f['trajectory/etot'][start:end:step]/log.energy.conversion
+    econs = f['trajectory/econs'][start:end:step]/log.energy.conversion
     time = f['trajectory/time'][start:end:step]/log.time.conversion
 
     pt.clf()
     pt.plot(time, epot, 'k-', label='E_pot')
-    pt.plot(time, epot+ekin, 'r-', label='E_pot+E_kin')
+    pt.plot(time, etot, 'r-', label='E_tot')
+    pt.plot(time, econs, 'g-', label='E_cons')
     pt.xlim(time[0], time[-1])
     pt.xlabel('Time [%s]' % log.time.notation)
     pt.ylabel('Energy [%s]' % log.energy.notation)
