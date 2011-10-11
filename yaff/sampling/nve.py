@@ -88,10 +88,16 @@ class AndersenThermostat(Hook):
         Hook.__init__(self, start, step)
 
     def __call__(self, iterative):
+        # Change the velocities
         if self.mask is None:
             iterative.vel[:] = iterative.get_random_vel(self.temp, False)
         else:
             iterative.vel[self.mask] = iterative.get_random_vel(self.temp, False)[self.mask]
+        # Update the kinetic energy and the reference for the conserved quantity
+        ekin_after = 0.5*(iterative.vel**2*iterative.masses.reshape(-1,1)).sum()
+        iterative.econs_ref += iterative.ekin - ekin_after
+        iterative.ekin = ekin_after
+        # Optional annealing
         self.temp *= self.annealing
 
 
@@ -165,6 +171,9 @@ class NVEIntegrator(Iterative):
             self.vel = vel0.copy()
         self.gpos = np.zeros(self.pos.shape, float)
         self.delta = np.zeros(self.pos.shape, float)
+        # econs_ref should be changed by hooks that change positions or
+        # velocities, such that a conserved quantity can be computed.
+        self.econs_ref = 0
         Iterative.__init__(self, ff, state, hooks, counter0)
         if not any(isinstance(hook, NVEScreenLog) for hook in self.hooks):
             self.hooks.append(NVEScreenLog())
@@ -204,7 +213,7 @@ class NVEIntegrator(Iterative):
         self.ekin = 0.5*(self.vel**2*self.masses.reshape(-1,1)).sum()
         self.temp = self.ekin/self.ff.system.natom/3.0*2.0/boltzmann
         self.etot = self.ekin + self.epot
-        self.econs = self.etot
+        self.econs = self.etot + self.econs_ref
 
     def finalize(self):
         if log.do_medium:

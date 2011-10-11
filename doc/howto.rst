@@ -301,9 +301,6 @@ line per iteration with some critical integrator parameters.
 Other integrators are implemented such as NVTNoseIntegrator,
 NVTLangevinIntegrator, and so on.
 
-**TODO:**
-
-#. Add a conserved quantity feature that works with the AndersenThermostat
 
 Geometry optimization
 ---------------------
@@ -348,6 +345,7 @@ Analyzing the results
 The analysis of the results is (in the first place) based on the output
 file ``output.h5``. On-line analysis (during the iterative algorithm, without
 writing data to disk) is also possible.
+
 
 Slicing the data
 ----------------
