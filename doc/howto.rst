@@ -112,9 +112,9 @@ Yaff. It can also be used in the ``from_file`` method.
 
 **TODO:**
 
-#. Add possibility to read system from a HDF5 output file.
+#. [LOW PRIORITY] Add possibility to read system from a HDF5 output file.
 
-#. [LOW PRIORITY] Introduce fragment name spaces in the atom types, e.g. instead
+#. Introduce fragment name spaces in the atom types, e.g. instead
    of using O_W and H_W, we should have WATER:O, WATER:H. In the system object,
    we should have an extra fragment dictionary to know which atom is part of
    what sort of fragment, e.g. something like: ``system.fragments = {'WATER':,
@@ -145,12 +145,14 @@ Yaff. It can also be used in the ``from_file`` method.
 
    Final thought: we can make the entire thing optional, i.e. when
    system.fragments is None, we can have the behavior without separate
-   namespaces. This is convenient when testing a new FF for one sort of
+   name spaces. This is convenient when testing a new FF for one sort of
    fragment.
 
-#. [LOW PRIORITY] Provide a simple tool to automatically assign bonds and atom
-   types using rules. (For the moment we hack our way out with the ``molmod``
-   package.)
+#. Make the checkpoint format more compact.
+
+#. Provide a simple tool to automatically assign bonds and atom types using
+   rules. (For the moment we hack our way out with the ``molmod`` package.) See
+   also TODO item below.
 
 
 Setting up an FF
@@ -421,21 +423,80 @@ computations that can either be done in a post-processing step, or on-line.
 
 **TODO:**
 
-#. Implement RDF. Check how we can write things to files in the on-line case.
-   Is it OK that both RDFAnalysis and HDF5Writer open the same HDF5 file
-   for writing data? It is OK as shown below, i.e. when they just use the same
-   file object. ::
+#. A tool to select certain atoms, e.g. based on type or more complex rules. The
+   graph code in ``molmod`` is OK, but it takes too much typing to use it. The
+   SMARTS system is very compact, but it has a few disadvantages that make it
+   poorly applicable in the Yaff context: e.g. it assumes that the hybridization
+   state of first-row atoms and bond orders are known. The only real `knowns` in
+   the Yaff context are: ``numbers``, (optionally) ``ffatypes``, (optionally)
+   ``fragments`` and bonds. It would be good to have a simplified SMARTS-like
+   one-line syntax that only uses the four types of information above:
 
-    indexes = system.get_indexes('O_W')
-    f = h5py.File('output.h5', mode='w')
-    rdf = RDFAnalysis(f, indexes, on_line=True)
-    hdf5 = HDF5Writer(f, start=1000, step=100)
-    nve = NVEIntegrator(ff, hooks=[rdf, hdf5], temp0=300)
-    nve.run(5000)
-    rdf.result.plot('rdf.png')
+     a. The following rules are available to specify an atom. The specifiers are discussed below.
 
-   The RDF analysis must have a real-space cutoff that is smaller than the
-   smallest spacing of the periodic cells.
+      * ``spec`` -- the atom must match specifier ``spec``
+      * ``=N[%spec]`` -- the atom must be bonded to N atoms (that match specifier ``spec``)
+      * ``>N[%spec]`` -- the atom must be bonded to more than N atoms (that match specifier ``spec``)
+      * ``<N[%spec]`` -- the atom must be bonded to less N atoms (that match specifier ``spec``)
+      * ``@N`` -- the atom must be part of a strong ring of size N
+
+     b. The ``[fragment:]kind`` specifier, in short ``[F:]X``, is used to specify an
+        atom in fragment F that has atomic number or atom type X.
+
+     c. ``&`` (and), ``|`` (or) and ``!`` (not) operators to combine rules, in that
+        order of precedence
+
+     d. The compound specifiers: a specifier may also consist of a rule
+        enclosed in curly brackets.
+
+     e. parenthesis to modify operator precedence
+
+   We should make a compiler that transforms these rules into a a function that
+   returns ``True`` or ``False``, given a system object and an atom index. This
+   implies a few things:
+
+    a. We must first figure out how to represent fragments in the System class.
+       The following things should be taken into account.
+        1. An atom can be part of multiple fragments at the same time, i.e.
+           fragments may overlap.
+        2. It must be fast to determine of an atom is in a certain fragment
+        3. It must be simple to dump and load fragment information into the
+           array-based checkpoint format.
+        4. Fragments must be implementable in the generators. These contain
+           loops over relevant internal coordinates or atoms, and determine for
+           each case the atom types involved to select the proper parameters.
+           Just like an atom, an internal coordinate may be part of one or more
+           fragments. All matching parameters must be translated into energy
+           terms. This may be problematic for the non-bonding interactions,
+           which typically have a single set of parameters per atom or per
+           atom-pair. Adding two terms per atom pair is not possible. Hmm.
+           Do we really need overlapping fragments?
+    b. The ffatypes must become an optional argument of the ``System`` class.
+    c. A ``System`` method must be provided to assign ffatypes based on a list
+       of (ffatype, selector) pairs. These are trivial to load from a txt file.
+       An error should be raised in this method, if there is an atom without
+       a matching ffatype.
+    d. The generators should raise an error if no ffatypes are present.
+    e. Atom types should not contain the following symbols: ``:``, ``%``, ``=``,
+       ``<``, ``>``, ``@``, ``(``, ``)``, ``&``, ``|``, ``!``, ``{``, ``}``, and
+       should not start with a digit.
+    f. The last four rules will only work of the system has a topology object.
+
+
+   Some examples of atom selectors:
+
+ * ``6`` -- any carbon atom
+ * ``TPA:6`` -- a carbon atom in the TPA fragment
+ * ``C3`` -- any atom with type C3
+ * ``TPA:C3`` -- an atom with type C3 in the TPA fragment
+ * ``!1`` -- anything that is not a hydrogen
+ * ``C2|C3`` -- an atom of type C2 or C3
+ * ``6|7&=1%1`` or ``(6|7)&=1%1`` -- a carbon or nitrogen bonded to exactly one hydrogen
+ * ``>0%{6|=4}`` -- an atom bonded to at least one carbon atom or bonded to at least one atom with four bonds.
+ * ``6&@6`` -- a Carbon atom that is part of a six-membered ring
+
+#. Implement RDF. The RDF analysis must have a real-space cutoff that is smaller
+   than the smallest spacing of the periodic cells.
 
 #. Something to estimate diffusion constants.
 
