@@ -24,18 +24,10 @@
 import h5py
 
 from yaff import *
-from yaff.pes.test.common import get_system_water32
-
-
-def get_water_32ff():
-    system = get_system_water32()
-    system.charges[:] = 0.0
-    ff = ForceField.generate(system, 'input/parameters_water.txt')
-    return ff
-
+from yaff.sampling.test.common import get_ff_water32
 
 def test_basic():
-    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond)
+    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond)
     nve.run(5)
     assert nve.counter == 5
 
@@ -65,7 +57,7 @@ def check_hdf5_common(f):
 def test_hdf5():
     f = h5py.File('tmp.h5', driver='core', backing_store=False)
     hdf5 = HDF5Writer(f)
-    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=hdf5)
+    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
     nve.run(15)
     assert nve.counter == 15
     check_hdf5_common(hdf5.f)
@@ -76,7 +68,7 @@ def test_hdf5():
 def test_hdf5_start():
     f = h5py.File('tmp.h5', driver='core', backing_store=False)
     hdf5 = HDF5Writer(f, start=2)
-    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=hdf5)
+    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
     nve.run(5)
     assert nve.counter == 5
     check_hdf5_common(hdf5.f)
@@ -87,7 +79,7 @@ def test_hdf5_start():
 def test_hdf5_step():
     f = h5py.File('tmp.h5', driver='core', backing_store=False)
     hdf5 = HDF5Writer(f, step=2)
-    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=hdf5)
+    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
     nve.run(5)
     assert nve.counter == 5
     check_hdf5_common(hdf5.f)
@@ -97,24 +89,24 @@ def test_hdf5_step():
 
 def test_xyz():
     xyz = XYZWriter('/dev/null')
-    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=[xyz])
+    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[xyz])
     nve.run(15)
     assert nve.counter == 15
 
 
 def test_at():
-    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=AndersenThermostat(300))
+    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostat(300))
     nve.run(5)
     assert nve.counter == 5
 
 
 def test_at_mask():
-    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=AndersenThermostat(300, mask=[1,2,5]))
+    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostat(300, mask=[1,2,5]))
     nve.run(5)
     assert nve.counter == 5
 
 
 def test_at_annealing():
-    nve = NVEIntegrator(get_water_32ff(), 1.0*femtosecond, hooks=AndersenThermostat(300, annealing=0.9))
+    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostat(300, annealing=0.9))
     nve.run(5)
     assert nve.counter == 5

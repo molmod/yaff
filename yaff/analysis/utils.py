@@ -64,7 +64,7 @@ def get_slice(f, start=0, end=-1, max_sample=None, step=None):
        Returns start, end and step. When f is given, start and end are always
        positive.
     """
-    if f is None:
+    if f is None or 'trajectory' not in f:
         nrow = None
     else:
         nrow = f['trajectory'].attrs['row']

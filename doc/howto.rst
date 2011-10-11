@@ -439,6 +439,4 @@ computations that can either be done in a post-processing step, or on-line.
 
 #. Something to estimate diffusion constants.
 
-#. On-line analysis for spectrum.
-
 #. Port other things from MD-Tracks, including the conversion stuff.

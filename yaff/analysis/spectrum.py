@@ -27,15 +27,15 @@ from molmod.constants import lightspeed
 from molmod.units import centimeter
 from yaff.log import log
 from yaff.analysis.utils import get_slice
+from yaff.sampling.iterative import Hook
 
 
 
 __all__ = ['Spectrum']
 
 
-class Spectrum(object):
-    def __init__(self, f, start=0, end=-1, step=1, bsize=4096, path='trajectory/vel'):
-        # TODO: write the results back to the hdf5 file.
+class Spectrum(Hook):
+    def __init__(self, f, start=0, end=-1, step=1, bsize=4096, path='trajectory/vel', key='vel'):
         """
            **Argument:**
 
@@ -68,6 +68,10 @@ class Spectrum(object):
                 the HDF5 file. The first axis of the array must be the time
                 axis. The spectra are summed over the other axes.
 
+           key
+                In case of an on-line analysis, this is the key of the state
+                item that contains the data from which the spectrum is derived.
+
            The max_sample argument from get_slice is not used because the choice
            step value is an important parameter: it is best to choose step*bsize
            such that it coincides with a part of the trajectory in which the
@@ -87,44 +91,86 @@ class Spectrum(object):
 
            Depending on the FFT implementation in numpy, it may be interesting
            to tune the bsize argument. A power of 2 is typically a good choice.
+
+           When f is None, or when the path does not exist in the HDF5 file, the
+           class can be used as an on-line analysis hook for the iterative
+           algorithms in yaff.sampling package. This means that the spectrum
+           is built up as the itertive algorithm progresses. The end option is
+           ignored for an on-line analysis.
         """
         self.f = f
         self.start, self.end, self.step = get_slice(self.f, start, end, step=step)
         self.bsize = bsize
+        self.ssize = self.bsize/2+1 # the length of the spectrum array
+        self.amps = np.zeros(self.ssize, float)
+        self.timestep = None
+        self.time = None
+        self.freqs = None
+
         self.path = path
+        self.key = key
         self.online = self.f is None or path not in self.f
         if not self.online:
             self.compute_offline()
         else:
-            raise NotImplementedError
+            # some attributes that are only relevant for on-line analysis
+            self.work = None
+            self.ncollect = 0
+            self.lasttime = None
+
+    def __call__(self, iterative):
+        if self.work is None:
+            self.work = np.zeros((self.bsize,) + iterative.state[self.key].shape, float)
+        if self.timestep is None:
+            if self.lasttime is None:
+                self.lasttime = iterative.state['time'].value
+            else:
+                self.timestep = iterative.state['time'].value - self.lasttime
+                del self.lasttime
+        self.work[self.ncollect] = iterative.state[self.key].value
+        self.ncollect += 1
+        if self.ncollect == self.bsize:
+            # collected sufficient data to fill one block, computing FFT
+            for indexes in np.ndindex(self.work.shape[1:]):
+                work = self.work[(slice(0, self.bsize),) + indexes]
+                self.amps += abs(np.fft.rfft(work))**2
+            # compute some derived stuff
+            self.compute_derived()
+            # reset some things
+            self.work[:] = 0.0
+            self.ncollect = 0
 
     def compute_offline(self):
         # Compute the amplitudes of the spectrum
         current = self.start
         stride = self.step*self.bsize
         work = np.zeros(self.bsize, float)
-        ssize = self.bsize/2+1
-        self.amps = np.zeros(ssize, float)
         ds = self.f[self.path]
-        while current < self.end - stride:
+        while current <= self.end - stride:
             for indexes in np.ndindex(ds.shape[1:]):
                 ds.read_direct(work, (slice(current, current+stride, self.step),) + indexes)
                 self.amps += abs(np.fft.rfft(work))**2
             current += stride
         # Compute related arrays
-        timestep = self.f['trajectory/time'][self.step] - self.f['trajectory/time'][0]
-        self.freqs = np.arange(ssize)/(timestep*ssize)
-        self.ac = np.fft.irfft(self.amps)[:ssize]
-        self.time = np.arange(ssize)*timestep
+        self.timestep = self.f['trajectory/time'][self.step] - self.f['trajectory/time'][0]
+        self.compute_derived()
+
+    def compute_derived(self):
+        first = self.freqs is None
+        if first:
+            self.freqs = np.arange(self.ssize)/(self.timestep*self.ssize)
+            self.time = np.arange(self.ssize)*self.timestep
+        self.ac = np.fft.irfft(self.amps)[:self.ssize]
         # Write the results to the HDF5 file
         gn = '%s_spectrum' % self.path
         if gn in self.f:
             del self.f[gn]
         g = self.f.create_group(gn)
         g['amps'] = self.amps
-        g['freqs'] = self.freqs
         g['ac'] = self.ac
-        g['time'] = self.time
+        if first:
+            g['freqs'] = self.freqs
+            g['time'] = self.time
 
     def plot(self, fn_png='spectrum.png', do_wavenum=True):
         import matplotlib.pyplot as pt

@@ -24,11 +24,11 @@
 import shutil, os
 
 from yaff import *
-from yaff.analysis.test.common import get_water_32_simulation
+from yaff.analysis.test.common import get_nve_water32
 
 
 def test_plot_energies():
-    dn_tmp, nve, f = get_water_32_simulation()
+    dn_tmp, nve, f = get_nve_water32()
     try:
         fn_png = '%s/energies1.png' % dn_tmp
         plot_energies(f, fn_png)
@@ -38,7 +38,7 @@ def test_plot_energies():
 
 
 def test_plot_temperature():
-    dn_tmp, nve, f = get_water_32_simulation()
+    dn_tmp, nve, f = get_nve_water32()
     try:
         fn_png = '%s/temperature1.png' % dn_tmp
         plot_temperature(f, fn_png)
@@ -48,7 +48,7 @@ def test_plot_temperature():
 
 
 def test_plot_temp_dist():
-    dn_tmp, nve, f = get_water_32_simulation()
+    dn_tmp, nve, f = get_nve_water32()
     try:
         fn_png = '%s/temp_dist.png' % dn_tmp
         plot_temp_dist(f, fn_png)

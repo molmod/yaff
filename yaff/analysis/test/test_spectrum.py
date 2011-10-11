@@ -20,14 +20,15 @@
 #
 # --
 
-import shutil, os
+import shutil, os, h5py
 
 from yaff import *
-from yaff.analysis.test.common import get_water_32_simulation
+from yaff.analysis.test.common import get_nve_water32
+from yaff.sampling.test.common import get_ff_water32
 
 
 def test_spectrum_offline():
-    dn_tmp, nve, f = get_water_32_simulation()
+    dn_tmp, nve, f = get_nve_water32()
     try:
         for bsize in 2, 4, 5:
             spectrum = Spectrum(f, bsize=bsize)
@@ -45,3 +46,26 @@ def test_spectrum_offline():
             del f['trajectory/vel_spectrum']
     finally:
         shutil.rmtree(dn_tmp)
+
+
+def test_spectrum_online():
+    for bsize in 2, 4, 5:
+        print 'BSIZE', bsize
+        # Setup a test FF
+        ff = get_ff_water32()
+        # Run a test simulation
+        f = h5py.File('tmp%i.h5' % bsize, driver='core', backing_store=False)
+        hdf5 = HDF5Writer(f)
+        spectrum0 = Spectrum(f, bsize=bsize)
+        nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=[hdf5, spectrum0])
+        nve.run(5)
+        assert nve.counter == 5
+        # Also run an off-line spectrum and compare
+        spectrum1 = Spectrum(f, bsize=bsize)
+        assert abs(spectrum0.timestep - spectrum1.timestep) < 1e-10
+        print spectrum0.amps
+        print spectrum1.amps
+        assert abs(spectrum0.amps - spectrum1.amps).max() < 1e-10
+        assert abs(spectrum0.freqs - spectrum1.freqs).max() < 1e-10
+        assert abs(spectrum0.ac - spectrum1.ac).max() < 1e-10
+        assert abs(spectrum0.time - spectrum1.time).max() < 1e-10

@@ -21,21 +21,11 @@
 # --
 
 
-import tempfile, h5py
-
 from yaff import *
-from yaff.sampling.test.common import get_ff_water32
+from yaff.pes.test.common import get_system_water32
 
-
-def get_nve_water32():
-    # Make a temporary directory
-    dn_tmp = tempfile.mkdtemp(suffix='yaff', prefix='water_32')
-    # Setup a test FF
-    ff = get_ff_water32()
-    # Run a test simulation
-    f = h5py.File('%s/output.h5' % dn_tmp)
-    hdf5 = HDF5Writer(f)
-    nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=hdf5)
-    nve.run(5)
-    assert nve.counter == 5
-    return dn_tmp, nve, hdf5.f
+def get_ff_water32():
+    system = get_system_water32()
+    system.charges[:] = 0.0
+    ff = ForceField.generate(system, 'input/parameters_water.txt')
+    return ff
