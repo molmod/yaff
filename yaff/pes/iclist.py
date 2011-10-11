@@ -96,7 +96,7 @@ class Bond(InternalCoordinate):
         InternalCoordinate.__init__(self, [(i, j)])
 
     def get_conversion(self):
-        return log.length
+        return log.length.conversion
 
 class BendCos(InternalCoordinate):
     kind = 1
@@ -113,7 +113,7 @@ class BendAngle(InternalCoordinate):
         InternalCoordinate.__init__(self, [(j, i), (j, k)])
 
     def get_conversion(self):
-        return log.angle
+        return log.angle.conversion
 
 
 class DihedCos(InternalCoordinate):
@@ -131,7 +131,7 @@ class DihedAngle(InternalCoordinate):
         InternalCoordinate.__init__(self, [(j,i), (j,k), (k,l)])
 
     def get_conversion(self):
-        return log.angle
+        return log.angle.conversion
 
 
 class UreyBradley(InternalCoordinate):
@@ -140,4 +140,4 @@ class UreyBradley(InternalCoordinate):
         InternalCoordinate.__init__(self, [(i, k)])
 
     def get_conversion(self):
-        return log.length
+        return log.length.conversion

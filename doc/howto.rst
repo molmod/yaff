@@ -35,7 +35,7 @@ four steps given above::
     # 2) specify the force field
     ff = ForceField.generate(system, 'parameters.txt')
     # 3) Integrate Newton's equation of motion and write the trajectory in HDF5 format.
-    f = h5py.File('output.h5')
+    f = h5py.File('output.h5', mode='w')
     hdf5_writer = HDF5Writer(f)
     nve = NVEIntegrateor(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
     nve.run(5000)
@@ -56,19 +56,6 @@ Numpy and Cython are used extensively in Yaff for numerical efficiency. The
 examples below often use Numpy too, assuming the following import statement::
 
     import numpy as np
-
-
-**TODO:**
-
-#. Make a Unit class with the following attributes: ``conversion``, ``short``,
-   ``format``. This is helpful when formatting numbers of which the order of
-   magnitude depends on the unit. Try something along the following lines::
-
-    log('Some number is %s' % log.time(sometime))
-
-   where the time method returns a string representation after a unit conversion
-   in a fixed number of characters (that does not depend on the unit of choice,
-   but may depend on the type of unit.)
 
 
 Setting up a molecular system
@@ -282,7 +269,7 @@ Molecular Dynacmis
 
 The equations of motion in the NVE ensemble can be integrated as follows::
 
-    hdf5_writer = HDF5Writer(h5py.File('output.h5'))
+    hdf5_writer = HDF5Writer(h5py.File('output.h5', mode='w'))
     nve = NVEIntegrateor(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
     nve.run(5000)
 
@@ -298,13 +285,13 @@ after every iteration or, using the ``start`` and ``step`` arguments, at
 selected iterations. For example, this HDF5 hook will write data every 100
 steps, after the first 1000 iterations are carried out::
 
-    hdf5_writer = HDF5Writer(h5py.File('output.h5'), start=1000, step=100)
+    hdf5_writer = HDF5Writer(h5py.File('output.h5', mode='w'), start=1000, step=100)
 
 The hooks argument may also be a list of hook objects, e.g. to reset the
 velocities every 200 steps, one may include the ``AndersonThermostat``::
 
     hooks=[
-        HDF5Writer(h5py.File('output.h5'))
+        HDF5Writer(h5py.File('output.h5', mode='w'))
         AndersonThermostat(temp=300, step=200)
     ]
 
@@ -314,12 +301,16 @@ line per iteration with some critical integrator parameters.
 Other integrators are implemented such as NVTNoseIntegrator,
 NVTLangevinIntegrator, and so on.
 
+**TODO:**
+
+#. Add a conserved quantity feature that works with the AndersenThermostat
+
 Geometry optimization
 ---------------------
 
 One may also use a geometry optimizer instead of an integrator::
 
-    opt = CGOptimizer(ff, hooks=HDF5Writer(h5py.File('output.h5')))
+    opt = CGOptimizer(ff, hooks=HDF5Writer(h5py.File('output.h5', mode='w')))
     opt.run(5000)
 
 Again, convergence criteria are controlled through optional arguments of the
@@ -328,7 +319,7 @@ argument. By default the positions of the atoms or optimized, without changing
 the cell vectors. This behavior can be changed through the ``dof_transform``
 argument::
 
-    opt = CGOptimizer(ff, dof_transform=cell_opt, hooks=HDF5Writer(h5py.File('output.h5')))
+    opt = CGOptimizer(ff, dof_transform=cell_opt, hooks=HDF5Writer(h5py.File('output.h5', mode='w')))
     opt.run(5000)
 
 This will transform the degrees of freedom (DOF's) of the system (cell vectors
@@ -438,7 +429,7 @@ computations that can either be done in a post-processing step, or on-line.
    file object. ::
 
     indexes = system.get_indexes('O_W')
-    f = h5py.File('output.h5')
+    f = h5py.File('output.h5', mode='w')
     rdf = RDFAnalysis(f, indexes, on_line=True)
     hdf5 = HDF5Writer(f, start=1000, step=100)
     nve = NVEIntegrator(ff, hooks=[rdf, hdf5], temp0=300)
@@ -449,4 +440,8 @@ computations that can either be done in a post-processing step, or on-line.
    smallest spacing of the periodic cells.
 
 #. Something to estimate diffusion constants.
+
+#. Off-line analysis for spectrum. Add analysis results to hdf5 file for
+   spectrum.
+
 #. Port other things from MD-Tracks, including the conversion stuff.

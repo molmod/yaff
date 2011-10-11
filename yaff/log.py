@@ -63,51 +63,42 @@ ____\///__________________________________________________________________\///__
 """
 
 
+class Unit(object):
+    def __init__(self, kind, conversion, notation, format):
+        self.kind = kind
+        self.conversion = conversion
+        self.notation = notation
+        self.format = format
+
+    def __call__(self, value):
+        return self.format % (value/self.conversion)
+
+
 class UnitSystem(object):
-    def __init__(self, energy, length, time, mass, charge, force, forceconst, velocity, acceleration, angle):
-        self.energy = energy
-        self.length = length
-        self.time = time
-        self.mass = mass
-        self.charge = charge
-        self.force = force
-        self.forceconst = forceconst
-        self.velocity = velocity
-        self.acceleration = acceleration
-        self.angle = angle
+    def __init__(self, *units):
+        self.units = units
+        # check for duplicates
+        for i0, unit0 in enumerate(self.units):
+            for unit1 in self.units[:i0]:
+                if unit0.kind == unit1.kind:
+                    raise ValueError('The unit of \'%s\' is encountered twice.' % unit0.kind)
 
     def log_info(self):
         if log.do_low:
             log.enter('UNITS')
             log('The following units will be used below:')
             log.hline()
-            log('Type          Conversion             Notation')
+            log('Kind          Conversion               Format Notation')
             log.hline()
-            log('Energy        %21.15e  %s' % self.energy)
-            log('Length        %21.15e  %s' % self.length)
-            log('Time          %21.15e  %s' % self.time)
-            log('Mass          %21.15e  %s' % self.mass)
-            log('Charge        %21.15e  %s' % self.charge)
-            log('Force         %21.15e  %s' % self.force)
-            log('Force Const.  %21.15e  %s' % self.forceconst)
-            log('Veolicty      %21.15e  %s' % self.velocity)
-            log('Acceleration  %21.15e  %s' % self.acceleration)
-            log('Angle         %21.15e  %s' % self.angle)
+            for unit in self.units:
+                log('%13s %21.15e %9s %s' % (unit.kind, unit.conversion, unit.format, unit.notation))
             log.hline()
             log('The internal data is divided by the corresponding conversion factor before it gets printed on screen.')
             log.leave()
 
     def apply(self, some):
-        some.energy = self.energy[0]
-        some.length = self.length[0]
-        some.time = self.time[0]
-        some.mass = self.mass[0]
-        some.charge = self.charge[0]
-        some.force = self.force[0]
-        some.forceconst = self.forceconst[0]
-        some.velocity = self.velocity[0]
-        some.acceleration = self.acceleration[0]
-        some.angle = self.angle[0]
+        for unit in self.units:
+            some.__dict__[unit.kind] = unit
 
 
 class ScreenLog(object):
@@ -124,65 +115,81 @@ class ScreenLog(object):
     width = 71
 
     # unit systems
+    # TODO: the formats may need some tuning
     joule = UnitSystem(
-        energy=(kjmol, 'kJ/mol'),
-        length=(angstrom, 'A'),
-        time=(femtosecond, 'fs'),
-        mass=(amu, 'amu'),
-        charge=(1, 'e'),
-        force=(kjmol/angstrom, 'kJ/mol/A'),
-        forceconst=(kjmol/angstrom**2, 'kJ/mol/A**2'),
-        velocity=(angstrom/femtosecond, 'A/fs'),
-        acceleration=(angstrom/femtosecond**2, 'A/fs**2'),
-        angle=(deg, 'deg'),
+        Unit('energy', kjmol, 'kJ/mol', '%10.1f'),
+        Unit('temperature', 1, 'K', '%10.1f'),
+        Unit('length', angstrom, 'A', '%10.4f'),
+        Unit('invlength', 1/angstrom, 'A^-1', '%10.5f'),
+        Unit('time', femtosecond, 'fs', '%10.1f'),
+        Unit('mass', amu, 'amu', '%10.5f'),
+        Unit('charge', 1, 'e', '%10.5f'),
+        Unit('force', kjmol/angstrom, 'kJ/mol/A', '%10.1f'),
+        Unit('forceconst', kjmol/angstrom**2, 'kJ/mol/A**2', '%10.1f'),
+        Unit('velocity', angstrom/femtosecond, 'A/fs', '%10.5f'),
+        Unit('acceleration', angstrom/femtosecond**2, 'A/fs**2', '%10.5f'),
+        Unit('angle', deg, 'deg', '%10.5f'),
+        Unit('c6', 1, 'E_h*a_0**6', '%10.5f'),
     )
     cal = UnitSystem(
-        energy=(kcalmol, 'kcal/mol'),
-        length=(angstrom, 'A'),
-        time=(femtosecond, 'fs'),
-        mass=(amu, 'amu'),
-        charge=(1, 'e'),
-        force=(kcalmol/angstrom, 'kcal/mol/A'),
-        forceconst=(kjmol/angstrom**2, 'kcal/mol/A**2'),
-        velocity=(angstrom/femtosecond, 'A/fs'),
-        acceleration=(angstrom/femtosecond**2, 'A/fs**2'),
-        angle=(deg, 'deg'),
+        Unit('energy', kcalmol, 'kcal/mol', '%10.2f'),
+        Unit('temperature', 1, 'K', '%10.1f'),
+        Unit('length', angstrom, 'A', '%10.4f'),
+        Unit('invlength', 1/angstrom, 'A^-1', '%10.5f'),
+        Unit('time', femtosecond, 'fs', '%10.1f'),
+        Unit('mass', amu, 'amu', '%10.5f'),
+        Unit('charge', 1, 'e', '%10.5f'),
+        Unit('force', kcalmol/angstrom, 'kcal/mol/A', '%10.1f'),
+        Unit('forceconst', kcalmol/angstrom**2, 'kcal/mol/A**2', '%10.1f'),
+        Unit('velocity', angstrom/femtosecond, 'A/fs', '%10.5f'),
+        Unit('acceleration', angstrom/femtosecond**2, 'A/fs**2', '%10.5f'),
+        Unit('angle', deg, 'deg', '%10.5f'),
+        Unit('c6', 1, 'E_h*a_0**6', '%10.5f'),
     )
     solid = UnitSystem(
-        energy=(kcalmol, 'eV/mol'),
-        length=(angstrom, 'A'),
-        time=(femtosecond, 'fs'),
-        mass=(amu, 'amu'),
-        charge=(1, 'e'),
-        force=(kcalmol/angstrom, 'eV/mol/A'),
-        forceconst=(kjmol/angstrom**2, 'eV/mol/A**2'),
-        velocity=(angstrom/femtosecond, 'A/fs'),
-        acceleration=(angstrom/femtosecond**2, 'A/fs**2'),
-        angle=(deg, 'deg'),
+        Unit('energy', electronvolt, 'eV', '%10.4f'),
+        Unit('temperature', 1, 'K', '%10.1f'),
+        Unit('length', angstrom, 'A', '%10.4f'),
+        Unit('invlength', 1/angstrom, 'A^-1', '%10.5f'),
+        Unit('time', femtosecond, 'fs', '%10.1f'),
+        Unit('mass', amu, 'amu', '%10.5f'),
+        Unit('charge', 1, 'e', '%10.5f'),
+        Unit('force', electronvolt/angstrom, 'eV/A', '%10.1f'),
+        Unit('forceconst', electronvolt/angstrom**2, 'eV/A**2', '%10.1f'),
+        Unit('velocity', angstrom/femtosecond, 'A/fs', '%10.5f'),
+        Unit('acceleration', angstrom/femtosecond**2, 'A/fs**2', '%10.5f'),
+        Unit('angle', deg, 'deg', '%10.5f'),
+        Unit('c6', 1, 'E_h*a_0**6', '%10.5f'),
     )
     bio = UnitSystem(
-        energy=(kcalmol, 'kcal/mol'),
-        length=(nanometer, 'nm'),
-        time=(picosecond, 'ps'),
-        mass=(amu, 'amu'),
-        charge=(1, 'e'),
-        force=(kcalmol/nanometer, 'kcal/mol/nm'),
-        forceconst=(kjmol/nanometer**2, 'kcal/mol/nm**2'),
-        velocity=(nanometer/picosecond, 'A/ps'),
-        acceleration=(nanometer/picosecond**2, 'A/ps**2'),
-        angle=(deg, 'deg'),
+        Unit('energy', kcalmol, 'kcal/mol', '%10.2f'),
+        Unit('temperature', 1, 'K', '%10.1f'),
+        Unit('length', nanometer, 'nm', '%10.6f'),
+        Unit('invlength', 1/nanometer, 'nm^-1', '%10.8f'),
+        Unit('time', picosecond, 'ps', '%10.4f'),
+        Unit('mass', amu, 'amu', '%10.5f'),
+        Unit('charge', 1, 'e', '%10.5f'),
+        Unit('force', kcalmol/angstrom, 'kcal/mol/A', '%10.5f'),
+        Unit('forceconst', kcalmol/angstrom**2, 'kcal/mol/A**2', '%10.5f'),
+        Unit('velocity', angstrom/picosecond, 'A/ps', '%10.5f'),
+        Unit('acceleration', angstrom/picosecond**2, 'A/ps**2', '%10.5f'),
+        Unit('angle', deg, 'deg', '%10.5f'),
+        Unit('c6', 1, 'E_h*a_0**6', '%10.5f'),
     )
     atomic = UnitSystem(
-        energy=(1, 'E_h'),
-        length=(1, 'a_0'),
-        time=(1, 'a.u.t'),
-        mass=(1, 'amu'),
-        charge=(1, 'e'),
-        force=(1, 'E_h/a_0'),
-        forceconst=(1, 'E_h/a_0**2'),
-        velocity=(1, 'a_0/a.u.t'),
-        acceleration=(1, 'a_0/a.u.t**2'),
-        angle=(1, 'rad'),
+        Unit('energy', 1, 'E_h', '%10.6f'),
+        Unit('temperature', 1, 'K', '%10.1f'),
+        Unit('length', 1, 'a_0', '%10.5f'),
+        Unit('invlength', 1, 'a_0^-1', '%10.5f'),
+        Unit('time', 1, 'a.u.t.', '%10.1f'),
+        Unit('mass', 1, 'a.u.m.', '%10.1f'),
+        Unit('charge', 1, 'e', '%10.5f'),
+        Unit('force', 1, 'E_h/a_0', '%10.5f'),
+        Unit('forceconst', 1, 'E_h/a_0**2', '%10.5f'),
+        Unit('velocity', 1, 'a_0/a.u.t.', '%10.5f'),
+        Unit('acceleration', 1, 'a_0/a.u.t.**2', '%10.5f'),
+        Unit('angle', 1, 'rad', '%10.7f'),
+        Unit('c6', 1, 'E_h*a_0**6', '%10.5f'),
     )
 
 

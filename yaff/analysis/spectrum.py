@@ -120,8 +120,8 @@ class Spectrum(object):
             xunit = lightspeed/centimeter
             xlabel = 'Wavenumber [1/cm]'
         else:
-            xunit = 1/log.time
-            xlabel = 'Frequency [1/%s]' % log.unitsys.time[1]
+            xunit = 1/log.time.conversion
+            xlabel = 'Frequency [1/%s]' % log.time.notation
         pt.clf()
         pt.plot(self.freqs/xunit, self.amps)
         pt.xlim(0, self.freqs[-1]/xunit)
@@ -132,7 +132,7 @@ class Spectrum(object):
     def plot_ac(self, fn_png='ac.png'):
         import matplotlib.pyplot as pt
         pt.clf()
-        pt.plot(self.time/log.time, self.ac/self.ac[0])
-        pt.xlabel('Time [%s]' % log.unitsys.time[1])
+        pt.plot(self.time/log.time.conversion, self.ac/self.ac[0])
+        pt.xlabel('Time [%s]' % log.time.notation)
         pt.ylabel('Autocorrelation')
         pt.savefig(fn_png)

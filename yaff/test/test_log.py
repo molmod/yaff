@@ -57,9 +57,9 @@ def test_unitsys():
     from molmod.units import kjmol, kcalmol
     f = StringIO()
     log = ScreenLog(f)
-    assert abs(log.energy - kjmol) < 1e-10
+    assert abs(log.energy.conversion - kjmol) < 1e-10
     log.set_unitsys(log.cal)
-    assert abs(log.energy - kcalmol) < 1e-10
+    assert abs(log.energy.conversion - kcalmol) < 1e-10
 
 def test_lead():
     f = StringIO()

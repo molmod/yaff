@@ -279,7 +279,7 @@ cdef class PairPotLJ(PairPot):
             log('   Atom      Sigma    Epsilon')
             log.hline()
             for i in xrange(self._c_sigmas.shape[0]):
-                log('%7i %10.5f %10.5f' % (i, self._c_sigmas[i]/log.length, self._c_epsilons[i]/log.energy))
+                log('%7i %s %s' % (i, log.length(self._c_sigmas[i]), log.energy(self._c_epsilons[i])))
 
     def get_sigmas(self):
         return self._c_sigmas.view()
@@ -316,7 +316,7 @@ cdef class PairPotMM3(PairPot):
             log('   Atom      Sigma    Epsilon')
             log.hline()
             for i in xrange(self._c_sigmas.shape[0]):
-                log('%7i %10.5f %10.5f' % (i, self._c_sigmas[i]/log.length, self._c_epsilons[i]/log.energy))
+                log('%7i %s %s' % (i, log.length(self._c_sigmas[i]), log.energy(self._c_epsilons[i])))
 
     def get_sigmas(self):
         return self._c_sigmas.view()
@@ -352,7 +352,7 @@ cdef class PairPotGrimme(PairPot):
             log('   Atom         r0         c6')
             log.hline()
             for i in xrange(self._c_r0.shape[0]):
-                log('%7i %10.5f %10.5f' % (i, self._c_r0[i]/log.length, self._c_c6[i]/(log.energy*log.length**6)))
+                log('%7i %s %s' % (i, log.length(self._c_r0[i]), log.c6(self._c_c6[i])))
 
     def get_r0(self):
         return self._c_r0.view()
@@ -405,7 +405,7 @@ cdef class PairPotExpRep(PairPot):
             log('   Atom          A          B')
             log.hline()
             for i in xrange(self._c_amps.shape[0]):
-                log('%7i %10.4e %10.4e' % (i, self._c_amps[i]/log.energy, self._c_bs[i]*log.length))
+                log('%7i %s %s' % (i, log.energy(self._c_amps[i]), log.length(self._c_bs[i])))
 
     def get_amps(self):
         return self._c_amps.view()
@@ -452,13 +452,13 @@ cdef class PairPotEI(PairPot):
 
     def log(self):
         if log.do_medium:
-            log('  alpha:             %.3f' % (self.alpha*log.length))
+            log('  alpha:             %s' % log.invlength(self.alpha))
         if log.do_high:
             log.hline()
             log('   Atom     Charge')
             log.hline()
             for i in xrange(self._c_charges.shape[0]):
-                log('%7i %10.5f' % (i, self._c_charges[i]/log.charge))
+                log('%7i %s' % (i, log.charge(self._c_charges[i])))
 
     def get_charges(self):
         return self._c_charges.view()

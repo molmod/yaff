@@ -45,15 +45,15 @@ class NVEScreenLog(Hook):
                 self.ref_econs = iterative.econs
                 if log.do_medium:
                     log.hline()
-                    log('counter ch.Econs     Temp   d-RMSD   g-RMSD')
+                    log('counter  Rel.Econs       Temp     d-RMSD     g-RMSD')
                     log.hline()
-            log('%7i % 8.1e % 8.0f % 8.1e % 8.1e' % (
+            log('%7i %s %s %s %s' % (
                 iterative.counter,
-                (iterative.econs - self.ref_econs)/log.energy,
-                iterative.temp,
-                iterative.rmsd_delta/log.length,
-                iterative.rmsd_gpos/log.force)
-            )
+                log.energy(iterative.econs - self.ref_econs),
+                log.temperature(iterative.temp),
+                log.length(iterative.rmsd_delta),
+                log.force(iterative.rmsd_gpos),
+            ))
 
 
 class AndersenThermostat(Hook):

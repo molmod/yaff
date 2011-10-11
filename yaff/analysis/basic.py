@@ -55,16 +55,16 @@ def plot_energies(f, fn_png='energies.png', **kwargs):
     import matplotlib.pyplot as pt
     start, end, step = get_slice(f, **kwargs)
 
-    ekin = f['trajectory/ekin'][start:end:step]/log.energy
-    epot = f['trajectory/epot'][start:end:step]/log.energy
-    time = f['trajectory/time'][start:end:step]/log.time
+    ekin = f['trajectory/ekin'][start:end:step]/log.energy.conversion
+    epot = f['trajectory/epot'][start:end:step]/log.energy.conversion
+    time = f['trajectory/time'][start:end:step]/log.time.conversion
 
     pt.clf()
     pt.plot(time, epot, 'k-', label='E_pot')
     pt.plot(time, epot+ekin, 'r-', label='E_pot+E_kin')
     pt.xlim(time[0], time[-1])
-    pt.xlabel('Time [%s]' % log.unitsys.time[1])
-    pt.ylabel('Energy [%s]' % log.unitsys.energy[1])
+    pt.xlabel('Time [%s]' % log.time.notation)
+    pt.ylabel('Energy [%s]' % log.energy.notation)
     pt.legend(loc=0)
     pt.savefig(fn_png)
 
@@ -92,12 +92,12 @@ def plot_temperature(f, fn_png='temperature.png', **kwargs):
     start, end, step = get_slice(f, **kwargs)
 
     temp = f['trajectory/temp'][start:end:step]
-    time = f['trajectory/time'][start:end:step]/log.time
+    time = f['trajectory/time'][start:end:step]/log.time.conversion
 
     pt.clf()
     pt.plot(time, temp, 'k-')
     pt.xlim(time[0], time[-1])
-    pt.xlabel('Time [%s]' % log.unitsys.time[1])
+    pt.xlabel('Time [%s]' % log.time.notation)
     pt.ylabel('Temperature [K]')
     pt.savefig(fn_png)
 
@@ -184,15 +184,16 @@ def plot_temp_dist(f, fn_png='temp_dist.png', **kwargs):
 
     # C) Make the plots
     pt.clf()
-    pt.suptitle('Mean T=%.0fK' % temp_mean)
+    xconv = log.temperature.conversion
+    pt.suptitle('Mean T=%.0f [%s]' % (temp_mean, log.temperature.notation))
 
     pt.subplot(2,2,1)
     pt.title('Atom (k=3)')
     scale = 1/emp_atom_pdf.max()
-    pt.plot(x_atom, emp_atom_pdf*scale, 'k-', drawstyle='steps-mid')
-    pt.plot(x_atom, ana_atom_pdf*scale, 'r-')
+    pt.plot(x_atom/xconv, emp_atom_pdf*scale, 'k-', drawstyle='steps-mid')
+    pt.plot(x_atom/xconv, ana_atom_pdf*scale, 'r-')
     pt.axvline(temp_mean, color='k', ls='--')
-    pt.xlim(x_atom[0], x_atom[-1])
+    pt.xlim(x_atom[0]/xconv, x_atom[-1]/xconv)
     pt.ylim(ymin=0)
     pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
     pt.ylabel('Recaled PDF')
@@ -200,30 +201,30 @@ def plot_temp_dist(f, fn_png='temp_dist.png', **kwargs):
     pt.subplot(2,2,2)
     pt.title('System (k=%i)' % ndof)
     scale = 1/emp_sys_pdf.max()
-    pt.plot(x_sys, emp_sys_pdf*scale, 'k-', drawstyle='steps-mid')
-    pt.plot(x_sys, ana_sys_pdf*scale, 'r-')
+    pt.plot(x_sys/xconv, emp_sys_pdf*scale, 'k-', drawstyle='steps-mid')
+    pt.plot(x_sys/xconv, ana_sys_pdf*scale, 'r-')
     pt.axvline(temp_mean, color='k', ls='--')
     pt.ylim(ymin=0)
-    pt.xlim(x_sys[0], x_sys[-1])
+    pt.xlim(x_sys[0]/xconv, x_sys[-1]/xconv)
     pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
 
     pt.subplot(2,2,3)
-    pt.plot(x_atom, emp_atom_cdf, 'k-', drawstyle='steps-mid')
-    pt.plot(x_atom, ana_atom_cdf, 'r-')
+    pt.plot(x_atom/xconv, emp_atom_cdf, 'k-', drawstyle='steps-mid')
+    pt.plot(x_atom/xconv, ana_atom_cdf, 'r-')
     pt.axvline(temp_mean, color='k', ls='--')
-    pt.xlim(x_atom[0], x_atom[-1])
+    pt.xlim(x_atom[0]/xconv, x_atom[-1]/xconv)
     pt.ylim(0, 1)
     pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
     pt.ylabel('CDF')
-    pt.xlabel('Temperature [K]')
+    pt.xlabel('Temperature [%s]' % log.temperature.notation)
 
     pt.subplot(2,2,4)
-    pt.plot(x_sys, emp_sys_cdf, 'k-', drawstyle='steps-mid')
-    pt.plot(x_sys, ana_sys_cdf, 'r-')
+    pt.plot(x_sys/xconv, emp_sys_cdf, 'k-', drawstyle='steps-mid')
+    pt.plot(x_sys/xconv, ana_sys_cdf, 'r-')
     pt.axvline(temp_mean, color='k', ls='--')
-    pt.xlim(x_sys[0], x_sys[-1])
+    pt.xlim(x_sys[0]/xconv, x_sys[-1]/xconv)
     pt.ylim(0, 1)
     pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
-    pt.xlabel('Temperature [K]')
+    pt.xlabel('Temperature [%s]' % log.temperature.notation)
 
     pt.savefig(fn_png)

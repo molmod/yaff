@@ -83,7 +83,7 @@ class Harmonic(ValenceTerm):
 
     def get_log(self):
         c = self.ics[0].get_conversion()
-        return '%s(FC=%.5e,RV=%.5e)' % (self.__class__.__name__, self.pars[0]/(log.energy/c**2), self.pars[1]/c)
+        return '%s(FC=%.5e,RV=%.5e)' % (self.__class__.__name__, self.pars[0]/(log.energy.conversion/c**2), self.pars[1]/c)
 
 
 class PolyFour(ValenceTerm):
@@ -99,10 +99,10 @@ class PolyFour(ValenceTerm):
         u = self.ics[0].get_conversion()
         return '%s(C1=%.5e,C2=%.5e,C3=%.5e,C4=%.5e)' % (
             self.__class__.__name__,
-            self.pars[0]/(log.energy/u),
-            self.pars[1]/(log.energy/u**2),
-            self.pars[2]/(log.energy/u**3),
-            self.pars[3]/(log.energy/u**4),
+            self.pars[0]/(log.energy.conversion/u),
+            self.pars[1]/(log.energy.conversion/u**2),
+            self.pars[2]/(log.energy.conversion/u**3),
+            self.pars[3]/(log.energy.conversion/u**4),
         )
 
 class Fues(ValenceTerm):
@@ -112,7 +112,7 @@ class Fues(ValenceTerm):
 
     def get_log(self):
         c = self.ics[0].get_conversion()
-        return '%s(FC=%.5e,RV=%.5e)' % (self.__class__.__name__, self.pars[0]/(log.energy/c**2), self.pars[1]/c)
+        return '%s(FC=%.5e,RV=%.5e)' % (self.__class__.__name__, self.pars[0]/(log.energy.conversion/c**2), self.pars[1]/c)
 
 
 class Cross(ValenceTerm):
@@ -125,7 +125,7 @@ class Cross(ValenceTerm):
         c1 = self.ics[1].get_conversion()
         return '%s(FC=%.5e,RV0=%.5e,RV1=%.5e)' % (
             self.__class__.__name__,
-            self.pars[0]/(log.energy/c0/c1),
+            self.pars[0]/(log.energy.conversion/c0/c1),
             self.pars[1]/c0,
             self.pars[2]/c1,
         )
