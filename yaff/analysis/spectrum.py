@@ -42,7 +42,8 @@ class Spectrum(object):
            f
                 An h5py.File instance containing the trajectory data. The
                 results of the spectral analysis will also be written to this
-                file in the folder '%s_spectrum/' % path
+                file in the group '%s_spectrum/' % path. If such a group already
+                exists. It will be removed first.
 
            **Optional arguments:**
 
@@ -64,8 +65,8 @@ class Spectrum(object):
 
            path
                 The path of the dataset that contains the time dependent data in
-                the HDF5 file. The first axis of the array must be the time axis
-                the spectra are summed over the other axes.
+                the HDF5 file. The first axis of the array must be the time
+                axis. The spectra are summed over the other axes.
 
            The max_sample argument from get_slice is not used because the choice
            step value is an important parameter: it is best to choose step*bsize
@@ -98,6 +99,7 @@ class Spectrum(object):
             raise NotImplementedError
 
     def compute_offline(self):
+        # Compute the amplitudes of the spectrum
         current = self.start
         stride = self.step*self.bsize
         work = np.zeros(self.bsize, float)
@@ -109,10 +111,20 @@ class Spectrum(object):
                 ds.read_direct(work, (slice(current, current+stride, self.step),) + indexes)
                 self.amps += abs(np.fft.rfft(work))**2
             current += stride
+        # Compute related arrays
         timestep = self.f['trajectory/time'][self.step] - self.f['trajectory/time'][0]
         self.freqs = np.arange(ssize)/(timestep*ssize)
         self.ac = np.fft.irfft(self.amps)[:ssize]
         self.time = np.arange(ssize)*timestep
+        # Write the results to the HDF5 file
+        gn = '%s_spectrum' % self.path
+        if gn in self.f:
+            del self.f[gn]
+        g = self.f.create_group(gn)
+        g['amps'] = self.amps
+        g['freqs'] = self.freqs
+        g['ac'] = self.ac
+        g['time'] = self.time
 
     def plot(self, fn_png='spectrum.png', do_wavenum=True):
         import matplotlib.pyplot as pt

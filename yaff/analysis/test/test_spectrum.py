@@ -31,11 +31,17 @@ def test_spectrum_offline():
     try:
         for bsize in 2, 4, 5:
             spectrum = Spectrum(f, bsize=bsize)
+            assert 'trajectory/vel_spectrum' in f
+            assert 'trajectory/vel_spectrum/amps' in f
+            assert 'trajectory/vel_spectrum/freqs' in f
+            assert 'trajectory/vel_spectrum/ac' in f
+            assert 'trajectory/vel_spectrum/time' in f
             fn_png = '%s/spectrum%i.png' % (dn_tmp, bsize)
             spectrum.plot(fn_png)
             assert os.path.isfile(fn_png)
             fn_png = '%s/ac%i.png' % (dn_tmp, bsize)
             spectrum.plot_ac(fn_png)
             assert os.path.isfile(fn_png)
+            del f['trajectory/vel_spectrum']
     finally:
         shutil.rmtree(dn_tmp)

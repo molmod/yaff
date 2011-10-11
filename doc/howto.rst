@@ -439,7 +439,6 @@ computations that can either be done in a post-processing step, or on-line.
 
 #. Something to estimate diffusion constants.
 
-#. Off-line analysis for spectrum. Add analysis results to hdf5 file for
-   spectrum.
+#. On-line analysis for spectrum.
 
 #. Port other things from MD-Tracks, including the conversion stuff.
