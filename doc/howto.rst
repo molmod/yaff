@@ -456,8 +456,10 @@ not start with a digit. Some examples of atom selectors:
  * ``TPA:C3`` -- an atom with type C3 in the TPA fragment.
  * ``!1`` -- anything that is not a hydrogen.
  * ``C2|C3`` -- an atom of type C2 or C3.
- * ``6|7&=1%1`` or ``(6|7)&=1%1`` -- a carbon or nitrogen bonded to exactly one hydrogen.
- * ``>0%{6|=4}`` -- an atom bonded to at least one carbon atom or bonded to at least one atom with four bonds.
+ * ``6|7&=1%1`` or ``(6|7)&=1%1`` -- a carbon or nitrogen bonded to exactly one
+   hydrogen.
+ * ``>0%(6|=4)`` -- an atom bonded to at least one carbon atom or bonded to at
+   least one atom with four bonds.
  * ``6&@6`` -- a Carbon atom that is part of a six-membered ring.
 
 The compiled ATSELECT expression takes two arguments: a ``System`` instance and
