@@ -449,7 +449,7 @@ completely ignored. An ATSELECT expression can be any of the following:
 
 In the list above, ``expr`` can be any valid ATSELECT expression. Atom types and
 scope names should not contain the following symbols: ``:``, ``%``, ``=``,
-``<``, ``>``, ``@``, ``(``, ``)``, ``&``, ``|``, ``!``, ``{``, ``}``, and should
+``<``, ``>``, ``@``, ``(``, ``)``, ``&``, ``|``, ``!``, and should
 not start with a digit. Some examples of atom selectors:
 
  * ``6`` -- any carbon atom.
@@ -511,7 +511,7 @@ system that does not have sufficient attributes, a ``ValueError`` is raised.
    The following methods must be supported in the system class::
 
     System.get_scope(self, index)
-    System.in_scope(self, index, scope)
+    System.get_ffatype(self, index)
 
    The scope data is stored in two attributes: an array or list with scope
    names, ``scopes``, and an integer array that links each atom with a scope,

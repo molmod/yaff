@@ -30,8 +30,17 @@ from yaff.pes.ext import Cell
 __all__ = ['System']
 
 
+def check_name(name):
+    """Raise an error if the given name is invalid."""
+    for symbol in ':%=<>@()&|!':
+        if symbol in name:
+            raise ValueError('A scope or atom type name should not contain \'%s\'. Invalid name: \'%s\'' % (symbol, name))
+    if symbol[0].isdigit():
+        raise ValueError('A scope or atom type name should not start with a digit.')
+
+
 class System(object):
-    def __init__(self, numbers, pos, ffatypes=None, bonds=None, rvecs=None, charges=None, masses=None):
+    def __init__(self, numbers, pos, ffatypes=None, ffatype_ids=None, scopes=None, scope_ids=None, bonds=None, rvecs=None, charges=None, masses=None):
         '''
            **Arguments:**
 
@@ -45,6 +54,27 @@ class System(object):
 
            ffatypes
                 A list of labels of the force field atom types.
+
+           ffatype_ids
+                A list of atom type indexes that links each atom with an element
+                of the list ffatypes. If this argument is not present, while
+                ffatypes is given, it is assumed that ffatypes contains an
+                atom type for every element, i.e. that it is a list with length
+                natom. In that case, it will be converted automatically to
+                a short ffatypes list with only unique elements (within each
+                scope) together with a corresponding ffatype_ids array.
+
+           scopes
+                A list with scope names
+
+           scope_ids
+                A list of scope indexes that links each atom with an element of
+                the scopes list. If this argument is not present, while scopes
+                is given, it is assumed that scopes contains a scope name for
+                every atom, i.e. that it is a list with length natom. In that
+                case, it will be converted automatically to a scopes list
+                with only unique name together with a corresponding scope_ids
+                array.
 
            bonds
                 a numpy array (B,2) with atom indexes (counting starts from
@@ -81,6 +111,9 @@ class System(object):
         self.numbers = numbers
         self.pos = pos
         self.ffatypes = ffatypes
+        self.ffatype_ids = ffatype_ids
+        self.scopes = scopes
+        self.scope_ids = scope_ids
         self.bonds = bonds
         self.cell = Cell(rvecs)
         self.charges = charges
@@ -91,6 +124,14 @@ class System(object):
     def _init_derived(self):
         if self.bonds is not None:
             self._init_derived_bonds()
+        if self.scopes is not None:
+            self.__init_derived_scopes()
+        elif self.scope_ids is not None:
+            raise ValueError('The scope_ids only make sense when the scopes argument is given.')
+        if self.ffatypes is not None:
+            self.__init_derived_ffatypes()
+        elif self.ffatype_ids is not None:
+            raise ValueError('The ffatype_ids only make sense when the ffatypes argument is given.')
 
     def _init_derived_bonds(self):
         # 1-bond neighbors
@@ -118,6 +159,59 @@ class System(object):
                     if i3 != i0 and i3 not in self.neighs1[i0] and i3 not in self.neighs2[i0]:
                         self.neighs3[i0].add(i3)
                         self.neighs3[i3].add(i0)
+
+    def _init_derived_scopes(self):
+        if self.scope_ids is None:
+            if len(self.scopes) != self.natom:
+                raise TypeError('When the scope_ids are derived automatically, the length of the scopes list must match the number of atoms.')
+            lookup = {}
+            scopes = []
+            self.scope_ids = np.zeros(self.natom, int)
+            for i in xrange(self.natom):
+                scope = self.scopes[i]
+                scope_id = lookup.get(scope)
+                if scope_id is None:
+                    scope_id = len(scopes)
+                    scopes.append(scope)
+                    lookup[scope] = scope_id
+                self.scope_ids[i] = scope_id
+            self.scopes = scopes
+        for scope in self.scopes:
+            check_name(scope)
+        # check the range of the ids
+        if self.scope_ids.min() < 0 or self.scope_ids.max() > len(self.scope):
+            raise ValueError('The ffatype_ids our out of bounds.')
+
+    def _init_derived_ffatypes(self):
+        if self.ffatype_ids is None:
+            if len(self.ffatypes) != self.natom:
+                raise TypeError('When the ffatype_ids are derived automatically, the length of the ffatypes list must match the number of atoms.')
+            lookup = {}
+            ffatypes = []
+            self.ffatype_ids = np.zeros(self.natom, int)
+            for i in xrange(self.natom):
+                if self.scope_ids is None:
+                    ffatype = self.ffatypes[i]
+                    key = ffatype, None
+                else:
+                    scope_id = self.scope_ids[i]
+                    ffatype = self.ffatypes[i]
+                    key = ffatype, scope_id
+                ffatype_id = lookup.get(key)[0]
+                if ffatype_id is None:
+                    ffatype_id = len(ffatypes)
+                    ffatypes.append(ffatypes)
+                    lookup[key] = ffatypes_id
+                self.ffatypes_ids[i] = ffatypes_id
+            self.ffatypes = ffatypes
+        for ffatype in self.ffatypes:
+            check_name(ffatype)
+        # check the range of the ids
+        if self.ffatype_ids.min() < 0 or self.ffatype_ids.max() > len(self.ffatypes):
+            raise ValueError('The ffatype_ids our out of bounds.')
+        # check that each ffatype_id occurs in only one scope_id
+        if self.scopes is not None:
+            raise NotImplementedError
 
     natom = property(lambda self: len(self.pos))
 
@@ -213,10 +307,15 @@ class System(object):
             'numbers': self.numbers,
             'pos': self.pos,
             'ffatypes': self.ffatypes,
+            'ffatype_ids': self.ffatype_ds,
+            'scopes': self.scopes,
+            'scope_ids': self.scope_ds,
             'bonds': self.bonds,
             'rvecs': self.cell.rvecs,
             'charges': self.charges,
             'masses': self.masses,
         })
         if log.do_high:
-            log('SYS', 'Wrote system to %s.' % fn_chk)
+            log.enter('SYS')
+            log('Wrote system to %s.' % fn_chk)
+            log.leave()
