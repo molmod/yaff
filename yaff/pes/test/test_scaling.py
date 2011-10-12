@@ -23,14 +23,15 @@
 
 import numpy as np
 
-from common import get_system_water32, get_system_glycine, get_system_quartz
+from yaff.test.common import get_system_water32, get_system_glycine, \
+    get_system_quartz
 
 from yaff import *
 
 
 def test_scaling_water32():
     system = get_system_water32()
-    scalings = Scalings(system.topology)
+    scalings = Scalings(system)
     assert len(scalings) == system.natom
     for i in xrange(system.natom):
         if system.numbers[i] == 8:
@@ -50,19 +51,19 @@ def test_scaling_water32():
 
 def test_scaling_glycine():
     system = get_system_glycine()
-    scalings = Scalings(system.topology, 1.0, 0.5, 0.2) # warning: absurd numbers
+    scalings = Scalings(system, 1.0, 0.5, 0.2) # warning: absurd numbers
     for i in xrange(system.natom):
-        assert len(scalings[i]) == len(system.topology.neighs2[i]) + len(system.topology.neighs3[i])
+        assert len(scalings[i]) == len(system.neighs2[i]) + len(system.neighs3[i])
         for j, scale in scalings[i]:
-            if j in system.topology.neighs2[i]:
+            if j in system.neighs2[i]:
                 assert scale == 0.5
-            if j in system.topology.neighs3[i]:
+            if j in system.neighs3[i]:
                 assert scale == 0.2
 
 
 def test_scaling_quartz():
     system = get_system_quartz()
-    scalings = Scalings(system.topology)
+    scalings = Scalings(system)
     assert len(scalings) == system.natom
     for i in xrange(system.natom):
         scaling = scalings[i]

@@ -24,7 +24,6 @@
 import numpy as np
 
 from yaff.log import log
-from yaff.pes.topology import Topology
 from yaff.pes.ext import Cell
 
 
@@ -32,7 +31,7 @@ __all__ = ['System']
 
 
 class System(object):
-    def __init__(self, numbers, pos, ffatypes, bonds=None, rvecs=None, charges=None, masses=None):
+    def __init__(self, numbers, pos, ffatypes=None, bonds=None, rvecs=None, charges=None, masses=None):
         '''
            **Arguments:**
 
@@ -42,10 +41,10 @@ class System(object):
            pos
                 A numpy array (N,3) with atomic coordinates in bohr.
 
+           **Optional arguments:**
+
            ffatypes
                 A list of labels of the force field atom types.
-
-           **Optional arguments:**
 
            bonds
                 a numpy array (B,2) with atom indexes (counting starts from
@@ -60,6 +59,18 @@ class System(object):
 
            masses
                 The atomic masses (in atomic units, i.e. m_e)
+
+
+           Several attributes are derived from the (optional) arguments:
+
+           * ``cell`` contains the rvecs attribute and is an instance of the
+             ``Cell`` class.
+
+           * ``neighs1``, ``neighs2`` and ``neighs3`` are dictionaries derived
+             from ``bonds`` that contain atoms that are separated 1, 2 and 3
+             bonds from a given atom, respectively. This means that i in
+             system.neighs3[j] is ``True`` if there are three bonds between
+             atoms i and j.
         '''
         if len(numbers.shape) != 1:
             raise ValueError('Argument numbers must be a one-dimensional array.')
@@ -70,13 +81,43 @@ class System(object):
         self.numbers = numbers
         self.pos = pos
         self.ffatypes = ffatypes
-        if bonds is None:
-            self.topology = None
-        else:
-            self.topology = Topology(bonds, self.natom)
+        self.bonds = bonds
         self.cell = Cell(rvecs)
         self.charges = charges
         self.masses = masses
+        # compute some derived attributes
+        self._init_derived()
+
+    def _init_derived(self):
+        if self.bonds is not None:
+            self._init_derived_bonds()
+
+    def _init_derived_bonds(self):
+        # 1-bond neighbors
+        self.neighs1 = dict((i,set([])) for i in xrange(self.natom))
+        for i0, i1 in self.bonds:
+            self.neighs1[i0].add(i1)
+            self.neighs1[i1].add(i0)
+        # 2-bond neighbors
+        self.neighs2 = dict((i,set([])) for i in xrange(self.natom))
+        for i0, n0 in self.neighs1.iteritems():
+            for i1 in n0:
+                for i2 in self.neighs1[i1]:
+                    # Require that there are no shorter paths than two bonds between
+                    # i0 and i2. Also avoid duplicates.
+                    if i2 > i0 and i2 not in self.neighs1[i0]:
+                        self.neighs2[i0].add(i2)
+                        self.neighs2[i2].add(i0)
+        # 3-bond neighbors
+        self.neighs3 = dict((i,set([])) for i in xrange(self.natom))
+        for i0, n0 in self.neighs1.iteritems():
+            for i1 in n0:
+                for i3 in self.neighs2[i1]:
+                    # Require that there are no shorter paths than three bonds
+                    # between i0 and i3. Also avoid duplicates.
+                    if i3 != i0 and i3 not in self.neighs1[i0] and i3 not in self.neighs2[i0]:
+                        self.neighs3[i0].add(i3)
+                        self.neighs3[i3].add(i0)
 
     natom = property(lambda self: len(self.pos))
 
@@ -172,7 +213,7 @@ class System(object):
             'numbers': self.numbers,
             'pos': self.pos,
             'ffatypes': self.ffatypes,
-            'bonds': self.topology.bonds,
+            'bonds': self.bonds,
             'rvecs': self.cell.rvecs,
             'charges': self.charges,
             'masses': self.masses,

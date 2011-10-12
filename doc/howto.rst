@@ -223,6 +223,10 @@ This is a simple example of a Lennard-Jones force field::
 
 #. [PARTIALLY DONE, TODO: TORSION, DAMPDISP, LJ, MM3, GRIMME] The generate method.
 
+#. Replace hammer by taper.
+
+#. Determine threshold automatically in ``check_delta`` routine in ``molmod``.
+
 
 Running an FF simulation
 ------------------------
@@ -392,20 +396,20 @@ ATSELECT: Selecting atoms
 =========================
 
 In several parts of the introduction, one can provide a list of atom indexes to
-limit an analysis, or a hook to a subset of the complete system. To facilitate
+limit an analysis or a hook to a subset of the complete system. To facilitate
 the creation of these lists, yaff introduces an atom-selection language similar
 to SMARTS patterns. This language can also be used to define atom types.
 
-The SMARTS system has the advantage to be very compact, but it has a few
+The SMARTS system has the advantage of being very compact, but it has a few
 disadvantages that make it poorly applicable in the Yaff context: e.g. it
 assumes that the hybridization state of first-row atoms and bond orders are
 known. The only real `knowns` in the Yaff context are: ``numbers``, (optionally)
 ``ffatypes``, (optionally) ``fragments`` and (optionally) ``bonds``. Therefore
-we introduce a new language, hereafter called `ATSELECT`, to select atoms from a
+we introduce a new language, hereafter called `ATSELECT`, to select atoms in a
 system.
 
 The syntax of the ATSELECT language is defined as follows. An ATSELECT
-expression consists of a single line, is case-sensitive. White-space is
+expression consists of a single line and is case-sensitive. White-space is
 completely ignored. An ATSELECT expression can be any of the following:
 
 ``[scope:]number``
@@ -470,9 +474,6 @@ System instance are ``None``. Whenever one uses a compiled expression on a
 system that does not have sufficient attributes, a ``ValueError`` is raised.
 
 **TODO:**
-
-#. Merge ``Topology`` and ``System`` classes. Move the ``system`` module to the
-   top-level ``yaff`` package. Make ``ffatypes`` optional.
 
 #. Implement the ``scope`` concept in the System class. A scope is a part of the
    system in which atom types and force field parameters are consistent. The

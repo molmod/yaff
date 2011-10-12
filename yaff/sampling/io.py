@@ -75,8 +75,8 @@ class HDF5Writer(Hook):
         sgrp.create_dataset('numbers', data=system.numbers)
         sgrp.create_dataset('pos', data=system.pos)
         sgrp.create_dataset('ffatypes', data=system.ffatypes, dtype='a10')
-        if system.topology is not None:
-            sgrp.create_dataset('bonds', data=system.topology.bonds)
+        if system.bonds is not None:
+            sgrp.create_dataset('bonds', data=system.bonds)
         if system.cell.nvec > 0:
             sgrp.create_dataset('rvecs', data=system.cell.rvecs)
         if system.charges is not None:

@@ -22,7 +22,7 @@
 
 
 from yaff import *
-from yaff.pes.test.common import get_system_water32
+from yaff.test.common import get_system_water32
 
 def get_ff_water32():
     system = get_system_water32()

@@ -25,13 +25,13 @@ import numpy as np
 
 from yaff import DeltaList
 
-from yaff.pes.test.common import get_system_graphene8, get_system_quartz, \
+from yaff.test.common import get_system_graphene8, get_system_quartz, \
     get_system_glycine
 
 
 def get_dlist_bonds(system):
     dlist = DeltaList(system)
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         dlist.add_delta(i, j)
     return dlist
 

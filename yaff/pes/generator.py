@@ -250,8 +250,8 @@ class ValenceGenerator(Generator):
             self.apply(par_table, system, ff_args)
 
     def apply(self, par_table, system, ff_args):
-        if system.topology is None:
-            raise ValueError('The system must have a topology (i.e. bonds) in order to define valence terms.')
+        if system.bonds is None:
+            raise ValueError('The system must have bonds in order to define valence terms.')
         part_valence = ff_args.get_part_valence(system)
         from yaff.pes.iclist import Bond
         from yaff.pes.vlist import Harmonic
@@ -278,7 +278,7 @@ class BondGenerator(ValenceGenerator):
         yield key[::-1]
 
     def iter_indexes(self, system):
-        for i0, i1 in system.topology.bonds:
+        for i0, i1 in system.bonds:
             yield i0, i1
 
 
@@ -304,8 +304,8 @@ class BendGenerator(ValenceGenerator):
 
     def iter_indexes(self, system):
         for i1 in xrange(system.natom):
-            for i0 in system.topology.neighs1[i1]:
-                for i2 in system.topology.neighs1[i1]:
+            for i0 in system.neighs1[i1]:
+                for i2 in system.neighs1[i1]:
                     if i0 > i2:
                         yield i0, i1, i2
 
@@ -410,7 +410,7 @@ class ExpRepGenerator(NonbondedGenerator):
                 amps[i], bs[i] = pars
 
         # Prepare the global parameters
-        scalings = Scalings(system.topology, scale_table[1], scale_table[2], scale_table[3])
+        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
         amp_mix, amp_mix_coeff = mixing_rules['A']
         if amp_mix == 0:
             amp_mix_coeff = 0.0
@@ -513,7 +513,7 @@ class FixedChargeGenerator(NonbondedGenerator):
                     raise NotImplementedError('TODO: support smeared charges.')
                 system.charges[i] += charge
                 radii[i] = radius
-        for i0, i1 in system.topology.bonds:
+        for i0, i1 in system.bonds:
             charge_transfer = bond_table.get((system.ffatypes[i0], system.ffatypes[i1]))
             if charge_transfer is None and log.do_warning:
                 log.warn('No charge transfer parameter for atom pair (%i,%i) with fftype (%s,%s).' % (i0, i1, system.ffatypes[i0], system.ffatypes[i1]))
@@ -522,7 +522,7 @@ class FixedChargeGenerator(NonbondedGenerator):
                 system.charges[i1] -= charge_transfer
 
         # prepare other parameters
-        scalings = Scalings(system.topology, scale_table[1], scale_table[2], scale_table[3])
+        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
 
         if dielectric != 1.0:
             raise NotImplementedError('Only a relative dielectric constant of 1 is supported.')

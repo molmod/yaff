@@ -23,7 +23,7 @@
 
 import numpy as np
 
-from common import get_system_water32, get_system_graphene8, \
+from yaff.test.common import get_system_water32, get_system_graphene8, \
     get_system_polyethylene4, get_system_quartz, get_system_glycine, \
     get_system_cyclopropene, get_system_caffeine, get_system_butanol
 
@@ -32,31 +32,30 @@ from yaff import *
 
 def test_topology_water32():
     system = get_system_water32()
-    t = system.topology
-    assert t.bonds[0,0] == 0
-    assert t.bonds[0,1] == 1
-    assert t.bonds[1,0] == 0
-    assert t.bonds[1,1] == 2
-    assert t.bonds[2,0] == 3
-    assert t.bonds[2,1] == 4
-    assert t.bonds[3,0] == 3
-    assert t.bonds[3,1] == 5
+    assert system.bonds[0,0] == 0
+    assert system.bonds[0,1] == 1
+    assert system.bonds[1,0] == 0
+    assert system.bonds[1,1] == 2
+    assert system.bonds[2,0] == 3
+    assert system.bonds[2,1] == 4
+    assert system.bonds[3,0] == 3
+    assert system.bonds[3,1] == 5
     for i in xrange(system.natom):
         if system.numbers[i] == 8:
-            assert len(t.neighs1[i]) == 2
-            n0, n1 = t.neighs1[i]
+            assert len(system.neighs1[i]) == 2
+            n0, n1 = system.neighs1[i]
             assert system.numbers[n0] == 1
             assert system.numbers[n1] == 1
-            assert len(t.neighs2[i]) == 0
-            assert len(t.neighs3[i]) == 0
+            assert len(system.neighs2[i]) == 0
+            assert len(system.neighs3[i]) == 0
         elif system.numbers[i] == 1:
-            assert len(t.neighs1[i]) == 1
-            n, = t.neighs1[i]
+            assert len(system.neighs1[i]) == 1
+            n, = system.neighs1[i]
             assert system.numbers[n] == 8
-            assert len(t.neighs2[i]) == 1
-            n, = t.neighs2[i]
+            assert len(system.neighs2[i]) == 1
+            n, = system.neighs2[i]
             assert system.numbers[n] == 1
-            assert len(t.neighs3[i]) == 0
+            assert len(system.neighs3[i]) == 0
 
 
 
@@ -81,18 +80,17 @@ def floyd_warshall(bonds, natom):
 
 
 def check_topology_slow(system):
-    t = system.topology
-    dmat = floyd_warshall(t.bonds, system.natom)
+    dmat = floyd_warshall(system.bonds, system.natom)
     # check dmat with neigs*
-    for i0, n0 in t.neighs1.iteritems():
+    for i0, n0 in system.neighs1.iteritems():
         for i1 in n0:
             assert dmat[i0, i1] == 1
             assert dmat[i1, i0] == 1
-    for i0, n0 in t.neighs2.iteritems():
+    for i0, n0 in system.neighs2.iteritems():
         for i2 in n0:
             assert dmat[i0, i2] == 2
             assert dmat[i2, i0] == 2
-    for i0, n0 in t.neighs3.iteritems():
+    for i0, n0 in system.neighs3.iteritems():
         for i3 in n0:
             assert dmat[i0, i3] == 3
             assert dmat[i3, i0] == 3
@@ -100,11 +98,11 @@ def check_topology_slow(system):
     for i0 in xrange(system.natom):
         for i1 in xrange(system.natom):
             if dmat[i0, i1] == 1:
-                assert i1 in t.neighs1[i0]
+                assert i1 in system.neighs1[i0]
             if dmat[i0, i1] == 2:
-                assert i1 in t.neighs2[i0]
+                assert i1 in system.neighs2[i0]
             if dmat[i0, i1] == 3:
-                assert i1 in t.neighs3[i0]
+                assert i1 in system.neighs3[i0]
 
 
 def test_topology_graphene8():

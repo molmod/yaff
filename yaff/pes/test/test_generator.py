@@ -26,7 +26,7 @@ import numpy as np
 from yaff import kjmol, angstrom, deg, angstrom
 from yaff import ForceField, ForcePartValence
 
-from yaff.pes.test.common import get_system_water32
+from yaff.test.common import get_system_water32
 
 
 def test_generator_water32_bondharm():
@@ -36,7 +36,7 @@ def test_generator_water32_bondharm():
     assert isinstance(ff.parts[0], ForcePartValence)
     part_valence = ff.parts[0]
     assert part_valence.dlist.ndelta == 64
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         row = part_valence.dlist.lookup.get((i, j))
         assert row is not None
     assert (part_valence.iclist.ictab['kind'] == 0).all()
@@ -54,7 +54,7 @@ def test_generator_water32_bondfues():
     assert isinstance(ff.parts[0], ForcePartValence)
     part_valence = ff.parts[0]
     assert part_valence.dlist.ndelta == 64
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         row = part_valence.dlist.lookup.get((i, j))
         assert row is not None
     assert (part_valence.iclist.ictab['kind'] == 0).all()
@@ -72,7 +72,7 @@ def test_generator_water32_bendaharm():
     assert isinstance(ff.parts[0], ForcePartValence)
     part_valence = ff.parts[0]
     assert part_valence.dlist.ndelta == 64
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         row = part_valence.dlist.lookup.get((i, j))
         assert row is not None
     assert (part_valence.iclist.ictab['kind'] == 2).all()
@@ -90,7 +90,7 @@ def test_generator_water32_bendcharm():
     assert isinstance(ff.parts[0], ForcePartValence)
     part_valence = ff.parts[0]
     assert part_valence.dlist.ndelta == 64
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         row = part_valence.dlist.lookup.get((i, j))
         assert row is not None
     assert (part_valence.iclist.ictab['kind'] == 1).all()

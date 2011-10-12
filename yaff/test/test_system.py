@@ -37,7 +37,7 @@ def test_chk():
         assert (system0.numbers == system1.numbers).all()
         assert abs(system0.pos - system1.pos).max() < 1e-10
         assert system0.ffatypes == list(system1.ffatypes)
-        assert (system0.topology.bonds == system1.topology.bonds).all()
+        assert (system0.bonds == system1.bonds).all()
         assert abs(system0.cell.rvecs - system1.cell.rvecs).max() < 1e-10
         assert abs(system0.charges - system1.charges).max() < 1e-10
     finally:

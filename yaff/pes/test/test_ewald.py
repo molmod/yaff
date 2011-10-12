@@ -25,8 +25,8 @@ import numpy as np
 
 from yaff import *
 
-from yaff.pes.test.common import get_system_water32, get_system_quartz, \
-    check_gpos_part, check_vtens_part
+from yaff.test.common import get_system_water32, get_system_quartz
+from yaff.pes.test.common import check_gpos_part, check_vtens_part
 
 
 def test_ewald_water32():
@@ -62,7 +62,7 @@ def check_alpha_depedence(system):
 def get_electrostatic_energy(alpha, system):
     # Creat system
     nlists = NeighborLists(system)
-    scalings = Scalings(system.topology, 0.0, 0.0, 0.5)
+    scalings = Scalings(system, 0.0, 0.0, 0.5)
     # Construct the ewald real-space potential and part
     ewald_real_pot = PairPotEI(system.charges, alpha, rcut=5.5/alpha)
     part_pair_ewald_real = ForcePartPair(system, nlists, scalings, ewald_real_pot)
@@ -118,7 +118,7 @@ def test_ewald_reci_volchange_quartz():
 
 def test_ewald_gpos_vtens_corr_water32():
     system = get_system_water32()
-    scalings = Scalings(system.topology, 0.0, 0.0, 0.5)
+    scalings = Scalings(system, 0.0, 0.0, 0.5)
     for alpha, eps in (0.05, 1e-15), (0.1, 1e-15), (0.2, 1e-12):
         part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
         check_gpos_part(system, part_ewald_corr, eps)
@@ -127,7 +127,7 @@ def test_ewald_gpos_vtens_corr_water32():
 
 def test_ewald_gpos_vtens_corr_quartz():
     system = get_system_quartz()
-    scalings = Scalings(system.topology, 0.0, 0.0, 0.5)
+    scalings = Scalings(system, 0.0, 0.0, 0.5)
     for alpha, eps in (0.1, 1e-12), (0.2, 1e-11), (0.5, 1e-11):
         part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
         check_gpos_part(system, part_ewald_corr, eps)

@@ -25,8 +25,9 @@ from molmod import bend_angle, bend_cos, dihed_angle, dihed_cos
 
 from yaff import *
 
-from common import get_system_quartz, get_system_water32, get_system_2T,\
-    get_system_peroxide, get_system_mil53, check_gpos_part, check_vtens_part
+from yaff.test.common import get_system_quartz, get_system_water32, \
+    get_system_2T, get_system_peroxide, get_system_mil53
+from yaff.pes.test.common import check_gpos_part, check_vtens_part
 
 
 def test_vlist_quartz_bonds():
@@ -34,18 +35,18 @@ def test_vlist_quartz_bonds():
     dlist = DeltaList(system)
     iclist = InternalCoordinateList(dlist)
     vlist = ValenceList(iclist)
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         vlist.add_term(Harmonic(2.3, 3.04+0.1*i, Bond(i, j)))
-    assert dlist.ndelta == len(system.topology.bonds)
-    assert iclist.nic == len(system.topology.bonds)
-    assert vlist.nv == len(system.topology.bonds)
+    assert dlist.ndelta == len(system.bonds)
+    assert iclist.nic == len(system.bonds)
+    assert vlist.nv == len(system.bonds)
     dlist.forward()
     iclist.forward()
     energy = vlist.forward()
     # compute energy manually
     check_energy = 0.0
     counter = 0
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         delta = system.pos[i] - system.pos[j]
         system.cell.mic(delta)
         d = np.linalg.norm(delta)
@@ -61,18 +62,18 @@ def test_vlist_quartz_bonds_fues():
     dlist = DeltaList(system)
     iclist = InternalCoordinateList(dlist)
     vlist = ValenceList(iclist)
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         vlist.add_term(Fues(2.3, 3.04+0.1*i, Bond(i, j)))
-    assert dlist.ndelta == len(system.topology.bonds)
-    assert iclist.nic == len(system.topology.bonds)
-    assert vlist.nv == len(system.topology.bonds)
+    assert dlist.ndelta == len(system.bonds)
+    assert iclist.nic == len(system.bonds)
+    assert vlist.nv == len(system.bonds)
     dlist.forward()
     iclist.forward()
     energy = vlist.forward()
     # compute energy manually
     check_energy = 0.0
     counter = 0
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         delta = system.pos[i] - system.pos[j]
         system.cell.mic(delta)
         d = np.linalg.norm(delta)
@@ -92,8 +93,8 @@ def test_vlist_quartz_bend_cos():
     vlist = ValenceList(iclist)
     angles = []
     for i1 in xrange(system.natom):
-        for i0 in system.topology.neighs1[i1]:
-            for i2 in system.topology.neighs1[i1]:
+        for i0 in system.neighs1[i1]:
+            for i2 in system.neighs1[i1]:
                 if i0 > i2:
                     vlist.add_term(Harmonic(1.1+0.01*i0, -0.2, BendCos(i0, i1, i2)))
                     angles.append((i0, i1, i2))
@@ -123,8 +124,8 @@ def test_vlist_quartz_bend_angle():
     vlist = ValenceList(iclist)
     angles = []
     for i1 in xrange(system.natom):
-        for i0 in system.topology.neighs1[i1]:
-            for i2 in system.topology.neighs1[i1]:
+        for i0 in system.neighs1[i1]:
+            for i2 in system.neighs1[i1]:
                 if i0 > i2:
                     vlist.add_term(Harmonic(1.5, 2.0+0.01*i2, BendAngle(i0, i1, i2)))
                     angles.append((i0, i1, i2))
@@ -154,7 +155,7 @@ def test_vlist_peroxide_dihed_cos():
         while len(bonds)<3:
             i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
             if i0==i1 or (i0,i1) in bonds or (i1,i0) in bonds: continue
-            if (i0,i1) in system.topology.bonds or (i1,i0) in system.topology.bonds:
+            if (i0,i1) in system.bonds or (i1,i0) in system.bonds:
                 iclist.add_ic(Bond(i0,i1))
                 bonds.append((i0,i1))
         vlist.add_term(Harmonic(1.1, -0.2 , DihedCos(0,1,2,3)))
@@ -178,7 +179,7 @@ def test_vlist_peroxide_dihed_angle():
         while len(bonds)<3:
             i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
             if i0==i1 or (i0,i1) in bonds or (i1,i0) in bonds: continue
-            if (i0,i1) in system.topology.bonds or (i1,i0) in system.topology.bonds:
+            if (i0,i1) in system.bonds or (i1,i0) in system.bonds:
                 iclist.add_ic(Bond(i0,i1))
                 bonds.append((i0,i1))
         vlist.add_term(Harmonic(1.5, 0.1 , DihedAngle(0,1,2,3)))
@@ -194,11 +195,11 @@ def test_vlist_peroxide_dihed_angle():
 def test_vlist_polyfour_water32():
     system = get_system_water32()
     part = ForcePartValence(system)
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         part.add_term(PolyFour([1.1+0.01*i, 0.8+0.01*j, 0.6+0.01*i, 0.4+0.01*j], Bond(i, j)))
     energy = part.compute()
     check_energy = 0.0
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         delta = system.pos[j] - system.pos[i]
         system.cell.mic(delta)
         bond = np.linalg.norm(delta)
@@ -210,8 +211,8 @@ def test_vlist_cross_water32():
     system = get_system_water32()
     part = ForcePartValence(system)
     for j in xrange(system.natom):
-        if len(system.topology.neighs1[j])==2:
-            i, k = system.topology.neighs1[j]
+        if len(system.neighs1[j])==2:
+            i, k = system.neighs1[j]
             part.add_term(Cross(
                     1.2,
                     1.7 + 0.01*i,
@@ -222,8 +223,8 @@ def test_vlist_cross_water32():
     energy = part.compute()
     check_energy = 0.0
     for j in xrange(system.natom):
-        if len(system.topology.neighs1[j])==2:
-            i, k = system.topology.neighs1[j]
+        if len(system.neighs1[j])==2:
+            i, k = system.neighs1[j]
             delta0 = system.pos[j] - system.pos[i]
             delta1 = system.pos[k] - system.pos[j]
             system.cell.mic(delta0)
@@ -237,19 +238,19 @@ def test_vlist_cross_water32():
 def test_vlist_dihedral_cos_mil53():
     system = get_system_mil53()
     part = ForcePartValence(system)
-    for i1, i2 in system.topology.bonds:
-        for i0 in system.topology.neighs1[i1]:
+    for i1, i2 in system.bonds:
+        for i0 in system.neighs1[i1]:
             if i0==i2: continue
-            for i3 in system.topology.neighs1[i2]:
+            for i3 in system.neighs1[i2]:
                 if i3==i1: continue
                 fc = 2.1 + 0.01*(0.3*i1 + 0.7*i2)
                 part.add_term(PolyFour([0.0,-2.0*fc,0.0,0.0],DihedCos(i0,i1,i2,i3)))
     energy = part.compute()
     check_energy = 0.0
-    for i1, i2 in system.topology.bonds:
-        for i0 in system.topology.neighs1[i1]:
+    for i1, i2 in system.bonds:
+        for i0 in system.neighs1[i1]:
             if i0==i2: continue
-            for i3 in system.topology.neighs1[i2]:
+            for i3 in system.neighs1[i2]:
                 if i3==i1: continue
                 fc = 2.1 + 0.01*(0.3*i1 + 0.7*i2)
                 delta0 = system.pos[i0] - system.pos[i1]
@@ -267,7 +268,7 @@ def test_vlist_dihedral_cos_mil53():
 def test_gpos_vtens_bond_water32():
     system = get_system_water32()
     part = ForcePartValence(system)
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         part.add_term(Harmonic(0.3, 1.7, Bond(i, j)))
     check_gpos_part(system, part, 1e-10)
     check_vtens_part(system, part, 1e-7)
@@ -276,7 +277,7 @@ def test_gpos_vtens_bond_water32():
 def test_gpos_vtens_bond_fues_water32():
     system = get_system_water32()
     part = ForcePartValence(system)
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         part.add_term(Fues(0.3, 1.7, Bond(i, j)))
     check_gpos_part(system, part, 1e-10)
     check_vtens_part(system, part, 1e-7)
@@ -286,8 +287,8 @@ def test_gpos_vtens_bend_cos_water32():
     system = get_system_water32()
     part = ForcePartValence(system)
     for i1 in xrange(system.natom):
-        for i0 in system.topology.neighs1[i1]:
-            for i2 in system.topology.neighs1[i1]:
+        for i0 in system.neighs1[i1]:
+            for i2 in system.neighs1[i1]:
                 if i0 > i2:
                     part.add_term(Harmonic(1.1+0.01*i0, -0.2, BendCos(i0, i1, i2)))
     check_gpos_part(system, part, 1e-10)
@@ -298,8 +299,8 @@ def test_gpos_vtens_bend_angle_water32():
     system = get_system_water32()
     part = ForcePartValence(system)
     for i1 in xrange(system.natom):
-        for i0 in system.topology.neighs1[i1]:
-            for i2 in system.topology.neighs1[i1]:
+        for i0 in system.neighs1[i1]:
+            for i2 in system.neighs1[i1]:
                 if i0 > i2:
                     part.add_term(Harmonic(1.5, 2.0+0.01*i2, BendAngle(i0, i1, i2)))
     check_gpos_part(system, part, 1e-10)
@@ -356,12 +357,12 @@ def test_gpos_vtens_2T():
     }
 
     part = ForcePartValence(system)
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         key = system.ffatypes[i], system.ffatypes[j]
         part.add_term(Harmonic(fc_table[key], rv_table[key], Bond(i, j)))
     for i1 in xrange(system.natom):
-        for i0 in system.topology.neighs1[i1]:
-            for i2 in system.topology.neighs1[i1]:
+        for i0 in system.neighs1[i1]:
+            for i2 in system.neighs1[i1]:
                 key = system.ffatypes[i0], system.ffatypes[i1], system.ffatypes[i2]
                 if i0 > i2:
                     part.add_term(Harmonic(fc_table[key], rv_table[key], BendAngle(i0, i1, i2)))
@@ -369,12 +370,12 @@ def test_gpos_vtens_2T():
     check_vtens_part(system, part, 1e-10)
     # same test but with Fues bonds instead of Harmonic bonds
     part = ForcePartValence(system)
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         key = system.ffatypes[i], system.ffatypes[j]
         part.add_term(Fues(fc_table[key], rv_table[key], Bond(i, j)))
     for i1 in xrange(system.natom):
-        for i0 in system.topology.neighs1[i1]:
-            for i2 in system.topology.neighs1[i1]:
+        for i0 in system.neighs1[i1]:
+            for i2 in system.neighs1[i1]:
                 key = system.ffatypes[i0], system.ffatypes[i1], system.ffatypes[i2]
                 if i0 > i2:
                     part.add_term(Harmonic(fc_table[key], rv_table[key], BendAngle(i0, i1, i2)))
@@ -396,12 +397,12 @@ def test_gpos_vtens_quartz():
     }
 
     part = ForcePartValence(system)
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         key = system.ffatypes[i], system.ffatypes[j]
         part.add_term(Harmonic(fc_table[key], rv_table[key], Bond(i, j)))
     for i1 in xrange(system.natom):
-        for i0 in system.topology.neighs1[i1]:
-            for i2 in system.topology.neighs1[i1]:
+        for i0 in system.neighs1[i1]:
+            for i2 in system.neighs1[i1]:
                 key = system.ffatypes[i0], system.ffatypes[i1], system.ffatypes[i2]
                 if i0 > i2:
                     part.add_term(Harmonic(fc_table[key], rv_table[key], BendAngle(i0, i1, i2)))
@@ -413,7 +414,7 @@ def test_gpos_vtens_quartz():
 def test_gpos_vtens_polyfour_water32():
     system = get_system_water32()
     part = ForcePartValence(system)
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         part.add_term(PolyFour([-0.5, 0.3, -0.16, 0.09], Bond(i, j)))
     check_gpos_part(system, part, 1e-9)
     check_vtens_part(system, part, 1e-7)
@@ -423,8 +424,8 @@ def test_gpos_vtens_cross_water32():
     system = get_system_water32()
     part = ForcePartValence(system)
     for j in xrange(system.natom):
-        if len(system.topology.neighs1[j])==2:
-            i, k = system.topology.neighs1[j]
+        if len(system.neighs1[j])==2:
+            i, k = system.neighs1[j]
             part.add_term(Cross(
                     1.2,
                     1.7,
@@ -453,10 +454,10 @@ def test_gpos_vtens_dihedral_cos_mil53():
         ["C_PH","C_PC","C_CA","O_CA"],
     ]
     idih = -1
-    for i1, i2 in system.topology.bonds:
-        for i0 in system.topology.neighs1[i1]:
+    for i1, i2 in system.bonds:
+        for i0 in system.neighs1[i1]:
             if i0==i2: continue
-            for i3 in system.topology.neighs1[i2]:
+            for i3 in system.neighs1[i2]:
                 if i3==i1: continue
                 types = [system.ffatypes[i0], system.ffatypes[i1], system.ffatypes[i2], system.ffatypes[i3]]
                 if types in forbidden_dihedrals or types[::-1] in forbidden_dihedrals: continue
@@ -472,8 +473,8 @@ def test_gpos_vtens_ub_water():
     system = get_system_water32()
     part = ForcePartValence(system)
     for i1 in xrange(system.natom):
-        for i0 in system.topology.neighs1[i1]:
-            for i2 in system.topology.neighs1[i1]:
+        for i0 in system.neighs1[i1]:
+            for i2 in system.neighs1[i1]:
                 if i0 > i2:
                     part.add_term(Harmonic(2.1,2.0*angstrom,UreyBradley(i0, i1, i2)))
     check_gpos_part(system, part, 1e-10)

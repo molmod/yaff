@@ -28,5 +28,3 @@ from yaff.pes.generator import *
 from yaff.pes.ff import *
 from yaff.pes.nlists import *
 from yaff.pes.scaling import *
-from yaff.pes.system import *
-from yaff.pes.topology import *

@@ -28,21 +28,21 @@ __all__ = ['Scalings']
 
 
 class Scalings(object):
-    def __init__(self, topology, scale1=0.0, scale2=0.0, scale3=1.0):
+    def __init__(self, system, scale1=0.0, scale2=0.0, scale3=1.0):
         self.items = []
         self.scale1 = scale1
         self.scale2 = scale2
         self.scale3 = scale3
-        for i0 in xrange(topology.natom):
+        for i0 in xrange(system.natom):
             slist = []
             if scale1 < 1.0:
-                for i1 in topology.neighs1[i0]:
+                for i1 in system.neighs1[i0]:
                     slist.append((i1, scale1))
             if scale2 < 1.0:
-                for i2 in  topology.neighs2[i0]:
+                for i2 in  system.neighs2[i0]:
                     slist.append((i2, scale2))
             if scale3 < 1.0:
-                for i3 in topology.neighs3[i0]:
+                for i3 in system.neighs3[i0]:
                     slist.append((i3, scale3))
             slist.sort()
             self.items.append(np.array(slist, dtype=[('i', int), ('scale', float)]))

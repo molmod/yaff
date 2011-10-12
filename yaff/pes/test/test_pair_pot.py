@@ -26,8 +26,9 @@ from scipy.special import erfc
 
 from molmod import angstrom, kcalmol
 
-from yaff.pes.test.common import get_system_water32, get_system_caffeine, \
-    check_gpos_part, check_vtens_part, get_system_2atoms
+from yaff.test.common import get_system_water32, get_system_caffeine, \
+    get_system_2atoms
+from yaff.pes.test.common import check_gpos_part, check_vtens_part
 
 from yaff import *
 
@@ -83,10 +84,10 @@ def check_pair_pot_water32(system, nlists, scalings, part_pair, pair_fn, eps):
 
 
 def get_part_water32_9A_lj():
-    # Initialize system, topology and scaling
+    # Initialize system, nlists and scaling
     system = get_system_water32()
     nlists = NeighborLists(system)
-    scalings = Scalings(system.topology)
+    scalings = Scalings(system)
     # Initialize parameters
     rminhalf_table = {1: 0.2245*angstrom, 8: 1.7682*angstrom}
     epsilon_table = {1: -0.0460*kcalmol, 8: -0.1521*kcalmol}
@@ -116,10 +117,10 @@ def test_pair_pot_lj_water32_9A():
 
 
 def get_part_water32_9A_mm3():
-    # Initialize system, topology and scaling
+    # Initialize system, nlists and scaling
     system = get_system_water32()
     nlists = NeighborLists(system)
-    scalings = Scalings(system.topology)
+    scalings = Scalings(system)
     # Initialize parameters
     sigma_table  = {1: 1.62*angstrom, 8: 1.82*angstrom}
     epsilon_table = {1: 0.020*kcalmol, 8: 0.059*kcalmol}
@@ -152,10 +153,10 @@ def test_pair_pot_mm3_water32_9A():
 
 
 def get_part_water32_9A_grimme():
-    # Initialize system, topology and scaling
+    # Initialize system, nlists and scaling
     system = get_system_water32()
     nlists = NeighborLists(system)
-    scalings = Scalings(system.topology)
+    scalings = Scalings(system)
     # Initialize parameters
     r0_table = {1: 1.001*angstrom, 8: 1.342*angstrom}
     c6_table = {1: 0.14*1e-3*kjmol*nanometer**6, 8: 0.70*1e-3*kjmol*nanometer**6}
@@ -187,10 +188,10 @@ def test_pair_pot_grimme_water32_9A():
 
 
 def get_part_water32_5A_exprep(amp_mix, amp_mix_coeff, b_mix, b_mix_coeff):
-    # Initialize system, topology and scaling
+    # Initialize system, nlists and scaling
     system = get_system_water32()
     nlists = NeighborLists(system)
-    scalings = Scalings(system.topology, 0.0, 1.0, 1.0)
+    scalings = Scalings(system, 0.0, 1.0, 1.0)
     # Initialize parameters
     amp_table = {1: 2.3514195495e+00, 8: 4.2117588157e+02}
     b_table = {1: 4.4107388814e+00/angstrom, 8: 4.4661933834e+00/angstrom}
@@ -281,7 +282,7 @@ def get_part_caffeine_lj_15A():
     # Get a system and define scalings
     system = get_system_caffeine()
     nlists = NeighborLists(system)
-    scalings = Scalings(system.topology, 0.0, 1.0, 0.5)
+    scalings = Scalings(system, 0.0, 1.0, 0.5)
     # Initialize (random) parameters
     rminhalf_table = {
         1: 0.2245*angstrom,
@@ -321,7 +322,7 @@ def get_part_caffeine_mm3_15A():
     # Get a system and define scalings
     system = get_system_caffeine()
     nlists = NeighborLists(system)
-    scalings = Scalings(system.topology, 0.0, 1.0, 0.5)
+    scalings = Scalings(system, 0.0, 1.0, 0.5)
     # Initialize (random) parameters
     rminhalf_table = {
         1: 0.2245*angstrom,
@@ -361,7 +362,7 @@ def get_part_caffeine_grimme_15A():
     # Get a system and define scalings
     system = get_system_caffeine()
     nlists = NeighborLists(system)
-    scalings = Scalings(system.topology, 0.0, 1.0, 0.5)
+    scalings = Scalings(system, 0.0, 1.0, 0.5)
     # Initialize (random) parameters
     r0_table = {
         1: 1.001*angstrom,
@@ -400,7 +401,7 @@ def get_part_caffeine_exprep_5A(amp_mix, amp_mix_coeff, b_mix, b_mix_coeff):
     # Get a system and define scalings
     system = get_system_caffeine()
     nlists = NeighborLists(system)
-    scalings = Scalings(system.topology, 0.0, 1.0, 1.0)
+    scalings = Scalings(system, 0.0, 1.0, 1.0)
     # Initialize (random) parameters
     amp_table = {
         1: 2.35,
@@ -457,7 +458,7 @@ def get_part_caffeine_ei1_10A():
     # Get a system and define scalings
     system = get_system_caffeine()
     nlists = NeighborLists(system)
-    scalings = Scalings(system.topology, 0.0, 1.0, 0.5)
+    scalings = Scalings(system, 0.0, 1.0, 0.5)
     # Initialize (random) parameters
     system.charges = np.random.uniform(0, 1, system.natom)
     system.charges -= system.charges.sum()
@@ -481,7 +482,7 @@ def get_part_caffeine_ei2_10A():
     # Get a system and define scalings
     system = get_system_caffeine()
     nlists = NeighborLists(system)
-    scalings = Scalings(system.topology, 0.0, 1.0, 0.5)
+    scalings = Scalings(system, 0.0, 1.0, 0.5)
     # Initialize (random) parameters
     system.charges = np.random.uniform(0, 1, system.natom)
     system.charges -= system.charges.sum()
@@ -562,7 +563,7 @@ def test_gpos_vtens_pair_pot_caffeine_ei2_10A():
 def test_pair_pot_grimme_2atoms():
     system = get_system_2atoms()
     nlists = NeighborLists(system)
-    scalings = Scalings(system.topology, 1.0, 1.0, 1.0)
+    scalings = Scalings(system, 1.0, 1.0, 1.0)
     R0 = 1.452*angstrom
     C6 = 1.75*1e-3*kjmol*nanometer**6
     pair_pot = PairPotGrimme(np.array([R0, R0]), np.array([C6, C6]), 15*angstrom, False)

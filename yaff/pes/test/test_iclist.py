@@ -27,7 +27,7 @@ from nose.plugins.skip import SkipTest
 
 from yaff import *
 
-from yaff.pes.test.common import get_system_quartz, get_system_peroxide, \
+from yaff.test.common import get_system_quartz, get_system_peroxide, \
     get_system_mil53, get_system_water32
 
 
@@ -35,11 +35,11 @@ def test_iclist_quartz_bonds():
     system = get_system_quartz()
     dlist = DeltaList(system)
     iclist = InternalCoordinateList(dlist)
-    for i, j in system.topology.bonds:
+    for i, j in system.bonds:
         iclist.add_ic(Bond(i, j))
     dlist.forward()
     iclist.forward()
-    for row, (i, j) in enumerate(system.topology.bonds):
+    for row, (i, j) in enumerate(system.bonds):
         delta = system.pos[j] - system.pos[i]
         system.cell.mic(delta)
         assert abs(iclist.ictab[row]['value'] - bond_length([np.zeros(3, float), delta])[0]) < 1e-5
@@ -51,8 +51,8 @@ def test_iclist_quartz_bend_cos():
     iclist = InternalCoordinateList(dlist)
     angles = []
     for i1 in xrange(system.natom):
-        for i0 in system.topology.neighs1[i1]:
-            for i2 in system.topology.neighs1[i1]:
+        for i0 in system.neighs1[i1]:
+            for i2 in system.neighs1[i1]:
                 if i0 > i2:
                     iclist.add_ic(BendCos(i0, i1, i2))
                     angles.append((i0, i1, i2))
@@ -72,8 +72,8 @@ def test_iclist_quartz_bend_angle():
     iclist = InternalCoordinateList(dlist)
     angles = []
     for i1 in xrange(system.natom):
-        for i0 in system.topology.neighs1[i1]:
-            for i2 in system.topology.neighs1[i1]:
+        for i0 in system.neighs1[i1]:
+            for i2 in system.neighs1[i1]:
                 if i0 > i2:
                     iclist.add_ic(BendAngle(i0, i1, i2))
                     angles.append((i0, i1, i2))
@@ -97,7 +97,7 @@ def test_iclist_peroxide_dihedral_cos():
         while len(bonds)<3:
             i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
             if i0==i1 or (i0,i1) in bonds or (i1,i0) in bonds: continue
-            if (i0,i1) in system.topology.bonds or (i1,i0) in system.topology.bonds:
+            if (i0,i1) in system.bonds or (i1,i0) in system.bonds:
                 iclist.add_ic(Bond(i0,i1))
                 bonds.append((i0,i1))
         iclist.add_ic(DihedCos(0,1,2,3))
@@ -117,7 +117,7 @@ def test_iclist_peroxide_dihedral_angle():
         while len(bonds)<3:
             i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
             if i0==i1 or (i0,i1) in bonds or (i1,i0) in bonds: continue
-            if (i0,i1) in system.topology.bonds or (i1,i0) in system.topology.bonds:
+            if (i0,i1) in system.bonds or (i1,i0) in system.bonds:
                 iclist.add_ic(Bond(i0,i1))
                 bonds.append((i0,i1))
         iclist.add_ic(DihedAngle(0,1,2,3))
@@ -136,10 +136,10 @@ def test_iclist_grad_dihedral_cos_mil53():
         ["O_CA","AL","O_CA","C_CA"],
     ]
     idih = -1
-    for i1, i2 in system.topology.bonds:
-        for i0 in system.topology.neighs1[i1]:
+    for i1, i2 in system.bonds:
+        for i0 in system.neighs1[i1]:
             if i0==i2: continue
-            for i3 in system.topology.neighs1[i2]:
+            for i3 in system.neighs1[i2]:
                 if i3==i1: continue
                 types = [system.ffatypes[i0], system.ffatypes[i1], system.ffatypes[i2], system.ffatypes[i3]]
                 if types in forbidden_dihedrals or types[::-1] in forbidden_dihedrals: continue
@@ -217,8 +217,8 @@ def test_iclist_ub_water():
     iclist = InternalCoordinateList(dlist)
     ub = []
     for i1 in xrange(system.natom):
-        for i0 in system.topology.neighs1[i1]:
-            for i2 in system.topology.neighs1[i1]:
+        for i0 in system.neighs1[i1]:
+            for i2 in system.neighs1[i1]:
                 if i0 > i2:
                     iclist.add_ic(UreyBradley(i0, i1, i2))
                     ub.append((i0, i1, i2))

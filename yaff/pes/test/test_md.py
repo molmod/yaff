@@ -29,24 +29,24 @@ from molmod.io import XYZWriter
 
 from yaff import *
 
-from yaff.pes.test.common import get_system_water32, check_gpos_ff, \
-    check_vtens_ff
+from yaff.test.common import get_system_water32
+from yaff.pes.test.common import check_gpos_ff, check_vtens_ff
 
 
 def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=False):
     system = get_system_water32()
     rcut = 9*angstrom
     alpha = 4.5/rcut
-    scalings = Scalings(system.topology)
+    scalings = Scalings(system)
     parts = []
     if do_valence:
         # Valence part
         part_valence = ForcePartValence(system)
-        for i, j in system.topology.bonds:
+        for i, j in system.bonds:
             part_valence.add_term(Harmonic(450.0*kcalmol/angstrom**2, 0.9572*angstrom, Bond(i, j)))
         for i1 in xrange(system.natom):
-            for i0 in system.topology.neighs1[i1]:
-                for i2 in system.topology.neighs1[i1]:
+            for i0 in system.neighs1[i1]:
+                for i2 in system.neighs1[i1]:
                     if i0 > i2:
                         part_valence.add_term(Harmonic(55.000*kcalmol/rad**2, 104.52*deg, BendAngle(i0, i1, i2)))
         parts.append(part_valence)
