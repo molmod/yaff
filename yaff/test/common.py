@@ -23,7 +23,7 @@
 
 import numpy as np
 
-from molmod import angstrom, check_delta
+from molmod import angstrom
 
 from yaff import *
 

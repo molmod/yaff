@@ -509,50 +509,50 @@ def test_pair_pot_ei2_caffeine_10A():
 
 def test_gpos_vtens_pair_pot_water_lj_9A():
     system, nlists, scalings, part_pair, pair_fn = get_part_water32_9A_lj()
-    check_gpos_part(system, part_pair, 1e-10, nlists)
-    check_vtens_part(system, part_pair, 1e-10, nlists)
+    check_gpos_part(system, part_pair, nlists)
+    check_vtens_part(system, part_pair, nlists)
 
 
 def test_gpos_vtens_pair_pot_caffeine_lj_15A():
     system, nlists, scalings, part_pair, pair_fn = get_part_caffeine_lj_15A()
-    check_gpos_part(system, part_pair, 1e-10, nlists)
-    check_vtens_part(system, part_pair, 1e-8, nlists)
+    check_gpos_part(system, part_pair, nlists)
+    check_vtens_part(system, part_pair, nlists)
 
 
 def test_gpos_vtens_pair_pot_caffeine_mm3_15A():
     system, nlists, scalings, part_pair, pair_fn = get_part_caffeine_mm3_15A()
-    check_gpos_part(system, part_pair, 1e-10, nlists)
-    check_vtens_part(system, part_pair, 1e-8, nlists)
+    check_gpos_part(system, part_pair, nlists)
+    check_vtens_part(system, part_pair, nlists)
 
 
 def test_gpos_vtens_pair_pot_caffeine_grimme_15A():
     system, nlists, scalings, part_pair, pair_fn = get_part_caffeine_grimme_15A()
-    check_gpos_part(system, part_pair, 1e-10, nlists)
-    check_vtens_part(system, part_pair, 1e-8, nlists)
+    check_gpos_part(system, part_pair, nlists)
+    check_vtens_part(system, part_pair, nlists)
 
 
 def test_gpos_vtens_pair_pot_water_exprep_5A_case1():
     system, nlists, scalings, part_pair, pair_fn = get_part_caffeine_exprep_5A(0, 0.0, 0, 0.0)
-    check_gpos_part(system, part_pair, 1e-9, nlists)
-    check_vtens_part(system, part_pair, 1e-9, nlists)
+    check_gpos_part(system, part_pair, nlists)
+    check_vtens_part(system, part_pair, nlists)
 
 
 def test_gpos_vtens_pair_pot_water_exprep_5A_case2():
     system, nlists, scalings, part_pair, pair_fn = get_part_caffeine_exprep_5A(1, 2.385e-2, 1, 7.897e-3)
-    check_gpos_part(system, part_pair, 1e-9, nlists)
-    check_vtens_part(system, part_pair, 1e-9, nlists)
+    check_gpos_part(system, part_pair, nlists)
+    check_vtens_part(system, part_pair, nlists)
 
 
 def test_gpos_vtens_pair_pot_caffeine_ei1_10A():
     system, nlists, scalings, part_pair, pair_fn = get_part_caffeine_ei1_10A()
-    check_gpos_part(system, part_pair, 1e-8, nlists)
-    check_vtens_part(system, part_pair, 1e-6, nlists)
+    check_gpos_part(system, part_pair, nlists)
+    check_vtens_part(system, part_pair, nlists)
 
 
 def test_gpos_vtens_pair_pot_caffeine_ei2_10A():
     system, nlists, scalings, part_pair, pair_fn = get_part_caffeine_ei2_10A()
-    check_gpos_part(system, part_pair, 1e-8, nlists)
-    check_vtens_part(system, part_pair, 1e-7, nlists)
+    check_gpos_part(system, part_pair, nlists)
+    check_vtens_part(system, part_pair, nlists)
 
 
 #

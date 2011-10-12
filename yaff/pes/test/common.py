@@ -23,7 +23,7 @@
 
 import numpy as np
 
-from molmod import angstrom, check_delta
+from molmod import check_delta
 
 from yaff import *
 
@@ -33,7 +33,7 @@ __all__ = [
 ]
 
 
-def check_gpos_part(system, part, eps, nlists=None):
+def check_gpos_part(system, part, nlists=None):
     def fn(x, do_gradient=False):
         system.pos[:] = x.reshape(system.natom, 3)
         if nlists is not None:
@@ -51,10 +51,10 @@ def check_gpos_part(system, part, eps, nlists=None):
 
     x = system.pos.ravel()
     dxs = np.random.normal(0, 1e-4, (100, len(x)))
-    check_delta(fn, x, dxs, eps)
+    check_delta(fn, x, dxs)
 
 
-def check_vtens_part(system, part, eps, nlists=None):
+def check_vtens_part(system, part, nlists=None):
     # define some rvecs and gvecs
     if system.cell.nvec == 3:
         gvecs = system.cell.gvecs
@@ -91,10 +91,10 @@ def check_vtens_part(system, part, eps, nlists=None):
 
     x = rvecs.ravel()
     dxs = np.random.normal(0, 1e-4, (100, len(x)))
-    check_delta(fn, x, dxs, eps)
+    check_delta(fn, x, dxs)
 
 
-def check_gpos_ff(ff, eps):
+def check_gpos_ff(ff):
     def fn(x, do_gradient=False):
         ff.update_pos(x.reshape(ff.system.natom, 3))
         if do_gradient:
@@ -110,10 +110,10 @@ def check_gpos_ff(ff, eps):
 
     x = ff.system.pos.ravel()
     dxs = np.random.normal(0, 1e-4, (100, len(x)))
-    check_delta(fn, x, dxs, eps)
+    check_delta(fn, x, dxs)
 
 
-def check_vtens_ff(ff, eps):
+def check_vtens_ff(ff):
     # define some rvecs and gvecs
     if ff.system.cell.nvec == 3:
         gvecs = ff.system.cell.gvecs
@@ -148,4 +148,4 @@ def check_vtens_ff(ff, eps):
 
     x = rvecs.ravel()
     dxs = np.random.normal(0, 1e-4, (100, len(x)))
-    check_delta(fn, x, dxs, eps)
+    check_delta(fn, x, dxs)

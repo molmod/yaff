@@ -82,18 +82,18 @@ def get_electrostatic_energy(alpha, system):
 
 def test_ewald_gpos_vtens_reci_water32():
     system = get_system_water32()
-    for alpha, eps in (0.05, 1e-17), (0.1, 1e-13), (0.2, 1e-11):
+    for alpha in 0.05, 0.1, 0.2:
         part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=alpha/0.75)
-        check_gpos_part(system, part_ewald_reci, eps)
-        check_vtens_part(system, part_ewald_reci, eps)
+        check_gpos_part(system, part_ewald_reci)
+        check_vtens_part(system, part_ewald_reci)
 
 
 def test_ewald_gpos_vtens_reci_quartz():
     system = get_system_quartz()
-    for alpha, eps in (0.1, 1e-16), (0.2, 1e-12), (0.5, 1e-12):
+    for alpha in 0.1, 0.2, 0.5:
         part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=alpha/0.5)
-        check_gpos_part(system, part_ewald_reci, eps)
-        check_vtens_part(system, part_ewald_reci, eps)
+        check_gpos_part(system, part_ewald_reci)
+        check_vtens_part(system, part_ewald_reci)
 
 
 def test_ewald_reci_volchange_quartz():
@@ -119,25 +119,25 @@ def test_ewald_reci_volchange_quartz():
 def test_ewald_gpos_vtens_corr_water32():
     system = get_system_water32()
     scalings = Scalings(system, 0.0, 0.0, 0.5)
-    for alpha, eps in (0.05, 1e-15), (0.1, 1e-15), (0.2, 1e-12):
+    for alpha in 0.05, 0.1, 0.2:
         part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
-        check_gpos_part(system, part_ewald_corr, eps)
-        check_vtens_part(system, part_ewald_corr, eps)
+        check_gpos_part(system, part_ewald_corr)
+        check_vtens_part(system, part_ewald_corr)
 
 
 def test_ewald_gpos_vtens_corr_quartz():
     system = get_system_quartz()
     scalings = Scalings(system, 0.0, 0.0, 0.5)
-    for alpha, eps in (0.1, 1e-12), (0.2, 1e-11), (0.5, 1e-11):
+    for alpha in 0.1, 0.2, 0.5:
         part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
-        check_gpos_part(system, part_ewald_corr, eps)
-        check_vtens_part(system, part_ewald_corr, eps)
+        check_gpos_part(system, part_ewald_corr)
+        check_vtens_part(system, part_ewald_corr)
 
 
 def test_ewald_vtens_neut_water32():
     # fake water model, negative oxygens and neutral hydrogens
     system = get_system_water32()
     system.charges -= 0.1
-    for alpha, eps in (0.05, 1e-10), (0.1, 1e-10), (0.2, 1e-10):
+    for alpha in 0.05, 0.1, 0.2:
         part_ewald_neut = ForcePartEwaldNeutralizing(system, alpha)
-        check_vtens_part(system, part_ewald_neut, eps)
+        check_vtens_part(system, part_ewald_neut)

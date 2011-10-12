@@ -85,12 +85,12 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
 
 def test_gpos_water32_full():
     ff = get_ff_water32(True, True, True, True)
-    check_gpos_ff(ff, 1e-10)
+    check_gpos_ff(ff)
 
 
 def test_vtens_water32_full():
     ff = get_ff_water32(True, True, True, True)
-    check_vtens_ff(ff, 1e-10)
+    check_vtens_ff(ff)
 
 
 def test_md_water32_full():

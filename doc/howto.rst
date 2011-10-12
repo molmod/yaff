@@ -225,8 +225,6 @@ This is a simple example of a Lennard-Jones force field::
 
 #. Replace hammer by taper.
 
-#. Determine threshold automatically in ``check_delta`` routine in ``molmod``.
-
 
 Running an FF simulation
 ------------------------
