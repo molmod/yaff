@@ -59,7 +59,7 @@ examples below often use Numpy too, assuming the following import statement::
 
 
 Setting up a molecular system
-=============================
+-----------------------------
 
 A ``System`` instance in Yaff contains all the physical properties of a
 molecular system plus some extra information that is needed to define a force
@@ -114,49 +114,11 @@ Yaff. It can also be used in the ``from_file`` method.
 
 #. [LOW PRIORITY] Add possibility to read system from a HDF5 output file.
 
-#. Introduce fragment name spaces in the atom types, e.g. instead
-   of using O_W and H_W, we should have WATER:O, WATER:H. In the system object,
-   we should have an extra fragment dictionary to know which atom is part of
-   what sort of fragment, e.g. something like: ``system.fragments = {'WATER':,
-   np.array([0, 1, 2, 3, 4, 5, ...])}``. The corresponding atom types can simply
-   be ``system.ffatypes=['O', 'H', 'H, 'O', 'H', 'H, ...]``. It is OK that
-   different atoms in different fragments have coinciding atom type names. This
-   approach has the following advantages:
-
-   * It allows us to develop separate parameter files with sections for
-     different sorts of fragments, e.g. WATER, CO2, ALANINE, GLYCINE, MIL-53,
-     ZEO, IONS, ...
-
-   * A simple concatenation of parameter files for different fragments gives
-     us a big parameter file that can used to model mixed systems.
-
-   * The atom types can be kept short because they only have to be different
-     within one fragment.
-
-   It also introduces some (minor) extra difficulties:
-
-   * In some cases, e.g. peptides, chemical bonds connect different fragments.
-     In such cases, we should allow fragments to overlap.
-
-   * We must introduce mixing rules for all types of non-bonding interactions
-     or we have to introduce cross-parameter files. (The latter may be very
-     annoying when pursuing more advanced simulations where molecules are
-     gradually switched on and off.)
-
-   Final thought: we can make the entire thing optional, i.e. when
-   system.fragments is None, we can have the behavior without separate
-   name spaces. This is convenient when testing a new FF for one sort of
-   fragment.
-
 #. Make the checkpoint format more compact.
-
-#. Provide a simple tool to automatically assign bonds and atom types using
-   rules. (For the moment we hack our way out with the ``molmod`` package.) See
-   also TODO item below.
 
 
 Setting up an FF
-================
+----------------
 
 Once the system is defined, one can continue with the specification of the force
 field model. The simplest way to create a force-field is as follows::
@@ -263,11 +225,10 @@ This is a simple example of a Lennard-Jones force field::
 
 
 Running an FF simulation
-========================
+------------------------
 
 
-Molecular Dynacmis
-------------------
+**Molecular Dynacmis**
 
 The equations of motion in the NVE ensemble can be integrated as follows::
 
@@ -304,8 +265,7 @@ Other integrators are implemented such as NVTNoseIntegrator,
 NVTLangevinIntegrator, and so on.
 
 
-Geometry optimization
----------------------
+**Geometry optimization**
 
 One may also use a geometry optimizer instead of an integrator::
 
@@ -342,15 +302,14 @@ in XXX.
 
 
 Analyzing the results
-=====================
+---------------------
 
 The analysis of the results is (in the first place) based on the output
 file ``output.h5``. On-line analysis (during the iterative algorithm, without
 writing data to disk) is also possible.
 
 
-Slicing the data
-----------------
+**Slicing the data**
 
 All the analysis routines below have at least the following four optional
 arguments:
@@ -366,8 +325,7 @@ e.g. the spectrum analysis, because the choice of the step size for such
 analysis is a critical parameter that needs to be set carefully.
 
 
-Basic analysis
---------------
+**Basic analysis**
 
 A few basic analysis routines are provided to quickly check the sanity of an MD
 simulation:
@@ -394,8 +352,7 @@ All these functions accept optional arguments to tune their behavior. See XXX
 for more details.
 
 
-Advanced analysis
------------------
+**Advanced analysis**
 
 Yaff also includes analysis tools that can extract relevant macroscopic
 properties from a simulation. These analysis tools require some additional
@@ -423,81 +380,165 @@ computations that can either be done in a post-processing step, or on-line.
 
 **TODO:**
 
-#. A tool to select certain atoms, e.g. based on type or more complex rules. The
-   graph code in ``molmod`` is OK, but it takes too much typing to use it. The
-   SMARTS system is very compact, but it has a few disadvantages that make it
-   poorly applicable in the Yaff context: e.g. it assumes that the hybridization
-   state of first-row atoms and bond orders are known. The only real `knowns` in
-   the Yaff context are: ``numbers``, (optionally) ``ffatypes``, (optionally)
-   ``fragments`` and bonds. It would be good to have a simplified SMARTS-like
-   one-line syntax that only uses the four types of information above:
-
-     a. The following rules are available to specify an atom. The specifiers are discussed below.
-
-      * ``spec`` -- the atom must match specifier ``spec``
-      * ``=N[%spec]`` -- the atom must be bonded to N atoms (that match specifier ``spec``)
-      * ``>N[%spec]`` -- the atom must be bonded to more than N atoms (that match specifier ``spec``)
-      * ``<N[%spec]`` -- the atom must be bonded to less N atoms (that match specifier ``spec``)
-      * ``@N`` -- the atom must be part of a strong ring of size N
-
-     b. The ``[fragment:]kind`` specifier, in short ``[F:]X``, is used to specify an
-        atom in fragment F that has atomic number or atom type X.
-
-     c. ``&`` (and), ``|`` (or) and ``!`` (not) operators to combine rules, in that
-        order of precedence
-
-     d. The compound specifiers: a specifier may also consist of a rule
-        enclosed in curly brackets.
-
-     e. parenthesis to modify operator precedence
-
-   We should make a compiler that transforms these rules into a a function that
-   returns ``True`` or ``False``, given a system object and an atom index. This
-   implies a few things:
-
-    a. We must first figure out how to represent fragments in the System class.
-       The following things should be taken into account.
-        1. An atom can be part of multiple fragments at the same time, i.e.
-           fragments may overlap.
-        2. It must be fast to determine of an atom is in a certain fragment
-        3. It must be simple to dump and load fragment information into the
-           array-based checkpoint format.
-        4. Fragments must be implementable in the generators. These contain
-           loops over relevant internal coordinates or atoms, and determine for
-           each case the atom types involved to select the proper parameters.
-           Just like an atom, an internal coordinate may be part of one or more
-           fragments. All matching parameters must be translated into energy
-           terms. This may be problematic for the non-bonding interactions,
-           which typically have a single set of parameters per atom or per
-           atom-pair. Adding two terms per atom pair is not possible. Hmm.
-           Do we really need overlapping fragments?
-    b. The ffatypes must become an optional argument of the ``System`` class.
-    c. A ``System`` method must be provided to assign ffatypes based on a list
-       of (ffatype, selector) pairs. These are trivial to load from a txt file.
-       An error should be raised in this method, if there is an atom without
-       a matching ffatype.
-    d. The generators should raise an error if no ffatypes are present.
-    e. Atom types should not contain the following symbols: ``:``, ``%``, ``=``,
-       ``<``, ``>``, ``@``, ``(``, ``)``, ``&``, ``|``, ``!``, ``{``, ``}``, and
-       should not start with a digit.
-    f. The last four rules will only work of the system has a topology object.
-
-
-   Some examples of atom selectors:
-
- * ``6`` -- any carbon atom
- * ``TPA:6`` -- a carbon atom in the TPA fragment
- * ``C3`` -- any atom with type C3
- * ``TPA:C3`` -- an atom with type C3 in the TPA fragment
- * ``!1`` -- anything that is not a hydrogen
- * ``C2|C3`` -- an atom of type C2 or C3
- * ``6|7&=1%1`` or ``(6|7)&=1%1`` -- a carbon or nitrogen bonded to exactly one hydrogen
- * ``>0%{6|=4}`` -- an atom bonded to at least one carbon atom or bonded to at least one atom with four bonds.
- * ``6&@6`` -- a Carbon atom that is part of a six-membered ring
-
 #. Implement RDF. The RDF analysis must have a real-space cutoff that is smaller
    than the smallest spacing of the periodic cells.
 
 #. Something to estimate diffusion constants.
 
 #. Port other things from MD-Tracks, including the conversion stuff.
+
+
+ATSELECT: Selecting atoms
+=========================
+
+In several parts of the introduction, one can provide a list of atom indexes to
+limit an analysis, or a hook to a subset of the complete system. To facilitate
+the creation of these lists, yaff introduces an atom-selection language similar
+to SMARTS patterns. This language can also be used to define atom types.
+
+The SMARTS system has the advantage to be very compact, but it has a few
+disadvantages that make it poorly applicable in the Yaff context: e.g. it
+assumes that the hybridization state of first-row atoms and bond orders are
+known. The only real `knowns` in the Yaff context are: ``numbers``, (optionally)
+``ffatypes``, (optionally) ``fragments`` and (optionally) ``bonds``. Therefore
+we introduce a new language, hereafter called `ATSELECT`, to select atoms from a
+system.
+
+The syntax of the ATSELECT language is defined as follows. An ATSELECT
+expression consists of a single line, is case-sensitive. White-space is
+completely ignored. An ATSELECT expression can be any of the following:
+
+``[scope:]number``
+    Matches an atom with the given number, optionally part of the given scope.
+
+``[scope:]ffatype``
+    Matches an atom with the given atop type, optionally part of the given scope.
+
+``scope:*``
+    Matches any atom in the given scope.
+
+``expr1 & expr2 [& ...]``
+    Matches an atom the satisfies all the given expressions.
+
+``expr1 | expr2 [| ...]``
+    Matches an atom the satisfies any of the given expressions.
+
+``!expr``
+    Matches an atom that does not satisfy the given expression.
+
+``=N[%expr]``
+    Matches an atom that has exactly N neighbors, that optionally match the
+    given expression.
+
+``>N[%expr]``
+    Matches an atom that has more than N neighbors, that optionally match the
+    given expression.
+
+``<N[%expr]``
+    Matches an atom that has less than N neighbors, that optionally match the
+    given expression.
+
+``@N``
+    Matches an atom that is part of a strong ring with N atoms.
+
+``(expr)``
+    Round brackets are part of the syntax, used to override operator precedence.
+    The precedence of the operators corresponds to the order of this list.
+
+In the list above, ``expr`` can be any valid ATSELECT expression. Atom types and
+scope names should not contain the following symbols: ``:``, ``%``, ``=``,
+``<``, ``>``, ``@``, ``(``, ``)``, ``&``, ``|``, ``!``, ``{``, ``}``, and should
+not start with a digit. Some examples of atom selectors:
+
+ * ``6`` -- any carbon atom.
+ * ``TPA:6`` -- a carbon atom in the TPA fragment.
+ * ``C3`` -- any atom with type C3.
+ * ``TPA:C3`` -- an atom with type C3 in the TPA fragment.
+ * ``!1`` -- anything that is not a hydrogen.
+ * ``C2|C3`` -- an atom of type C2 or C3.
+ * ``6|7&=1%1`` or ``(6|7)&=1%1`` -- a carbon or nitrogen bonded to exactly one hydrogen.
+ * ``>0%{6|=4}`` -- an atom bonded to at least one carbon atom or bonded to at least one atom with four bonds.
+ * ``6&@6`` -- a Carbon atom that is part of a six-membered ring.
+
+The compiled ATSELECT expression takes two arguments: a ``System`` instance and
+an atom index. The compiled expression returns ``True`` if the atom with that
+index matches the expression. ``False`` is returned otherwise. Some parts of the
+syntax may not be supported if the corresponding optional attributes of the
+System instance are ``None``. Whenever one uses a compiled expression on a
+system that does not have sufficient attributes, a ``ValueError`` is raised.
+
+**TODO:**
+
+#. Merge ``Topology`` and ``System`` classes. Move the ``system`` module to the
+   top-level ``yaff`` package. Make ``ffatypes`` optional.
+
+#. Implement the ``scope`` concept in the System class. A scope is a part of the
+   system in which atom types and force field parameters are consistent. The
+   same atom types in different scopes may have a different meaning and bonds
+   between the same atom types from different scopes, may have different
+   parameters.
+
+   For example, when simulating a mixture of water and methanol, it makes sense
+   to put all water molecules in the ``WATER`` scope and all methanol molecules
+   in the ``METHANOL`` scope. The ``WATER`` scope contains only two atom types
+   (``WATER:O``, ``WATER:H``), while the ``METHANOL`` scope may contain four
+   atom types (``METHANOL:C``, ``METHANOL:H_C``, ``METHANOL:O``,
+   ``METHANOL:O_H``). It is OK to have the O atom type in both the ``WATER`` and
+   ``METHANOL`` scopes. The parameter file contains two sections::
+
+     BEGIN SCOPE WATER
+     ...
+     END SCOPE
+
+     BEGIN SCOPE METHANOL
+     ...
+     END SCOPE
+
+   Each section has its own default scope, although it is OK to use other scopes
+   too when defining the parameters. (Examples will be given below.)
+
+   The following rules apply to scopes:
+
+    a. An atom can be part of only one scope.
+    b. It must be fast to determine of an atom is in a certain fragment
+    c. It must be simple to dump and load fragment information into the
+       array-based checkpoint format.
+    d. Scopes must be implementable in the generators. These contain
+       loops over relevant internal coordinates or atoms, and determine for
+       each case the atom types involved to select the proper parameters.
+
+   The following methods must be supported in the system class::
+
+    System.get_scope(self, index)
+    System.in_scope(self, index, scope)
+
+   The scope data is stored in two attributes: an array or list with scope
+   names, ``scopes``, and an integer array that links each atom with a scope,
+   ``scope_ids``. This information must be stored in the checkpoint file and
+   must be written to the system section by the ``HDF5Writer``. (Treat atom
+   types in exactly the same way.) Add checks on the names of atom types and
+   scopes. They may not contain symbols from the list above.
+
+#. Make a ``yaff.atselect`` module that can compile ATSELECT lines. Compiled
+   functions should be able to return their ATSELECT representation. This is
+   useful for testing.
+
+#. Add caching to the ATSELECT compiler.
+
+#. Add a method to the ``System`` class to return a list of indexes that match
+   a certain ATSELECT filter.
+
+#. Add a method to the System class to assign ffatypes based on ATSELECT filters.
+   If an atom does not have a matching filter, raise an error.
+
+#. Add support for atomic numbers in the parameter files.
+
+#. Make an FF for methanol, and a methanol-water system to facilitate the
+   testing.
+
+#. Add support for scopes to the Generator classes.
+
+#. Allow ``scope:ffatype`` and ``scope:number`` combinations in the parameter
+   files.
+
+#. Add ``select`` options to the analysis routines.
