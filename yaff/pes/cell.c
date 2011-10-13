@@ -55,6 +55,7 @@ void cell_update(cell_type* cell, double *rvecs, double *gvecs, int nvec) {
       (*cell).volume = sqrt(rvecs[0]*rvecs[0]+rvecs[1]*rvecs[1]+rvecs[2]*rvecs[2]);
       break;
     case 2:
+      // TODO: This is wrong. It should be the norm of the cross product.
       (*cell).volume = rvecs[0]*rvecs[3]+rvecs[1]*rvecs[4]+rvecs[2]*rvecs[5];
       break;
     case 3:

@@ -31,7 +31,10 @@ from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
     Hook
 
 
-__all__ = ['NVEScreenLog', 'AndersenThermostat', 'NVEIntegrator']
+__all__ = [
+    'NVEScreenLog', 'AndersenThermostat', 'NVEIntegrator',
+    'KineticAnnealing'
+]
 
 
 class NVEScreenLog(Hook):
@@ -99,6 +102,48 @@ class AndersenThermostat(Hook):
         iterative.ekin = ekin_after
         # Optional annealing
         self.temp *= self.annealing
+
+
+class KineticAnnealing(Hook):
+    def __init__(self, annealing=0.99999, select=None, start=0, step=1):
+        """
+           This annealing hook is designed to be used with a plain NVE
+           integrator. At every call, the velocities are rescaled with
+           the annealing parameter.
+
+           **Arguments:**
+
+           start
+                The first iteration at which this hook is called
+
+           step
+                The number of iterations between two subsequent calls to this
+                hook.
+
+           annealing
+                After every call to this hook, the temperature is multiplied
+                with this annealing factor. This effectively cools down the
+                system.
+
+           select
+                An array mask or a list of indexes to indicate which
+                atomic velocities should be annealed.
+
+        """
+        self.annealing = annealing
+        self.select = select
+        Hook.__init__(self, start, step)
+
+    def __call__(self, iterative):
+        # Change the velocities
+        if self.select is None:
+            iterative.vel[:] *= self.annealing
+        else:
+            iterative.vel[self.select] *= self.annealing
+        # Update the kinetic energy and the reference for the conserved quantity
+        ekin_after = 0.5*(iterative.vel**2*iterative.masses.reshape(-1,1)).sum()
+        iterative.econs_ref += iterative.ekin - ekin_after
+        iterative.ekin = ekin_after
 
 
 class NVEIntegrator(Iterative):
