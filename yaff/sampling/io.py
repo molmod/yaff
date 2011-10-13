@@ -74,7 +74,12 @@ class HDF5Writer(Hook):
         sgrp = self.f.create_group('system')
         sgrp.create_dataset('numbers', data=system.numbers)
         sgrp.create_dataset('pos', data=system.pos)
-        sgrp.create_dataset('ffatypes', data=system.ffatypes, dtype='a10')
+        if system.scopes is not None:
+            sgrp.create_dataset('scopes', data=system.scopes, dtype='a22')
+            sgrp.create_dataset('scope_ids', data=system.scope_ids)
+        if system.ffatypes is not None:
+            sgrp.create_dataset('ffatypes', data=system.ffatypes, dtype='a22')
+            sgrp.create_dataset('ffatype_ids', data=system.ffatype_ids)
         if system.bonds is not None:
             sgrp.create_dataset('bonds', data=system.bonds)
         if system.cell.nvec > 0:

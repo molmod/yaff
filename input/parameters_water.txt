@@ -1,4 +1,4 @@
-# BEGIN SECTION WATER
+# BEGIN SCOPE WATER
 
 
 # Bond stretch
@@ -125,4 +125,4 @@ EXPREP:PARS       H  2.3514195495e+00  4.4107388814e+00
 # -----------------------------------------------------
 
 
-# END SECTION WATER
+# END SCOPE WATER

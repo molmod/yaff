@@ -40,7 +40,7 @@ def check_name(name):
 
 
 class System(object):
-    def __init__(self, numbers, pos, ffatypes=None, ffatype_ids=None, scopes=None, scope_ids=None, bonds=None, rvecs=None, charges=None, masses=None):
+    def __init__(self, numbers, pos, scopes=None, scope_ids=None, ffatypes=None, ffatype_ids=None, bonds=None, rvecs=None, charges=None, masses=None):
         '''
            **Arguments:**
 
@@ -51,18 +51,6 @@ class System(object):
                 A numpy array (N,3) with atomic coordinates in bohr.
 
            **Optional arguments:**
-
-           ffatypes
-                A list of labels of the force field atom types.
-
-           ffatype_ids
-                A list of atom type indexes that links each atom with an element
-                of the list ffatypes. If this argument is not present, while
-                ffatypes is given, it is assumed that ffatypes contains an
-                atom type for every element, i.e. that it is a list with length
-                natom. In that case, it will be converted automatically to
-                a short ffatypes list with only unique elements (within each
-                scope) together with a corresponding ffatype_ids array.
 
            scopes
                 A list with scope names
@@ -75,6 +63,18 @@ class System(object):
                 case, it will be converted automatically to a scopes list
                 with only unique name together with a corresponding scope_ids
                 array.
+
+           ffatypes
+                A list of labels of the force field atom types.
+
+           ffatype_ids
+                A list of atom type indexes that links each atom with an element
+                of the list ffatypes. If this argument is not present, while
+                ffatypes is given, it is assumed that ffatypes contains an
+                atom type for every element, i.e. that it is a list with length
+                natom. In that case, it will be converted automatically to
+                a short ffatypes list with only unique elements (within each
+                scope) together with a corresponding ffatype_ids array.
 
            bonds
                 a numpy array (B,2) with atom indexes (counting starts from
@@ -102,12 +102,11 @@ class System(object):
              system.neighs3[j] is ``True`` if there are three bonds between
              atoms i and j.
         '''
+        log.enter('SYS')
         if len(numbers.shape) != 1:
             raise ValueError('Argument numbers must be a one-dimensional array.')
         if pos.shape != (len(numbers), 3):
             raise ValueError('The pos array must have Nx3 rows. Mismatch with numbers argument, which myst have shape (N,).')
-        if len(ffatypes) != len(numbers):
-            raise ValueError('The size of numbers and ffatypes does not match.')
         self.numbers = numbers
         self.pos = pos
         self.ffatypes = ffatypes
@@ -120,16 +119,17 @@ class System(object):
         self.masses = masses
         # compute some derived attributes
         self._init_derived()
+        log.leave()
 
     def _init_derived(self):
         if self.bonds is not None:
             self._init_derived_bonds()
         if self.scopes is not None:
-            self.__init_derived_scopes()
+            self._init_derived_scopes()
         elif self.scope_ids is not None:
             raise ValueError('The scope_ids only make sense when the scopes argument is given.')
         if self.ffatypes is not None:
-            self.__init_derived_ffatypes()
+            self._init_derived_ffatypes()
         elif self.ffatype_ids is not None:
             raise ValueError('The ffatype_ids only make sense when the ffatypes argument is given.')
 
@@ -179,8 +179,17 @@ class System(object):
         for scope in self.scopes:
             check_name(scope)
         # check the range of the ids
-        if self.scope_ids.min() < 0 or self.scope_ids.max() > len(self.scope):
-            raise ValueError('The ffatype_ids our out of bounds.')
+        if self.scope_ids.min() != 0 or self.scope_ids.max() != len(self.scopes)-1:
+            raise ValueError('The ffatype_ids have incorrect bounds.')
+        if log.do_medium:
+            log('The following scopes are present in the system:')
+            log.hline()
+            log('                 Scope   ID   Number of atoms')
+            log.hline()
+            for scope_id, scope in enumerate(self.scopes):
+                log('%22s  %3i       %3i' % (scope, scope_id, (self.scope_ids==scope_id).sum()))
+            log.hline()
+            log.blank()
 
     def _init_derived_ffatypes(self):
         if self.ffatype_ids is None:
@@ -197,21 +206,65 @@ class System(object):
                     scope_id = self.scope_ids[i]
                     ffatype = self.ffatypes[i]
                     key = ffatype, scope_id
-                ffatype_id = lookup.get(key)[0]
+                ffatype_id = lookup.get(key)
                 if ffatype_id is None:
                     ffatype_id = len(ffatypes)
-                    ffatypes.append(ffatypes)
-                    lookup[key] = ffatypes_id
-                self.ffatypes_ids[i] = ffatypes_id
+                    ffatypes.append(ffatype)
+                    lookup[key] = ffatype_id
+                self.ffatype_ids[i] = ffatype_id
             self.ffatypes = ffatypes
         for ffatype in self.ffatypes:
             check_name(ffatype)
         # check the range of the ids
-        if self.ffatype_ids.min() < 0 or self.ffatype_ids.max() > len(self.ffatypes):
-            raise ValueError('The ffatype_ids our out of bounds.')
-        # check that each ffatype_id occurs in only one scope_id
+        if self.ffatype_ids.min() != 0 or self.ffatype_ids.max() != len(self.ffatypes)-1:
+            raise ValueError('The ffatype_ids have incorrect bounds.')
+        # differentiate ffatype_ids if the same ffatype_id is used in different
+        # scopes
         if self.scopes is not None:
-            raise NotImplementedError
+            self.ffatype_id_to_scope_id = {}
+            fixed_fids = {}
+            for i in xrange(self.natom):
+                fid = self.ffatype_ids[i]
+                sid = self.ffatype_id_to_scope_id.get(fid)
+                if sid is None:
+                    self.ffatype_id_to_scope_id[fid] = self.scope_ids[i]
+                elif sid != self.scope_ids[i]:
+                    # We found the same ffatype_id in a different scope_id. This
+                    # must be fixed. First check if we have already a new
+                    # scope_id ready
+                    sid = self.scope_ids[i]
+                    new_fid = fixed_fids.get((sid, fid))
+                    if new_fid is None:
+                        # No previous new fid create, do it now.
+                        new_fid = len(self.ffatypes)
+                        # Copy the ffatype label
+                        self.ffatypes.append(self.ffatypes[fid])
+                        # Keep track of the new fid
+                        fixed_fids[(sid, fid)] = new_fid
+                        if log.do_warning:
+                            log.warn('Atoms with type ID %i in scope %s were changed to type ID %i.' % (fid, self.scopes[sid], new_fid))
+                    # Apply the new fid
+                    self.ffatype_ids[i] = new_fid
+                    self.ffatype_id_to_scope_id[new_fid] = sid
+        # check the range of the ids
+        if self.ffatype_ids.min() != 0 or self.ffatype_ids.max() != len(self.ffatypes)-1:
+            raise ValueError('The ffatype_ids have incorrect bounds.')
+        if log.do_medium:
+            log('The following atom types are present in the system:')
+            log.hline()
+            if self.scopes is None:
+                log('             Atom type   ID   Number of atoms')
+                log.hline()
+                for ffatype_id, ffatype in enumerate(self.ffatypes):
+                    log('%22s  %3i       %3i' % (ffatype, ffatype_id, (self.ffatype_ids==ffatype_id).sum()))
+            else:
+                log('                 Scope              Atom type   ID   Number of atoms')
+                log.hline()
+                for ffatype_id, ffatype in enumerate(self.ffatypes):
+                    scope = self.scopes[self.ffatype_id_to_scope_id[ffatype_id]]
+                    log('%22s %22s  %3i       %3i' % (scope, ffatype, ffatype_id, (self.ffatype_ids==ffatype_id).sum()))
+            log.hline()
+            log.blank()
 
     natom = property(lambda self: len(self.pos))
 
@@ -283,6 +336,14 @@ class System(object):
         log.leave()
         return cls(**kwargs)
 
+    def get_scope(self, index):
+        """Return the of the scope (string) of atom with given index"""
+        return self.scopes[self.scope_ids[index]]
+
+    def get_ffatype(self, index):
+        """Return the of the ffatype (string) of atom with given index"""
+        return self.ffatypes[self.ffatype_ids[index]]
+
     def set_standard_masses(self):
         log.enter('SYS')
         from molmod.periodic import periodic
@@ -307,9 +368,9 @@ class System(object):
             'numbers': self.numbers,
             'pos': self.pos,
             'ffatypes': self.ffatypes,
-            'ffatype_ids': self.ffatype_ds,
+            'ffatype_ids': self.ffatype_ids,
             'scopes': self.scopes,
-            'scope_ids': self.scope_ds,
+            'scope_ids': self.scope_ids,
             'bonds': self.bonds,
             'rvecs': self.cell.rvecs,
             'charges': self.charges,

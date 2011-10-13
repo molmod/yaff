@@ -36,6 +36,7 @@ def check_hdf5_common(f):
     assert 'system' in f
     assert 'numbers' in f['system']
     assert 'ffatypes' in f['system']
+    assert 'ffatype_ids' in f['system']
     assert 'pos' in f['system']
     assert 'bonds' in f['system']
     assert 'rvecs' in f['system']

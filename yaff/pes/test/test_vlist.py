@@ -358,12 +358,12 @@ def test_gpos_vtens_2T():
 
     part = ForcePartValence(system)
     for i, j in system.bonds:
-        key = system.ffatypes[i], system.ffatypes[j]
+        key = system.get_ffatype(i), system.get_ffatype(j)
         part.add_term(Harmonic(fc_table[key], rv_table[key], Bond(i, j)))
     for i1 in xrange(system.natom):
         for i0 in system.neighs1[i1]:
             for i2 in system.neighs1[i1]:
-                key = system.ffatypes[i0], system.ffatypes[i1], system.ffatypes[i2]
+                key = system.get_ffatype(i0), system.get_ffatype(i1), system.get_ffatype(i2)
                 if i0 > i2:
                     part.add_term(Harmonic(fc_table[key], rv_table[key], BendAngle(i0, i1, i2)))
     check_gpos_part(system, part)
@@ -371,12 +371,12 @@ def test_gpos_vtens_2T():
     # same test but with Fues bonds instead of Harmonic bonds
     part = ForcePartValence(system)
     for i, j in system.bonds:
-        key = system.ffatypes[i], system.ffatypes[j]
+        key = system.get_ffatype(i), system.get_ffatype(j)
         part.add_term(Fues(fc_table[key], rv_table[key], Bond(i, j)))
     for i1 in xrange(system.natom):
         for i0 in system.neighs1[i1]:
             for i2 in system.neighs1[i1]:
-                key = system.ffatypes[i0], system.ffatypes[i1], system.ffatypes[i2]
+                key = system.get_ffatype(i0), system.get_ffatype(i1), system.get_ffatype(i2)
                 if i0 > i2:
                     part.add_term(Harmonic(fc_table[key], rv_table[key], BendAngle(i0, i1, i2)))
     check_gpos_part(system, part)
@@ -398,12 +398,12 @@ def test_gpos_vtens_quartz():
 
     part = ForcePartValence(system)
     for i, j in system.bonds:
-        key = system.ffatypes[i], system.ffatypes[j]
+        key = system.get_ffatype(i), system.get_ffatype(j)
         part.add_term(Harmonic(fc_table[key], rv_table[key], Bond(i, j)))
     for i1 in xrange(system.natom):
         for i0 in system.neighs1[i1]:
             for i2 in system.neighs1[i1]:
-                key = system.ffatypes[i0], system.ffatypes[i1], system.ffatypes[i2]
+                key = system.get_ffatype(i0), system.get_ffatype(i1), system.get_ffatype(i2)
                 if i0 > i2:
                     part.add_term(Harmonic(fc_table[key], rv_table[key], BendAngle(i0, i1, i2)))
 
@@ -459,7 +459,7 @@ def test_gpos_vtens_dihedral_cos_mil53():
             if i0==i2: continue
             for i3 in system.neighs1[i2]:
                 if i3==i1: continue
-                types = [system.ffatypes[i0], system.ffatypes[i1], system.ffatypes[i2], system.ffatypes[i3]]
+                types = [system.get_ffatype(i0), system.get_ffatype(i1), system.get_ffatype(i2), system.get_ffatype(i3)]
                 if types in forbidden_dihedrals or types[::-1] in forbidden_dihedrals: continue
                 idih += 1
                 fc = 2.1 + 0.01*(0.3*i1 + 0.7*i2)

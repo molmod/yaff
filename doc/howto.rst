@@ -62,8 +62,8 @@ Setting up a molecular system
 -----------------------------
 
 A ``System`` instance in Yaff contains all the physical properties of a
-molecular system plus some extra information that is needed to define a force
-field.
+molecular system plus some extra information that is usfule to define a force
+field. Most properties are optional.
 
 **Basic physical properties:**
 
@@ -73,31 +73,67 @@ field.
 #. Atomic charges (optional)
 #. Atomic masses (optional)
 
-**Basic auxiliary properties:** (needed to define FF)
+**Basic auxiliary properties:** (useful to define FF)
 
-#. The bonds between the atoms (in the form of a list of atom pairs)
-#. Atom types.
+#. The bonds between the atoms (in the form of a list of atom pairs, optional)
+#. Scopes. This data is stored as an ordered list of unique scope names and a
+   numpy array with a scope index for each atom. (Optional) Each atom can only
+   be part of one scope.
+#. Atom types. This data is stored as an ordered list of unique atom type names
+   and a numpy array with an atom type index for each atom. (Optional) Each atom
+   can only have one atom type.
 
 Other properties such as valence angles, dihedral angles, assignment of energy
 terms, exclusion rules, and so on, can be derived from these basic properties.
 
-The positions and the cell parameters
-may change during the simulation. All other properties (including the number of
-atoms and cell vectors) do not change during a simulation. If such changes seem
-to be necessary, one should create a new System class instead.
+The positions and the cell parameters may change during the simulation. All
+other properties (including the number of atoms and the number of cell vectors)
+do not change during a simulation. If such changes seem to be necessary, one
+should create a new System class instead.
 
-The constructor arguments can be specified with some python code::
+A scope is a part of the system in which atom types and force field parameters
+are consistent. The same atom types in different scopes may have a different
+meaning and bonds between the same atom types from different scopes, may have
+different parameters. For example, when simulating a mixture of water and
+methanol, it makes sense to put all water molecules in the ``WATER`` scope and
+all methanol molecules in the ``METHANOL`` scope. The ``WATER`` scope contains
+only two atom types (``WATER:O``, ``WATER:H``), while the ``METHANOL`` scope may
+contain four atom types (``METHANOL:C``, ``METHANOL:H_C``, ``METHANOL:O``,
+``METHANOL:O_H``). It is OK to have the ``O`` atom type in both the ``WATER``
+and ``METHANOL`` scopes.
+
+The ``System`` constructor arguments can be specified with some python code::
 
     system = System(
         numbers=np.array([8, 1, 1]*2),
         pos=np.array([[-4.583, 5.333, 1.560], [-3.777, 5.331, 0.943]])*angstrom,
+        scopes=['WAT']*6,
         ffatypes=['O', 'H', 'H']*2,
         bonds=np.array([[(i/3)*3,i] for i in xrange(6) if i%3!=0]),
         rvecs=np.array([[9.865, 0.0, 0.0], [0.0, 9.865, 0.0], [0.0, 0.0, 9.865]])*angstrom,
     )
 
-where the ``*angstrom`` converts the numbers from angstrom to atomic units.
-Alternatively, one can load the system from one or more files::
+where the ``*angstrom`` converts the numbers from angstrom to atomic units. The
+scopes and atom types may be given as ordinary lists with a single string for
+each atom. Such lists are converted automatically to a unique list of strings
+and arrays with scope and atom type indexes for each atom. The following is
+equivalent::
+
+    system = System(
+        numbers=np.array([8, 1, 1]*2),
+        pos=np.array([[-4.583, 5.333, 1.560], [-3.777, 5.331, 0.943]])*angstrom,
+        scopes=['WAT'],
+        scope_ids=[0]*6
+        ffatypes=['O', 'H'],
+        ffatype_ids=[0, 1, 1]*2
+        bonds=np.array([[(i/3)*3,i] for i in xrange(6) if i%3!=0]),
+        rvecs=np.array([[9.865, 0.0, 0.0], [0.0, 9.865, 0.0], [0.0, 0.0, 9.865]])*angstrom,
+    )
+
+The latter constructor initializes the scope and atom type information in the
+native form of the ``System`` class.
+
+One can also load the system from one or more files::
 
     system = System.from_file('initial.xyz', 'topology.psf', cell=np.identity(3)*9.865*angstrom)
 
@@ -473,53 +509,6 @@ system that does not have sufficient attributes, a ``ValueError`` is raised.
 
 **TODO:**
 
-#. Implement the ``scope`` concept in the System class. A scope is a part of the
-   system in which atom types and force field parameters are consistent. The
-   same atom types in different scopes may have a different meaning and bonds
-   between the same atom types from different scopes, may have different
-   parameters.
-
-   For example, when simulating a mixture of water and methanol, it makes sense
-   to put all water molecules in the ``WATER`` scope and all methanol molecules
-   in the ``METHANOL`` scope. The ``WATER`` scope contains only two atom types
-   (``WATER:O``, ``WATER:H``), while the ``METHANOL`` scope may contain four
-   atom types (``METHANOL:C``, ``METHANOL:H_C``, ``METHANOL:O``,
-   ``METHANOL:O_H``). It is OK to have the O atom type in both the ``WATER`` and
-   ``METHANOL`` scopes. The parameter file contains two sections::
-
-     BEGIN SCOPE WATER
-     ...
-     END SCOPE
-
-     BEGIN SCOPE METHANOL
-     ...
-     END SCOPE
-
-   Each section has its own default scope, although it is OK to use other scopes
-   too when defining the parameters. (Examples will be given below.)
-
-   The following rules apply to scopes:
-
-    a. An atom can be part of only one scope.
-    b. It must be fast to determine of an atom is in a certain fragment
-    c. It must be simple to dump and load fragment information into the
-       array-based checkpoint format.
-    d. Scopes must be implementable in the generators. These contain
-       loops over relevant internal coordinates or atoms, and determine for
-       each case the atom types involved to select the proper parameters.
-
-   The following methods must be supported in the system class::
-
-    System.get_scope(self, index)
-    System.get_ffatype(self, index)
-
-   The scope data is stored in two attributes: an array or list with scope
-   names, ``scopes``, and an integer array that links each atom with a scope,
-   ``scope_ids``. This information must be stored in the checkpoint file and
-   must be written to the system section by the ``HDF5Writer``. (Treat atom
-   types in exactly the same way.) Add checks on the names of atom types and
-   scopes. They may not contain symbols from the list above.
-
 #. Make a ``yaff.atselect`` module that can compile ATSELECT lines. Compiled
    functions should be able to return their ATSELECT representation. This is
    useful for testing.
@@ -538,6 +527,19 @@ system that does not have sufficient attributes, a ``ValueError`` is raised.
    testing.
 
 #. Add support for scopes to the Generator classes.
+
+   The parameter file contains two sections::
+
+     BEGIN SCOPE WATER
+     ...
+     END SCOPE
+
+     BEGIN SCOPE METHANOL
+     ...
+     END SCOPE
+
+   Each section has its own default scope, although it is OK to use other scopes
+   too when defining the parameters. (Examples will be given below.)
 
 #. Allow ``scope:ffatype`` and ``scope:number`` combinations in the parameter
    files.

@@ -141,7 +141,7 @@ def test_iclist_grad_dihedral_cos_mil53():
             if i0==i2: continue
             for i3 in system.neighs1[i2]:
                 if i3==i1: continue
-                types = [system.ffatypes[i0], system.ffatypes[i1], system.ffatypes[i2], system.ffatypes[i3]]
+                types = [system.get_ffatype(i0), system.get_ffatype(i1), system.get_ffatype(i2), system.get_ffatype(i3)]
                 if types in forbidden_dihedrals or types[::-1] in forbidden_dihedrals: continue
                 idih += 1
                 dlist = DeltaList(system)
@@ -172,40 +172,40 @@ def test_iclist_grad_dihedral_cos_mil53():
 
                 if not abs(ic['value'] - check_cos) < 1e-8:
                     raise AssertionError("Dihed cos (%s[%i],%s[%i],%s[%i],%s[%i]) should have value %10.9e, instead it is %10.9e" %(
-                        system.ffatypes[i0],i0,
-                        system.ffatypes[i1],i1,
-                        system.ffatypes[i2],i2,
-                        system.ffatypes[i3],i3,
+                        system.get_ffatype(i0),i0,
+                        system.get_ffatype(i1),i1,
+                        system.get_ffatype(i2),i2,
+                        system.get_ffatype(i3),i3,
                         check_cos,
                         cos
                     ))
                 if not np.sqrt(sum( (grad_d0 - check_grad_d0)**2 )) < 1e-8:
                     raise AssertionError("Dihed cos (%s[%i],%s[%i],%s[%i],%s[%i]) should have delta0_grad [%12.9f,%12.9f,%12.9f], \n"
                                          "instead it is [%12.9f,%12.9f,%12.9f]" %(
-                                            system.ffatypes[i0],i0,
-                                            system.ffatypes[i1],i1,
-                                            system.ffatypes[i2],i2,
-                                            system.ffatypes[i3],i3,
+                                            system.get_ffatype(i0),i0,
+                                            system.get_ffatype(i1),i1,
+                                            system.get_ffatype(i2),i2,
+                                            system.get_ffatype(i3),i3,
                                             check_grad_d0[0], check_grad_d0[1], check_grad_d0[2],
                                             grad_d0[0], grad_d0[1], grad_d0[2],
                     ))
                 if not np.sqrt(sum( (grad_d1 - check_grad_d1)**2 )) < 1e-8:
                     raise AssertionError("Dihed cos (%s[%i],%s[%i],%s[%i],%s[%i]) should have delta1_grad [%12.9f,%12.9f,%12.9f], \n"
                                          "instead it is [%12.9f,%12.9f,%12.9f]" %(
-                                            system.ffatypes[i0],i0,
-                                            system.ffatypes[i1],i1,
-                                            system.ffatypes[i2],i2,
-                                            system.ffatypes[i3],i3,
+                                            system.get_ffatype(i0),i0,
+                                            system.get_ffatype(i1),i1,
+                                            system.get_ffatype(i2),i2,
+                                            system.get_ffatype(i3),i3,
                                             check_grad_d1[0], check_grad_d1[1], check_grad_d1[2],
                                             grad_d1[0], grad_d1[1], grad_d1[2],
                     ))
                 if not np.sqrt(sum( (grad_d2 - check_grad_d2)**2 )) < 1e-8:
                     raise AssertionError("Dihed cos (%s[%i],%s[%i],%s[%i],%s[%i]) should have delta2_grad [%12.9f,%12.9f,%12.9f], \n"
                                          "instead it is [%12.9f,%12.9f,%12.9f]" %(
-                                            system.ffatypes[i0],i0,
-                                            system.ffatypes[i1],i1,
-                                            system.ffatypes[i2],i2,
-                                            system.ffatypes[i3],i3,
+                                            system.get_ffatype(i0),i0,
+                                            system.get_ffatype(i1),i1,
+                                            system.get_ffatype(i2),i2,
+                                            system.get_ffatype(i3),i3,
                                             check_grad_d2[0], check_grad_d2[1], check_grad_d2[2],
                                             grad_d2[0], grad_d2[1], grad_d2[2],
                     ))

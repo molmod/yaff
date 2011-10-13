@@ -109,7 +109,8 @@ def test_md_water32_full():
     # prop
     cqs = []
     if dump:
-        xyz_writer = XYZWriter('traj.xyz', ff.system.ffatypes)
+        symbols = [system.get_ffatype(i) for i in xrange(system.natom)]
+        xyz_writer = XYZWriter('traj.xyz', symbols)
     for i in xrange(100):
         pos += velh*h
         ff.update_pos(pos)

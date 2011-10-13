@@ -162,7 +162,6 @@ def get_system_glycine():
         ]),
         ffatypes=['N', 'C', 'C', 'O', 'O', 'H', 'H', 'H', 'H', 'H'],
         bonds=np.array([[3, 9], [1, 8], [1, 7], [0, 6], [0, 5], [2, 4], [2, 3], [1, 2], [0, 1]]),
-        rvecs=np.zeros((0,3), float),
     )
 
 
@@ -181,7 +180,6 @@ def get_system_cyclopropene():
         ])*angstrom,
         ffatypes=['C', 'C', 'C', 'H', 'H', 'H', 'H'],
         bonds=[[0, 1], [0, 2], [0, 3], [0, 4], [1, 2], [1, 5], [2, 6]],
-        rvecs=np.zeros((0,3), float),
     )
 
 
@@ -222,7 +220,6 @@ def get_system_caffeine():
                [3, 12], [8, 4], [9, 4], [4, 13], [5, 7], [10, 5], [6, 7],
                [8, 6], [10, 14], [11, 15], [16, 11], [17, 11], [18, 12],
                [19, 12], [20, 12], [13, 21], [13, 22], [13, 23]],
-        rvecs=np.zeros((0,3), float),
     )
 
 
@@ -248,7 +245,6 @@ def get_system_butanol():
         ffatypes=['O', 'C', 'C', 'C', 'C', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'H'],
         bonds=[[0, 1], [0, 12], [1, 2], [1, 3], [1, 5], [2, 4], [2, 6], [2, 7],
                [3, 4], [8, 3], [9, 3], [10, 4], [11, 4]],
-        rvecs=np.zeros((0,3), float),
     )
 
 
@@ -268,7 +264,6 @@ def get_system_2T():
         ]),
         ffatypes=['Si', 'Si', 'O', 'H', 'H', 'H', 'H', 'H', 'H'],
         bonds=np.array([[1, 7], [0, 4], [0, 5], [0, 2], [1, 2], [0, 3], [1, 6], [8, 1]]),
-        rvecs=np.zeros((0,3), float),
     )
 
 
@@ -283,7 +278,6 @@ def get_system_peroxide():
         ]),
         ffatypes=['O','O','H','H'],
         bonds=np.array([[0,1],[0,2],[1,3]]),
-        rvecs=np.zeros((0,3), float),
     )
 
 

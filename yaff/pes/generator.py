@@ -256,7 +256,7 @@ class ValenceGenerator(Generator):
         from yaff.pes.iclist import Bond
         from yaff.pes.vlist import Harmonic
         for indexes in self.iter_indexes(system):
-            key = tuple(system.ffatypes[i] for i in indexes)
+            key = tuple(system.get_ffatype(i) for i in indexes)
             pars = par_table.get(key)
             pars = self.mod_pars(pars)
             args = pars + (self.ICClass(*indexes),)
@@ -401,11 +401,11 @@ class ExpRepGenerator(NonbondedGenerator):
         amps = np.zeros(system.natom)
         bs = np.zeros(system.natom)
         for i in xrange(system.natom):
-            key = (system.ffatypes[i],)
+            key = (system.get_ffatype(i),)
             pars = par_table.get(key)
             if pars is None:
                 if log.do_warning:
-                    log.warn('No EXPREP parameters found for atom %i with fftype %s.' % (i, system.ffatypes[i]))
+                    log.warn('No EXPREP parameters found for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
             else:
                 amps[i], bs[i] = pars
 
@@ -504,9 +504,9 @@ class FixedChargeGenerator(NonbondedGenerator):
 
         # compute the charges
         for i in xrange(system.natom):
-            pars = atom_table.get(system.ffatypes[i])
+            pars = atom_table.get(system.get_ffatype(i))
             if pars is None and log.do_warning:
-                log.warn('No charge defined for atom %i with fftype %s.' % (i, system.ffatypes[i]))
+                log.warn('No charge defined for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
             else:
                 charge, radius = pars
                 if radius > 0:
@@ -514,9 +514,9 @@ class FixedChargeGenerator(NonbondedGenerator):
                 system.charges[i] += charge
                 radii[i] = radius
         for i0, i1 in system.bonds:
-            charge_transfer = bond_table.get((system.ffatypes[i0], system.ffatypes[i1]))
+            charge_transfer = bond_table.get((system.get_ffatype(i0), system.get_ffatype(i1)))
             if charge_transfer is None and log.do_warning:
-                log.warn('No charge transfer parameter for atom pair (%i,%i) with fftype (%s,%s).' % (i0, i1, system.ffatypes[i0], system.ffatypes[i1]))
+                log.warn('No charge transfer parameter for atom pair (%i,%i) with fftype (%s,%s).' % (i0, i1, system.get_ffatype(i0), system.get_ffatype(i1)))
             else:
                 system.charges[i0] += charge_transfer
                 system.charges[i1] -= charge_transfer

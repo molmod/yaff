@@ -266,6 +266,9 @@ class ScreenLog(object):
     def hline(self, char='~'):
         self(char*self.width)
 
+    def blank(self):
+        print >> self._file
+
     def enter(self, prefix):
         if len(prefix) > self.margin-1:
             raise ValueError('The prefix must be at most %s characters wide.' % (self.margin-1))

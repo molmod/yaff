@@ -66,7 +66,7 @@ cdef class Cell:
         cdef np.ndarray[double, ndim=2] mod_rvecs
         cdef np.ndarray[double, ndim=2] gvecs
         cdef int nvec
-        if rvecs.size == 0:
+        if rvecs is None or rvecs.size == 0:
             mod_rvecs = np.identity(3, float)
             gvecs = mod_rvecs
             nvec = 0
