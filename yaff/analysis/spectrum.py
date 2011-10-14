@@ -35,7 +35,8 @@ __all__ = ['Spectrum']
 
 
 class Spectrum(Hook):
-    def __init__(self, f, start=0, end=-1, step=1, bsize=4096, path='trajectory/vel', key='vel'):
+    def __init__(self, f, start=0, end=-1, step=1, bsize=4096, select=None,
+                 path='trajectory/vel', key='vel', outpath=None):
         """
            **Argument:**
 
@@ -63,6 +64,10 @@ class Spectrum(Hook):
            bsize
                 The size of the blocks used for individual FFT calls.
 
+           select
+                A list of atom indexes that are considered for the computation
+                of the spectrum. If not given, all atoms are used.
+
            path
                 The path of the dataset that contains the time dependent data in
                 the HDF5 file. The first axis of the array must be the time
@@ -71,6 +76,10 @@ class Spectrum(Hook):
            key
                 In case of an on-line analysis, this is the key of the state
                 item that contains the data from which the spectrum is derived.
+
+           outpath
+                The output path for the frequency computation in the HDF5 file.
+                If not given, it defaults to '%s_spectrum' % path.
 
            The max_sample argument from get_slice is not used because the choice
            step value is an important parameter: it is best to choose step*bsize
@@ -101,6 +110,7 @@ class Spectrum(Hook):
         self.f = f
         self.start, self.end, self.step = get_slice(self.f, start, end, step=step)
         self.bsize = bsize
+        self.select = select
         self.ssize = self.bsize/2+1 # the length of the spectrum array
         self.amps = np.zeros(self.ssize, float)
         self.timestep = None
@@ -109,6 +119,10 @@ class Spectrum(Hook):
 
         self.path = path
         self.key = key
+        if outpath is None:
+            self.outpath = '%s_spectrum' % path
+        else:
+            self.outpath = outpath
         self.online = self.f is None or path not in self.f
         if not self.online:
             self.compute_offline()
@@ -117,6 +131,15 @@ class Spectrum(Hook):
             self.work = None
             self.ncollect = 0
             self.lasttime = None
+
+    def _iter_indexes(self, array):
+        if self.select is None:
+            for indexes in np.ndindex(array.shape[1:]):
+                yield indexes
+        else:
+            for i0 in self.select:
+                for irest in np.ndindex(array.shape[2:]):
+                    yield (i0,) + irest
 
     def __call__(self, iterative):
         if self.work is None:
@@ -131,7 +154,7 @@ class Spectrum(Hook):
         self.ncollect += 1
         if self.ncollect == self.bsize:
             # collected sufficient data to fill one block, computing FFT
-            for indexes in np.ndindex(self.work.shape[1:]):
+            for indexes in self._iter_indexes(self.work):
                 work = self.work[(slice(0, self.bsize),) + indexes]
                 self.amps += abs(np.fft.rfft(work))**2
             # compute some derived stuff
@@ -147,7 +170,7 @@ class Spectrum(Hook):
         work = np.zeros(self.bsize, float)
         ds = self.f[self.path]
         while current <= self.end - stride:
-            for indexes in np.ndindex(ds.shape[1:]):
+            for indexes in self._iter_indexes(ds):
                 ds.read_direct(work, (slice(current, current+stride, self.step),) + indexes)
                 self.amps += abs(np.fft.rfft(work))**2
             current += stride
@@ -162,10 +185,9 @@ class Spectrum(Hook):
             self.time = np.arange(self.ssize)*self.timestep
         self.ac = np.fft.irfft(self.amps)[:self.ssize]
         # Write the results to the HDF5 file
-        gn = '%s_spectrum' % self.path
-        if gn in self.f:
-            del self.f[gn]
-        g = self.f.create_group(gn)
+        if self.outpath in self.f:
+            del self.f[self.outpath]
+        g = self.f.create_group(self.outpath)
         g['amps'] = self.amps
         g['ac'] = self.ac
         if first:

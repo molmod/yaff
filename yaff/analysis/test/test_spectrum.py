@@ -20,7 +20,7 @@
 #
 # --
 
-import shutil, os, h5py
+import shutil, os, h5py, numpy as np
 
 from yaff import *
 from yaff.analysis.test.common import get_nve_water32
@@ -69,3 +69,18 @@ def test_spectrum_online():
         assert abs(spectrum0.freqs - spectrum1.freqs).max() < 1e-10
         assert abs(spectrum0.ac - spectrum1.ac).max() < 1e-10
         assert abs(spectrum0.time - spectrum1.time).max() < 1e-10
+
+
+def test_spectrum_iter_indexes():
+    f = h5py.File('tmp.h5', driver='core', backing_store=False)
+    spectrum = Spectrum(f, bsize=10)
+    l = list(spectrum._iter_indexes(np.zeros((10, 5, 3), float)))
+    assert l == [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1),
+                 (2, 2), (3, 0), (3, 1), (3, 2), (4, 0), (4, 1), (4, 2)]
+    l = list(spectrum._iter_indexes(np.zeros((10, 5), float)))
+    assert l == [(0,), (1,), (2,), (3,), (4,)]
+    spectrum = Spectrum(f, bsize=10, select=[1,4])
+    l = list(spectrum._iter_indexes(np.zeros((10, 5, 3), float)))
+    assert l == [(1, 0), (1, 1), (1, 2), (4, 0), (4, 1), (4, 2)]
+    l = list(spectrum._iter_indexes(np.zeros((10, 5), float)))
+    assert l == [(1,), (4,)]
