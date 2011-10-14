@@ -104,7 +104,7 @@ def plot_temperature(f, fn_png='temperature.png', **kwargs):
     pt.savefig(fn_png)
 
 
-def plot_temp_dist(f, fn_png='temp_dist.png', **kwargs):
+def plot_temp_dist(f, fn_png='temp_dist.png', select=None, **kwargs):
     """Plots the distribution of the weighted atomic velocities
 
        **Arguments:**
@@ -117,8 +117,13 @@ def plot_temp_dist(f, fn_png='temp_dist.png', **kwargs):
        fn_png
             The png file to write the figure to
 
-       The optional arguments of the ``get_slice`` function are also accepted in
-       the form of keyword arguments.
+       select
+            A list of atom indexes that should be considered for the analysis.
+            By default, information from all atoms is combined.
+
+       start, end, step, max_sample
+           The optional arguments of the ``get_slice`` function are also
+           accepted in the form of keyword arguments.
 
        This type of plot is essential for checking the sanity of a simulation.
        The empirical cumulative distribution is plotted and overlayed with the
@@ -133,7 +138,24 @@ def plot_temp_dist(f, fn_png='temp_dist.png', **kwargs):
     from matplotlib.ticker import MaxNLocator
     from scipy.stats import chi2
     start, end, step = get_slice(f, **kwargs)
-    temps = f['trajectory/temp'][start:end:step]
+
+    # Make an array with the weights used to compute the temperature
+    if select is None:
+        weights = np.array(f['system/masses'])/boltzmann
+    else:
+        weights = np.array(f['system/masses'])[select]/boltzmann
+
+    if select is None:
+        # just load the temperatures from the output file
+        temps = f['trajectory/temp'][start:end:step]
+    else:
+        # compute the temperatures of the subsystem
+        temps = []
+        for i in xrange(start, end, step):
+             temp = ((f['trajectory/vel'][i,select]**2).mean(axis=1)*weights).mean()
+             temps.append(temp)
+        temps = np.array(temps)
+
     temp_mean = temps.mean()
 
     # A) ATOMS
@@ -146,11 +168,14 @@ def plot_temp_dist(f, fn_png='temp_dist.png', **kwargs):
     # build up the distribution for the atoms
     counts = np.zeros(len(temp_grid)-1, int)
     total = 0.0
-    weights = np.array(f['system/masses'])/boltzmann
     for i in xrange(start, end, step):
-        atom_temps = (f['trajectory/vel'][i]**2).mean(axis=1)*weights
+        if select is None:
+            atom_temps = (f['trajectory/vel'][i]**2).mean(axis=1)*weights
+        else:
+            atom_temps = (f['trajectory/vel'][i,select]**2).mean(axis=1)*weights
         counts += np.histogram(atom_temps.ravel(), bins=temp_grid)[0]
         total += atom_temps.size
+
 
     # transform into empirical pdf and cdf
     emp_atom_pdf = counts/total/temp_step
@@ -164,7 +189,10 @@ def plot_temp_dist(f, fn_png='temp_dist.png', **kwargs):
 
 
     # B) SYSTEM
-    ndof = 3*f['system/numbers'].shape[0]
+    if select is None:
+        ndof = 3*f['system/numbers'].shape[0]
+    else:
+        ndof = 3*len(select)
     sigma = temp_mean*np.sqrt(2.0/ndof)
     temp_step = sigma/5
 

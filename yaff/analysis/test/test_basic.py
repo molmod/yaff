@@ -50,8 +50,11 @@ def test_plot_temperature():
 def test_plot_temp_dist():
     dn_tmp, nve, f = get_nve_water32()
     try:
-        fn_png = '%s/temp_dist.png' % dn_tmp
+        fn_png = '%s/temp_dist1.png' % dn_tmp
         plot_temp_dist(f, fn_png)
+        assert os.path.isfile(fn_png)
+        fn_png = '%s/temp_dist2.png' % dn_tmp
+        plot_temp_dist(f, fn_png, select=[0,1,2,6,7,8])
         assert os.path.isfile(fn_png)
     finally:
         shutil.rmtree(dn_tmp)
