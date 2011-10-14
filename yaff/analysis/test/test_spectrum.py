@@ -46,6 +46,7 @@ def test_spectrum_offline():
             del f['trajectory/vel_spectrum']
     finally:
         shutil.rmtree(dn_tmp)
+        f.close()
 
 
 def test_spectrum_online():
@@ -55,25 +56,28 @@ def test_spectrum_online():
         ff = get_ff_water32()
         # Run a test simulation
         f = h5py.File('tmp%i.h5' % bsize, driver='core', backing_store=False)
-        hdf5 = HDF5Writer(f)
-        spectrum0 = Spectrum(f, bsize=bsize)
-        nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=[hdf5, spectrum0])
-        nve.run(5)
-        assert nve.counter == 5
-        # Also run an off-line spectrum and compare
-        spectrum1 = Spectrum(f, bsize=bsize)
-        assert abs(spectrum0.timestep - spectrum1.timestep) < 1e-10
-        print spectrum0.amps
-        print spectrum1.amps
-        assert abs(spectrum0.amps - spectrum1.amps).max() < 1e-10
-        assert abs(spectrum0.freqs - spectrum1.freqs).max() < 1e-10
-        assert abs(spectrum0.ac - spectrum1.ac).max() < 1e-10
-        assert abs(spectrum0.time - spectrum1.time).max() < 1e-10
-
+        try:
+            hdf5 = HDF5Writer(f)
+            spectrum0 = Spectrum(f, bsize=bsize)
+            nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=[hdf5, spectrum0])
+            nve.run(5)
+            assert nve.counter == 5
+            # Also run an off-line spectrum and compare
+            spectrum1 = Spectrum(f, bsize=bsize)
+            assert abs(spectrum0.timestep - spectrum1.timestep) < 1e-10
+            print spectrum0.amps
+            print spectrum1.amps
+            assert abs(spectrum0.amps - spectrum1.amps).max() < 1e-10
+            assert abs(spectrum0.freqs - spectrum1.freqs).max() < 1e-10
+            assert abs(spectrum0.ac - spectrum1.ac).max() < 1e-10
+            assert abs(spectrum0.time - spectrum1.time).max() < 1e-10
+        finally:
+            f.close()
 
 def test_spectrum_iter_indexes():
     f = h5py.File('tmp.h5', driver='core', backing_store=False)
     spectrum = Spectrum(f, bsize=10)
+    f.close()
     l = list(spectrum._iter_indexes(np.zeros((10, 5, 3), float)))
     assert l == [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1),
                  (2, 2), (3, 0), (3, 1), (3, 2), (4, 0), (4, 1), (4, 2)]

@@ -57,35 +57,44 @@ def check_hdf5_common(f):
 
 def test_hdf5():
     f = h5py.File('tmp.h5', driver='core', backing_store=False)
-    hdf5 = HDF5Writer(f)
-    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
-    nve.run(15)
-    assert nve.counter == 15
-    check_hdf5_common(hdf5.f)
-    assert hdf5.f['trajectory'].attrs['row'] == 16
-    assert hdf5.f['trajectory/counter'][15] == 15
+    try:
+        hdf5 = HDF5Writer(f)
+        nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
+        nve.run(15)
+        assert nve.counter == 15
+        check_hdf5_common(hdf5.f)
+        assert f['trajectory'].attrs['row'] == 16
+        assert f['trajectory/counter'][15] == 15
+    finally:
+        f.close()
 
 
 def test_hdf5_start():
     f = h5py.File('tmp.h5', driver='core', backing_store=False)
-    hdf5 = HDF5Writer(f, start=2)
-    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
-    nve.run(5)
-    assert nve.counter == 5
-    check_hdf5_common(hdf5.f)
-    assert hdf5.f['trajectory'].attrs['row'] == 4
-    assert hdf5.f['trajectory/counter'][3] == 5
+    try:
+        hdf5 = HDF5Writer(f, start=2)
+        nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
+        nve.run(5)
+        assert nve.counter == 5
+        check_hdf5_common(hdf5.f)
+        assert f['trajectory'].attrs['row'] == 4
+        assert f['trajectory/counter'][3] == 5
+    finally:
+        f.close()
 
 
 def test_hdf5_step():
     f = h5py.File('tmp.h5', driver='core', backing_store=False)
-    hdf5 = HDF5Writer(f, step=2)
-    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
-    nve.run(5)
-    assert nve.counter == 5
-    check_hdf5_common(hdf5.f)
-    assert hdf5.f['trajectory'].attrs['row'] == 3
-    assert hdf5.f['trajectory/counter'][2] == 4
+    try:
+        hdf5 = HDF5Writer(f, step=2)
+        nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
+        nve.run(5)
+        assert nve.counter == 5
+        check_hdf5_common(hdf5.f)
+        assert f['trajectory'].attrs['row'] == 3
+        assert f['trajectory/counter'][2] == 4
+    finally:
+        f.close()
 
 
 def test_xyz():

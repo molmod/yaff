@@ -35,6 +35,7 @@ def test_plot_energies():
         assert os.path.isfile(fn_png)
     finally:
         shutil.rmtree(dn_tmp)
+        f.close()
 
 
 def test_plot_temperature():
@@ -45,6 +46,7 @@ def test_plot_temperature():
         assert os.path.isfile(fn_png)
     finally:
         shutil.rmtree(dn_tmp)
+        f.close()
 
 
 def test_plot_temp_dist():
@@ -58,3 +60,4 @@ def test_plot_temp_dist():
         assert os.path.isfile(fn_png)
     finally:
         shutil.rmtree(dn_tmp)
+        f.close()

@@ -46,9 +46,6 @@ class HDF5Writer(Hook):
         self.f = f
         Hook.__init__(self, start, step)
 
-    def __del__(self):
-        self.f.close()
-
     def __call__(self, iterative):
         if 'system' not in self.f:
             self.dump_system(iterative.ff.system)
