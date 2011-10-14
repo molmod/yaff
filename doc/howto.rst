@@ -525,8 +525,6 @@ sufficient attributes, a ``ValueError`` is raised.
 
 **TODO:**
 
-#. Add caching to the ATSELECT compiler.
-
 #. Add a method to the System class to assign ffatypes based on ATSELECT filters.
    If an atom does not have a matching filter, raise an error.
 
@@ -553,6 +551,6 @@ sufficient attributes, a ``ValueError`` is raised.
 #. Allow ``scope:ffatype`` and ``scope:number`` combinations in the parameter
    files.
 
-#. Add ``select`` options to the analysis routines.
-
 #. Add support for '@N' feature to ATSELECT.
+
+#. Add caching to the ATSELECT compiler.
