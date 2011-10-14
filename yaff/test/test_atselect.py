@@ -69,3 +69,5 @@ def test_compile():
     assert atsel_compile('ALKANE:C&=3%1').get_string() == 'ALKANE:C&=3%1'
     assert atsel_compile('ALKANE:*&=3%1').get_string() == 'ALKANE:*&=3%1'
     assert atsel_compile('ALKANE:6&=3%1').get_string() == 'ALKANE:6&=3%1'
+    assert atsel_compile('C &\t<\n3').get_string() == 'C&<3'
+    assert atsel_compile('C _a &\t<\n3').get_string() == 'C_a&<3'
