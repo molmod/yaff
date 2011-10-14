@@ -67,8 +67,8 @@ FIXQ:BOND        H        O  3.6841957737e-01
 #   C6_AB*f(r)*r**-6
 # where C is a constant and f(r) is the Tang-Toennies damping factor
 #   f(r) = 1 - exp(-B_AB*r)*sum_k=0..6((B_AB*r)**k/k!)
-DAMPDISP:UNIT C au
-DAMPDISP:UNIT R0 angstrom
+DAMPDISP:UNIT C6 au
+DAMPDISP:UNIT B 1/angstrom
 DAMPDISP:UNIT VOL au
 DAMPDISP:SCALE 1 1.0
 DAMPDISP:SCALE 2 1.0

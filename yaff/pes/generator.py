@@ -26,7 +26,8 @@ import numpy as np
 from molmod.units import parse_unit
 
 from yaff.log import log
-from yaff.pes.ext import PairPotEI, PairPotLJ, PairPotMM3, PairPotExpRep
+from yaff.pes.ext import PairPotEI, PairPotLJ, PairPotMM3, PairPotExpRep, \
+    PairPotDampDisp
 from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
     ForcePartEwaldNeutralizing
@@ -40,8 +41,8 @@ __all__ = [
     'ParsedPars', 'FFArgs', 'Generator', 'ValenceGenerator', 'BondGenerator',
     'BondHarmGenerator', 'BondFuesGenerator', 'BendGenerator',
     'BendAngleHarmGenerator', 'BendCosHarmGenerator', 'NonbondedGenerator',
-    'LJGenerator', 'MM3Generator', 'ExpRepGenerator', 'FixedChargeGenerator',
-    'generators'
+    'LJGenerator', 'MM3Generator', 'ExpRepGenerator', 'DampDispGenerator',
+    'FixedChargeGenerator', 'generators'
 ]
 
 
@@ -509,6 +510,47 @@ class ExpRepGenerator(NonbondedGenerator):
             raise RuntimeError('Internal inconsistency: the EXPREP part should not be present yet.')
 
         pair_pot = PairPotExpRep(amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff, ff_args.rcut, ff_args.smooth)
+        nlists = ff_args.get_nlists(system)
+        part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
+        ff_args.parts.append(part_pair)
+
+
+class DampDispGenerator(NonbondedGenerator):
+    prefix = 'DAMPDISP'
+    commands = ['UNIT', 'SCALE', 'PARS']
+    num_ffatypes = 1
+    par_names = ['C6', 'B', 'VOL']
+
+    def __call__(self, system, parsed_pars, ff_args):
+        self.check_commands(parsed_pars)
+        conversions = self.process_units(parsed_pars.get_section('UNIT'))
+        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions)
+        scale_table = self.process_scales(parsed_pars.get_section('SCALE'))
+        self.apply(par_table, scale_table, system, ff_args)
+
+    def apply(self, par_table, scale_table, system, ff_args):
+        # Prepare the atomic parameters
+        c6s = np.zeros(system.natom)
+        bs = np.zeros(system.natom)
+        vols = np.zeros(system.natom)
+        for i in xrange(system.natom):
+            key = (system.get_ffatype(i),)
+            pars = par_table.get(key)
+            if pars is None:
+                if log.do_warning:
+                    log.warn('No DAMPDISP parameters found for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
+            else:
+                c6s[i], bs[i], vols[i] = pars
+
+        # Prepare the global parameters
+        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
+
+        # Get the part. It should not exist yet.
+        part_pair = ff_args.get_part_pair(PairPotDampDisp)
+        if part_pair is not None:
+            raise RuntimeError('Internal inconsistency: the DAMPDISP part should not be present yet.')
+
+        pair_pot = PairPotDampDisp(c6s, bs, vols, ff_args.rcut, ff_args.smooth)
         nlists = ff_args.get_nlists(system)
         part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
         ff_args.parts.append(part_pair)

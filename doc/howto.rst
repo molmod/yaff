@@ -257,7 +257,7 @@ This is a simple example of a Lennard-Jones force field::
 
    .. literalinclude:: ../input/parameters_water.txt
 
-#. [PARTIALLY DONE, TODO: TORSION, DAMPDISP, GRIMME] The generate method.
+#. [PARTIALLY DONE, TODO: TORSION, GRIMME] The generate method.
 
 #. [LOW PRIORITY] Replace hammer by taper. Check which one converges the
    quickest as the real-space cutoff is increased, without compromising the
