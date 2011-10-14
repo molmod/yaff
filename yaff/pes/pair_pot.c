@@ -171,9 +171,11 @@ void pair_data_lj_init(pair_pot_type *pair_pot, double *sigma, double *epsilon) 
   pair_data_lj_type *pair_data;
   pair_data = malloc(sizeof(pair_data_lj_type));
   (*pair_pot).pair_data = pair_data;
-  (*pair_pot).pair_fn = pair_fn_lj;
-  (*pair_data).sigma = sigma;
-  (*pair_data).epsilon = epsilon;
+  if (pair_data != NULL) {
+    (*pair_pot).pair_fn = pair_fn_lj;
+    (*pair_data).sigma = sigma;
+    (*pair_data).epsilon = epsilon;
+  }
 }
 
 double pair_fn_lj(void *pair_data, long center_index, long other_index, double d, double *g) {
@@ -202,9 +204,11 @@ void pair_data_mm3_init(pair_pot_type *pair_pot, double *sigma, double *epsilon)
   pair_data_mm3_type *pair_data;
   pair_data = malloc(sizeof(pair_data_mm3_type));
   (*pair_pot).pair_data = pair_data;
-  (*pair_pot).pair_fn = pair_fn_mm3;
-  (*pair_data).sigma = sigma;
-  (*pair_data).epsilon = epsilon;
+  if (pair_data != NULL) {
+    (*pair_pot).pair_fn = pair_fn_mm3;
+    (*pair_data).sigma = sigma;
+    (*pair_data).epsilon = epsilon;
+  }
 }
 
 double pair_fn_mm3(void *pair_data, long center_index, long other_index, double d, double *g) {
@@ -234,9 +238,11 @@ void pair_data_grimme_init(pair_pot_type *pair_pot, double *r0, double *c6) {
   pair_data_grimme_type *pair_data;
   pair_data = malloc(sizeof(pair_data_grimme_type));
   (*pair_pot).pair_data = pair_data;
-  (*pair_pot).pair_fn = pair_fn_grimme;
-  (*pair_data).r0 = r0;
-  (*pair_data).c6 = c6;
+  if (pair_data != NULL) {
+    (*pair_pot).pair_fn = pair_fn_grimme;
+    (*pair_data).r0 = r0;
+    (*pair_data).c6 = c6;
+  }
 }
 
 double pair_fn_grimme(void *pair_data, long center_index, long other_index, double d, double *g) {
@@ -267,13 +273,15 @@ void pair_data_exprep_init(pair_pot_type *pair_pot, double *amp, int amp_mix, do
   pair_data_exprep_type *pair_data;
   pair_data = malloc(sizeof(pair_data_exprep_type));
   (*pair_pot).pair_data = pair_data;
-  (*pair_pot).pair_fn = pair_fn_exprep;
-  (*pair_data).amp = amp;
-  (*pair_data).amp_mix = amp_mix;
-  (*pair_data).amp_mix_coeff = amp_mix_coeff;
-  (*pair_data).b = b;
-  (*pair_data).b_mix = b_mix;
-  (*pair_data).b_mix_coeff = b_mix_coeff;
+  if (pair_data != NULL) {
+    (*pair_pot).pair_fn = pair_fn_exprep;
+    (*pair_data).amp = amp;
+    (*pair_data).amp_mix = amp_mix;
+    (*pair_data).amp_mix_coeff = amp_mix_coeff;
+    (*pair_data).b = b;
+    (*pair_data).b_mix = b_mix;
+    (*pair_data).b_mix_coeff = b_mix_coeff;
+  }
 }
 
 double pair_fn_exprep(void *pair_data, long center_index, long other_index, double d, double *g) {
@@ -334,10 +342,12 @@ void pair_data_dampdisp_init(pair_pot_type *pair_pot, double *c6, double *b, dou
   pair_data_dampdisp_type *pair_data;
   pair_data = malloc(sizeof(pair_data_dampdisp_type));
   (*pair_pot).pair_data = pair_data;
-  (*pair_pot).pair_fn = pair_fn_dampdisp;
-  (*pair_data).c6 = c6;
-  (*pair_data).b = b;
-  (*pair_data).vol = vol;
+  if (pair_data != NULL) {
+    (*pair_pot).pair_fn = pair_fn_dampdisp;
+    (*pair_data).c6 = c6;
+    (*pair_data).b = b;
+    (*pair_data).vol = vol;
+  }
 }
 
 double tang_toennies(double x, int order, double *g){
@@ -389,9 +399,11 @@ void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha) {
   pair_data_ei_type *pair_data;
   pair_data = malloc(sizeof(pair_data_ei_type));
   (*pair_pot).pair_data = pair_data;
-  (*pair_pot).pair_fn = pair_fn_ei;
-  (*pair_data).charges = charges;
-  (*pair_data).alpha = alpha;
+  if (pair_data != NULL) {
+    (*pair_pot).pair_fn = pair_fn_ei;
+    (*pair_data).charges = charges;
+    (*pair_data).alpha = alpha;
+  }
 }
 
 double pair_fn_ei(void *pair_data, long center_index, long other_index, double d, double *g) {
