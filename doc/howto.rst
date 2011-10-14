@@ -150,7 +150,7 @@ Yaff. It can also be used in the ``from_file`` method.
 
 #. [LOW PRIORITY] Add possibility to read system from a HDF5 output file.
 
-#. Make the checkpoint format more compact.
+#. [LOW PRIORITY] Make the checkpoint format more compact.
 
 
 Setting up an FF
@@ -259,7 +259,9 @@ This is a simple example of a Lennard-Jones force field::
 
 #. [PARTIALLY DONE, TODO: TORSION, DAMPDISP, LJ, MM3, GRIMME] The generate method.
 
-#. Replace hammer by taper.
+#. [LOW PRIORITY] Replace hammer by taper. Check which one converges the
+   quickest as the real-space cutoff is increased, without compromising the
+   conserved quantity.
 
 
 Running an FF simulation
@@ -329,7 +331,8 @@ in XXX.
 **TODO:**
 
 #. Check if we can do something like the Andersen thermostat to simulate a
-   constant pressure ensemble.
+   constant pressure ensemble. (Is possible, see Andersen J. Chem. Phys. 1980,
+   72, 2384-2393.)
 
 #. ``RefTraj`` derivative of the Iterative class.
 
@@ -438,7 +441,7 @@ The SMARTS system has the advantage of being very compact, but it has a few
 disadvantages that make it poorly applicable in the Yaff context: e.g. it
 assumes that the hybridization state of first-row atoms and bond orders are
 known. The only real `knowns` in the Yaff context are: ``numbers``, (optionally)
-``ffatypes``, (optionally) ``fragments`` and (optionally) ``bonds``. Therefore
+``ffatypes``, (optionally) ``scopes`` and (optionally) ``bonds``. Therefore
 we introduce a new language, hereafter called `ATSELECT`, to select atoms in a
 system.
 
@@ -551,6 +554,6 @@ sufficient attributes, a ``ValueError`` is raised.
 #. Allow ``scope:ffatype`` and ``scope:number`` combinations in the parameter
    files.
 
-#. Add support for '@N' feature to ATSELECT.
+#. Add support for ``@N`` feature to ATSELECT.
 
 #. Add caching to the ATSELECT compiler.
