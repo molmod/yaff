@@ -21,10 +21,20 @@
 # --
 
 
-from yaff.system import check_name
+__all__ = [
+    'check_name', 'find_first', 'lex_find', 'lex_split', 'atsel_compile'
+]
 
 
-__all__ = ['find_first', 'lex_find', 'lex_split', 'atsel_compile']
+def check_name(name):
+    """Raise an error if the given name is invalid."""
+    if len(name) == 0:
+        raise ValueError('A name may not be empty.')
+    for symbol in ':%=<>@()&|!':
+        if symbol in name:
+            raise ValueError('A scope or atom type name should not contain \'%s\'. Invalid name: \'%s\'' % (symbol, name))
+    if symbol[0].isdigit():
+        raise ValueError('A scope or atom type name should not start with a digit.')
 
 
 def find_first(s, subs, start=0, end=None):
@@ -185,9 +195,9 @@ class BaseNeighs(Rule):
 
     def __call__(self, system, i):
         if system.bonds is None:
-            raise ValueError('The system does not bond data.')
+            raise ValueError('The system does not have bond data.')
         num = 0
-        for j in system.neighs[i]:
+        for j in system.neighs1[i]:
             if self.fn is None or self.fn(system, j):
                 num += 1
         return num
@@ -292,7 +302,7 @@ def atsel_compile(s):
 
 
 def _compile_low(s):
-    while s[0] == '(' and s[-1] == ')':
+    while len(s) >= 2 and s[0] == '(' and s[-1] == ')':
         s = s[1:-1]
     for rule in rules:
         result = rule._compile(s)

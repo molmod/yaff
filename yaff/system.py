@@ -24,19 +24,11 @@
 import numpy as np
 
 from yaff.log import log
+from yaff.atselect import check_name, atsel_compile
 from yaff.pes.ext import Cell
 
 
-__all__ = ['check_name', 'System']
-
-
-def check_name(name):
-    """Raise an error if the given name is invalid."""
-    for symbol in ':%=<>@()&|!':
-        if symbol in name:
-            raise ValueError('A scope or atom type name should not contain \'%s\'. Invalid name: \'%s\'' % (symbol, name))
-    if symbol[0].isdigit():
-        raise ValueError('A scope or atom type name should not start with a digit.')
+__all__ = ['System']
 
 
 class System(object):
@@ -343,6 +335,19 @@ class System(object):
     def get_ffatype(self, index):
         """Return the of the ffatype (string) of atom with given index"""
         return self.ffatypes[self.ffatype_ids[index]]
+
+    def get_indexes(self, fn):
+        """Return the atom indexes that match the filter ``fn``
+
+           On the one hand, ``fn`` can be a function that accepts two
+           arguments: system and an atom index. On the other hand ``fn``
+           can be an ATSELECT string that defines the atoms of interest.
+
+           A list of atom indexes is returned.
+        """
+        if isinstance(fn, basestring):
+            fn = atsel_compile(fn)
+        return np.array([i for i in xrange(self.natom) if fn(self, i)])
 
     def set_standard_masses(self):
         log.enter('SYS')

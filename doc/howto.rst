@@ -500,21 +500,32 @@ not start with a digit. Some examples of atom selectors:
    least one atom with four bonds.
  * ``6&@6`` -- a Carbon atom that is part of a six-membered ring.
 
-The compiled ATSELECT expression takes two arguments: a ``System`` instance and
-an atom index. The compiled expression returns ``True`` if the atom with that
-index matches the expression. ``False`` is returned otherwise. Some parts of the
-syntax may not be supported if the corresponding optional attributes of the
-System instance are ``None``. Whenever one uses a compiled expression on a
-system that does not have sufficient attributes, a ``ValueError`` is raised.
+There are currently two ways to use the ATSELECT strings in Yaff:
+
+1. Compile the string into a function and use it directly::
+
+    from yaff import *
+    fn = atsel_compile('C&=4')
+    system = System.from_file('test.chk')
+    if fn(systen, 0):
+        pass
+        # Do something if the first atom is a carbon with four neighbors.
+        # ...
+
+2. Get all atom indexes in a system that match a certain ATSELECT string::
+
+    from yaff import *
+    system = System.from_file('test.chk')
+    indexes = system.get_indexes('C&=4')
+    # The array indexes is now contains all indexes of the carbon atoms with
+    # four neighbors.
+
+Whenever one uses a compiled expression on a system that does not have
+sufficient attributes, a ``ValueError`` is raised.
 
 **TODO:**
 
-#. Test ATSELECT compiled fns on real systems.
-
 #. Add caching to the ATSELECT compiler.
-
-#. Add a method to the ``System`` class to return a list of indexes that match
-   a certain ATSELECT filter.
 
 #. Add a method to the System class to assign ffatypes based on ATSELECT filters.
    If an atom does not have a matching filter, raise an error.
