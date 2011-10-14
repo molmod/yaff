@@ -95,6 +95,13 @@ def test_xyz():
     assert nve.counter == 15
 
 
+def test_xyz_select():
+    xyz = XYZWriter('/dev/null', select=[0,1,2])
+    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[xyz])
+    nve.run(15)
+    assert nve.counter == 15
+
+
 def test_at():
     nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostat(300))
     nve.run(5)

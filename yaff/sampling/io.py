@@ -99,7 +99,7 @@ class HDF5Writer(Hook):
 
 
 class XYZWriter(Hook):
-    def __init__(self, fn_xyz, start=0, step=1):
+    def __init__(self, fn_xyz, select=None, start=0, step=1):
         """
            **Argument:**
 
@@ -108,6 +108,10 @@ class XYZWriter(Hook):
 
            **Optional arguments:**
 
+           select
+                A list of atom indexes that should be written to the trajectory
+                output. If not given, all atoms are included.
+
            start
                 The first iteration at which this hook should be called.
 
@@ -115,6 +119,7 @@ class XYZWriter(Hook):
                 The hook will be called every `step` iterations.
         """
         self.fn_xyz = fn_xyz
+        self.select = select
         self.xyz_writer = None
         Hook.__init__(self, start, step)
 
@@ -123,7 +128,15 @@ class XYZWriter(Hook):
         if self.xyz_writer is None:
             from molmod.periodic import periodic
             from molmod.io import XYZWriter
-            symbols = [periodic[n].symbol for n in iterative.ff.system.numbers]
+            numbers = iterative.ff.system.numbers
+            if self.select is None:
+                symbols = [periodic[n].symbol for n in numbers]
+            else:
+                symbols = [periodic[numbers[i]].symbol for i in self.select]
             self.xyz_writer = XYZWriter(self.fn_xyz, symbols)
         title = '%7i E_pot = %.10f' % (iterative.counter, iterative.epot)
-        self.xyz_writer.dump(title, iterative.pos)
+        if self.select is None:
+            pos = iterative.pos
+        else:
+            pos = iterative.pos[self.select]
+        self.xyz_writer.dump(title, pos)
