@@ -103,7 +103,6 @@ def test_generator_water32_bendcharm():
 
 def test_generator_water32_fixq():
     system = get_system_water32()
-    system.charges[:] = 0.0
     ff = ForceField.generate(system, 'input/parameters_water_fixq.txt', rcut=15.0*angstrom)
     assert len(ff.parts) == 4
     part_pair_ei = ff.part_pair_ei
@@ -123,7 +122,6 @@ def test_generator_water32_fixq():
             assert abs(system.charges[i] + 2*0.417) < 1e-5
 
     system = get_system_water32()
-    system.charges[:] = 0.0
     ff2 = ForceField.generate(system, 'input/parameters_water_fixq.txt', rcut=15.0*angstrom)
     energy = ff.compute()
     energy2 = ff2.compute()
@@ -204,7 +202,6 @@ def test_generator_water32_dampdisp():
 
 def test_generator_water32():
     system = get_system_water32()
-    system.charges[:] = 0.0
     ff = ForceField.generate(system, 'input/parameters_water.txt')
     # get all ff parts
     assert len(ff.parts) == 7
