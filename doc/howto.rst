@@ -334,12 +334,13 @@ in XXX.
    constant pressure ensemble. (Is possible, see Andersen J. Chem. Phys. 1980,
    72, 2384-2393.)
 
-#. ``RefTraj`` derivative of the Iterative class.
+#. [LOW PRIORITY] ``RefTraj`` derivative of the Iterative class.
 
-#. Optimizer stuff. We should use the molmod optimizer, but change it such
-   that the main loop of the optimizer is done in Yaff instead of in molmod.
+#. [LATER] Optimizer stuff. We should use the molmod optimizer, but change it
+   such that the main loop of the optimizer is done in Yaff instead of in
+   molmod.
 
-#. Numerical (partial) Hessian
+#. [LATER] Numerical (partial) Hessian
 
 
 Analyzing the results
@@ -426,7 +427,7 @@ computations that can either be done in a post-processing step, or on-line.
 
 #. Something to estimate diffusion constants.
 
-#. Port other things from MD-Tracks, including the conversion stuff.
+#. [LOW PRIORITY] Port other things from MD-Tracks, including the conversion stuff.
 
 
 ATSELECT: Selecting atoms
@@ -528,15 +529,15 @@ sufficient attributes, a ``ValueError`` is raised.
 
 **TODO:**
 
-#. Add a method to the System class to assign ffatypes based on ATSELECT filters.
+#. [LATER] Add a method to the System class to assign ffatypes based on ATSELECT filters.
    If an atom does not have a matching filter, raise an error.
 
-#. Add support for atomic numbers in the parameter files.
+#. [LATER2] Add support for atomic numbers in the parameter files.
 
-#. Make an FF for methanol, and a methanol-water system to facilitate the
+#. [LATER2] Make an FF for methanol, and a methanol-water system to facilitate the
    testing.
 
-#. Add support for scopes to the Generator classes.
+#. [LATER2] Add support for scopes to the Generator classes.
 
    The parameter file contains two sections::
 
@@ -551,9 +552,9 @@ sufficient attributes, a ``ValueError`` is raised.
    Each section has its own default scope, although it is OK to use other scopes
    too when defining the parameters. (Examples will be given below.)
 
-#. Allow ``scope:ffatype`` and ``scope:number`` combinations in the parameter
+#. [LATER2] Allow ``scope:ffatype`` and ``scope:number`` combinations in the parameter
    files.
 
-#. Add support for ``@N`` feature to ATSELECT.
+#. [LOW PRIORITY] Add support for ``@N`` feature to ATSELECT.
 
-#. Add caching to the ATSELECT compiler.
+#. [LOW PRIORITY] Add caching to the ATSELECT compiler.

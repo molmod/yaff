@@ -1,7 +1,7 @@
 Whish list
 ##########
 
-1. All the TODO items of the Howto plan.
+1. All the TODO items of the Howto.
 2. A timer object.
 3. ACKS2
 4. Restart functionality.
