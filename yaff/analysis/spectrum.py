@@ -30,7 +30,6 @@ from yaff.analysis.utils import get_slice
 from yaff.sampling.iterative import Hook
 
 
-
 __all__ = ['Spectrum']
 
 
@@ -79,7 +78,8 @@ class Spectrum(Hook):
 
            outpath
                 The output path for the frequency computation in the HDF5 file.
-                If not given, it defaults to '%s_spectrum' % path.
+                If not given, it defaults to '%s_spectrum' % path. If this path
+                already exists, it will be removed first.
 
            The max_sample argument from get_slice is not used because the choice
            step value is an important parameter: it is best to choose step*bsize
