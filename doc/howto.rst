@@ -509,9 +509,7 @@ system that does not have sufficient attributes, a ``ValueError`` is raised.
 
 **TODO:**
 
-#. Make a ``yaff.atselect`` module that can compile ATSELECT lines. Compiled
-   functions should be able to return their ATSELECT representation. This is
-   useful for testing.
+#. Test ATSELECT compiled fns on real systems.
 
 #. Add caching to the ATSELECT compiler.
 
@@ -545,3 +543,5 @@ system that does not have sufficient attributes, a ``ValueError`` is raised.
    files.
 
 #. Add ``select`` options to the analysis routines.
+
+#. Add support for '@N' feature to ATSELECT.

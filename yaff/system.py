@@ -27,7 +27,7 @@ from yaff.log import log
 from yaff.pes.ext import Cell
 
 
-__all__ = ['System']
+__all__ = ['check_name', 'System']
 
 
 def check_name(name):

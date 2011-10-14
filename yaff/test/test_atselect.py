@@ -34,6 +34,16 @@ def test_find_first():
     assert find_first(s, ('a',)) == (8, 'a')
 
 
+def test_lex_find():
+    assert lex_find('foo&bar&spam&egg', '&') == 3
+    assert lex_find('(foo&bar)&spam&egg', '&') == 9
+    assert lex_find('(foo&bar&spam&egg)', '&') == -1
+    assert lex_find('(foo&(bar))&spam&egg', '&') == 11
+    assert lex_find('foo&(bar&spam)&egg', '&') == 3
+    assert lex_find('foo&bar&(spam&egg)', '&') == 3
+    assert lex_find('(foo&bar)&(spam&egg)', '&') == 9
+
+
 def test_lex_split():
     assert lex_split('foo&bar&spam&egg', '&') == 'foo&bar&spam&egg'.split('&')
     assert lex_split('(foo&bar)&spam&egg', '&') == ['(foo&bar)', 'spam', 'egg']
@@ -42,3 +52,20 @@ def test_lex_split():
     assert lex_split('foo&(bar&spam)&egg', '&') == ['foo', '(bar&spam)', 'egg']
     assert lex_split('foo&bar&(spam&egg)', '&') == ['foo', 'bar', '(spam&egg)']
     assert lex_split('(foo&bar)&(spam&egg)', '&') == ['(foo&bar)', '(spam&egg)']
+
+
+def test_compile():
+    assert atsel_compile('C').get_string() == 'C'
+    assert atsel_compile('C&N').get_string() == 'C&N'
+    assert atsel_compile('C&N|O').get_string() == 'C&N|O'
+    assert atsel_compile('(C&N)|O').get_string() == '(C&N)|O'
+    assert atsel_compile('(!C)&O').get_string() == '!C&O'
+    assert atsel_compile('C&=3').get_string() == 'C&=3'
+    assert atsel_compile('C&>3').get_string() == 'C&>3'
+    assert atsel_compile('C&<3').get_string() == 'C&<3'
+    assert atsel_compile('C&=3%1').get_string() == 'C&=3%1'
+    assert atsel_compile('C&=3%(1|O_W)').get_string() == 'C&=3%(1|O_W)'
+    assert atsel_compile('!(C&=3%1)').get_string() == '!(C&=3%1)'
+    assert atsel_compile('ALKANE:C&=3%1').get_string() == 'ALKANE:C&=3%1'
+    assert atsel_compile('ALKANE:*&=3%1').get_string() == 'ALKANE:*&=3%1'
+    assert atsel_compile('ALKANE:6&=3%1').get_string() == 'ALKANE:6&=3%1'
