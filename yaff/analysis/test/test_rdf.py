@@ -19,3 +19,26 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 # --
+
+import shutil, os
+
+from yaff import *
+from yaff.analysis.test.common import get_nve_water32
+
+
+def test_rdf1_offline():
+    dn_tmp, nve, f = get_nve_water32()
+    try:
+        select = nve.ff.system.get_indexes('O')
+        rdf = RDF(f, rcut=4.5*angstrom, rspacing=0.1*angstrom, select0=select)
+        assert 'trajectory/pos_rdf' in f
+        assert 'trajectory/pos_rdf/d' in f
+        assert 'trajectory/pos_rdf/counts' in f
+        assert 'trajectory/pos_rdf/rdf' in f
+        assert 'trajectory/pos_rdf/crdf' in f
+        fn_png = '%s/rdf.png' % dn_tmp
+        rdf.plot(fn_png)
+        assert os.path.isfile(fn_png)
+    finally:
+        shutil.rmtree(dn_tmp)
+        f.close()

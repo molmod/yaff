@@ -22,5 +22,6 @@
 
 
 from yaff.analysis.basic import *
+from yaff.analysis.rdf import *
 from yaff.analysis.spectrum import *
 from yaff.analysis.utils import *
