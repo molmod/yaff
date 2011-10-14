@@ -454,6 +454,63 @@ def test_pair_pot_exprep_caffeine_5A_case2():
     check_pair_pot_caffeine(system, nlists, scalings, part_pair, pair_fn, 1e-15)
 
 
+def get_part_caffeine_dampdisp_9A():
+    # Get a system and define scalings
+    system = get_system_caffeine()
+    nlists = NeighborLists(system)
+    scalings = Scalings(system, 0.0, 1.0, 1.0)
+    # Initialize (very random) parameters
+    c6_table = {
+        1: 2.5,
+        6: 27.0,
+        7: 18.0,
+        8: 13.0,
+    }
+    b_table = {
+        1: 2.5,
+        6: 2.0,
+        7: 1.9,
+        8: 1.8,
+    }
+    vol_table = {
+        1: 5*angstrom**3,
+        6: 3*angstrom**3,
+        7: 4*angstrom**3,
+        8: 5*angstrom**3,
+    }
+    c6s = np.zeros(24, float)
+    bs = np.zeros(24, float)
+    vols = np.zeros(24, float)
+    for i in xrange(system.natom):
+        c6s[i] = c6_table[system.numbers[i]]
+        bs[i] = b_table[system.numbers[i]]
+        vols[i] = vol_table[system.numbers[i]]
+    # Construct the pair potential and part
+    pair_pot = PairPotDampDisp(c6s, bs, vols, 9*angstrom, False)
+    assert abs(pair_pot.c6s - c6s).max() < 1e-10
+    assert abs(pair_pot.bs - bs).max() < 1e-10
+    assert abs(pair_pot.vols - vols).max() < 1e-10
+    part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
+    # The pair function
+    def pair_fn(i, j, d):
+        b = 0.5*(bs[i]+bs[j])
+        ratio = (vols[i]/vols[j])**2
+        c6 = 2*c6s[i]*c6s[j]/(c6s[i]*ratio+c6s[j]/ratio)
+        damp = 0
+        fac = 1
+        for k in xrange(7):
+            damp += (b*d)**k/fac
+            fac *= k+1
+        damp = 1 - np.exp(-b*d)*damp
+        return -c6/d**6*damp
+    return system, nlists, scalings, part_pair, pair_fn
+
+
+def test_pair_pot_dampdisp_caffeine_9A():
+    system, nlists, scalings, part_pair, pair_fn = get_part_caffeine_dampdisp_9A()
+    check_pair_pot_caffeine(system, nlists, scalings, part_pair, pair_fn, 1e-15)
+
+
 def get_part_caffeine_ei1_10A():
     # Get a system and define scalings
     system = get_system_caffeine()
@@ -503,7 +560,7 @@ def test_pair_pot_ei2_caffeine_10A():
 
 
 #
-# Caffeine derivative tests
+# Water derivative tests
 #
 
 
@@ -511,6 +568,11 @@ def test_gpos_vtens_pair_pot_water_lj_9A():
     system, nlists, scalings, part_pair, pair_fn = get_part_water32_9A_lj()
     check_gpos_part(system, part_pair, nlists)
     check_vtens_part(system, part_pair, nlists)
+
+
+#
+# Caffeine derivative tests
+#
 
 
 def test_gpos_vtens_pair_pot_caffeine_lj_15A():
@@ -531,14 +593,20 @@ def test_gpos_vtens_pair_pot_caffeine_grimme_15A():
     check_vtens_part(system, part_pair, nlists)
 
 
-def test_gpos_vtens_pair_pot_water_exprep_5A_case1():
+def test_gpos_vtens_pair_pot_caffeine_exprep_5A_case1():
     system, nlists, scalings, part_pair, pair_fn = get_part_caffeine_exprep_5A(0, 0.0, 0, 0.0)
     check_gpos_part(system, part_pair, nlists)
     check_vtens_part(system, part_pair, nlists)
 
 
-def test_gpos_vtens_pair_pot_water_exprep_5A_case2():
+def test_gpos_vtens_pair_pot_caffeine_exprep_5A_case2():
     system, nlists, scalings, part_pair, pair_fn = get_part_caffeine_exprep_5A(1, 2.385e-2, 1, 7.897e-3)
+    check_gpos_part(system, part_pair, nlists)
+    check_vtens_part(system, part_pair, nlists)
+
+
+def test_gpos_vtens_pair_pot_caffeine_dampdisp_9A():
+    system, nlists, scalings, part_pair, pair_fn = get_part_caffeine_dampdisp_9A()
     check_gpos_part(system, part_pair, nlists)
     check_vtens_part(system, part_pair, nlists)
 

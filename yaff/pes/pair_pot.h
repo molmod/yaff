@@ -102,6 +102,16 @@ double pair_data_exprep_get_b_mix_coeff(pair_pot_type *pair_pot);
 
 
 typedef struct {
+  double *c6;
+  double *b;
+  double *vol;
+} pair_data_dampdisp_type;
+
+void pair_data_dampdisp_init(pair_pot_type *pair_pot, double *c6, double *b, double *vol);
+double pair_fn_dampdisp(void *pair_data, long center_index, long other_index, double d, double *g);
+
+
+typedef struct {
   double *charges;
   double alpha;
 } pair_data_ei_type;

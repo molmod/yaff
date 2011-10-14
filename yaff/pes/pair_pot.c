@@ -330,6 +330,61 @@ double pair_data_exprep_get_b_mix_coeff(pair_pot_type *pair_pot){
 
 
 
+void pair_data_dampdisp_init(pair_pot_type *pair_pot, double *c6, double *b, double *vol) {
+  pair_data_dampdisp_type *pair_data;
+  pair_data = malloc(sizeof(pair_data_dampdisp_type));
+  (*pair_pot).pair_data = pair_data;
+  (*pair_pot).pair_fn = pair_fn_dampdisp;
+  (*pair_data).c6 = c6;
+  (*pair_data).b = b;
+  (*pair_data).vol = vol;
+}
+
+double tang_toennies(double x, int order, double *g){
+  double tmp, poly, last, e;
+  int k, fac;
+  poly = 0.0;
+  fac = 1;
+  tmp = 1.0;
+  for (k=0; k<order; k++) {
+    poly += tmp/fac;
+    fac *= k+1;
+    tmp *= x;
+  }
+  last = tmp/fac;
+  poly += last;
+  e = exp(-x);
+  if (g != NULL) {
+    *g = e*last;
+  }
+  return 1.0 - poly*e;
+}
+
+double pair_fn_dampdisp(void *pair_data, long center_index, long other_index, double d, double *g) {
+  double c60, c61, ratio, c6, b, disp, damp;
+  // Load parameters from data structure and mix
+  pair_data_dampdisp_type *pd;
+  pd = (pair_data_dampdisp_type*)pair_data;
+  c60 = (*pd).c6[center_index];
+  c61 = (*pd).c6[other_index];
+  ratio = (*pd).vol[center_index]/(*pd).vol[other_index];
+  ratio *= ratio;
+  c6 = 2.0*c60*c61/(c60*ratio+c61/ratio);
+  b = 0.5*((*pd).b[center_index]+(*pd).b[other_index]);
+  // compute the damping
+  damp = tang_toennies(b*d, 6, g);
+  // compute the energy
+  disp = d*d;
+  disp *= disp*disp;
+  disp = -c6/disp;
+  if (g != NULL) {
+    *g = ((*g)*b-6.0/d*damp)*disp/d;
+  }
+  return damp*disp;
+}
+
+
+
 void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha) {
   pair_data_ei_type *pair_data;
   pair_data = malloc(sizeof(pair_data_ei_type));

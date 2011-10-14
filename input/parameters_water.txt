@@ -65,7 +65,7 @@ FIXQ:BOND        H        O  3.6841957737e-01
 
 # Mathematical form:
 #   C6_AB*f(r)*r**-6
-# where C is a constant and f(r) is the Tang-Toeniess damping factor
+# where C is a constant and f(r) is the Tang-Toennies damping factor
 #   f(r) = 1 - exp(-B_AB*r)*sum_k=0..6((B_AB*r)**k/k!)
 DAMPDISP:UNIT C au
 DAMPDISP:UNIT R0 angstrom
@@ -84,8 +84,9 @@ DAMPDISP:SCALE 3 1.0
 #   B_AA = -0.33*(2*R_VDWA)+4.339
 #   R_VDWA = (conventional) vdw radius of atom A
 # Idea taken from JCP v132, p234109, y2010.
-DAMPDISP:MIX C6 LONDON_VOLUME
-DAMPDISP:MIX B ARITHMETIC
+# Mixing rules are commented out because they are the only available option:
+##DAMPDISP:MIX C6 LONDON_VOLUME
+##DAMPDISP:MIX B ARITHMETIC
 # ---------------------------------------------------------------------------
 # KEY            label  C6_AA             B_AA              VOL_A
 # ---------------------------------------------------------------------------

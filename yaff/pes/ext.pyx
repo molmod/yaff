@@ -37,9 +37,9 @@ from yaff.log import log
 __all__ = [
     'nlist_status_init', 'nlist_update', 'nlist_status_finish',
     'PairPot', 'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep',
-    'PairPotEI', 'compute_ewald_reci', 'compute_ewald_corr', 'dlist_forward',
-    'dlist_back', 'iclist_forward', 'iclist_back', 'vlist_forward',
-    'vlist_back',
+    'PairPotDampDisp', 'PairPotEI', 'compute_ewald_reci', 'compute_ewald_corr',
+    'dlist_forward', 'dlist_back', 'iclist_forward', 'iclist_back',
+    'vlist_forward', 'vlist_back',
 ]
 
 
@@ -436,6 +436,54 @@ cdef class PairPotExpRep(PairPot):
         return pair_pot.pair_data_exprep_get_b_mix_coeff(self._c_pair_pot)
 
     b_mix_coeff = property(get_b_mix_coeff)
+
+
+cdef class PairPotDampDisp(PairPot):
+    cdef np.ndarray _c_c6s
+    cdef np.ndarray _c_bs
+    cdef np.ndarray _c_vols
+    name = 'dampdisp'
+
+    def __cinit__(self, np.ndarray[double, ndim=1] c6s,
+                  np.ndarray[double, ndim=1] bs,
+                  np.ndarray[double, ndim=1] vols, double rcut, bint smooth):
+        assert c6s.flags['C_CONTIGUOUS']
+        assert bs.flags['C_CONTIGUOUS']
+        assert vols.flags['C_CONTIGUOUS']
+        assert c6s.shape[0] == bs.shape[0]
+        assert c6s.shape[0] == vols.shape[0]
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        pair_pot.pair_pot_set_smooth(self._c_pair_pot, smooth)
+        pair_pot.pair_data_dampdisp_init(self._c_pair_pot, <double*>c6s.data,
+                                         <double*>bs.data, <double*>vols.data)
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_c6s = c6s
+        self._c_bs = bs
+        self._c_vols = vols
+
+    def log(self):
+        if log.do_high:
+            log.hline()
+            log('   Atom         C6          B        VOL')
+            log.hline()
+            for i in xrange(self._c_c6s.shape[0]):
+                log('%7i %s %s %s' % (i, log.c6(self._c_c6s[i]), log.length(self._c_bs[i]), log.volume(self._c_vols[i])))
+
+    def get_c6s(self):
+        return self._c_c6s.view()
+
+    c6s = property(get_c6s)
+
+    def get_bs(self):
+        return self._c_bs.view()
+
+    bs = property(get_bs)
+
+    def get_vols(self):
+        return self._c_vols.view()
+
+    vols = property(get_vols)
 
 
 cdef class PairPotEI(PairPot):
