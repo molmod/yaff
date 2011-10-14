@@ -23,7 +23,7 @@
 
 import numpy as np
 
-from yaff import kjmol, angstrom, deg, angstrom
+from yaff import kjmol, angstrom, deg, angstrom, kcalmol
 from yaff import ForceField, ForcePartValence
 
 from yaff.test.common import get_system_water32
@@ -162,6 +162,30 @@ def test_generator_water32_exprep2():
     assert part_pair_exprep.pair_pot.amps[1] == 2.3514195495e+00
     assert abs(part_pair_exprep.pair_pot.bs[0] - 4.4661933834e+00/angstrom) < 1e-10
     assert abs(part_pair_exprep.pair_pot.bs[1] - 4.4107388814e+00/angstrom) < 1e-10
+
+
+def test_generator_water32_lj():
+    system = get_system_water32()
+    ff = ForceField.generate(system, 'input/parameters_water_lj.txt')
+    assert len(ff.parts) == 1
+    part_pair_lj = ff.part_pair_lj
+    # check parameters
+    assert abs(part_pair_lj.pair_pot.sigmas[0] - 1.7*angstrom) < 1e-10
+    assert abs(part_pair_lj.pair_pot.sigmas[1] - 0.2*angstrom) < 1e-10
+    assert abs(part_pair_lj.pair_pot.epsilons[0] - 0.12*kcalmol) < 1e-10
+    assert abs(part_pair_lj.pair_pot.epsilons[1] - 0.04*kcalmol) < 1e-10
+
+
+def test_generator_water32_mm3():
+    system = get_system_water32()
+    ff = ForceField.generate(system, 'input/parameters_water_mm3.txt')
+    assert len(ff.parts) == 1
+    part_pair_mm3 = ff.part_pair_mm3
+    # check parameters
+    assert abs(part_pair_mm3.pair_pot.sigmas[0] - 1.7*angstrom) < 1e-10
+    assert abs(part_pair_mm3.pair_pot.sigmas[1] - 0.2*angstrom) < 1e-10
+    assert abs(part_pair_mm3.pair_pot.epsilons[0] - 0.12*kcalmol) < 1e-10
+    assert abs(part_pair_mm3.pair_pot.epsilons[1] - 0.04*kcalmol) < 1e-10
 
 
 def test_generator_water32():

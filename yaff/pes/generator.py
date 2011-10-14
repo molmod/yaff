@@ -26,7 +26,7 @@ import numpy as np
 from molmod.units import parse_unit
 
 from yaff.log import log
-from yaff.pes.ext import PairPotEI, PairPotExpRep
+from yaff.pes.ext import PairPotEI, PairPotLJ, PairPotMM3, PairPotExpRep
 from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
     ForcePartEwaldNeutralizing
@@ -40,7 +40,8 @@ __all__ = [
     'ParsedPars', 'FFArgs', 'Generator', 'ValenceGenerator', 'BondGenerator',
     'BondHarmGenerator', 'BondFuesGenerator', 'BendGenerator',
     'BendAngleHarmGenerator', 'BendCosHarmGenerator', 'NonbondedGenerator',
-    'ExpRepGenerator', 'FixedChargeGenerator', 'generators'
+    'LJGenerator', 'MM3Generator', 'ExpRepGenerator', 'FixedChargeGenerator',
+    'generators'
 ]
 
 
@@ -374,6 +375,86 @@ class NonbondedGenerator(Generator):
         if len(result) != expected_num_rules:
             parsed_pars.complain(None, 'does not contain enough mixing rules for the generator %s.' % self.prefix)
         return result
+
+
+class LJGenerator(NonbondedGenerator):
+    prefix = 'LJ'
+    commands = ['UNIT', 'SCALE', 'PARS']
+    num_ffatypes = 1
+    par_names = ['SIGMA', 'EPSILON']
+
+    def __call__(self, system, parsed_pars, ff_args):
+        self.check_commands(parsed_pars)
+        conversions = self.process_units(parsed_pars.get_section('UNIT'))
+        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions)
+        scale_table = self.process_scales(parsed_pars.get_section('SCALE'))
+        self.apply(par_table, scale_table, system, ff_args)
+
+    def apply(self, par_table, scale_table, system, ff_args):
+        # Prepare the atomic parameters
+        sigmas = np.zeros(system.natom)
+        epsilons = np.zeros(system.natom)
+        for i in xrange(system.natom):
+            key = (system.get_ffatype(i),)
+            pars = par_table.get(key)
+            if pars is None:
+                if log.do_warning:
+                    log.warn('No LJ parameters found for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
+            else:
+                sigmas[i], epsilons[i] = pars
+
+        # Prepare the global parameters
+        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
+
+        # Get the part. It should not exist yet.
+        part_pair = ff_args.get_part_pair(PairPotLJ)
+        if part_pair is not None:
+            raise RuntimeError('Internal inconsistency: the LJ part should not be present yet.')
+
+        pair_pot = PairPotLJ(sigmas, epsilons, ff_args.rcut, ff_args.smooth)
+        nlists = ff_args.get_nlists(system)
+        part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
+        ff_args.parts.append(part_pair)
+
+
+class MM3Generator(NonbondedGenerator):
+    prefix = 'MM3'
+    commands = ['UNIT', 'SCALE', 'PARS']
+    num_ffatypes = 1
+    par_names = ['SIGMA', 'EPSILON']
+
+    def __call__(self, system, parsed_pars, ff_args):
+        self.check_commands(parsed_pars)
+        conversions = self.process_units(parsed_pars.get_section('UNIT'))
+        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions)
+        scale_table = self.process_scales(parsed_pars.get_section('SCALE'))
+        self.apply(par_table, scale_table, system, ff_args)
+
+    def apply(self, par_table, scale_table, system, ff_args):
+        # Prepare the atomic parameters
+        sigmas = np.zeros(system.natom)
+        epsilons = np.zeros(system.natom)
+        for i in xrange(system.natom):
+            key = (system.get_ffatype(i),)
+            pars = par_table.get(key)
+            if pars is None:
+                if log.do_warning:
+                    log.warn('No MM3 parameters found for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
+            else:
+                sigmas[i], epsilons[i] = pars
+
+        # Prepare the global parameters
+        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
+
+        # Get the part. It should not exist yet.
+        part_pair = ff_args.get_part_pair(PairPotMM3)
+        if part_pair is not None:
+            raise RuntimeError('Internal inconsistency: the MM3 part should not be present yet.')
+
+        pair_pot = PairPotMM3(sigmas, epsilons, ff_args.rcut, ff_args.smooth)
+        nlists = ff_args.get_nlists(system)
+        part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
+        ff_args.parts.append(part_pair)
 
 
 class ExpRepGenerator(NonbondedGenerator):
