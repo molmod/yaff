@@ -22,7 +22,7 @@
 
 
 
-import numpy as np
+import numpy as np, time
 
 from molmod import boltzmann
 
@@ -41,21 +41,24 @@ class NVEScreenLog(Hook):
     def __init__(self, start=0, step=1):
         Hook.__init__(self, start, step)
         self.ref_econs = None
+        self.time0 = None
 
     def __call__(self, iterative):
         if log.do_medium:
             if self.ref_econs is None:
                 self.ref_econs = iterative.econs
+                self.time0 = time.time()
                 if log.do_medium:
                     log.hline()
-                    log('counter  Rel.Econs       Temp     d-RMSD     g-RMSD')
+                    log('counter  Rel.Econs       Temp     d-RMSD     g-RMSD   Walltime')
                     log.hline()
-            log('%7i %s %s %s %s' % (
+            log('%7i %s %s %s %s %10.3e' % (
                 iterative.counter,
                 log.energy(iterative.econs - self.ref_econs),
                 log.temperature(iterative.temp),
                 log.length(iterative.rmsd_delta),
                 log.force(iterative.rmsd_gpos),
+                time.time() - self.time0,
             ))
 
 
