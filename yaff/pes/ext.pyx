@@ -35,7 +35,7 @@ from yaff.log import log
 
 
 __all__ = [
-    'nlist_status_init', 'nlist_update', 'nlist_status_finish',
+    'Cell', 'nlist_status_init', 'nlist_update', 'nlist_status_finish',
     'PairPot', 'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep',
     'PairPotDampDisp', 'PairPotEI', 'compute_ewald_reci', 'compute_ewald_corr',
     'dlist_forward', 'dlist_back', 'iclist_forward', 'iclist_back',
@@ -145,6 +145,23 @@ cdef class Cell:
     def mic(self, np.ndarray[double, ndim=1] delta):
         assert delta.size == 3
         cell.cell_mic(<double *>delta.data, self._c_cell)
+
+    def compute_distances(self, np.ndarray[double, ndim=1] output,
+                          np.ndarray[double, ndim=2] pos0,
+                          np.ndarray[double, ndim=2] pos1=None):
+        assert pos0.shape[1] == 3
+        natom0 = pos0.shape[0]
+        if pos1 is None:
+            assert (natom0*(natom0-1))/2 == output.shape[0]
+            cell.cell_compute_distances1(self._c_cell, <double*> pos0.data,
+                                         <double*> output.data, natom0)
+        else:
+            assert pos1.shape[1] == 3
+            natom1 = pos1.shape[0]
+            assert natom0*natom1 == output.shape[0]
+            cell.cell_compute_distances2(self._c_cell, <double*> pos0.data,
+                                         <double*> pos1.data,
+                                         <double*> output.data, natom0, natom1)
 
 
 #

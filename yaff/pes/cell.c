@@ -81,6 +81,36 @@ void cell_mic(double *delta, cell_type* cell) {
   }
 }
 
+void cell_compute_distances1(cell_type* cell, double* pos, double* output, long natom) {
+  double delta[3];
+  long i0, i1;
+  for (i0=0; i0<natom; i0++) {
+    for (i1=0; i1<i0; i1++) {
+      delta[0] = pos[3*i0  ] - pos[3*i1  ];
+      delta[1] = pos[3*i0+1] - pos[3*i1+1];
+      delta[2] = pos[3*i0+2] - pos[3*i1+2];
+      cell_mic(delta, cell);
+      *output = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
+      output++;
+    }
+  }
+}
+
+void cell_compute_distances2(cell_type* cell, double* pos0, double* pos1, double* output, long natom0, long natom1) {
+  double delta[3];
+  long i0, i1;
+  for (i0=0; i0<natom0; i0++) {
+    for (i1=0; i1<natom1; i1++) {
+      delta[0] = pos0[3*i0  ] - pos1[3*i1  ];
+      delta[1] = pos0[3*i0+1] - pos1[3*i1+1];
+      delta[2] = pos0[3*i0+2] - pos1[3*i1+2];
+      cell_mic(delta, cell);
+      *output = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
+      output++;
+    }
+  }
+}
+
 int cell_get_nvec(cell_type* cell) {
   return (*cell).nvec;
 }

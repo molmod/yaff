@@ -31,6 +31,10 @@ cdef extern from "cell.h":
 
     void cell_mic(double *delta, cell_type* cell)
 
+    void cell_compute_distances1(cell_type* cell, double* pos, double* output, long natom)
+    void cell_compute_distances2(cell_type* cell, double* pos0, double* pos1, double* output, long natom0, long natom1)
+
+
     int cell_get_nvec(cell_type* cell)
     double cell_get_volume(cell_type* cell)
     void cell_copy_rvecs(cell_type* cell, double *rvecs, bint full)

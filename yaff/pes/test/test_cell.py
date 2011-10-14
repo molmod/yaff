@@ -65,3 +65,35 @@ def test_cell_glycine():
     assert cell.gvecs.shape == (0, 3)
     assert cell.rspacings.shape == (0,)
     assert cell.gspacings.shape == (0,)
+
+
+def test_compute_distances1():
+    n = 10
+    cell = get_system_water32().cell
+    pos = np.random.normal(0, 10, (n, 3))
+    output = np.zeros((n*(n-1))/2, float)
+    cell.compute_distances(output, pos)
+    counter = 0
+    for i0 in xrange(n):
+        for i1 in xrange(i0):
+            delta = pos[i0] - pos[i1]
+            cell.mic(delta)
+            assert abs(output[counter] - np.linalg.norm(delta)) < 1e-10
+            counter += 1
+
+
+def test_compute_distances2():
+    n0 = 10
+    n1 = 5
+    cell = get_system_water32().cell
+    pos0 = np.random.normal(0, 10, (n0, 3))
+    pos1 = np.random.normal(0, 10, (n1, 3))
+    output = np.zeros(n0*n1, float)
+    cell.compute_distances(output, pos0, pos1)
+    counter = 0
+    for i0 in xrange(n0):
+        for i1 in xrange(n1):
+            delta = pos0[i0] - pos1[i1]
+            cell.mic(delta)
+            assert abs(output[counter] - np.linalg.norm(delta)) < 1e-10
+            counter += 1
