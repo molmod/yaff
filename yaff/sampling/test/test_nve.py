@@ -108,8 +108,8 @@ def test_at():
     assert nve.counter == 5
 
 
-def test_at_mask():
-    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostat(300, mask=[1,2,5]))
+def test_at_select():
+    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostat(300, select=[1,2,5]))
     nve.run(5)
     assert nve.counter == 5
 

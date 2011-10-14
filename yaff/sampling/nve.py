@@ -60,7 +60,7 @@ class NVEScreenLog(Hook):
 
 
 class AndersenThermostat(Hook):
-    def __init__(self, temp, start=0, step=1, mask=None, annealing=1.0):
+    def __init__(self, temp, start=0, step=1, select=None, annealing=1.0):
         """
            **Arguments:**
 
@@ -76,9 +76,9 @@ class AndersenThermostat(Hook):
                 The number of iterations between two subsequent calls to this
                 hook.
 
-           mask
-                An array mask to indicate which atoms controlled by the
-                thermostat.
+           select
+                An array of atom indexes to indicate which atoms controlled by
+                the thermostat.
 
            annealing
                 After every call to this hook, the temperature is multiplied
@@ -86,16 +86,16 @@ class AndersenThermostat(Hook):
                 system.
         """
         self.temp = temp
-        self.mask = mask
+        self.select = select
         self.annealing = annealing
         Hook.__init__(self, start, step)
 
     def __call__(self, iterative):
         # Change the velocities
-        if self.mask is None:
+        if self.select is None:
             iterative.vel[:] = iterative.get_random_vel(self.temp, False)
         else:
-            iterative.vel[self.mask] = iterative.get_random_vel(self.temp, False)[self.mask]
+            iterative.vel[self.select] = iterative.get_random_vel(self.temp, False, self.select)
         # Update the kinetic energy and the reference for the conserved quantity
         ekin_after = 0.5*(iterative.vel**2*iterative.masses.reshape(-1,1)).sum()
         iterative.econs_ref += iterative.ekin - ekin_after
@@ -223,10 +223,16 @@ class NVEIntegrator(Iterative):
         if not any(isinstance(hook, NVEScreenLog) for hook in self.hooks):
             self.hooks.append(NVEScreenLog())
 
-    def get_random_vel(self, temp0, scalevel0):
-        result = np.random.normal(0, 1, self.pos.shape)*np.sqrt(boltzmann*temp0/self.masses).reshape(-1,1)
+    def get_random_vel(self, temp0, scalevel0, select=None):
+        if select is None:
+            masses = self.masses
+            shape = self.pos.shape
+        else:
+            masses = self.masses[select]
+            shape = (len(select), 3)
+        result = np.random.normal(0, 1, shape)*np.sqrt(boltzmann*temp0/masses).reshape(-1,1)
         if scalevel0:
-            temp = (result**2*self.masses.reshape(-1,1)).mean()/boltzmann
+            temp = (result**2*masses.reshape(-1,1)).mean()/boltzmann
             scale = np.sqrt(temp0/temp)
             result *= scale
         return result
