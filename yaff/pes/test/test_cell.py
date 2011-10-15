@@ -39,7 +39,7 @@ def test_cell_water32():
 
 def test_cell_graphene8():
     cell = get_system_graphene8().cell
-    assert abs(cell.volume - np.dot(cell.rvecs[0], cell.rvecs[1])) < 1e-10
+    assert abs(cell.volume - np.linalg.norm(np.cross(cell.rvecs[0], cell.rvecs[1]))) < 1e-10
     assert abs(np.dot(cell.gvecs, cell.rvecs.transpose()) - np.identity(2)).max() < 1e-5
 
 
