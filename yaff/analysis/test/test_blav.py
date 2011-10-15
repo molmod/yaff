@@ -21,8 +21,23 @@
 # --
 
 
-from yaff.analysis.basic import *
-from yaff.analysis.blav import *
-from yaff.analysis.rdf import *
-from yaff.analysis.spectrum import *
-from yaff.analysis.utils import *
+import tempfile, shutil, os, numpy as np
+
+from yaff import *
+
+
+def test_blav():
+    # generate a time-correlated random signal
+    n = 50000
+    eps0 = 30.0/n
+    eps1 = 1.0
+    y = np.sin(np.random.normal(0, eps0, n).cumsum() + np.random.normal(0, eps1, n))
+    # create a temporary directory to write the plot to
+    dn = tempfile.mkdtemp('yaff', 'test_blav')
+    try:
+        #fn_png = '%s/blav.png' % dn
+        fn_png = 'blav.png'
+        error, sinef = blav(y, 100, fn_png)
+        assert os.path.isfile(fn_png)
+    finally:
+        shutil.rmtree(dn)
