@@ -402,28 +402,31 @@ computations that can either be done in a post-processing step, or on-line.
 
 * A radial distribution function is computed as follows::
 
-    indexes = system.get_indexes('O_W')
     f = h5py.File('output.h5')
-    rdf = RDFAnalysis(f, indexes)
-    rdf.result.plot('rdf.png')
+    select = system.get_indexes('O')
+    rdf = RDF(f, 4.8*angstrom, 0.1*angstrom, max_sample=100, select0=select)
+    rdf.plot()
+    rdf.plot_crdf()
 
-  The results are included in the HDF5 file, and optionally plotted using
-  matplotlib. Alternatively, the same ``RDFAnalysis`` class can be used for
-  on-line analysis, without the need to store huge amounts of data on disk::
+  In this example, the cutoff for the RDF is 4.8 Å and the spacing of the
+  bins 0.1 Å. At most 100 samples are used to compute the RDF. The results are
+  included in the HDF5 file, and optionally plotted using matplotlib.
+  Alternatively, the same ``RDFAnalysis`` class can be used for on-line
+  analysis, without the need to store huge amounts of data on disk::
 
-    indexes = system.get_indexes('O_W')
-    rdf = RDFAnalysis(None, indexes)
+    select = system.get_indexes('O')
+    rdf = RDF(None, 4.8*angstrom, 0.1*angstrom, max_sample=100, select0=select)
     nve = NVEIntegrator(ff, hooks=rdf, temp0=300)
     nve.run(5000)
-    rdf.result.plot('rdf.png')
-
-  The analysis keyword must obviously also accept a list of analysis objects.
+    rdf.plot()
+    rdf.plot_crdf()
 
 
 **TODO:**
 
-#. Implement RDF. The RDF analysis must have a real-space cutoff that is smaller
-   than the smallest spacing of the periodic cells.
+#. Implement on-line RDF. Also support f=None.
+
+#. Support f=None in ``Spectrum``.
 
 #. Something to estimate diffusion constants.
 
