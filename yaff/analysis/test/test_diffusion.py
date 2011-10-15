@@ -20,10 +20,26 @@
 #
 # --
 
+import shutil, os, h5py
 
-from yaff.analysis.basic import *
-from yaff.analysis.blav import *
-from yaff.analysis.diffusion import *
-from yaff.analysis.rdf import *
-from yaff.analysis.spectrum import *
-from yaff.analysis.utils import *
+from yaff import *
+from yaff.analysis.test.common import get_nve_water32
+
+
+def test_rdf1_offline():
+    dn_tmp, nve, f = get_nve_water32()
+    try:
+        select = nve.ff.system.get_indexes('O')
+        diff = Diffusion(f, select=select)
+        assert 'trajectory/pos_diff' in f
+        assert 'trajectory/pos_diff/msds' in f
+        assert 'trajectory/pos_diff/time' in f
+        assert 'trajectory/pos_diff/msdcounters' in f
+        assert 'trajectory/pos_diff/msdsums' in f
+        assert 'trajectory/pos_diff/pars' in f
+        fn_png = '%s/msds.png' % dn_tmp
+        diff.plot(fn_png)
+        assert os.path.isfile(fn_png)
+    finally:
+        shutil.rmtree(dn_tmp)
+        f.close()

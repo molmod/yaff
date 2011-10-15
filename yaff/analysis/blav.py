@@ -30,12 +30,12 @@ __all__ = ['blav']
 def blav(signal, minblock=100, fn_png=None, unit=None):
     """Analyze the signal with the block average method.
 
-       Arguments:
+       **Arguments:**
 
        signal
             An array containing time-depedendent data.
 
-       Optional arguments:
+       **Optional arguments:**
 
        minblock
             The minimum number of blocks to be considered.
@@ -49,8 +49,8 @@ def blav(signal, minblock=100, fn_png=None, unit=None):
             for the y-axis, e.g. ``log.length``.
 
        Returns:
-         einf  --  the fitted error
-         sinf  --  the fitted statistical inefficiency
+         error  --  the fitted error
+         senif  --  the fitted statistical inefficiency
     """
     x = [] # block sizes
     e = [] # errors on the mean
@@ -70,11 +70,11 @@ def blav(signal, minblock=100, fn_png=None, unit=None):
     if l == 0:
         raise ValueError("Too few blocks to do a proper estimate of the error.")
     # estimate the limit of the error towards large block sizes
-    einf, b = np.linalg.lstsq(
+    error, b = np.linalg.lstsq(
         np.array([np.ones(l), 1/x[-l:]]).transpose(), e[-l:],
     )[0]
     # compute the ratio with the naive error
-    sinf = einf/e[0]
+    sinef = error/e[0]
 
     if fn_png is not None:
         import matplotlib.pyplot as pt
@@ -87,10 +87,10 @@ def blav(signal, minblock=100, fn_png=None, unit=None):
         pt.clf()
         pt.plot(x[:-l], e[:-l]/conversion, 'k+', alpha=0.5)
         pt.plot(x[-l:], e[-l:]/conversion, 'k+')
-        pt.plot(x[-l:], (einf+b/x[-l:])/conversion, 'r-')
-        pt.axhline(einf/conversion, color='r')
+        pt.plot(x[-l:], (error+b/x[-l:])/conversion, 'r-')
+        pt.axhline(error/conversion, color='r')
         pt.ylabel('Error on the block average [%s]' % notation)
         pt.xlabel('Block size')
         pt.savefig(fn_png)
 
-    return einf, sinf
+    return error, sinef

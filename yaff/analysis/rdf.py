@@ -41,7 +41,9 @@ class RDF(Hook):
            **Argument:**
 
            f
-                An h5py.File instance containing the trajectory data.
+                An h5py.File instance containing the trajectory data. If ``f``
+                is not given, or it does not contain the dataset referred to
+                with the ``path`` argument, an on-line analysis is carried out.
 
            rcut
                 The cutoff for the RDF analysis. This should be lower than the

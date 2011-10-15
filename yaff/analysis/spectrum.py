@@ -40,10 +40,9 @@ class Spectrum(Hook):
            **Argument:**
 
            f
-                An h5py.File instance containing the trajectory data. The
-                results of the spectral analysis will also be written to this
-                file in the group '%s_spectrum/' % path. If such a group already
-                exists. It will be removed first.
+                An h5py.File instance containing the trajectory data. If ``f``
+                is not given, or it does not contain the dataset referred to
+                with the ``path`` argument, an on-line analysis is carried out.
 
            **Optional arguments:**
 
@@ -175,7 +174,7 @@ class Spectrum(Hook):
                 self.amps += abs(np.fft.rfft(work))**2
             current += stride
         # Compute related arrays
-        self.timestep = self.f['trajectory/time'][self.step] - self.f['trajectory/time'][0]
+        self.timestep = self.f['trajectory/time'][self.start+self.step] - self.f['trajectory/time'][self.start]
         self.compute_derived()
 
     def compute_derived(self):

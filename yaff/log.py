@@ -121,6 +121,7 @@ class ScreenLog(object):
         Unit('temperature', 1, 'K', '%10.1f'),
         Unit('length', angstrom, 'A', '%10.4f'),
         Unit('invlength', 1/angstrom, 'A^-1', '%10.5f'),
+        Unit('area', angstrom**2, 'A^2', '%10.3f'),
         Unit('volume', angstrom**3, 'A^3', '%10.3f'),
         Unit('time', femtosecond, 'fs', '%10.1f'),
         Unit('mass', amu, 'amu', '%10.5f'),
@@ -131,12 +132,14 @@ class ScreenLog(object):
         Unit('acceleration', angstrom/femtosecond**2, 'A/fs**2', '%10.5f'),
         Unit('angle', deg, 'deg', '%10.5f'),
         Unit('c6', 1, 'E_h*a_0**6', '%10.5f'),
+        Unit('diffconst', angstrom**2/femtosecond, 'A**2/fs', '%10.5f'),
     )
     cal = UnitSystem(
         Unit('energy', kcalmol, 'kcal/mol', '%10.2f'),
         Unit('temperature', 1, 'K', '%10.1f'),
         Unit('length', angstrom, 'A', '%10.4f'),
         Unit('invlength', 1/angstrom, 'A^-1', '%10.5f'),
+        Unit('area', angstrom**2, 'A^2', '%10.3f'),
         Unit('volume', angstrom**3, 'A^3', '%10.3f'),
         Unit('time', femtosecond, 'fs', '%10.1f'),
         Unit('mass', amu, 'amu', '%10.5f'),
@@ -147,12 +150,14 @@ class ScreenLog(object):
         Unit('acceleration', angstrom/femtosecond**2, 'A/fs**2', '%10.5f'),
         Unit('angle', deg, 'deg', '%10.5f'),
         Unit('c6', 1, 'E_h*a_0**6', '%10.5f'),
+        Unit('diffconst', angstrom**2/femtosecond, 'A**2/fs', '%10.5f'),
     )
     solid = UnitSystem(
         Unit('energy', electronvolt, 'eV', '%10.4f'),
         Unit('temperature', 1, 'K', '%10.1f'),
         Unit('length', angstrom, 'A', '%10.4f'),
         Unit('invlength', 1/angstrom, 'A^-1', '%10.5f'),
+        Unit('area', angstrom**2, 'A^2', '%10.3f'),
         Unit('volume', angstrom**3, 'A^3', '%10.3f'),
         Unit('time', femtosecond, 'fs', '%10.1f'),
         Unit('mass', amu, 'amu', '%10.5f'),
@@ -163,11 +168,13 @@ class ScreenLog(object):
         Unit('acceleration', angstrom/femtosecond**2, 'A/fs**2', '%10.5f'),
         Unit('angle', deg, 'deg', '%10.5f'),
         Unit('c6', 1, 'E_h*a_0**6', '%10.5f'),
+        Unit('diffconst', angstrom**2/femtosecond, 'A**2/fs', '%10.5f'),
     )
     bio = UnitSystem(
         Unit('energy', kcalmol, 'kcal/mol', '%10.2f'),
         Unit('temperature', 1, 'K', '%10.1f'),
         Unit('length', nanometer, 'nm', '%10.6f'),
+        Unit('area', nanometer**2, 'nm^2', '%10.4f'),
         Unit('volume', nanometer**3, 'nanometer^3', '%10.1f'),
         Unit('invlength', 1/nanometer, 'nm^-1', '%10.8f'),
         Unit('time', picosecond, 'ps', '%10.4f'),
@@ -179,22 +186,25 @@ class ScreenLog(object):
         Unit('acceleration', angstrom/picosecond**2, 'A/ps**2', '%10.5f'),
         Unit('angle', deg, 'deg', '%10.5f'),
         Unit('c6', 1, 'E_h*a_0**6', '%10.5f'),
+        Unit('diffconst', nanometer**2/picosecond, 'nm**2/ps', '%10.2f'),
     )
     atomic = UnitSystem(
         Unit('energy', 1, 'E_h', '%10.6f'),
         Unit('temperature', 1, 'K', '%10.1f'),
         Unit('length', 1, 'a_0', '%10.5f'),
         Unit('invlength', 1, 'a_0^-1', '%10.5f'),
+        Unit('area', 1, 'a_0^2', '%10.3f'),
         Unit('volume', 1, 'a_0^3', '%10.3f'),
-        Unit('time', 1, 'a.u.t.', '%10.1f'),
-        Unit('mass', 1, 'a.u.m.', '%10.1f'),
+        Unit('time', 1, 'aut', '%10.1f'),
+        Unit('mass', 1, 'aum', '%10.1f'),
         Unit('charge', 1, 'e', '%10.5f'),
         Unit('force', 1, 'E_h/a_0', '%10.5f'),
         Unit('forceconst', 1, 'E_h/a_0**2', '%10.5f'),
-        Unit('velocity', 1, 'a_0/a.u.t.', '%10.5f'),
-        Unit('acceleration', 1, 'a_0/a.u.t.**2', '%10.5f'),
+        Unit('velocity', 1, 'a_0/aut', '%10.5f'),
+        Unit('acceleration', 1, 'a_0/aut**2', '%10.5f'),
         Unit('angle', 1, 'rad', '%10.7f'),
         Unit('c6', 1, 'E_h*a_0**6', '%10.5f'),
+        Unit('diffconst', 1, 'a_0**2/aut', '%10.2f'),
     )
 
 
