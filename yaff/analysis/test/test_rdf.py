@@ -112,3 +112,15 @@ def test_rdf2_online():
         assert abs(rdf0.counts - rdf1.counts).max() < 1e-10
     finally:
         f.close()
+
+
+def test_rdf2_online_blind():
+    # Setup a test FF and run simulation without any HDF5 file
+    ff = get_ff_water32()
+    select0 = ff.system.get_indexes('O')
+    select1 = ff.system.get_indexes('H')
+    rdf = RDF(None, rcut=4.5*angstrom, rspacing=0.1*angstrom, select0=select0, select1=select1)
+    nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=rdf)
+    nve.run(5)
+    assert nve.counter == 5
+    assert rdf.nsample == 6

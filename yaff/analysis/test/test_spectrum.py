@@ -71,6 +71,16 @@ def test_spectrum_online():
         finally:
             f.close()
 
+
+def test_spectrum_online_blind():
+    # Setup a test FF
+    ff = get_ff_water32()
+    spectrum = Spectrum(None, bsize=2)
+    nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=spectrum)
+    nve.run(5)
+    assert nve.counter == 5
+
+
 def test_spectrum_iter_indexes():
     f = h5py.File('tmp.h5', driver='core', backing_store=False)
     spectrum = Spectrum(f, bsize=10)

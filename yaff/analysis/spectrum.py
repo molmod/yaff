@@ -185,14 +185,15 @@ class Spectrum(Hook):
             self.time = np.arange(self.ssize)*self.timestep
         self.ac = np.fft.irfft(self.amps)[:self.ssize]
         # Write the results to the HDF5 file
-        if self.outpath in self.f:
-            del self.f[self.outpath]
-        g = self.f.create_group(self.outpath)
-        g['amps'] = self.amps
-        g['ac'] = self.ac
-        if first:
-            g['freqs'] = self.freqs
-            g['time'] = self.time
+        if self.f is not None:
+            if self.outpath in self.f:
+                del self.f[self.outpath]
+            g = self.f.create_group(self.outpath)
+            g['amps'] = self.amps
+            g['ac'] = self.ac
+            if first:
+                g['freqs'] = self.freqs
+                g['time'] = self.time
 
     def plot(self, fn_png='spectrum.png', do_wavenum=True):
         import matplotlib.pyplot as pt

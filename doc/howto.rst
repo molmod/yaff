@@ -424,10 +424,6 @@ computations that can either be done in a post-processing step, or on-line.
 
 **TODO:**
 
-#. Implement on-line RDF. Also support f=None.
-
-#. Support f=None in ``Spectrum``.
-
 #. Something to estimate diffusion constants.
 
 #. [LOW PRIORITY] Port other things from MD-Tracks, including the conversion stuff.

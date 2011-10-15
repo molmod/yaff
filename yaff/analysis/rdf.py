@@ -202,14 +202,15 @@ class RDF(Hook):
         # derived the cumulative RDF
         self.crdf = self.counts.cumsum()/float(self.nsample*self.natom0)
         # store everything in the h5py file
-        if self.outpath in self.f:
-            del self.f[self.outpath]
-        g = self.f.create_group(self.outpath)
-        g['rdf'] = self.rdf
-        g['crdf'] = self.crdf
-        g['counts'] = self.counts
-        if 'd' not in g:
-            g['d'] = self.d
+        if self.f is not None:
+            if self.outpath in self.f:
+                del self.f[self.outpath]
+            g = self.f.create_group(self.outpath)
+            g['rdf'] = self.rdf
+            g['crdf'] = self.crdf
+            g['counts'] = self.counts
+            if 'd' not in g:
+                g['d'] = self.d
 
     def plot(self, fn_png='rdf.png'):
         import matplotlib.pyplot as pt
