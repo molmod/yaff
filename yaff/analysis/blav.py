@@ -73,6 +73,10 @@ def blav(signal, minblock=100, fn_png=None, unit=None):
     error, b = np.linalg.lstsq(
         np.array([np.ones(l), 1/x[-l:]]).transpose(), e[-l:],
     )[0]
+    # improve robustness, in case the fitting went wrong
+    if error < 0 or b < 0:
+        error = e.max()
+        b = 0.0
     # compute the ratio with the naive error
     sinef = error/e[0]
 
