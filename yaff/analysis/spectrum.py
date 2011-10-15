@@ -27,26 +27,24 @@ from molmod.constants import lightspeed
 from molmod.units import centimeter
 from yaff.log import log
 from yaff.analysis.utils import get_slice
-from yaff.sampling.iterative import Hook
+from yaff.analysis.hook import AnalysisHook
 
 
 __all__ = ['Spectrum']
 
 
-class Spectrum(Hook):
+class Spectrum(AnalysisHook):
     label = 'spectrum'
 
-    def __init__(self, f, start=0, end=-1, step=1, bsize=4096, select=None,
+    def __init__(self, f=None, start=0, end=-1, step=1, bsize=4096, select=None,
                  path='trajectory/vel', key='vel', outpath=None):
         """
-           **Argument:**
+           **Optional arguments:**
 
            f
                 An h5py.File instance containing the trajectory data. If ``f``
                 is not given, or it does not contain the dataset referred to
                 with the ``path`` argument, an on-line analysis is carried out.
-
-           **Optional arguments:**
 
            start
                 The first sample to be considered for analysis. This may be
@@ -108,30 +106,15 @@ class Spectrum(Hook):
            is built up as the itertive algorithm progresses. The end option is
            ignored for an on-line analysis.
         """
-        self.f = f
-        self.start, self.end, self.step = get_slice(self.f, start, end, step=step)
         self.bsize = bsize
         self.select = select
         self.ssize = self.bsize/2+1 # the length of the spectrum array
         self.amps = np.zeros(self.ssize, float)
-        self.timestep = None
-        self.time = None
-        self.freqs = None
+        AnalysisHook.__init__(self, f, start, end, None, step, path, key, outpath, True)
 
-        self.path = path
-        self.key = key
-        if outpath is None:
-            self.outpath = '%s_spectrum' % path
-        else:
-            self.outpath = outpath
-        self.online = self.f is None or path not in self.f
-        if not self.online:
-            self.compute_offline()
-        else:
-            # some attributes that are only relevant for on-line analysis
-            self.work = None
-            self.ncollect = 0
-            self.lasttime = None
+    def init_online(self):
+        AnalysisHook.init_online(self)
+        self.ncollect = 0
 
     def _iter_indexes(self, array):
         if self.select is None:
@@ -142,17 +125,39 @@ class Spectrum(Hook):
                 for irest in np.ndindex(array.shape[2:]):
                     yield (i0,) + irest
 
-    def __call__(self, iterative):
-        if self.work is None:
-            self.work = np.zeros((self.bsize,) + iterative.state[self.key].shape, float)
-        if self.timestep is None:
-            if self.lasttime is None:
-                self.lasttime = iterative.state['time'].value
-            else:
-                self.timestep = iterative.state['time'].value - self.lasttime
-                del self.lasttime
-        self.work[self.ncollect] = iterative.state[self.key].value
+    def init_timestep(self):
+        self.freqs = np.arange(self.ssize)/(self.timestep*self.ssize)
+        self.time = np.arange(self.ssize)*self.timestep
+        if self.outg is not None:
+            self.outg['freqs'][:] = self.freqs
+            self.outg['time'][:] = self.time
+
+    def configure_online(self, iterative):
+        if self.select is None:
+            shape = (self.bsize,) + iterative.state[self.key].shape
+        else:
+            shape = (self.bsize, self.select) + iterative.state[self.key].shape[1:]
+        self.work = np.zeros(shape, float)
+
+    def configure_offline(self, ds):
+        self.work = np.zeros(self.bsize)
+
+    def init_first(self):
+        AnalysisHook.init_first(self)
+        if self.outg is not None:
+            self.outg.create_dataset('amps', (self.ssize,), float)
+            self.outg.create_dataset('freqs', (self.ssize,), float)
+            self.outg.create_dataset('ac', (self.ssize,), float)
+            self.outg.create_dataset('time', (self.ssize,), float)
+
+    def read_online(self, iterative):
+        if self.select is None:
+            self.work[self.ncollect] = iterative.state[self.key].value
+        else:
+            self.work[self.ncollect] = iterative.state[self.key].value[self.select]
         self.ncollect += 1
+
+    def compute_iteration(self):
         if self.ncollect == self.bsize:
             # collected sufficient data to fill one block, computing FFT
             for indexes in self._iter_indexes(self.work):
@@ -164,37 +169,24 @@ class Spectrum(Hook):
             self.work[:] = 0.0
             self.ncollect = 0
 
-    def compute_offline(self):
+    def offline_loop(self, ds):
         # Compute the amplitudes of the spectrum
         current = self.start
         stride = self.step*self.bsize
         work = np.zeros(self.bsize, float)
-        ds = self.f[self.path]
         while current <= self.end - stride:
             for indexes in self._iter_indexes(ds):
                 ds.read_direct(work, (slice(current, current+stride, self.step),) + indexes)
                 self.amps += abs(np.fft.rfft(work))**2
             current += stride
         # Compute related arrays
-        self.timestep = self.f['trajectory/time'][self.start+self.step] - self.f['trajectory/time'][self.start]
         self.compute_derived()
 
     def compute_derived(self):
-        first = self.freqs is None
-        if first:
-            self.freqs = np.arange(self.ssize)/(self.timestep*self.ssize)
-            self.time = np.arange(self.ssize)*self.timestep
         self.ac = np.fft.irfft(self.amps)[:self.ssize]
-        # Write the results to the HDF5 file
-        if self.f is not None:
-            # TODO: avoid recreating group all the time
-            if self.outpath in self.f:
-                del self.f[self.outpath]
-            g = self.f.create_group(self.outpath)
-            g['amps'] = self.amps
-            g['ac'] = self.ac
-            g['freqs'] = self.freqs
-            g['time'] = self.time
+        if self.outg is not None:
+            self.outg['amps'][:] = self.amps
+            self.outg['ac'][:] = self.ac
 
     def plot(self, fn_png='spectrum.png', do_wavenum=True):
         import matplotlib.pyplot as pt

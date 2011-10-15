@@ -75,7 +75,7 @@ def test_spectrum_online():
 def test_spectrum_online_blind():
     # Setup a test FF
     ff = get_ff_water32()
-    spectrum = Spectrum(None, bsize=2)
+    spectrum = Spectrum(bsize=2)
     nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=spectrum)
     nve.run(5)
     assert nve.counter == 5

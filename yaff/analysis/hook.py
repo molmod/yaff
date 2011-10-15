@@ -97,20 +97,23 @@ class AnalysisHook(Hook):
             else:
                 self.timestep = iterative.state['time'].value - self.lasttime
                 del self.lasttime
+                self.init_timestep()
         self.read_online(iterative)
         self.compute_iteration()
         self.compute_derived()
 
     def compute_offline(self):
-        # prepare data
-        if self.do_timestep:
-            self.timestep = self.f['trajectory/time'][self.start+self.step] - self.f['trajectory/time'][self.start]
         ds = self.f[self.path]
         self.configure_offline(ds)
         self.init_first()
+        if self.do_timestep:
+            self.timestep = self.f['trajectory/time'][self.start+self.step] - self.f['trajectory/time'][self.start]
+            self.init_timestep()
         self.offline_loop(ds)
-        # compute derived properties
         self.compute_derived()
+
+    def init_timestep(self):
+        raise NotImplementedError
 
     def configure_online(self, iterative):
         raise NotImplementedError

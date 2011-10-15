@@ -83,6 +83,9 @@ class Diffusion(AnalysisHook):
         self.counter = 0
         AnalysisHook.__init__(self, f, start, end, None, step, path, key, outpath, True)
 
+    def init_timestep(self):
+        pass
+
     def configure_online(self, iterative):
         self.shape = iterative.state[self.key].shape
 
