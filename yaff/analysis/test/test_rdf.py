@@ -42,3 +42,22 @@ def test_rdf1_offline():
     finally:
         shutil.rmtree(dn_tmp)
         f.close()
+
+
+def test_rdf2_offline():
+    dn_tmp, nve, f = get_nve_water32()
+    try:
+        select0 = nve.ff.system.get_indexes('O')
+        select1 = nve.ff.system.get_indexes('H')
+        rdf = RDF(f, rcut=4.5*angstrom, rspacing=0.1*angstrom, select0=select0, select1=select1)
+        assert 'trajectory/pos_rdf' in f
+        assert 'trajectory/pos_rdf/d' in f
+        assert 'trajectory/pos_rdf/counts' in f
+        assert 'trajectory/pos_rdf/rdf' in f
+        assert 'trajectory/pos_rdf/crdf' in f
+        fn_png = '%s/rdf.png' % dn_tmp
+        rdf.plot(fn_png)
+        assert os.path.isfile(fn_png)
+    finally:
+        shutil.rmtree(dn_tmp)
+        f.close()

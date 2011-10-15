@@ -104,7 +104,7 @@ class RDF(Hook):
             raise ValueError('No duplicates are allowed in select0')
         if self.select1 is not None and len(self.select1) != len(set(self.select1)):
             raise ValueError('No duplicates are allowed in select1')
-        if self.select0 is not None and self.select1 is not None and len(self.select0) + len(select1) != len(set(select0) + set(self.select1)):
+        if self.select0 is not None and self.select1 is not None and len(self.select0) + len(select1) != len(set(select0) | set(self.select1)):
             raise ValueError('No overlap is allowed between select0 and select1')
 
         self.nbin = int(self.rcut/self.rspacing)
@@ -135,10 +135,11 @@ class RDF(Hook):
         pos0 = np.zeros((natom0, 3), float)
         if self.select1 is None:
             self.npair = (natom0*(natom0-1))/2
+            pos1 = None
         else:
-            natom0 = len(self.select1)
-            pos0 = np.zeros((natom0, 3), float)
-            self.npair = natom0*natom0
+            natom1 = len(self.select1)
+            pos1 = np.zeros((natom1, 3), float)
+            self.npair = natom0*natom1
         work = np.zeros(self.npair, float)
 
         # Iterate over the dataset
@@ -151,11 +152,11 @@ class RDF(Hook):
             else:
                 ds.read_direct(pos0, (1,self.select0))
             if self.select1 is not None:
-                ds.read_direct(pos0, (1,self.select1))
+                ds.read_direct(pos1, (1,self.select1))
             # distances
-            cell.compute_distances(work, pos0, pos0)
+            cell.compute_distances(work, pos0, pos1)
             # compute counts and add to the total
-            counts += np.histogram(work, bins=self.bins)[0]
+            self.counts += np.histogram(work, bins=self.bins)[0]
             self.nsample += 1
 
         # Compute related arrays
