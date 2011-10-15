@@ -76,6 +76,7 @@ class Diffusion(Hook):
         """
         # TODO: Add bsize optional argument, to avoids intervals that contain
         #       boundaries between two blocks.
+        # TODO: make number of dimension configurable, now it is hardwired to 3.
         self.f = f
         self.start, self.end, self.step = get_slice(self.f, start, end, step=step)
         self.mult = mult
@@ -87,26 +88,59 @@ class Diffusion(Hook):
             self.outpath = '%s_diff' % path
         else:
             self.outpath = outpath
-        # create the output group
-        if self.f is not None:
-            if self.outpath in self.f:
-                del self.f[outpath]
-            self.outg = self.f.create_group(self.outpath)
-        else:
-            self.outg = None
 
         # prepare some attributes
         self.msdsums = np.zeros(self.mult, float)
         self.msdcounters = np.zeros(self.mult, int)
-        if self.outg is not None:
-            for m in xrange(self.mult):
-                self.outg.create_dataset('msd%03i' % (m+1), shape=(0,), maxshape=(None,), dtype=float)
+        self.counter = 0
 
         self.online = self.f is None or path not in self.f
         if not self.online:
             self.compute_offline()
         else:
-            raise NotImplementedError
+            self.timestep = None
+            self.lasttime = None
+
+    def prepare(self, shape):
+        self.last_poss = [np.zeros(shape, float) for i in xrange(self.mult)]
+        self.pos = np.zeros(shape, float)
+        # create the output group
+        if self.f is not None:
+            if self.outpath in self.f:
+                del self.f[self.outpath]
+            self.outg = self.f.create_group(self.outpath)
+        else:
+            self.outg = None
+        if self.outg is not None:
+            for m in xrange(self.mult):
+                self.outg.create_dataset('msd%03i' % (m+1), shape=(0,), maxshape=(None,), dtype=float)
+            self.outg.create_dataset('msdsums', data=self.msdsums)
+            self.outg.create_dataset('msdcounters', data=self.msdcounters)
+            self.outg.create_dataset('pars', shape=(2,), dtype=float)
+
+    def __call__(self, iterative):
+        # prepare some data structures
+        if self.counter == 0:
+            shape = iterative.state[self.key].shape
+            if self.select is not None:
+                shape = (len(self.select),) + shape[1:]
+            self.prepare(shape)
+        # get the time step
+        if self.timestep is None:
+            if self.lasttime is None:
+                self.lasttime = iterative.state['time'].value
+            else:
+                self.timestep = iterative.state['time'].value - self.lasttime
+                del self.lasttime
+        # take the right part of the array
+        if self.select is None:
+            self.pos[:] = iterative.state[self.key].value
+        else:
+            self.pos[:] = iterative.state[self.key].value[self.select]
+        # compute rmsds
+        self.compute_msds()
+        # compute derived properties
+        self.compute_derived()
 
     def compute_offline(self):
         # prepare data
@@ -116,27 +150,26 @@ class Diffusion(Hook):
             shape = ds.shape[1:]
         else:
             shape = (len(self.select),) + ds.shape[2:]
-        last_poss = [np.zeros(shape, float) for i in xrange(self.mult)]
-        pos = np.zeros(shape, float)
         # Iterate over the dataset
-        counter = 0
+        self.prepare(shape)
         for i in xrange(self.start, self.end, self.step):
             # load data
             if self.select is None:
-                ds.read_direct(pos, (i,))
+                ds.read_direct(self.pos, (i,))
             else:
-                ds.read_direct(pos, (i,self.select))
-            # compute MSD's and update last_poss
-            for m in xrange(self.mult):
-                if counter % (m+1) == 0:
-                    if counter > 0:
-                        msd = ((pos - last_poss[m])**2).mean()*3
-                        self.update_msd(msd, m)
-                    last_poss[m][:] = pos
-            # update last_poss
-            counter += 1
-        # compute derive properties
+                ds.read_direct(self.pos, (i,self.select))
+            self.compute_msds()
+        # compute derived properties
         self.compute_derived()
+
+    def compute_msds(self):
+        for m in xrange(self.mult):
+            if self.counter % (m+1) == 0:
+                if self.counter > 0:
+                    msd = ((self.pos - self.last_poss[m])**2).mean()*3
+                    self.update_msd(msd, m)
+                self.last_poss[m][:] = self.pos
+        self.counter += 1
 
     def update_msd(self, msd, m):
         self.msdsums[m] += msd
@@ -149,17 +182,21 @@ class Diffusion(Hook):
 
     def compute_derived(self):
         mask = self.msdcounters > 0
-        self.msds = self.msdsums[mask]/self.msdcounters[mask]
-        self.time = np.arange(1, self.mult+1)[mask]*self.timestep
-        dm = np.array([self.time, np.ones(len(self.time))]).T
-        # TODO: add error estimates of outg is not None
-        self.A, self.B = np.linalg.lstsq(dm, self.msds)[0]
-        if self.outg is not None:
-            self.outg['time'] = self.time
-            self.outg['msds'] = self.msds
-            self.outg['msdsums'] = self.msdsums
-            self.outg['msdcounters'] = self.msdcounters
-            self.outg['pars'] = np.array([self.A, self.B])
+        if mask.sum() > 1:
+            self.msds = self.msdsums[mask]/self.msdcounters[mask]
+            self.time = np.arange(1, self.mult+1)[mask]*self.timestep
+            dm = np.array([self.time, np.ones(len(self.time))]).T
+            # TODO: add error estimates of outg is not None
+            self.A, self.B = np.linalg.lstsq(dm, self.msds)[0]
+            if self.outg is not None:
+                if 'time' in self.outg:
+                    del self.outg['time']
+                    del self.outg['msds']
+                self.outg['time'] = self.time
+                self.outg['msds'] = self.msds
+                self.outg['msdsums'][:] = self.msdsums
+                self.outg['msdcounters'][:] = self.msdcounters
+                self.outg['pars'][:] = np.array([self.A, self.B])
 
     def plot(self, fn_png='msds.png'):
         import matplotlib.pyplot as pt

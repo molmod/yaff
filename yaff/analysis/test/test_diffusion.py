@@ -24,9 +24,10 @@ import shutil, os, h5py
 
 from yaff import *
 from yaff.analysis.test.common import get_nve_water32
+from yaff.sampling.test.common import get_ff_water32
 
 
-def test_rdf1_offline():
+def test_diff_offline():
     dn_tmp, nve, f = get_nve_water32()
     try:
         select = nve.ff.system.get_indexes('O')
@@ -43,3 +44,37 @@ def test_rdf1_offline():
     finally:
         shutil.rmtree(dn_tmp)
         f.close()
+
+
+def test_diff_online():
+    # Setup a test FF
+    ff = get_ff_water32()
+    # Run a test simulation
+    f = h5py.File('tmp.h5', driver='core', backing_store=False)
+    try:
+        hdf5 = HDF5Writer(f)
+        select = ff.system.get_indexes('O')
+        diff0 = Diffusion(f, select=select)
+        nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=[hdf5, diff0])
+        nve.run(5)
+        assert nve.counter == 5
+        # Also run an off-line rdf and compare
+        diff1 = Diffusion(f, select=select)
+        print diff0.msdsums
+        print diff1.msdsums
+        assert abs(diff0.A - diff1.A) < 1e-10
+        assert abs(diff0.B - diff1.B) < 1e-10
+        assert abs(diff0.time - diff1.time).max() < 1e-10
+        assert abs(diff0.msds - diff1.msds).max() < 1e-10
+        assert abs(diff0.msdsums - diff1.msdsums).max() < 1e-10
+        assert abs(diff0.msdcounters - diff1.msdcounters).max() < 1e-10
+    finally:
+        f.close()
+
+
+def test_diff_online_blind():
+    ff = get_ff_water32()
+    select = ff.system.get_indexes('O')
+    diff = Diffusion(None, select=select)
+    nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=diff)
+    nve.run(5)

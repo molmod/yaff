@@ -424,8 +424,6 @@ computations that can either be done in a post-processing step, or on-line.
 
 **TODO:**
 
-#. Something to estimate diffusion constants.
-
 #. [LOW PRIORITY] Port other things from MD-Tracks, including the conversion stuff.
 
 
