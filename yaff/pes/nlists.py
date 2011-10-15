@@ -48,12 +48,24 @@ class NeighborLists(object):
 
     def request_rcut(self, rcut):
         self.rcut = max(self.rcut, rcut)
+        self.update_rmax()
 
     def __len__(self):
         return len(self.nlists)
 
     def __getitem__(self, index):
         return self.nlists[index][:self.nlist_sizes[index]]
+
+    def update_rmax(self):
+        # determine the number of periodic images
+        self.rmax = np.ceil(self.rcut/self.system.cell.rspacings-0.5).astype(int)
+        if log.do_high:
+            if len(self.rmax) == 1:
+                log('rmax a       = %i' % tuple(self.rmax))
+            elif len(self.rmax) == 2:
+                log('rmax a,b     = %i,%i' % tuple(self.rmax))
+            elif len(self.rmax) == 3:
+                log('rmax a,b,c   = %i,%i,%i' % tuple(self.rmax))
 
     def update(self):
         log.enter('NLIST')
@@ -62,11 +74,6 @@ class NeighborLists(object):
         if self.nlists is None:
             self.nlists = [np.empty(10, dtype=nlist_dtype) for i in xrange(self.system.natom)]
             self.nlist_sizes = np.zeros(self.system.natom, dtype=int)
-        # determine the number of periodic images
-        # TODO: move the next line to a separate routine because it is only
-        # needed when the cell parameters change. The main idea is to make
-        # the screen output more intuitive.
-        self.rmax = np.ceil(self.rcut/self.system.cell.rspacings-0.5).astype(int)
         # build all neighbor lists
         for i in xrange(self.system.natom):
             # make an initial nlist array
@@ -89,11 +96,5 @@ class NeighborLists(object):
             self.nlists[i] = nlist
             self.nlist_sizes[i] = nlist_status_finish(nlist_status)
         if log.do_debug:
-            if len(self.rmax) == 1:
-                log('rmax a       = %i' % tuple(self.rmax))
-            elif len(self.rmax) == 2:
-                log('rmax a,b     = %i,%i' % tuple(self.rmax))
-            elif len(self.rmax) == 3:
-                log('rmax a,b,c   = %i,%i,%i' % tuple(self.rmax))
             log('min/max size = %i/%i' % (self.nlist_sizes.min(), self.nlist_sizes.max()))
         log.leave()

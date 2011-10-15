@@ -192,6 +192,7 @@ class ForceField(ForcePart):
         ForcePart.update_rvecs(self, rvecs)
         self.system.cell.update_rvecs(rvecs)
         if self.nlists is not None:
+            self.nlists.update_rmax()
             self.needs_nlists_update = True
 
     def update_pos(self, pos):
