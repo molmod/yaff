@@ -75,7 +75,6 @@ class Diffusion(AnalysisHook):
         """
         # TODO: Add bsize optional argument, to avoids intervals that contain
         #       boundaries between two blocks.
-        # TODO: make number of dimension configurable, now it is hardwired to 3.
         self.mult = mult
         self.select = select
         self.msdsums = np.zeros(self.mult, float)
@@ -93,10 +92,17 @@ class Diffusion(AnalysisHook):
         self.shape = ds.shape[1:]
 
     def init_first(self):
+        # update the shape if select is present
         if self.select is not None:
             self.shape = (len(self.select),) + self.shape[1:]
+        # compute the number of dimensions, i.e. 3 for atoms
+        self.ndim = 1
+        for s in self.shape[1:]:
+            self.ndim *= s
+        # allocate working arrays
         self.last_poss = [np.zeros(self.shape, float) for i in xrange(self.mult)]
         self.pos = np.zeros(self.shape, float)
+        # prepare the hdf5 output file, if present.
         AnalysisHook.init_first(self)
         if self.outg is not None:
             for m in xrange(self.mult):
@@ -121,7 +127,7 @@ class Diffusion(AnalysisHook):
         for m in xrange(self.mult):
             if self.counter % (m+1) == 0:
                 if self.counter > 0:
-                    msd = ((self.pos - self.last_poss[m])**2).mean()*3
+                    msd = ((self.pos - self.last_poss[m])**2).mean()*self.ndim
                     self.update_msd(msd, m)
                 self.last_poss[m][:] = self.pos
         self.counter += 1
