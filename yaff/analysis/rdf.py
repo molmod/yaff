@@ -146,9 +146,9 @@ class RDF(AnalysisHook):
         # Prepare the output
         AnalysisHook.init_first(self)
         if self.outg is not None:
-            self.outg.create_dataset('rdf', (self.nbin - 1,), float)
-            self.outg.create_dataset('crdf', (self.nbin - 1,), float)
-            self.outg.create_dataset('counts', (self.nbin - 1,), int)
+            self.outg.create_dataset('rdf', (self.nbin,), float)
+            self.outg.create_dataset('crdf', (self.nbin,), float)
+            self.outg.create_dataset('counts', (self.nbin,), int)
             self.outg['d'] = self.d
 
     def read_online(self, iterative):
@@ -175,21 +175,15 @@ class RDF(AnalysisHook):
 
     def compute_derived(self):
         # derive the RDF
-        self.d = self.bins[:-1] + 0.5*self.rspacing
         ref_count = self.npair/self.volume*4*np.pi*self.d**2*self.rspacing
         self.rdf = self.counts/ref_count/self.nsample
         # derived the cumulative RDF
         self.crdf = self.counts.cumsum()/float(self.nsample*self.natom0)
         # store everything in the h5py file
-        if self.f is not None:
-            # TODO: avoid recreating group all the time
-            if self.outpath in self.f:
-                del self.f[self.outpath]
-            g = self.f.create_group(self.outpath)
-            g['rdf'] = self.rdf
-            g['crdf'] = self.crdf
-            g['counts'] = self.counts
-            g['d'] = self.d
+        if self.outg is not None:
+            self.outg['rdf'][:] = self.rdf
+            self.outg['crdf'][:] = self.crdf
+            self.outg['counts'][:] = self.counts
 
     def plot(self, fn_png='rdf.png'):
         import matplotlib.pyplot as pt
