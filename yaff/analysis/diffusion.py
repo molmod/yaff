@@ -34,7 +34,7 @@ class Diffusion(AnalysisHook):
     label = 'diff'
 
     def __init__(self, f=None, start=0, end=-1, step=1, mult=20, select=None,
-                 path='trajectory/pos', key='pos', outpath=None):
+                 bsize=None, path='trajectory/pos', key='pos', outpath=None):
         """Computes mean-squared displacements and diffusion constants
 
            **Optional arguments:**
@@ -58,6 +58,13 @@ class Diffusion(AnalysisHook):
                 A list of atom indexes that are considered for the computation
                 of the MSD's. If not given, all atoms are used.
 
+           bsize
+                If given, time intervals that coincide with the boundaries of
+                the block size, will not be considered form the analysis. This
+                is useful when there is a significant monte carlo move between
+                subsequent blocks. If step > 1, the intervals will be left out
+                if the overlap with boundaries of blocks with size bsize*step.
+
            path
                 The path of the dataset that contains the time dependent data in
                 the HDF5 file. The first axis of the array must be the time
@@ -73,10 +80,11 @@ class Diffusion(AnalysisHook):
                 removed first.
 
         """
-        # TODO: Add bsize optional argument, to avoids intervals that contain
-        #       boundaries between two blocks.
+        if bsize is not None and bsize < mult:
+            raise ValueError('The bsize parameter must be larger than mult.')
         self.mult = mult
         self.select = select
+        self.bsize = bsize
         self.msdsums = np.zeros(self.mult, float)
         self.msdcounters = np.zeros(self.mult, int)
         self.counter = 0
@@ -123,10 +131,16 @@ class Diffusion(AnalysisHook):
         else:
             ds.read_direct(self.pos, (i, self.select))
 
+    def overlap_bsize(self, m):
+        if self.bsize is None:
+            return False
+        else:
+            return self.counter - (self.counter/self.bsize)*self.bsize - m - 1 < 0
+
     def compute_iteration(self):
         for m in xrange(self.mult):
             if self.counter % (m+1) == 0:
-                if self.counter > 0:
+                if self.counter > 0 and not self.overlap_bsize(m):
                     msd = ((self.pos - self.last_poss[m])**2).mean()*self.ndim
                     self.update_msd(msd, m)
                 self.last_poss[m][:] = self.pos

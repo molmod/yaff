@@ -76,3 +76,13 @@ def test_diff_online_blind():
     diff = Diffusion(None, select=select)
     nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=diff)
     nve.run(5)
+
+
+def test_diff_bsize():
+    ff = get_ff_water32()
+    select = ff.system.get_indexes('O')
+    diff = Diffusion(None, select=select, bsize=3, mult=2)
+    nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=diff)
+    nve.run(10)
+    assert diff.msdcounters[0] == 7
+    assert diff.msdcounters[1] == 2
