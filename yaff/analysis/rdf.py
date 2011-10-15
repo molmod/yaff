@@ -25,27 +25,22 @@ import numpy as np
 
 from yaff.log import log
 from yaff.analysis.utils import get_slice
-from yaff.sampling.iterative import Hook
+from yaff.analysis.hook import AnalysisHook
 from yaff.pes.ext import Cell
 
 
 __all__ = ['RDF']
 
 
-class RDF(Hook):
+class RDF(AnalysisHook):
     label = 'rdf'
 
-    def __init__(self, f, rcut, rspacing, start=0, end=-1, max_sample=None,
+    def __init__(self, rcut, rspacing, f=None, start=0, end=-1, max_sample=None,
                  step=None, select0=None, select1=None, path='trajectory/pos',
                  key='pos', outpath=None):
         """Computes a radial distribution function (RDF)
 
            **Argument:**
-
-           f
-                An h5py.File instance containing the trajectory data. If ``f``
-                is not given, or it does not contain the dataset referred to
-                with the ``path`` argument, an on-line analysis is carried out.
 
            rcut
                 The cutoff for the RDF analysis. This should be lower than the
@@ -55,6 +50,11 @@ class RDF(Hook):
                 The width of the bins to build up the RDF.
 
            **Optional arguments:**
+
+           f
+                An h5py.File instance containing the trajectory data. If ``f``
+                is not given, or it does not contain the dataset referred to
+                with the ``path`` argument, an on-line analysis is carried out.
 
            start, end, max_sample, step
                 arguments to setup the selection of time slices. See
@@ -91,45 +91,47 @@ class RDF(Hook):
            is built up as the itertive algorithm progresses. The end option is
            ignored and max_sample is not applicable to an on-line analysis.
         """
-        self.f = f
+        if select0 is not None and len(select0) != len(set(select0)):
+            raise ValueError('No duplicates are allowed in select0')
+        if select1 is not None and len(select1) != len(set(select1)):
+            raise ValueError('No duplicates are allowed in select1')
+        if select0 is not None and select1 is not None and len(select0) + len(select1) != len(set(select0) | set(select1)):
+            raise ValueError('No overlap is allowed between select0 and select1')
+        if select0 is None and select1 is not None:
+            raise ValueError('select1 can not be given without select0.')
         self.rcut = rcut
         self.rspacing = rspacing
-        self.start, self.end, self.step = get_slice(self.f, start, end, max_sample, step)
         self.select0 = select0
         self.select1 = select1
-        self.path = path
-        self.key = key
-        if outpath is None:
-            self.outpath = '%s_rdf' % path
-        else:
-            self.outpath = outpath
-
-        if self.select0 is not None and len(self.select0) != len(set(self.select0)):
-            raise ValueError('No duplicates are allowed in select0')
-        if self.select1 is not None and len(self.select1) != len(set(self.select1)):
-            raise ValueError('No duplicates are allowed in select1')
-        if self.select0 is not None and self.select1 is not None and len(self.select0) + len(select1) != len(set(select0) | set(self.select1)):
-            raise ValueError('No overlap is allowed between select0 and select1')
-        if self.select0 is None and self.select1 is not None:
-            raise ValueError('select1 can not be given without select0.')
-
         self.nbin = int(self.rcut/self.rspacing)
         self.bins = np.arange(self.nbin+1)*self.rspacing
+        self.d = self.bins[:-1] + 0.5*self.rspacing
         self.counts = np.zeros(self.nbin, int)
         self.nsample = 0
+        AnalysisHook.__init__(self, f, start, end, max_sample, step, path, key, outpath, False)
 
-        self.online = self.f is None or path not in self.f
-        if not self.online:
-            self.compute_offline()
+    def configure_online(self, iterative):
+        self.cell = iterative.ff.system.cell
+        self.natom = iterative.ff.system.natom
+
+    def configure_offline(self, ds):
+        if 'rvecs' in self.f['system']:
+            rvecs = self.f['system/rvecs'][:]
+            self.cell = Cell(rvecs)
+            if (2*self.rcut > self.cell.get_rspacings()).any():
+                raise ValueError('The 2*rcut argument should not exceed any of the cell spacings.')
         else:
-            # this is used to check if the hook is called for the first time.
-            self.natom0 = None
+            self.cell = Cell(None)
+        if self.cell.nvec != 3:
+            raise ValueError('RDF can onle be computed for 3D periodic systems.')
+        # get the total number of atoms
+        self.natom = self.f['system/numbers'].shape[0]
 
-    def prepare(self, cell, natom):
-        self.volume = cell.volume
+    def init_first(self):
+        self.volume = self.cell.volume
         # Setup some work arrays
         if self.select0 is None:
-            self.natom0 = natom
+            self.natom0 = self.natom
         else:
             self.natom0 = len(self.select0)
         self.pos0 = np.zeros((self.natom0, 3), float)
@@ -141,13 +143,15 @@ class RDF(Hook):
             self.pos1 = np.zeros((self.natom1, 3), float)
             self.npair = self.natom0*self.natom1
         self.work = np.zeros(self.npair, float)
+        # Prepare the output
+        AnalysisHook.init_first(self)
+        if self.outg is not None:
+            self.outg.create_dataset('rdf', (self.nbin - 1,), float)
+            self.outg.create_dataset('crdf', (self.nbin - 1,), float)
+            self.outg.create_dataset('counts', (self.nbin - 1,), int)
+            self.outg['d'] = self.d
 
-    def __call__(self, iterative):
-        if self.natom0 is None:
-            self.cell = iterative.ff.system.cell
-            natom = iterative.ff.system.natom
-            self.prepare(self.cell, natom)
-        # load data
+    def read_online(self, iterative):
         pos = iterative.state[self.key].value
         if self.select0 is None:
             self.pos0[:] = pos
@@ -155,48 +159,19 @@ class RDF(Hook):
             self.pos0[:] = pos[self.select0]
         if self.select1 is not None:
             self.pos1[:] = pos[self.select1]
-        # distances
+
+    def read_offline(self, ds, i):
+        if self.select0 is None:
+            ds.read_direct(self.pos0, (i,))
+        else:
+            ds.read_direct(self.pos0, (i,self.select0))
+        if self.select1 is not None:
+            ds.read_direct(self.pos1, (i,self.select1))
+
+    def compute_iteration(self):
         self.cell.compute_distances(self.work, self.pos0, self.pos1)
-        # compute counts and add to the total
         self.counts += np.histogram(self.work, bins=self.bins)[0]
         self.nsample += 1
-        # Compute related arrays
-        self.compute_derived()
-
-    def compute_offline(self):
-        # Configure the unit cell
-        if 'rvecs' in self.f['system']:
-            rvecs = self.f['system/rvecs'][:]
-            cell = Cell(rvecs)
-            if (2*self.rcut > cell.get_rspacings()).any():
-                raise ValueError('The 2*rcut argument should not exceed any of the cell spacings.')
-        else:
-            cell = Cell(None)
-        if cell.nvec != 3:
-            raise ValueError('RDF can onle be computed for 3D periodic systems.')
-        # get the total number of atoms
-        natom = self.f['system/numbers'].shape[0]
-
-        self.prepare(cell, natom)
-
-        # Iterate over the dataset
-        ds = self.f[self.path]
-        for i in xrange(self.start, self.end, self.step):
-            # load data
-            if self.select0 is None:
-                ds.read_direct(self.pos0, (i,))
-            else:
-                ds.read_direct(self.pos0, (i,self.select0))
-            if self.select1 is not None:
-                ds.read_direct(self.pos1, (i,self.select1))
-            # distances
-            cell.compute_distances(self.work, self.pos0, self.pos1)
-            # compute counts and add to the total
-            self.counts += np.histogram(self.work, bins=self.bins)[0]
-            self.nsample += 1
-
-        # Compute related arrays
-        self.compute_derived()
 
     def compute_derived(self):
         # derive the RDF

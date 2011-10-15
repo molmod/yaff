@@ -31,7 +31,7 @@ def test_rdf1_offline():
     dn_tmp, nve, f = get_nve_water32()
     try:
         select = nve.ff.system.get_indexes('O')
-        rdf = RDF(f, rcut=4.5*angstrom, rspacing=0.1*angstrom, select0=select)
+        rdf = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select)
         assert 'trajectory/pos_rdf' in f
         assert 'trajectory/pos_rdf/d' in f
         assert 'trajectory/pos_rdf/counts' in f
@@ -56,12 +56,12 @@ def test_rdf1_online():
     try:
         hdf5 = HDF5Writer(f)
         select = ff.system.get_indexes('O')
-        rdf0 = RDF(f, rcut=4.5*angstrom, rspacing=0.1*angstrom, select0=select)
+        rdf0 = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select)
         nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=[hdf5, rdf0])
         nve.run(5)
         assert nve.counter == 5
         # Also run an off-line rdf and compare
-        rdf1 = RDF(f, rcut=4.5*angstrom, rspacing=0.1*angstrom, select0=select)
+        rdf1 = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select)
         assert rdf0.nsample == rdf1.nsample
         assert abs(rdf0.d - rdf1.d).max() < 1e-10
         assert abs(rdf0.rdf - rdf1.rdf).max() < 1e-10
@@ -76,7 +76,7 @@ def test_rdf2_offline():
     try:
         select0 = nve.ff.system.get_indexes('O')
         select1 = nve.ff.system.get_indexes('H')
-        rdf = RDF(f, rcut=4.5*angstrom, rspacing=0.1*angstrom, select0=select0, select1=select1)
+        rdf = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select0, select1=select1)
         assert 'trajectory/pos_rdf' in f
         assert 'trajectory/pos_rdf/d' in f
         assert 'trajectory/pos_rdf/counts' in f
@@ -99,12 +99,12 @@ def test_rdf2_online():
         hdf5 = HDF5Writer(f)
         select0 = ff.system.get_indexes('O')
         select1 = ff.system.get_indexes('H')
-        rdf0 = RDF(f, rcut=4.5*angstrom, rspacing=0.1*angstrom, select0=select0, select1=select1)
+        rdf0 = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select0, select1=select1)
         nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=[hdf5, rdf0])
         nve.run(5)
         assert nve.counter == 5
         # Also run an off-line rdf and compare
-        rdf1 = RDF(f, rcut=4.5*angstrom, rspacing=0.1*angstrom, select0=select0, select1=select1)
+        rdf1 = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select0, select1=select1)
         assert rdf0.nsample == rdf1.nsample
         assert abs(rdf0.d - rdf1.d).max() < 1e-10
         assert abs(rdf0.rdf - rdf1.rdf).max() < 1e-10
@@ -119,7 +119,7 @@ def test_rdf2_online_blind():
     ff = get_ff_water32()
     select0 = ff.system.get_indexes('O')
     select1 = ff.system.get_indexes('H')
-    rdf = RDF(None, rcut=4.5*angstrom, rspacing=0.1*angstrom, select0=select0, select1=select1)
+    rdf = RDF(4.5*angstrom, 0.1*angstrom, select0=select0, select1=select1)
     nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=rdf)
     nve.run(5)
     assert nve.counter == 5
