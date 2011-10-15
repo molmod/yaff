@@ -35,8 +35,7 @@ def test_blav():
     # create a temporary directory to write the plot to
     dn = tempfile.mkdtemp('yaff', 'test_blav')
     try:
-        #fn_png = '%s/blav.png' % dn
-        fn_png = 'blav.png'
+        fn_png = '%s/blav.png' % dn
         error, sinef = blav(y, 100, fn_png)
         assert os.path.isfile(fn_png)
     finally:
