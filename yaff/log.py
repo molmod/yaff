@@ -132,7 +132,7 @@ class ScreenLog(object):
         Unit('acceleration', angstrom/femtosecond**2, 'A/fs**2', '%10.5f'),
         Unit('angle', deg, 'deg', '%10.5f'),
         Unit('c6', 1, 'E_h*a_0**6', '%10.5f'),
-        Unit('diffconst', angstrom**2/femtosecond, 'A**2/fs', '%10.5f'),
+        Unit('diffconst', angstrom**2/picosecond, 'A**2/ps', '%10.5f'),
     )
     cal = UnitSystem(
         Unit('energy', kcalmol, 'kcal/mol', '%10.2f'),

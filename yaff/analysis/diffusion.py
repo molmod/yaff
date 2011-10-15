@@ -25,6 +25,7 @@ import numpy as np
 
 from yaff.log import log
 from yaff.analysis.hook import AnalysisHook
+from yaff.analysis.blav import blav
 
 
 __all__ = ['Diffusion']
@@ -118,6 +119,7 @@ class Diffusion(AnalysisHook):
             self.outg.create_dataset('msdsums', data=self.msdsums)
             self.outg.create_dataset('msdcounters', data=self.msdcounters)
             self.outg.create_dataset('pars', shape=(2,), dtype=float)
+            self.outg.create_dataset('pars_error', shape=(2,), dtype=float)
 
     def read_online(self, iterative):
         if self.select is None:
@@ -156,14 +158,38 @@ class Diffusion(AnalysisHook):
             ds[row] = msd
 
     def compute_derived(self):
-        mask = self.msdcounters > 0
-        if mask.sum() > 1:
-            self.msds = self.msdsums[mask]/self.msdcounters[mask]
-            self.time = np.arange(1, self.mult+1)[mask]*self.timestep
-            dm = np.array([self.time, np.ones(len(self.time))]).T
-            # TODO: add error estimates of outg is not None
-            self.A, self.B = np.linalg.lstsq(dm, self.msds)[0]
+        positive = (self.msdcounters > 0).nonzero()[0]
+        if len(positive) > 0:
+            self.msds = self.msdsums[positive]/self.msdcounters[positive]
+            self.time = np.arange(1, self.mult+1)[positive]*self.timestep
+            # make error estimates for A and B, first compute error
+            # estimates for the msds array.
+            if self.outg is None:
+                self.msds_error = None
+            else:
+                self.msds_error = []
+                for m in positive:
+                    try:
+                        error = blav(self.outg['msd%03i' % (m+1)][:], minblock=10)[0]
+                        self.msds_error.append(error)
+                    except ValueError:
+                        self.msds_error = None
+                        break
+                if self.msds_error is not None:
+                    self.msds_error = np.array(self.msds_error)
+            dm = np.array([self.time, np.ones(len(self.time))])
+            if self.msds_error is None:
+                self.A, self.B = np.linalg.lstsq(dm.T, self.msds)[0]
+                self.A_error = None
+                self.B_error = None
+            else:
+                dm = (dm/self.msds_error).T
+                ev = self.msds/self.msds_error
+                U, S, Vt = np.linalg.svd(dm, full_matrices=False)
+                self.A, self.B = np.dot(Vt.T, np.dot(U.T, ev)/S)
+                self.A_error, self.B_error = np.dot(Vt.T, U.sum(axis=0)/S)
             if self.outg is not None:
+                # write out all results
                 if 'time' in self.outg:
                     del self.outg['time']
                     del self.outg['msds']
@@ -171,15 +197,31 @@ class Diffusion(AnalysisHook):
                 self.outg['msds'] = self.msds
                 self.outg['msdsums'][:] = self.msdsums
                 self.outg['msdcounters'][:] = self.msdcounters
-                self.outg['pars'][:] = np.array([self.A, self.B])
+                self.outg['pars'][0] = self.A
+                self.outg['pars'][1] = self.B
+                if self.msds_error is not None:
+                    if 'msds_error' in self.outg:
+                        del self.outg['msds_error']
+                    self.outg['msds_error'] = self.msds_error
+                    self.outg['pars_error'][0] = self.A_error
+                    self.outg['pars_error'][1] = self.B_error
 
     def plot(self, fn_png='msds.png'):
         import matplotlib.pyplot as pt
         pt.clf()
-        pt.plot(self.time/log.time.conversion, self.msds/log.area.conversion, 'k+')
+        if self.msds_error is None:
+            pt.plot(self.time/log.time.conversion, self.msds/log.area.conversion, 'k+')
+        else:
+            pt.errorbar(
+                self.time/log.time.conversion, self.msds/log.area.conversion,
+                self.msds_error/log.area.conversion, fmt='k+'
+            )
         t2 = np.array([0, self.time[-1]+self.timestep], float)
         pt.plot(t2/log.time.conversion, (self.A*t2+self.B)/log.area.conversion, 'r-')
         pt.xlabel('Time [%s]' % log.time.notation)
         pt.ylabel('MSD [%s]' % log.area.notation)
-        pt.title('Diffusion constant: %s [%s]' % (log.diffconst(self.A), log.diffconst.notation))
+        A_repr = log.diffconst(self.A).strip()
+        if self.msds_error is not None:
+            A_repr += ' +- ' + log.diffconst(self.A_error).strip()
+        pt.title('Diffusion constant: %s [%s]' % (A_repr, log.diffconst.notation))
         pt.savefig(fn_png)
