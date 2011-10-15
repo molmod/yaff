@@ -33,18 +33,16 @@ __all__ = ['Diffusion']
 class Diffusion(AnalysisHook):
     label = 'diff'
 
-    def __init__(self, f, start=0, end=-1, step=1, mult=20, select=None,
+    def __init__(self, f=None, start=0, end=-1, step=1, mult=20, select=None,
                  path='trajectory/pos', key='pos', outpath=None):
         """Computes mean-squared displacements and diffusion constants
 
-           **Arguments:**
+           **Optional arguments:**
 
            f
                 An h5py.File instance containing the trajectory data. If ``f``
                 is not given, or it does not contain the dataset referred to
                 with the ``path`` argument, an on-line analysis is carried out.
-
-           **Optional arguments:**
 
            start, end, step
                 Optional arguments for the ``get_slice`` function. max_sample is
@@ -80,17 +78,23 @@ class Diffusion(AnalysisHook):
         # TODO: make number of dimension configurable, now it is hardwired to 3.
         self.mult = mult
         self.select = select
-        AnalysisHook.__init__(self, f, start, end, None, step, path, key, outpath, True)
-
-    def init_attributes(self):
         self.msdsums = np.zeros(self.mult, float)
         self.msdcounters = np.zeros(self.mult, int)
         self.counter = 0
+        AnalysisHook.__init__(self, f, start, end, None, step, path, key, outpath, True)
 
-    def init_first(self, shape):
-        AnalysisHook.init_first(self, shape)
-        self.last_poss = [np.zeros(shape, float) for i in xrange(self.mult)]
-        self.pos = np.zeros(shape, float)
+    def configure_online(self, iterative):
+        self.shape = iterative.state[self.key].shape
+
+    def configure_offline(self, ds):
+        self.shape = ds.shape[1:]
+
+    def init_first(self):
+        if self.select is not None:
+            self.shape = (len(self.select),) + self.shape[1:]
+        self.last_poss = [np.zeros(self.shape, float) for i in xrange(self.mult)]
+        self.pos = np.zeros(self.shape, float)
+        AnalysisHook.init_first(self)
         if self.outg is not None:
             for m in xrange(self.mult):
                 self.outg.create_dataset('msd%03i' % (m+1), shape=(0,), maxshape=(None,), dtype=float)

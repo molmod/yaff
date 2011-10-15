@@ -78,8 +78,6 @@ class AnalysisHook(Hook):
             self.outpath = outpath
         self.do_timestep = do_timestep
 
-        self.init_attributes()
-
         self.online = self.f is None or path not in self.f
         if not self.online:
             self.compute_offline()
@@ -89,10 +87,8 @@ class AnalysisHook(Hook):
     def __call__(self, iterative):
         # prepare some data structures
         if self._first_iteration:
-            shape = iterative.state[self.key].shape
-            if self.select is not None:
-                shape = (len(self.select),) + shape[1:]
-            self.init_first(shape)
+            self.configure_online(iterative)
+            self.init_first()
             self._first_iteration = False
         # get the time step
         if self.do_timestep and self.timestep is None:
@@ -110,35 +106,19 @@ class AnalysisHook(Hook):
         if self.do_timestep:
             self.timestep = self.f['trajectory/time'][self.start+self.step] - self.f['trajectory/time'][self.start]
         ds = self.f[self.path]
-        if self.select is None:
-            shape = ds.shape[1:]
-        else:
-            shape = (len(self.select),) + ds.shape[2:]
-        self.init_first(shape)
+        self.configure_offline(ds)
+        self.init_first()
         self.offline_loop(ds)
         # compute derived properties
         self.compute_derived()
 
-    def offline_loop(self, ds):
-        # Iterate over the dataset
-        for i in xrange(self.start, self.end, self.step):
-            self.read_offline(ds, i)
-            self.compute_iteration()
-
-    def init_attributes(self):
+    def configure_online(self, iterative):
         raise NotImplementedError
 
-    def init_online(self):
-        self._first_iteration = True
-        if self.do_timestep:
-            self.timestep = None
-            self.lasttime = None
+    def configure_offline(self, ds):
+        raise NotImplementedError
 
-    def init_first(self, shape):
-        """Initializiation based on the first iteration
-
-           The outpath group is also created in this routine.
-        """
+    def init_first(self):
         # create the output group
         if self.f is not None:
             if self.outpath in self.f:
@@ -147,11 +127,29 @@ class AnalysisHook(Hook):
         else:
             self.outg = None
 
+    def offline_loop(self, ds):
+        # Iterate over the dataset
+        for i in xrange(self.start, self.end, self.step):
+            self.read_offline(ds, i)
+            self.compute_iteration()
+
+    def init_online(self):
+        self._first_iteration = True
+        if self.do_timestep:
+            self.timestep = None
+            self.lasttime = None
+
     def read_online(self, iterative):
         raise NotImplementedError
 
-    def read_offline(self):
+    def read_offline(self, ds, i):
         raise NotImplementedError
+
+    def configure_online(self, iterative):
+        self.shape = iterative.state[self.key].shape
+
+    def configure_offline(self, ds):
+        self.shape = ds.shape[1:]
 
     def compute_iteration(self):
         raise NotImplementedError
