@@ -300,7 +300,7 @@ double pair_fn_exprep(void *pair_data, long center_index, long other_index, doub
       amp = exp(amp);
       break;
     default:
-      amp = NAN;
+      amp = FP_NAN;
   }
   switch ((*pd).b_mix) {
     case 0:
@@ -311,7 +311,7 @@ double pair_fn_exprep(void *pair_data, long center_index, long other_index, doub
       b *= 1 - ((*pd).b_mix_coeff)*fabs(log(amp0/amp1));
       break;
     default:
-      b = NAN;
+      b = FP_NAN;
   }
   e = amp*exp(-b*d);
   if (g != NULL) {
