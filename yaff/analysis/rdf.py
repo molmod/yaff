@@ -126,20 +126,23 @@ class RDF(Hook):
                 raise ValueError('The 2*rcut argument should not exceed any of the cell spacings.')
         else:
             cell = Cell(None)
+        if cell.nvec != 3:
+            raise ValueError('RDF can onle be computed for 3D periodic systems.')
+        self.volume = cell.volume
 
         # Setup some work arrays
         if self.select0 is None:
-            natom0 = self.f['system/numbers'].shape[0]
+            self.natom0 = self.f['system/numbers'].shape[0]
         else:
-            natom0 = len(self.select0)
-        pos0 = np.zeros((natom0, 3), float)
+            self.natom0 = len(self.select0)
+        pos0 = np.zeros((self.natom0, 3), float)
         if self.select1 is None:
-            self.npair = (natom0*(natom0-1))/2
+            self.npair = (self.natom0*(self.natom0-1))/2
             pos1 = None
         else:
             natom1 = len(self.select1)
             pos1 = np.zeros((natom1, 3), float)
-            self.npair = natom0*natom1
+            self.npair = self.natom0*natom1
         work = np.zeros(self.npair, float)
 
         # Iterate over the dataset
@@ -165,9 +168,10 @@ class RDF(Hook):
     def compute_derived(self):
         # derive the RDF
         self.d = self.bins[:-1] + 0.5*self.rspacing
-        self.rdf = self.counts/self.d**2/(4*np.pi)/self.npair
+        ref_count = self.npair/self.volume*4*np.pi*self.d**2*self.rspacing
+        self.rdf = self.counts/ref_count/self.nsample
         # derived the cumulative RDF
-        self.crdf =  self.counts.cumsum()/self.npair
+        self.crdf = self.counts.cumsum()/float(self.nsample*self.natom0)
         # store everything in the h5py file
         if self.outpath in self.f:
             del self.f[self.outpath]
@@ -185,5 +189,15 @@ class RDF(Hook):
         pt.plot(self.d/xunit, self.rdf, 'k-', drawstyle='steps-mid')
         pt.xlabel('Distance [%s]' % log.length.notation)
         pt.ylabel('RDF')
+        pt.xlim(self.bins[0]/xunit, self.bins[-1]/xunit)
+        pt.savefig(fn_png)
+
+    def plot_crdf(self, fn_png='crdf.png'):
+        import matplotlib.pyplot as pt
+        pt.clf()
+        xunit = log.length.conversion
+        pt.plot(self.d/xunit, self.crdf, 'k-', drawstyle='steps-mid')
+        pt.xlabel('Distance [%s]' % log.length.notation)
+        pt.ylabel('CRDF')
         pt.xlim(self.bins[0]/xunit, self.bins[-1]/xunit)
         pt.savefig(fn_png)

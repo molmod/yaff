@@ -39,6 +39,9 @@ def test_rdf1_offline():
         fn_png = '%s/rdf.png' % dn_tmp
         rdf.plot(fn_png)
         assert os.path.isfile(fn_png)
+        fn_png = '%s/crdf.png' % dn_tmp
+        rdf.plot_crdf(fn_png)
+        assert os.path.isfile(fn_png)
     finally:
         shutil.rmtree(dn_tmp)
         f.close()
