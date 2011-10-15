@@ -51,7 +51,6 @@ def test_spectrum_offline():
 
 def test_spectrum_online():
     for bsize in 2, 4, 5:
-        print 'BSIZE', bsize
         # Setup a test FF
         ff = get_ff_water32()
         # Run a test simulation
@@ -65,8 +64,6 @@ def test_spectrum_online():
             # Also run an off-line spectrum and compare
             spectrum1 = Spectrum(f, bsize=bsize)
             assert abs(spectrum0.timestep - spectrum1.timestep) < 1e-10
-            print spectrum0.amps
-            print spectrum1.amps
             assert abs(spectrum0.amps - spectrum1.amps).max() < 1e-10
             assert abs(spectrum0.freqs - spectrum1.freqs).max() < 1e-10
             assert abs(spectrum0.ac - spectrum1.ac).max() < 1e-10

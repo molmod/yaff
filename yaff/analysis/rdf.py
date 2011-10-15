@@ -106,16 +106,58 @@ class RDF(Hook):
             raise ValueError('No duplicates are allowed in select1')
         if self.select0 is not None and self.select1 is not None and len(self.select0) + len(select1) != len(set(select0) | set(self.select1)):
             raise ValueError('No overlap is allowed between select0 and select1')
+        if self.select0 is None and self.select1 is not None:
+            raise ValueError('select1 can not be given without select0.')
 
         self.nbin = int(self.rcut/self.rspacing)
         self.bins = np.arange(self.nbin+1)*self.rspacing
         self.counts = np.zeros(self.nbin, int)
+        self.nsample = 0
 
         self.online = self.f is None or path not in self.f
         if not self.online:
             self.compute_offline()
         else:
-            raise NotImplementedError
+            # this is used to check if the hook is called for the first time.
+            self.natom0 = None
+
+    def prepare(self, cell, natom):
+        self.volume = cell.volume
+        # Setup some work arrays
+        if self.select0 is None:
+            self.natom0 = natom
+        else:
+            self.natom0 = len(self.select0)
+        self.pos0 = np.zeros((self.natom0, 3), float)
+        if self.select1 is None:
+            self.npair = (self.natom0*(self.natom0-1))/2
+            self.pos1 = None
+        else:
+            self.natom1 = len(self.select1)
+            self.pos1 = np.zeros((self.natom1, 3), float)
+            self.npair = self.natom0*self.natom1
+        self.work = np.zeros(self.npair, float)
+
+    def __call__(self, iterative):
+        if self.natom0 is None:
+            self.cell = iterative.ff.system.cell
+            natom = iterative.ff.system.natom
+            self.prepare(self.cell, natom)
+        # load data
+        pos = iterative.state[self.key].value
+        if self.select0 is None:
+            self.pos0[:] = pos
+        else:
+            self.pos0[:] = pos[self.select0]
+        if self.select1 is not None:
+            self.pos1[:] = pos[self.select1]
+        # distances
+        self.cell.compute_distances(self.work, self.pos0, self.pos1)
+        # compute counts and add to the total
+        self.counts += np.histogram(self.work, bins=self.bins)[0]
+        self.nsample += 1
+        # Compute related arrays
+        self.compute_derived()
 
     def compute_offline(self):
         # Configure the unit cell
@@ -128,38 +170,25 @@ class RDF(Hook):
             cell = Cell(None)
         if cell.nvec != 3:
             raise ValueError('RDF can onle be computed for 3D periodic systems.')
-        self.volume = cell.volume
+        # get the total number of atoms
+        natom = self.f['system/numbers'].shape[0]
 
-        # Setup some work arrays
-        if self.select0 is None:
-            self.natom0 = self.f['system/numbers'].shape[0]
-        else:
-            self.natom0 = len(self.select0)
-        pos0 = np.zeros((self.natom0, 3), float)
-        if self.select1 is None:
-            self.npair = (self.natom0*(self.natom0-1))/2
-            pos1 = None
-        else:
-            natom1 = len(self.select1)
-            pos1 = np.zeros((natom1, 3), float)
-            self.npair = self.natom0*natom1
-        work = np.zeros(self.npair, float)
+        self.prepare(cell, natom)
 
         # Iterate over the dataset
         ds = self.f[self.path]
-        self.nsample = 0
         for i in xrange(self.start, self.end, self.step):
             # load data
             if self.select0 is None:
-                ds.read_direct(pos0, (1,))
+                ds.read_direct(self.pos0, (i,))
             else:
-                ds.read_direct(pos0, (1,self.select0))
+                ds.read_direct(self.pos0, (i,self.select0))
             if self.select1 is not None:
-                ds.read_direct(pos1, (1,self.select1))
+                ds.read_direct(self.pos1, (i,self.select1))
             # distances
-            cell.compute_distances(work, pos0, pos1)
+            cell.compute_distances(self.work, self.pos0, self.pos1)
             # compute counts and add to the total
-            self.counts += np.histogram(work, bins=self.bins)[0]
+            self.counts += np.histogram(self.work, bins=self.bins)[0]
             self.nsample += 1
 
         # Compute related arrays
