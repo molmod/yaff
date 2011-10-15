@@ -24,14 +24,15 @@
 import numpy as np
 
 from yaff.log import log
-from yaff.analysis.utils import get_slice
-from yaff.sampling.iterative import Hook
+from yaff.analysis.hook import AnalysisHook
 
 
 __all__ = ['Diffusion']
 
 
-class Diffusion(Hook):
+class Diffusion(AnalysisHook):
+    label = 'diff'
+
     def __init__(self, f, start=0, end=-1, step=1, mult=20, select=None,
                  path='trajectory/pos', key='pos', outpath=None):
         """Computes mean-squared displacements and diffusion constants
@@ -77,40 +78,19 @@ class Diffusion(Hook):
         # TODO: Add bsize optional argument, to avoids intervals that contain
         #       boundaries between two blocks.
         # TODO: make number of dimension configurable, now it is hardwired to 3.
-        self.f = f
-        self.start, self.end, self.step = get_slice(self.f, start, end, step=step)
         self.mult = mult
         self.select = select
-        self.path = path
-        self.key = key
-        # prepare the output path
-        if outpath is None:
-            self.outpath = '%s_diff' % path
-        else:
-            self.outpath = outpath
+        AnalysisHook.__init__(self, f, start, end, None, step, path, key, outpath, True)
 
-        # prepare some attributes
+    def init_attributes(self):
         self.msdsums = np.zeros(self.mult, float)
         self.msdcounters = np.zeros(self.mult, int)
         self.counter = 0
 
-        self.online = self.f is None or path not in self.f
-        if not self.online:
-            self.compute_offline()
-        else:
-            self.timestep = None
-            self.lasttime = None
-
-    def prepare(self, shape):
+    def init_first(self, shape):
+        AnalysisHook.init_first(self, shape)
         self.last_poss = [np.zeros(shape, float) for i in xrange(self.mult)]
         self.pos = np.zeros(shape, float)
-        # create the output group
-        if self.f is not None:
-            if self.outpath in self.f:
-                del self.f[self.outpath]
-            self.outg = self.f.create_group(self.outpath)
-        else:
-            self.outg = None
         if self.outg is not None:
             for m in xrange(self.mult):
                 self.outg.create_dataset('msd%03i' % (m+1), shape=(0,), maxshape=(None,), dtype=float)
@@ -118,51 +98,19 @@ class Diffusion(Hook):
             self.outg.create_dataset('msdcounters', data=self.msdcounters)
             self.outg.create_dataset('pars', shape=(2,), dtype=float)
 
-    def __call__(self, iterative):
-        # prepare some data structures
-        if self.counter == 0:
-            shape = iterative.state[self.key].shape
-            if self.select is not None:
-                shape = (len(self.select),) + shape[1:]
-            self.prepare(shape)
-        # get the time step
-        if self.timestep is None:
-            if self.lasttime is None:
-                self.lasttime = iterative.state['time'].value
-            else:
-                self.timestep = iterative.state['time'].value - self.lasttime
-                del self.lasttime
-        # take the right part of the array
+    def read_online(self, iterative):
         if self.select is None:
             self.pos[:] = iterative.state[self.key].value
         else:
             self.pos[:] = iterative.state[self.key].value[self.select]
-        # compute rmsds
-        self.compute_msds()
-        # compute derived properties
-        self.compute_derived()
 
-    def compute_offline(self):
-        # prepare data
-        self.timestep = self.f['trajectory/time'][self.start+self.step] - self.f['trajectory/time'][self.start]
-        ds = self.f[self.path]
+    def read_offline(self, ds, i):
         if self.select is None:
-            shape = ds.shape[1:]
+            ds.read_direct(self.pos, (i,))
         else:
-            shape = (len(self.select),) + ds.shape[2:]
-        # Iterate over the dataset
-        self.prepare(shape)
-        for i in xrange(self.start, self.end, self.step):
-            # load data
-            if self.select is None:
-                ds.read_direct(self.pos, (i,))
-            else:
-                ds.read_direct(self.pos, (i,self.select))
-            self.compute_msds()
-        # compute derived properties
-        self.compute_derived()
+            ds.read_direct(self.pos, (i, self.select))
 
-    def compute_msds(self):
+    def compute_iteration(self):
         for m in xrange(self.mult):
             if self.counter % (m+1) == 0:
                 if self.counter > 0:

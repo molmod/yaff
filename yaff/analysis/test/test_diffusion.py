@@ -60,8 +60,6 @@ def test_diff_online():
         assert nve.counter == 5
         # Also run an off-line rdf and compare
         diff1 = Diffusion(f, select=select)
-        print diff0.msdsums
-        print diff1.msdsums
         assert abs(diff0.A - diff1.A) < 1e-10
         assert abs(diff0.B - diff1.B) < 1e-10
         assert abs(diff0.time - diff1.time).max() < 1e-10

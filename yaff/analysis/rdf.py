@@ -33,6 +33,8 @@ __all__ = ['RDF']
 
 
 class RDF(Hook):
+    label = 'rdf'
+
     def __init__(self, f, rcut, rspacing, start=0, end=-1, max_sample=None,
                  step=None, select0=None, select1=None, path='trajectory/pos',
                  key='pos', outpath=None):

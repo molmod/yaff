@@ -34,6 +34,8 @@ __all__ = ['Spectrum']
 
 
 class Spectrum(Hook):
+    label = 'spectrum'
+
     def __init__(self, f, start=0, end=-1, step=1, bsize=4096, select=None,
                  path='trajectory/vel', key='vel', outpath=None):
         """
