@@ -32,8 +32,8 @@ from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
 
 
 __all__ = [
-    'NVEScreenLog', 'AndersenThermostat', 'NVEIntegrator',
-    'KineticAnnealing'
+    'NVEScreenLog', 'AndersenThermostat', 'AndersenThermostatMcDonaldBarostat',
+    'KineticAnnealing', 'NVEIntegrator',
 ]
 
 
@@ -68,7 +68,7 @@ class AndersenThermostat(Hook):
            **Arguments:**
 
            temp
-                The average temperature if the NVT ensemble
+                The average temperature of the NVT ensemble
 
            **Optional arguments:**
 
@@ -107,6 +107,85 @@ class AndersenThermostat(Hook):
         self.temp *= self.annealing
 
 
+class AndersenThermostatMcDonaldBarostat(Hook):
+    def __init__(self, temp, press, start=0, step=1, amp=1e-3):
+        """
+           **Arguments:**
+
+           temp
+                The average temperature of the NpT ensemble
+
+           press
+                The external pressure of the NpT ensemble
+
+           **Optional arguments:**
+
+           start
+                The first iteration at which this hook is called
+
+           step
+                The number of iterations between two subsequent calls to this
+                hook.
+
+           amp
+                The amplitude of the changes in the logarithm of the volume.
+        """
+        self.temp = temp
+        self.press = press
+        self.amp = amp
+        Hook.__init__(self, start, step)
+
+    def __call__(self, iterative):
+        log.enter('ATMB')
+        def initialize():
+            iterative.gpos[:] = 0.0
+            iterative.ff.update_pos(iterative.pos)
+            iterative.epot = iterative.ff.compute(iterative.gpos)
+            iterative.acc = -iterative.gpos/iterative.masses.reshape(-1,1)
+
+        # A) Change the logarithm of the volume isotropically.
+        scale = np.exp(np.random.normal(0, self.amp))
+        # A.1) scale the system and recompute the energy
+        vol0 = iterative.ff.system.cell.volume
+        epot0 = iterative.epot
+        rvecs0 = iterative.ff.system.cell.rvecs.copy()
+        iterative.ff.update_rvecs(rvecs0*scale)
+        pos0 = iterative.pos.copy()
+        iterative.pos[:] = pos0*scale
+        initialize()
+        epot1 = iterative.epot
+        vol1 = iterative.ff.system.cell.volume
+        # A.2) compute the acceptance ratio
+        beta = 1/(boltzmann*self.temp)
+        natom = iterative.ff.system.natom
+        arg = (epot1 - epot0 + self.press*(vol1 - vol0) - (natom+1)/beta*np.log(vol1/vol0))
+        accepted = arg < 0 or np.random.uniform(0, 1) < np.exp(-beta*arg)
+        if accepted:
+            # add a correction to the conserved quantity
+            iterative.econs_ref += epot0 - epot1
+        else:
+            # revert the cell and the positions in the original state
+            iterative.ff.update_rvecs(rvecs0)
+            iterative.pos[:] = pos0
+            # reinitialize the iterative algorithm
+            initialize()
+        # B) Change the velocities
+        iterative.vel[:] = iterative.get_random_vel(self.temp, False)
+        # C) Update the kinetic energy and the reference for the conserved quantity
+        ekin1 = 0.5*(iterative.vel**2*iterative.masses.reshape(-1,1)).sum()
+        iterative.econs_ref += iterative.ekin - ekin1
+        iterative.ekin = ekin1
+        if log.do_medium:
+            s = {True: 'accepted', False: 'rejected'}[accepted]
+            log('BARO   volscale %10.7f      arg %s      %s' % (scale, log.energy(arg), s))
+            if accepted:
+                log('BARO   energy change %s      (new vol)**(1/3) %s' % (
+                    log.energy(epot1 - epot0), log.length(vol1**(1.0/3.0))
+                ))
+            log('THERMO energy change %s' % log.energy(iterative.ekin - ekin1))
+        log.leave()
+
+
 class KineticAnnealing(Hook):
     def __init__(self, annealing=0.99999, select=None, start=0, step=1):
         """
@@ -116,13 +195,6 @@ class KineticAnnealing(Hook):
 
            **Arguments:**
 
-           start
-                The first iteration at which this hook is called
-
-           step
-                The number of iterations between two subsequent calls to this
-                hook.
-
            annealing
                 After every call to this hook, the temperature is multiplied
                 with this annealing factor. This effectively cools down the
@@ -131,6 +203,13 @@ class KineticAnnealing(Hook):
            select
                 An array mask or a list of indexes to indicate which
                 atomic velocities should be annealed.
+
+           start
+                The first iteration at which this hook is called
+
+           step
+                The number of iterations between two subsequent calls to this
+                hook.
 
         """
         self.annealing = annealing
@@ -149,6 +228,22 @@ class KineticAnnealing(Hook):
         iterative.ekin = ekin_after
 
 
+class VolumeStateItem(StateItem):
+    def __init__(self):
+        StateItem.__init__(self, 'volume')
+
+    def get_value(self, iterative):
+        return iterative.ff.system.cell.volume
+
+
+class CellStateItem(StateItem):
+    def __init__(self):
+        StateItem.__init__(self, 'cell')
+
+    def get_value(self, iterative):
+        return iterative.ff.system.cell.rvecs
+
+
 class NVEIntegrator(Iterative):
     default_state = [
         AttributeStateItem('counter'),
@@ -162,6 +257,8 @@ class NVEIntegrator(Iterative):
         AttributeStateItem('temp'),
         AttributeStateItem('etot'),
         AttributeStateItem('econs'),
+        VolumeStateItem(),
+        CellStateItem(),
     ]
 
     log_name = 'NVE'

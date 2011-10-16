@@ -105,8 +105,8 @@ class StateItem(object):
         self.shape = None
         self.dtype = None
 
-    def update(self, sampler):
-        self.value = self.get_value(sampler)
+    def update(self, iterative):
+        self.value = self.get_value(iterative)
         if self.shape is None:
             if isinstance(self.value, np.ndarray):
                 self.shape = self.value.shape
@@ -115,13 +115,13 @@ class StateItem(object):
                 self.shape = tuple([])
                 self.dtype = type(self.value)
 
-    def get_value(self, sampler):
+    def get_value(self, iterative):
         raise NotImplementedError
 
 
 class AttributeStateItem(StateItem):
-    def get_value(self, sampler):
-        return getattr(sampler, self.key)
+    def get_value(self, iterative):
+        return getattr(iterative, self.key)
 
 
 class Hook(object):

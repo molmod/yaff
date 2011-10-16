@@ -129,6 +129,12 @@ def test_at_annealing():
     assert nve.counter == 5
 
 
+def test_atmb():
+    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostatMcDonaldBarostat(300, 1*bar))
+    nve.run(5)
+    assert nve.counter == 5
+
+
 def test_kinetic_annealing():
     nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=KineticAnnealing())
     nve.run(5)

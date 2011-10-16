@@ -330,10 +330,6 @@ in XXX.
 
 **TODO:**
 
-#. Check if we can do something like the Andersen thermostat to simulate a
-   constant pressure ensemble. (Is possible, see Andersen J. Chem. Phys. 1980,
-   72, 2384-2393.)
-
 #. [LOW PRIORITY] ``RefTraj`` derivative of the Iterative class.
 
 #. [LATER] Optimizer stuff. We should use the molmod optimizer, but change it
