@@ -21,7 +21,7 @@
 # --
 
 
-import sys, atexit, os, datetime
+import sys, atexit, os, datetime, getpass
 
 from molmod.units import kjmol, kcalmol, electronvolt, angstrom, nanometer, \
     femtosecond, picosecond, amu, deg
@@ -319,7 +319,7 @@ class ScreenLog(object):
         if log.do_low:
             import yaff
             log.enter('ENV')
-            log('User:          &' + os.getlogin())
+            log('User:          &' + getpass.getuser())
             log('Machine info:  &' + ' '.join(os.uname()))
             log('Time:          &' + datetime.datetime.now().isoformat())
             log('Python version:&' + sys.version.replace('\n', ''))
