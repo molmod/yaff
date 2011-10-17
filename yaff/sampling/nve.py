@@ -144,7 +144,7 @@ class AndersenThermostatMcDonaldBarostat(Hook):
             iterative.acc = -iterative.gpos/iterative.masses.reshape(-1,1)
 
         # A) Change the logarithm of the volume isotropically.
-        scale = np.exp(np.random.normal(0, self.amp))
+        scale = np.exp(np.random.uniform(-self.amp, self.amp))
         # A.1) scale the system and recompute the energy
         vol0 = iterative.ff.system.cell.volume
         epot0 = iterative.epot
