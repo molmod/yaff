@@ -52,7 +52,7 @@ class NVEScreenLog(Hook):
                     log.hline()
                     log('counter  Rel.Econs       Temp     d-RMSD     g-RMSD   Walltime')
                     log.hline()
-            log('%7i %s %s %s %s %10.3e' % (
+            log('%7i %s %s %s %s %10.1f' % (
                 iterative.counter,
                 log.energy(iterative.econs - self.ref_econs),
                 log.temperature(iterative.temp),

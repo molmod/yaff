@@ -50,7 +50,7 @@ def test_hline():
     log._active = True
     log.enter('FOOBAR')
     log.hline()
-    assert f.getvalue() == '\n FOOBAR ' + '~'*71 + '\n'
+    assert f.getvalue() == '\n FOOBAR ' + '~'*log.width + '\n'
     f.close()
 
 def test_unitsys():

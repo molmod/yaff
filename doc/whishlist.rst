@@ -2,7 +2,6 @@ Whish list
 ##########
 
 #. All the TODO items of the Howto.
-#. A timer object.
 #. skin parameter in neighborlist
 #. ACKS2
 #. Restart functionality.

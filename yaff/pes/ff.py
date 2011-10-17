@@ -202,10 +202,13 @@ class ForceField(ForcePart):
             self.needs_nlists_update = True
 
     def _internal_compute(self, gpos, vtens):
+        log.enter('FFEVAL')
         if self.needs_nlists_update:
             self.nlists.update()
             self.needs_nlists_update = False
-        return sum([part.compute(gpos, vtens) for part in self.parts])
+        result = sum([part.compute(gpos, vtens) for part in self.parts])
+        log.leave()
+        return result
 
 
 class ForcePartPair(ForcePart):
@@ -227,10 +230,12 @@ class ForcePartPair(ForcePart):
             log.leave()
 
     def _internal_compute(self, gpos, vtens):
+        log.enter('PAIRP')
         assert len(self.nlists) == len(self.scalings)
         result = 0.0
         for i in xrange(len(self.nlists)):
             result += self.pair_pot.compute(i, self.nlists[i], self.scalings[i], gpos, vtens)
+        log.leave()
         return result
 
 
@@ -269,10 +274,12 @@ class ForcePartEwaldReciprocal(ForcePart):
         self.update_gmax()
 
     def _internal_compute(self, gpos, vtens):
+        log.enter('EWRECI')
         energy = compute_ewald_reci(
             self.system.pos, self.system.charges, self.system.cell, self.alpha,
             self.gmax, self.gcut, gpos, self.work, vtens
         )
+        log.leave()
         return energy
 
 
@@ -296,12 +303,15 @@ class ForcePartEwaldCorrection(ForcePart):
             log.leave()
 
     def _internal_compute(self, gpos, vtens):
-        return sum([
+        log.enter('EWCOR')
+        result = sum([
             compute_ewald_corr(self.system.pos, i, self.system.charges,
                                self.system.cell, self.alpha, self.scalings[i],
                                gpos, vtens)
             for i in xrange(len(self.scalings))
         ])
+        log.leave()
+        return result
 
 
 class ForcePartEwaldNeutralizing(ForcePart):
@@ -322,9 +332,11 @@ class ForcePartEwaldNeutralizing(ForcePart):
             log.leave()
 
     def _internal_compute(self, gpos, vtens):
+        log.enter('EWNEUT')
         fac = self.system.charges.sum()**2*np.pi/(2.0*self.system.cell.volume*self.alpha**2)
         if vtens is not None:
             vtens.ravel()[::4] -= fac
+        log.leave()
         return fac
 
 
@@ -348,6 +360,7 @@ class ForcePartValence(ForcePart):
         self.vlist.add_term(term)
 
     def _internal_compute(self, gpos, vtens):
+        log.enter('VALENCE')
         self.dlist.forward()
         self.iclist.forward()
         energy = self.vlist.forward()
@@ -355,4 +368,5 @@ class ForcePartValence(ForcePart):
             self.vlist.back()
             self.iclist.back()
             self.dlist.back(gpos, vtens)
+        log.leave()
         return energy
