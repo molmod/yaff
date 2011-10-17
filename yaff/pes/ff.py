@@ -24,6 +24,7 @@
 import numpy as np
 
 from yaff.log import log
+from yaff.timer import timer
 from yaff.pes.ext import compute_ewald_reci, compute_ewald_corr, PairPotEI, \
     PairPotLJ, PairPotMM3, PairPotGrimme
 from yaff.pes.dlist import DeltaList
@@ -174,8 +175,9 @@ class ForceField(ForcePart):
            with the default constructor. Parameters for atom types that are not
            present in the system, are simply ignored.
         """
-        from yaff.pes.generator import ParsedPars, generators, FFArgs
         log.enter('GEN')
+        timer.start('Generator')
+        from yaff.pes.generator import ParsedPars, generators, FFArgs
         parsed_pars = ParsedPars(fn_parameters)
         ff_args = FFArgs(**kwargs)
         for prefix in parsed_pars.info:
@@ -186,6 +188,7 @@ class ForceField(ForcePart):
             else:
                 generator(system, parsed_pars.get_section(prefix), ff_args)
         log.leave()
+        timer.stop()
         return ForceField(system, ff_args.parts, ff_args.nlists)
 
     def update_rvecs(self, rvecs):
@@ -234,12 +237,12 @@ class ForcePartPair(ForcePart):
             log.leave()
 
     def _internal_compute(self, gpos, vtens):
-        log.enter('PAIRP')
+        timer.start('PP %s' % self.pair_pot.name)
         assert len(self.nlists) == len(self.scalings)
         result = 0.0
         for i in xrange(len(self.nlists)):
             result += self.pair_pot.compute(i, self.nlists[i], self.scalings[i], gpos, vtens)
-        log.leave()
+        timer.stop()
         return result
 
 
@@ -278,12 +281,12 @@ class ForcePartEwaldReciprocal(ForcePart):
         self.update_gmax()
 
     def _internal_compute(self, gpos, vtens):
-        log.enter('EWRECI')
+        timer.start('Ewald Reci')
         energy = compute_ewald_reci(
             self.system.pos, self.system.charges, self.system.cell, self.alpha,
             self.gmax, self.gcut, gpos, self.work, vtens
         )
-        log.leave()
+        timer.stop()
         return energy
 
 
@@ -307,14 +310,14 @@ class ForcePartEwaldCorrection(ForcePart):
             log.leave()
 
     def _internal_compute(self, gpos, vtens):
-        log.enter('EWCOR')
+        timer.start('Ewald corr.')
         result = sum([
             compute_ewald_corr(self.system.pos, i, self.system.charges,
                                self.system.cell, self.alpha, self.scalings[i],
                                gpos, vtens)
             for i in xrange(len(self.scalings))
         ])
-        log.leave()
+        timer.stop()
         return result
 
 
@@ -336,11 +339,11 @@ class ForcePartEwaldNeutralizing(ForcePart):
             log.leave()
 
     def _internal_compute(self, gpos, vtens):
-        log.enter('EWNEUT')
+        timer.start('Ewald neut.')
         fac = self.system.charges.sum()**2*np.pi/(2.0*self.system.cell.volume*self.alpha**2)
         if vtens is not None:
             vtens.ravel()[::4] -= fac
-        log.leave()
+        timer.stop()
         return fac
 
 
@@ -364,7 +367,7 @@ class ForcePartValence(ForcePart):
         self.vlist.add_term(term)
 
     def _internal_compute(self, gpos, vtens):
-        log.enter('VALENCE')
+        timer.start('Valence')
         self.dlist.forward()
         self.iclist.forward()
         energy = self.vlist.forward()
@@ -372,5 +375,5 @@ class ForcePartValence(ForcePart):
             self.vlist.back()
             self.iclist.back()
             self.dlist.back(gpos, vtens)
-        log.leave()
+        timer.stop()
         return energy

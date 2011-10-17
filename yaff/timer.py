@@ -24,7 +24,8 @@
 
 import time
 
-__all__ = ['Timer']
+
+__all__ = ['timer']
 
 
 class Timer(object):
@@ -95,23 +96,27 @@ class TimerGroup(object):
 
     def report(self, log):
         max_own_cpu = self.get_max_own_cpu()
-        if max_own_cpu == 0.0:
-            return
-        log.enter('TIMER', skip_timer=True)
+        #if max_own_cpu == 0.0:
+        #    return
+        log.enter('TIMER')
         log('Overview of CPU time usage.')
         log.hline()
-        log('Label   Total time   Own time')
+        log('Label          Total   Own')
         log.hline()
+        bar_width = log.width-27
         for label, timer in sorted(self.parts.iteritems()):
-            if timer.total.cpu == 0.0:
-                continue
+            #if timer.total.cpu == 0.0:
+            #    continue
             if max_own_cpu > 0:
-                cpu_bar = "#"*int(timer.own.cpu/max_own_cpu*37)
+                cpu_bar = "W"*int(timer.own.cpu/max_own_cpu*bar_width)
             else:
                 cpu_bar = ""
-            log('%7s %10.1f %10.1f %37s' % (
-                label.ljust(7),
-                timer.total.cpu, timer.own.cpu, cpu_bar.ljust(37),
+            log('%14s %5.1f %5.1f %30s' % (
+                label.ljust(14),
+                timer.total.cpu, timer.own.cpu, cpu_bar.ljust(bar_width),
             ))
         log.hline()
-        log.leave(skip_timer=True)
+        log.leave()
+
+
+timer = TimerGroup()

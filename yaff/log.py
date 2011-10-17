@@ -25,7 +25,7 @@ import sys, atexit, os, datetime, getpass
 
 from molmod.units import kjmol, kcalmol, electronvolt, angstrom, nanometer, \
     femtosecond, picosecond, amu, deg
-from yaff.timer import TimerGroup
+from yaff.timer import timer
 
 
 __all__ = ['ScreenLog', 'log']
@@ -218,7 +218,6 @@ class ScreenLog(object):
         self._last_used_prefix = None
         self.stack = []
         self.add_newline = False
-        self.timer = TimerGroup()
         if f is None:
             self._file = sys.stdout
         else:
@@ -240,6 +239,7 @@ class ScreenLog(object):
         if not self.do_warning:
             raise RuntimeError('The runlevel should be at least warning when logging.')
         if not self._active:
+            timer.start('Total')
             prefix = self.prefix
             self.print_header()
             self.prefix = prefix
@@ -286,21 +286,17 @@ class ScreenLog(object):
     def blank(self):
         print >> self._file
 
-    def enter(self, prefix, skip_timer=False):
+    def enter(self, prefix):
         if len(prefix) > self.margin-1:
             raise ValueError('The prefix must be at most %s characters wide.' % (self.margin-1))
         self.stack.append(self.prefix)
         self.prefix = prefix.upper().rjust(self.margin-1, ' ')
         self.add_newline = True
-        if not skip_timer:
-            self.timer.start(prefix)
 
-    def leave(self, skip_timer=False):
+    def leave(self):
         self.prefix = self.stack.pop(-1)
         if self._active:
             self.add_newline = True
-        if not skip_timer:
-            self.timer.stop()
 
     def set_unitsys(self, unitsys):
         self.unitsys = unitsys
@@ -318,7 +314,8 @@ class ScreenLog(object):
     def print_footer(self):
         if self.do_warning and self._active:
             self._print_basic_info()
-            self.timer.report(self)
+            timer.stop()
+            timer.report(self)
             print >> self._file, foot_banner
 
     def _print_basic_info(self):

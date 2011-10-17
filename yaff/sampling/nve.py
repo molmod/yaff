@@ -27,6 +27,7 @@ import numpy as np, time
 from molmod import boltzmann
 
 from yaff.log import log
+from yaff.timer import timer
 from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
     Hook
 
@@ -136,7 +137,7 @@ class AndersenThermostatMcDonaldBarostat(Hook):
         Hook.__init__(self, start, step)
 
     def __call__(self, iterative):
-        log.enter('ATMB')
+        timer.start('ATMB')
         def initialize():
             iterative.gpos[:] = 0.0
             iterative.ff.update_pos(iterative.pos)
@@ -176,6 +177,7 @@ class AndersenThermostatMcDonaldBarostat(Hook):
         iterative.econs_ref += iterative.ekin - ekin1
         iterative.ekin = ekin1
         if log.do_medium:
+            log.enter('ATMB')
             s = {True: 'accepted', False: 'rejected'}[accepted]
             log('BARO   volscale %10.7f      arg %s      %s' % (scale, log.energy(arg), s))
             if accepted:
@@ -183,7 +185,8 @@ class AndersenThermostatMcDonaldBarostat(Hook):
                     log.energy(epot1 - epot0), log.length(vol1**(1.0/3.0))
                 ))
             log('THERMO energy change %s' % log.energy(iterative.ekin - ekin1))
-        log.leave()
+            log.leave()
+        timer.stop()
 
 
 class KineticAnnealing(Hook):

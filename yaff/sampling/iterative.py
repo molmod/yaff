@@ -24,6 +24,7 @@
 import numpy as np
 
 from yaff.log import log
+from yaff.timer import timer
 
 
 __all__ = ['Iterative', 'StateItem', 'AttributeStateItem', 'Hook']
@@ -67,14 +68,17 @@ class Iterative(object):
         else:
             self.hooks = [hooks]
         self.counter = counter0
+        timer.start(self.log_name)
         log.enter(self.log_name)
         self.initialize()
         log.leave()
+        timer.stop()
 
     def initialize(self):
         self.call_hooks()
 
     def call_hooks(self):
+        timer.start('%s hooks' % self.log_name)
         state_updated = False
         for hook in self.hooks:
             if self.counter >= hook.start and (self.counter - hook.start) % hook.step == 0:
@@ -83,13 +87,16 @@ class Iterative(object):
                         item.update(self)
                     state_updated = True
                 hook(self)
+        timer.stop()
 
     def run(self, nstep):
+        timer.start(self.log_name)
         log.enter(self.log_name)
         for i in xrange(nstep):
             self.propagate()
         self.finalize()
         log.leave()
+        timer.stop()
 
     def propagate(self):
         self.counter += 1
