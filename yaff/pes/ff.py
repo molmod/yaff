@@ -224,7 +224,11 @@ class ForcePartPair(ForcePart):
             log.hline()
             log('  scalings:          %5.3f %5.3f %5.3f' % (scalings.scale1, scalings.scale2, scalings.scale3))
             log('  real space cutoff: %s' % log.length(pair_pot.rcut))
-            log('  smooth cutoff:     %s' % pair_pot.smooth)
+            tr = pair_pot.get_truncation()
+            if tr is None:
+                log('  truncation:     none')
+            else:
+                log('  truncation:     %s' % tr.get_log())
             self.pair_pot.log()
             log.hline()
             log.leave()

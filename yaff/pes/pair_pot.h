@@ -25,6 +25,7 @@
 #define YAFF_PAIR_POT_H
 
 #include "nlists.h"
+#include "truncation.h"
 
 
 typedef double (*pair_fn_type)(void*, long, long, double, double*);
@@ -33,7 +34,7 @@ typedef struct {
   void *pair_data;
   pair_fn_type pair_fn;
   double rcut;
-  int smooth;
+  trunc_scheme_type *trunc_scheme;
 } pair_pot_type;
 
 typedef struct {
@@ -47,8 +48,7 @@ void pair_pot_free(pair_pot_type *pair_pot);
 int pair_pot_ready(pair_pot_type *pair_pot);
 double pair_pot_get_rcut(pair_pot_type *pair_pot);
 void pair_pot_set_rcut(pair_pot_type *pair_pot, double rcut);
-int pair_pot_get_smooth(pair_pot_type *pair_pot);
-void pair_pot_set_smooth(pair_pot_type *pair_pot, int smooth);
+void pair_pot_set_trunc_scheme(pair_pot_type *pair_pot, trunc_scheme_type *trunc_sceme);
 void pair_data_free(pair_pot_type *pair_pot);
 
 double pair_pot_compute(long center_index, nlist_row_type *nlist,

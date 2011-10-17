@@ -98,7 +98,7 @@ def get_part_water32_9A_lj():
         epsilons[i] = epsilon_table[system.numbers[i]]
     # Create the pair_pot and part_pair
     rcut = 9*angstrom
-    pair_pot = PairPotLJ(sigmas, epsilons, rcut, True)
+    pair_pot = PairPotLJ(sigmas, epsilons, rcut, Hammer(1.0))
     assert abs(pair_pot.sigmas - sigmas).max() == 0.0
     assert abs(pair_pot.epsilons - epsilons).max() == 0.0
     part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
@@ -131,7 +131,7 @@ def get_part_water32_9A_mm3():
         epsilons[i] = epsilon_table[system.numbers[i]]
     # Create the pair_pot and part_pair
     rcut = 9*angstrom
-    pair_pot = PairPotMM3(sigmas, epsilons, rcut, True)
+    pair_pot = PairPotMM3(sigmas, epsilons, rcut, Hammer(1.0))
     assert abs(pair_pot.sigmas - sigmas).max() == 0.0
     assert abs(pair_pot.epsilons - epsilons).max() == 0.0
     part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
@@ -167,7 +167,7 @@ def get_part_water32_9A_grimme():
         c6s[i] = c6_table[system.numbers[i]]
     # Create the pair_pot and part_pair
     rcut = 9*angstrom
-    pair_pot = PairPotGrimme(r0s, c6s, rcut, True)
+    pair_pot = PairPotGrimme(r0s, c6s, rcut, Hammer(1.0))
     assert abs(pair_pot.r0 - r0s).max() == 0.0
     assert abs(pair_pot.c6 - c6s).max() == 0.0
     part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
@@ -187,7 +187,7 @@ def test_pair_pot_grimme_water32_9A():
     check_pair_pot_water32(system, nlists, scalings, part_pair, pair_fn, 1e-10)
 
 
-def get_part_water32_5A_exprep(amp_mix, amp_mix_coeff, b_mix, b_mix_coeff):
+def get_part_water32_4A_exprep(amp_mix, amp_mix_coeff, b_mix, b_mix_coeff):
     # Initialize system, nlists and scaling
     system = get_system_water32()
     nlists = NeighborLists(system)
@@ -201,8 +201,8 @@ def get_part_water32_5A_exprep(amp_mix, amp_mix_coeff, b_mix, b_mix_coeff):
         amps[i] = amp_table[system.numbers[i]]
         bs[i] = b_table[system.numbers[i]]
     # Create the pair_pot and part_pair
-    rcut = 5*angstrom
-    pair_pot = PairPotExpRep(amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff, rcut, True)
+    rcut = 4*angstrom
+    pair_pot = PairPotExpRep(amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff, rcut, Switch3(2.0))
     assert abs(pair_pot.amps - amps).max() == 0.0
     assert pair_pot.amp_mix == amp_mix
     assert pair_pot.amp_mix_coeff == amp_mix_coeff
@@ -216,7 +216,7 @@ def get_part_water32_5A_exprep(amp_mix, amp_mix_coeff, b_mix, b_mix_coeff):
             amp = np.sqrt(amps[i]*amps[j])
         elif amp_mix == 1:
             cor = 1-amp_mix_coeff*abs(np.log(amps[i]/amps[j]))
-            amp = np.exp( (np.log(amps[i])+np.log(amps[j]))/2*cor )
+            amp = np.exp( (np.log(amps[i])+np.log(amps[j]))/2*cor)
         else:
             raise NotImplementedError
         if b_mix == 0:
@@ -226,18 +226,22 @@ def get_part_water32_5A_exprep(amp_mix, amp_mix_coeff, b_mix, b_mix_coeff):
             b = (bs[i]+bs[j])/2*cor
         else:
             raise NotImplementedError
-        energy = amp*np.exp(-b*d)*np.exp(1.0/(d-rcut))
+        # truncation
+        if d > rcut - 2.0:
+            x = (rcut - d)/2.0
+            amp *= (3-2*x)*x*x
+        energy = amp*np.exp(-b*d)
         return energy
     return system, nlists, scalings, part_pair, pair_fn
 
 
-def test_pair_pot_exprep_water32_5A_case1():
-    system, nlists, scalings, part_pair, pair_fn = get_part_water32_5A_exprep(0, 0.0, 0, 0.0)
+def test_pair_pot_exprep_water32_4A_case1():
+    system, nlists, scalings, part_pair, pair_fn = get_part_water32_4A_exprep(0, 0.0, 0, 0.0)
     check_pair_pot_water32(system, nlists, scalings, part_pair, pair_fn, 1e-12)
 
 
-def test_pair_pot_exprep_water32_5A_case2():
-    system, nlists, scalings, part_pair, pair_fn = get_part_water32_5A_exprep(1, 2.385e-2, 1, 7.897e-3)
+def test_pair_pot_exprep_water32_4A_case2():
+    system, nlists, scalings, part_pair, pair_fn = get_part_water32_4A_exprep(1, 2.385e-2, 1, 7.897e-3)
     check_pair_pot_water32(system, nlists, scalings, part_pair, pair_fn, 1e-12)
 
 
@@ -302,7 +306,7 @@ def get_part_caffeine_lj_15A():
         sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
         epsilons[i] = epsilon_table[system.numbers[i]]
     # Construct the pair potential and part
-    pair_pot = PairPotLJ(sigmas, epsilons, 15*angstrom, False)
+    pair_pot = PairPotLJ(sigmas, epsilons, 15*angstrom)
     part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
@@ -342,7 +346,7 @@ def get_part_caffeine_mm3_15A():
         sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
         epsilons[i] = epsilon_table[system.numbers[i]]
     # Construct the pair potential and part
-    pair_pot = PairPotMM3(sigmas, epsilons, 15*angstrom, False)
+    pair_pot = PairPotMM3(sigmas, epsilons, 15*angstrom)
     part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
@@ -382,7 +386,7 @@ def get_part_caffeine_grimme_15A():
         r0s[i] = r0_table[system.numbers[i]]
         c6s[i] = c6_table[system.numbers[i]]
     # Construct the pair potential and part
-    pair_pot = PairPotGrimme(r0s, c6s, 15*angstrom, False)
+    pair_pot = PairPotGrimme(r0s, c6s, 15*angstrom)
     part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
@@ -421,7 +425,7 @@ def get_part_caffeine_exprep_5A(amp_mix, amp_mix_coeff, b_mix, b_mix_coeff):
         amps[i] = amp_table[system.numbers[i]]
         bs[i] = b_table[system.numbers[i]]
     # Construct the pair potential and part
-    pair_pot = PairPotExpRep(amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff, 5*angstrom, False)
+    pair_pot = PairPotExpRep(amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff, 5*angstrom)
     part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
@@ -486,7 +490,7 @@ def get_part_caffeine_dampdisp_9A():
         bs[i] = b_table[system.numbers[i]]
         vols[i] = vol_table[system.numbers[i]]
     # Construct the pair potential and part
-    pair_pot = PairPotDampDisp(c6s, bs, vols, 9*angstrom, False)
+    pair_pot = PairPotDampDisp(c6s, bs, vols, 9*angstrom)
     assert abs(pair_pot.c6s - c6s).max() < 1e-10
     assert abs(pair_pot.bs - bs).max() < 1e-10
     assert abs(pair_pot.vols - vols).max() < 1e-10
@@ -634,7 +638,7 @@ def test_pair_pot_grimme_2atoms():
     scalings = Scalings(system, 1.0, 1.0, 1.0)
     R0 = 1.452*angstrom
     C6 = 1.75*1e-3*kjmol*nanometer**6
-    pair_pot = PairPotGrimme(np.array([R0, R0]), np.array([C6, C6]), 15*angstrom, False)
+    pair_pot = PairPotGrimme(np.array([R0, R0]), np.array([C6, C6]), 15*angstrom)
     part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     nlists.update()
     energy = part_pair.compute()

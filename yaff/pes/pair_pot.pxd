@@ -23,6 +23,7 @@
 
 cimport numpy as np
 cimport nlists
+cimport truncation
 
 cdef extern from "pair_pot.h":
     ctypedef struct scaling_row_type:
@@ -37,8 +38,7 @@ cdef extern from "pair_pot.h":
     bint pair_pot_ready(pair_pot_type *pair_pot)
     double pair_pot_get_rcut(pair_pot_type *pair_pot)
     void pair_pot_set_rcut(pair_pot_type *pair_pot, double rcut)
-    bint pair_pot_get_smooth(pair_pot_type *pair_pot)
-    void pair_pot_set_smooth(pair_pot_type *pair_pot, bint smooth)
+    void pair_pot_set_trunc_scheme(pair_pot_type *pair_pot, truncation.trunc_scheme_type *trunc_sceme)
     void pair_data_free(pair_pot_type *pair_pot)
 
     double pair_pot_compute(long center_index, nlists.nlist_row_type* nlist,

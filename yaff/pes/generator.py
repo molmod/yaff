@@ -27,7 +27,7 @@ from molmod.units import parse_unit
 
 from yaff.log import log
 from yaff.pes.ext import PairPotEI, PairPotLJ, PairPotMM3, PairPotExpRep, \
-    PairPotDampDisp
+    PairPotDampDisp, Switch3
 from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
     ForcePartEwaldNeutralizing
@@ -99,7 +99,7 @@ class ParsedPars(object):
 
 
 class FFArgs(object):
-    def __init__(self, rcut=18.89726133921252, smooth=True):
+    def __init__(self, rcut=18.89726133921252, tr=Switch3(7.558904535685008)):
         """
            **Optional arguments:**
 
@@ -109,17 +109,15 @@ class FFArgs(object):
            rcut
                 The real space cutoff used by all pair potentials.
 
-           smooth
-                Flag to force the non-bonding terms smoothly to zero at the
-                cutoff distance. This does not apply to the real-space part of
-                the electrostatic term. For non-periodic systems, set the
-                cutoff such that all pairs are included. For periodic systems,
-                the Ewald summation is used.
+           tr
+                Default truncation model for everything except the electrostatic
+                interactions. The electrostatic interactions are not truncated
+                by default.
         """
         self.parts = []
         self.nlists = None
         self.rcut = rcut
-        self.smooth = smooth
+        self.tr = tr
 
     def get_nlists(self, system):
         if self.nlists is None:
@@ -412,7 +410,7 @@ class LJGenerator(NonbondedGenerator):
         if part_pair is not None:
             raise RuntimeError('Internal inconsistency: the LJ part should not be present yet.')
 
-        pair_pot = PairPotLJ(sigmas, epsilons, ff_args.rcut, ff_args.smooth)
+        pair_pot = PairPotLJ(sigmas, epsilons, ff_args.rcut, ff_args.tr)
         nlists = ff_args.get_nlists(system)
         part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
         ff_args.parts.append(part_pair)
@@ -452,7 +450,7 @@ class MM3Generator(NonbondedGenerator):
         if part_pair is not None:
             raise RuntimeError('Internal inconsistency: the MM3 part should not be present yet.')
 
-        pair_pot = PairPotMM3(sigmas, epsilons, ff_args.rcut, ff_args.smooth)
+        pair_pot = PairPotMM3(sigmas, epsilons, ff_args.rcut, ff_args.tr)
         nlists = ff_args.get_nlists(system)
         part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
         ff_args.parts.append(part_pair)
@@ -509,7 +507,7 @@ class ExpRepGenerator(NonbondedGenerator):
         if part_pair is not None:
             raise RuntimeError('Internal inconsistency: the EXPREP part should not be present yet.')
 
-        pair_pot = PairPotExpRep(amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff, ff_args.rcut, ff_args.smooth)
+        pair_pot = PairPotExpRep(amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff, ff_args.rcut, ff_args.tr)
         nlists = ff_args.get_nlists(system)
         part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
         ff_args.parts.append(part_pair)
@@ -550,7 +548,7 @@ class DampDispGenerator(NonbondedGenerator):
         if part_pair is not None:
             raise RuntimeError('Internal inconsistency: the DAMPDISP part should not be present yet.')
 
-        pair_pot = PairPotDampDisp(c6s, bs, vols, ff_args.rcut, ff_args.smooth)
+        pair_pot = PairPotDampDisp(c6s, bs, vols, ff_args.rcut, ff_args.tr)
         nlists = ff_args.get_nlists(system)
         part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
         ff_args.parts.append(part_pair)

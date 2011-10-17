@@ -259,10 +259,6 @@ This is a simple example of a Lennard-Jones force field::
 
 #. [PARTIALLY DONE, TODO: TORSION, GRIMME] The generate method.
 
-#. [LOW PRIORITY] Replace hammer by taper. Check which one converges the
-   quickest as the real-space cutoff is increased, without compromising the
-   conserved quantity.
-
 
 Running an FF simulation
 ------------------------

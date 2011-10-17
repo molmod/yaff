@@ -34,7 +34,7 @@ pair_pot_type* pair_pot_new(void) {
     (*result).pair_data = NULL;
     (*result).pair_fn = NULL;
     (*result).rcut = 0.0;
-    (*result).smooth = 0;
+    (*result).trunc_scheme = NULL;
   }
   return result;
 }
@@ -55,12 +55,8 @@ void pair_pot_set_rcut(pair_pot_type *pair_pot, double rcut) {
   (*pair_pot).rcut = rcut;
 }
 
-int pair_pot_get_smooth(pair_pot_type *pair_pot) {
-  return (*pair_pot).smooth;
-}
-
-void pair_pot_set_smooth(pair_pot_type *pair_pot, int smooth) {
-  (*pair_pot).smooth = smooth;
+void pair_pot_set_trunc_scheme(pair_pot_type *pair_pot, trunc_scheme_type *trunc_scheme) {
+  (*pair_pot).trunc_scheme = trunc_scheme;
 }
 
 
@@ -74,20 +70,6 @@ double get_scaling(scaling_row_type *scaling, long center_index, long other_inde
     return scaling[*counter].scale;
   }
   return 1.0;
-}
-
-
-double hammer(double d, double c, double *g) {
-  double result, x;
-  if (d < c) {
-    x = d - c;
-    result = exp(1.0/x);
-    if (g != NULL) *g = -result/x/x;
-  } else {
-    result = 0.0;
-    if (g != NULL) *g = 0.0;
-  }
-  return result;
 }
 
 
@@ -115,13 +97,19 @@ double pair_pot_compute(long center_index, nlist_row_type *nlist,
         if ((gpos==NULL) && (vtens==NULL)) {
           // Call the potential function without g argument.
           v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, nlist[i].d, NULL);
-          if ((*pair_pot).smooth) v *= hammer(nlist[i].d, (*pair_pot).rcut, NULL);
+          // If a truncation scheme is defined, apply it.
+          if ((*pair_pot).trunc_scheme!=NULL) {
+            v *= (*(*pair_pot).trunc_scheme).trunc_fn(nlist[i].d, (*pair_pot).rcut, (*(*pair_pot).trunc_scheme).par, NULL);
+          }
         } else {
           // Call the potential function with vg argument.
           // vg is the derivative of the pair potential divided by the distance.
           v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, nlist[i].d, &vg);
-          if ((*pair_pot).smooth) {
-            h = hammer(nlist[i].d, (*pair_pot).rcut, &hg);
+          // If a truncation scheme is defined, apply it.
+          if ((*pair_pot).trunc_scheme!=NULL) {
+            // hg is (a pointer to) the derivative of the truncation function.
+            h = (*(*pair_pot).trunc_scheme).trunc_fn(nlist[i].d, (*pair_pot).rcut, (*(*pair_pot).trunc_scheme).par, &hg);
+            // chain rule:
             vg = vg*h + v*hg/nlist[i].d;
             v *= h;
           }

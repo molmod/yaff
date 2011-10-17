@@ -34,6 +34,7 @@ from yaff.pes.test.common import check_gpos_ff, check_vtens_ff
 
 
 def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=False):
+    tr = Switch3(3*angstrom)
     system = get_system_water32()
     rcut = 9*angstrom
     alpha = 4.5/rcut
@@ -64,7 +65,7 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
         for i in xrange(system.natom):
             sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
             epsilons[i] = epsilon_table[system.numbers[i]]
-        pair_pot_lj = PairPotLJ(sigmas, epsilons, rcut, True)
+        pair_pot_lj = PairPotLJ(sigmas, epsilons, rcut, tr)
         part_pair_lj = ForcePartPair(system, nlists, scalings, pair_pot_lj)
         parts.append(part_pair_lj)
     # electrostatics

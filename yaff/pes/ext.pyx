@@ -30,16 +30,17 @@ cimport ewald
 cimport dlist
 cimport iclist
 cimport vlist
+cimport truncation
 
 from yaff.log import log
 
 
 __all__ = [
     'Cell', 'nlist_status_init', 'nlist_update', 'nlist_status_finish',
-    'PairPot', 'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep',
-    'PairPotDampDisp', 'PairPotEI', 'compute_ewald_reci', 'compute_ewald_corr',
-    'dlist_forward', 'dlist_back', 'iclist_forward', 'iclist_back',
-    'vlist_forward', 'vlist_back',
+    'Hammer', 'Switch3', 'PairPot', 'PairPotLJ', 'PairPotMM3', 'PairPotGrimme',
+    'PairPotExpRep', 'PairPotDampDisp', 'PairPotEI', 'compute_ewald_reci',
+    'compute_ewald_corr', 'dlist_forward', 'dlist_back', 'iclist_forward',
+    'iclist_back', 'vlist_forward', 'vlist_back',
 ]
 
 
@@ -210,12 +211,61 @@ def nlist_status_finish(nlist_status):
 
 
 #
+# Pair potential truncation schemes
+#
+
+
+cdef class Truncation:
+    cdef truncation.trunc_scheme_type* _c_trunc_scheme
+
+    def __dealloc__(self):
+        if self._c_trunc_scheme is not NULL:
+            truncation.trunc_scheme_free(self._c_trunc_scheme)
+
+    def trunc_fn(self, double d, double rcut):
+        cdef double hg
+        h = truncation.trunc_scheme_fn(self._c_trunc_scheme, d, rcut, &hg)
+        return h, hg
+
+
+cdef class Hammer(Truncation):
+    def __cinit__(self, double tau):
+        self._c_trunc_scheme = truncation.hammer_new(tau)
+        if self._c_trunc_scheme is NULL:
+            raise MemoryError
+
+    def get_tau(self):
+        return truncation.hammer_get_tau(self._c_trunc_scheme)
+
+    tau = property(get_tau)
+
+    def get_log(self):
+        return 'hammer %s' % log.length(self.tau)
+
+
+cdef class Switch3(Truncation):
+    def __cinit__(self, double width):
+        self._c_trunc_scheme = truncation.switch3_new(width)
+        if self._c_trunc_scheme is NULL:
+            raise MemoryError
+
+    def get_width(self):
+        return truncation.switch3_get_width(self._c_trunc_scheme)
+
+    width = property(get_width)
+
+    def get_log(self):
+        return 'switch3 %s' % log.length(self.width)
+
+
+#
 # Pair potentials
 #
 
 
 cdef class PairPot:
     cdef pair_pot.pair_pot_type* _c_pair_pot
+    cdef Truncation tr
 
     def __cinit__(self, *args, **kwargs):
         self._c_pair_pot = pair_pot.pair_pot_new()
@@ -233,10 +283,15 @@ cdef class PairPot:
 
     rcut = property(get_rcut)
 
-    def get_smooth(self):
-        return pair_pot.pair_pot_get_smooth(self._c_pair_pot)
+    cdef set_truncation(self, Truncation tr):
+        self.tr = tr
+        if tr is None:
+            pair_pot.pair_pot_set_trunc_scheme(self._c_pair_pot, NULL)
+        else:
+            pair_pot.pair_pot_set_trunc_scheme(self._c_pair_pot, tr._c_trunc_scheme)
 
-    smooth = property(get_smooth)
+    def get_truncation(self):
+        return self.tr
 
     def compute(self, long center_index,
                 np.ndarray[nlists.nlist_row_type, ndim=1] nlist,
@@ -278,12 +333,13 @@ cdef class PairPotLJ(PairPot):
     name = 'lj'
 
     def __cinit__(self, np.ndarray[double, ndim=1] sigmas,
-                  np.ndarray[double, ndim=1] epsilons, double rcut, bint smooth):
+                  np.ndarray[double, ndim=1] epsilons, double rcut,
+                  Truncation tr=None):
         assert sigmas.flags['C_CONTIGUOUS']
         assert epsilons.flags['C_CONTIGUOUS']
         assert sigmas.shape[0] == epsilons.shape[0]
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
-        pair_pot.pair_pot_set_smooth(self._c_pair_pot, smooth)
+        self.set_truncation(tr)
         pair_pot.pair_data_lj_init(self._c_pair_pot, <double*>sigmas.data, <double*>epsilons.data)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
@@ -315,12 +371,13 @@ cdef class PairPotMM3(PairPot):
     name = 'mm3'
 
     def __cinit__(self, np.ndarray[double, ndim=1] sigmas,
-                  np.ndarray[double, ndim=1] epsilons, double rcut, bint smooth):
+                  np.ndarray[double, ndim=1] epsilons, double rcut,
+                  Truncation tr=None):
         assert sigmas.flags['C_CONTIGUOUS']
         assert epsilons.flags['C_CONTIGUOUS']
         assert sigmas.shape[0] == epsilons.shape[0]
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
-        pair_pot.pair_pot_set_smooth(self._c_pair_pot, smooth)
+        self.set_truncation(tr)
         pair_pot.pair_data_mm3_init(self._c_pair_pot, <double*>sigmas.data, <double*>epsilons.data)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
@@ -351,12 +408,14 @@ cdef class PairPotGrimme(PairPot):
     cdef np.ndarray _c_c6
     name = 'grimme'
 
-    def __cinit__(self, np.ndarray[double, ndim=1] r0, np.ndarray[double, ndim=1] c6, double rcut, bint smooth):
+    def __cinit__(self, np.ndarray[double, ndim=1] r0,
+                  np.ndarray[double, ndim=1] c6, double rcut,
+                  Truncation tr=None):
         assert r0.flags['C_CONTIGUOUS']
         assert c6.flags['C_CONTIGUOUS']
         assert r0.shape[0] == c6.shape[0]
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
-        pair_pot.pair_pot_set_smooth(self._c_pair_pot, smooth)
+        self.set_truncation(tr)
         pair_pot.pair_data_grimme_init(self._c_pair_pot, <double*>r0.data, <double*>c6.data)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
@@ -389,7 +448,7 @@ cdef class PairPotExpRep(PairPot):
 
     def __cinit__(self, np.ndarray[double, ndim=1] amps, int amp_mix,
                   double amp_mix_coeff, np.ndarray[double, ndim=1] bs, int b_mix,
-                  double b_mix_coeff, double rcut, bint smooth):
+                  double b_mix_coeff, double rcut, Truncation tr=None):
         assert amps.flags['C_CONTIGUOUS']
         assert bs.flags['C_CONTIGUOUS']
         assert amps.shape[0] == bs.shape[0]
@@ -398,7 +457,7 @@ cdef class PairPotExpRep(PairPot):
         assert b_mix == 0 or b_mix == 1
         assert b_mix_coeff >= 0 and b_mix_coeff <= 1
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
-        pair_pot.pair_pot_set_smooth(self._c_pair_pot, smooth)
+        self.set_truncation(tr)
         pair_pot.pair_data_exprep_init(self._c_pair_pot, <double*>amps.data, amp_mix, amp_mix_coeff, <double*>bs.data, b_mix, b_mix_coeff)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
@@ -463,14 +522,15 @@ cdef class PairPotDampDisp(PairPot):
 
     def __cinit__(self, np.ndarray[double, ndim=1] c6s,
                   np.ndarray[double, ndim=1] bs,
-                  np.ndarray[double, ndim=1] vols, double rcut, bint smooth):
+                  np.ndarray[double, ndim=1] vols, double rcut,
+                  Truncation tr=None):
         assert c6s.flags['C_CONTIGUOUS']
         assert bs.flags['C_CONTIGUOUS']
         assert vols.flags['C_CONTIGUOUS']
         assert c6s.shape[0] == bs.shape[0]
         assert c6s.shape[0] == vols.shape[0]
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
-        pair_pot.pair_pot_set_smooth(self._c_pair_pot, smooth)
+        self.set_truncation(tr)
         pair_pot.pair_data_dampdisp_init(self._c_pair_pot, <double*>c6s.data,
                                          <double*>bs.data, <double*>vols.data)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
@@ -507,9 +567,11 @@ cdef class PairPotEI(PairPot):
     cdef np.ndarray _c_charges
     name = 'ei'
 
-    def __cinit__(self, np.ndarray[double, ndim=1] charges, double alpha, double rcut):
+    def __cinit__(self, np.ndarray[double, ndim=1] charges, double alpha,
+                  double rcut, Truncation tr=None):
         assert charges.flags['C_CONTIGUOUS']
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        self.set_truncation(tr)
         pair_pot.pair_data_ei_init(self._c_pair_pot, <double*>charges.data, alpha)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
