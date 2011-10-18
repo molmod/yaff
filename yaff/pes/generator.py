@@ -180,7 +180,6 @@ class Generator(object):
        important.
     """
     prefix = None
-    num_ffatypes = None
     par_names = None
     commands = None
 
@@ -211,17 +210,17 @@ class Generator(object):
             ))
         return result
 
-    def process_pars(self, parsed_pars, conversions):
+    def process_pars(self, parsed_pars, conversions, nffatype):
         par_table = {}
         for counter, line in parsed_pars.info:
             words = line.split()
-            num_args = self.num_ffatypes + len(self.par_names)
+            num_args = nffatype + len(self.par_names)
             if len(words) != num_args:
                 parsed_pars.complain(counter, 'should have %s arguments.' % num_args)
-            key = tuple(words[:self.num_ffatypes])
+            key = tuple(words[:nffatype])
             try:
                 pars = tuple(
-                    float(words[i+self.num_ffatypes])*conversions[par_name]
+                    float(words[i+nffatype])*conversions[par_name]
                     for i, par_name in enumerate(self.par_names)
                 )
             except ValueError:
@@ -241,11 +240,14 @@ class Generator(object):
 
 class ValenceGenerator(Generator):
     commands = ['UNIT', 'PARS']
+    nffatype = None
+    ICClass = None
+    VClass = None
 
     def __call__(self, system, parsed_pars, ff_args):
         self.check_commands(parsed_pars)
         conversions = self.process_units(parsed_pars.get_section('UNIT'))
-        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions)
+        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions, self.nffatype)
         if len(par_table) > 0:
             self.apply(par_table, system, ff_args)
 
@@ -268,8 +270,8 @@ class ValenceGenerator(Generator):
 
 
 class BondGenerator(ValenceGenerator):
-    num_ffatypes = 2
     par_names = ['K', 'R0']
+    nffatype = 2
     ICClass = Bond
     VClass = None
 
@@ -293,8 +295,8 @@ class BondFuesGenerator(BondGenerator):
 
 
 class BendGenerator(ValenceGenerator):
-    num_ffatypes = 3
     par_names = ['K', 'THETA0']
+    nffatype = 3
     ICClass = None
     VClass = Harmonic
 
@@ -379,13 +381,12 @@ class NonbondedGenerator(Generator):
 class LJGenerator(NonbondedGenerator):
     prefix = 'LJ'
     commands = ['UNIT', 'SCALE', 'PARS']
-    num_ffatypes = 1
     par_names = ['SIGMA', 'EPSILON']
 
     def __call__(self, system, parsed_pars, ff_args):
         self.check_commands(parsed_pars)
         conversions = self.process_units(parsed_pars.get_section('UNIT'))
-        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions)
+        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions, 1)
         scale_table = self.process_scales(parsed_pars.get_section('SCALE'))
         self.apply(par_table, scale_table, system, ff_args)
 
@@ -419,13 +420,12 @@ class LJGenerator(NonbondedGenerator):
 class MM3Generator(NonbondedGenerator):
     prefix = 'MM3'
     commands = ['UNIT', 'SCALE', 'PARS']
-    num_ffatypes = 1
     par_names = ['SIGMA', 'EPSILON']
 
     def __call__(self, system, parsed_pars, ff_args):
         self.check_commands(parsed_pars)
         conversions = self.process_units(parsed_pars.get_section('UNIT'))
-        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions)
+        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions, 1)
         scale_table = self.process_scales(parsed_pars.get_section('SCALE'))
         self.apply(par_table, scale_table, system, ff_args)
 
@@ -458,8 +458,7 @@ class MM3Generator(NonbondedGenerator):
 
 class ExpRepGenerator(NonbondedGenerator):
     prefix = 'EXPREP'
-    commands = ['UNIT', 'SCALE', 'MIX', 'PARS']
-    num_ffatypes = 1
+    commands = ['UNIT', 'SCALE', 'MIX', 'PARS', 'CPARS']
     par_names = ['A', 'B']
     mixing_rules = {
         ('A', 'GEOMETRIC'): (0, 0),
@@ -471,12 +470,17 @@ class ExpRepGenerator(NonbondedGenerator):
     def __call__(self, system, parsed_pars, ff_args):
         self.check_commands(parsed_pars)
         conversions = self.process_units(parsed_pars.get_section('UNIT'))
-        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions)
+        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions, 1)
+        cpar_table = self.process_pars(parsed_pars.get_section('CPARS'), conversions, 2)
         scale_table = self.process_scales(parsed_pars.get_section('SCALE'))
         mixing_rules = self.process_mix(parsed_pars.get_section('MIX'))
-        self.apply(par_table, scale_table, mixing_rules, system, ff_args)
+        self.apply(par_table, cpar_table, scale_table, mixing_rules, system, ff_args)
 
-    def apply(self, par_table, scale_table, mixing_rules, system, ff_args):
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def apply(self, par_table, cpar_table, scale_table, mixing_rules, system, ff_args):
         # Prepare the atomic parameters
         amps = np.zeros(system.nffatype, float)
         bs = np.zeros(system.nffatype, float)
@@ -487,6 +491,20 @@ class ExpRepGenerator(NonbondedGenerator):
                     log.warn('No EXPREP parameters found for ffatype %s.' % system.ffatypes[i])
             else:
                 amps[i], bs[i] = pars
+
+        # Prepare the cross parameters
+        amp_cross = np.zeros((system.nffatype, system.nffatype), float)
+        b_cross = np.zeros((system.nffatype, system.nffatype), float)
+        for i0 in xrange(system.nffatype):
+            for i1 in xrange(i0+1):
+                cpars = cpar_table.get((system.ffatypes[i0], system.ffatypes[i1]))
+                if cpars is None:
+                    if log.do_high:
+                        log('No EXPREP cross parameters found for ffatypes %s,%s. Mixing rule will be used' % (system.ffatypes[i0], system.ffatypes[i1]))
+                else:
+                    amp_cross[i0,i1], b_cross[i0,i1] = cpars
+                    if i0 != i1:
+                        amp_cross[i1,i0], b_cross[i1,i0] = cpars
 
         # Prepare the global parameters
         scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
@@ -506,10 +524,6 @@ class ExpRepGenerator(NonbondedGenerator):
         if part_pair is not None:
             raise RuntimeError('Internal inconsistency: the EXPREP part should not be present yet.')
 
-        # Allocate the arrays for the pair potential
-        amp_cross = np.zeros((system.nffatype, system.nffatype), float)
-        b_cross = np.zeros((system.nffatype, system.nffatype), float)
-
         pair_pot = PairPotExpRep(
             system.ffatype_ids, amp_cross, b_cross, ff_args.rcut, ff_args.tr,
             amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff,
@@ -522,13 +536,12 @@ class ExpRepGenerator(NonbondedGenerator):
 class DampDispGenerator(NonbondedGenerator):
     prefix = 'DAMPDISP'
     commands = ['UNIT', 'SCALE', 'PARS']
-    num_ffatypes = 1
     par_names = ['C6', 'B', 'VOL']
 
     def __call__(self, system, parsed_pars, ff_args):
         self.check_commands(parsed_pars)
         conversions = self.process_units(parsed_pars.get_section('UNIT'))
-        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions)
+        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions, 1)
         scale_table = self.process_scales(parsed_pars.get_section('SCALE'))
         self.apply(par_table, scale_table, system, ff_args)
 
