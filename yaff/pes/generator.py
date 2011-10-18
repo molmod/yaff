@@ -210,18 +210,20 @@ class Generator(object):
             ))
         return result
 
-    def process_pars(self, parsed_pars, conversions, nffatype):
+    def process_pars(self, parsed_pars, conversions, nffatype, par_names=None):
+        if par_names is None:
+            par_names = self.par_names
         par_table = {}
         for counter, line in parsed_pars.info:
             words = line.split()
-            num_args = nffatype + len(self.par_names)
+            num_args = nffatype + len(par_names)
             if len(words) != num_args:
                 parsed_pars.complain(counter, 'should have %s arguments.' % num_args)
             key = tuple(words[:nffatype])
             try:
                 pars = tuple(
                     float(words[i+nffatype])*conversions[par_name]
-                    for i, par_name in enumerate(self.par_names)
+                    for i, par_name in enumerate(par_names)
                 )
             except ValueError:
                 parsed_pars.complain(counter, 'has parameters that can not be converted to floating point numbers.')
@@ -535,29 +537,47 @@ class ExpRepGenerator(NonbondedGenerator):
 
 class DampDispGenerator(NonbondedGenerator):
     prefix = 'DAMPDISP'
-    commands = ['UNIT', 'SCALE', 'PARS']
+    commands = ['UNIT', 'SCALE', 'PARS', 'CPARS']
     par_names = ['C6', 'B', 'VOL']
 
     def __call__(self, system, parsed_pars, ff_args):
         self.check_commands(parsed_pars)
         conversions = self.process_units(parsed_pars.get_section('UNIT'))
         par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions, 1)
+        cpar_table = self.process_pars(parsed_pars.get_section('CPARS'), conversions, 2, ['C6', 'B'])
         scale_table = self.process_scales(parsed_pars.get_section('SCALE'))
-        self.apply(par_table, scale_table, system, ff_args)
+        self.apply(par_table, cpar_table, scale_table, system, ff_args)
 
-    def apply(self, par_table, scale_table, system, ff_args):
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def apply(self, par_table, cpar_table, scale_table, system, ff_args):
         # Prepare the atomic parameters
-        c6s = np.zeros(system.natom)
-        bs = np.zeros(system.natom)
-        vols = np.zeros(system.natom)
-        for i in xrange(system.natom):
-            key = (system.get_ffatype(i),)
-            pars = par_table.get(key)
+        c6s = np.zeros(system.nffatype, float)
+        bs = np.zeros(system.nffatype, float)
+        vols = np.zeros(system.nffatype, float)
+        for i in xrange(system.nffatype):
+            pars = par_table.get((system.ffatypes[i],))
             if pars is None:
                 if log.do_warning:
                     log.warn('No DAMPDISP parameters found for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
             else:
                 c6s[i], bs[i], vols[i] = pars
+
+        # Prepare the cross parameters
+        c6_cross = np.zeros((system.nffatype, system.nffatype), float)
+        b_cross = np.zeros((system.nffatype, system.nffatype), float)
+        for i0 in xrange(system.nffatype):
+            for i1 in xrange(i0+1):
+                cpars = cpar_table.get((system.ffatypes[i0], system.ffatypes[i1]))
+                if cpars is None:
+                    if log.do_high:
+                        log('No DAMPDISP cross parameters found for ffatypes %s,%s. Mixing rule will be used' % (system.ffatypes[i0], system.ffatypes[i1]))
+                else:
+                    c6_cross[i0,i1], b_cross[i0,i1] = cpars
+                    if i0 != i1:
+                        c6_cross[i1,i0], b_cross[i1,i0] = cpars
 
         # Prepare the global parameters
         scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
@@ -567,7 +587,7 @@ class DampDispGenerator(NonbondedGenerator):
         if part_pair is not None:
             raise RuntimeError('Internal inconsistency: the DAMPDISP part should not be present yet.')
 
-        pair_pot = PairPotDampDisp(c6s, bs, vols, ff_args.rcut, ff_args.tr)
+        pair_pot = PairPotDampDisp(system.ffatype_ids, c6_cross, b_cross, ff_args.rcut, ff_args.tr, c6s, bs, vols)
         nlists = ff_args.get_nlists(system)
         part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
         ff_args.parts.append(part_pair)

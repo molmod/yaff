@@ -184,18 +184,43 @@ def test_generator_water32_exprep3():
     assert abs(b_cross[1,1] - 4.4107388814e+00/angstrom) < 1e-10
 
 
-def test_generator_water32_dampdisp():
+def test_generator_water32_dampdisp1():
     system = get_system_water32()
-    ff = ForceField.generate(system, 'input/parameters_water_dampdisp.txt')
+    ff = ForceField.generate(system, 'input/parameters_water_dampdisp1.txt')
     assert len(ff.parts) == 1
     part_pair_dampdisp = ff.part_pair_dampdisp
     # check parameters
-    assert abs(part_pair_dampdisp.pair_pot.c6s[0] - 1.9550248340e+01) < 1e-10
-    assert abs(part_pair_dampdisp.pair_pot.c6s[1] - 2.7982205915e+00) < 1e-10
-    assert abs(part_pair_dampdisp.pair_pot.bs[0] - 3.2421589363e+00/angstrom) < 1e-10
-    assert abs(part_pair_dampdisp.pair_pot.bs[1] - 3.4581667399e+00/angstrom) < 1e-10
-    assert abs(part_pair_dampdisp.pair_pot.vols[0] - 3.13071058512e+00) < 1e-10
-    assert abs(part_pair_dampdisp.pair_pot.vols[1] - 5.13207980365e+00) < 1e-10
+    c6_cross = part_pair_dampdisp.pair_pot.c6_cross
+    assert abs(c6_cross[0,0] - 1.9550248340e+01) < 1e-10
+    assert abs(c6_cross[1,1] - 2.7982205915e+00) < 1e-10
+    assert (c6_cross == c6_cross.T).all()
+    assert (c6_cross > 0).all()
+    b_cross = part_pair_dampdisp.pair_pot.b_cross
+    assert abs(b_cross[0,0] - 3.2421589363e+00/angstrom) < 1e-10
+    assert abs(b_cross[0,1] - 3.3501628381e+00/angstrom) < 1e-10
+    assert abs(b_cross[1,1] - 3.4581667399e+00/angstrom) < 1e-10
+    assert (b_cross == b_cross.T).all()
+    assert (b_cross > 0).all()
+
+
+def test_generator_water32_dampdisp2():
+    system = get_system_water32()
+    ff = ForceField.generate(system, 'input/parameters_water_dampdisp2.txt')
+    assert len(ff.parts) == 1
+    part_pair_dampdisp = ff.part_pair_dampdisp
+    # check parameters
+    c6_cross = part_pair_dampdisp.pair_pot.c6_cross
+    assert abs(c6_cross[0,0] - 1.9550248340e+01) < 1e-10
+    assert abs(c6_cross[0,1] - 6.4847208208e+00) < 1e-10
+    assert abs(c6_cross[1,1] - 2.7982205915e+00) < 1e-10
+    assert (c6_cross == c6_cross.T).all()
+    assert (c6_cross > 0).all()
+    b_cross = part_pair_dampdisp.pair_pot.b_cross
+    assert abs(b_cross[0,0] - 3.2421589363e+00/angstrom) < 1e-10
+    assert abs(b_cross[0,1] - 3.3501628381e+00/angstrom) < 1e-10
+    assert abs(b_cross[1,1] - 3.4581667399e+00/angstrom) < 1e-10
+    assert (b_cross == b_cross.T).all()
+    assert (b_cross > 0).all()
 
 
 def test_generator_water32_fixq():
@@ -240,12 +265,17 @@ def test_generator_water32():
     part_ewald_cor = ff.part_ewald_cor
     part_ewald_neut = ff.part_ewald_neut
     # check dampdisp parameters
-    assert abs(part_pair_dampdisp.pair_pot.c6s[0] - 1.9550248340e+01) < 1e-10
-    assert abs(part_pair_dampdisp.pair_pot.c6s[1] - 2.7982205915e+00) < 1e-10
-    assert abs(part_pair_dampdisp.pair_pot.bs[0] - 3.2421589363e+00/angstrom) < 1e-10
-    assert abs(part_pair_dampdisp.pair_pot.bs[1] - 3.4581667399e+00/angstrom) < 1e-10
-    assert abs(part_pair_dampdisp.pair_pot.vols[0] - 3.13071058512e+00) < 1e-10
-    assert abs(part_pair_dampdisp.pair_pot.vols[1] - 5.13207980365e+00) < 1e-10
+    c6_cross = part_pair_dampdisp.pair_pot.c6_cross
+    assert abs(c6_cross[0,0] - 1.9550248340e+01) < 1e-10
+    assert abs(c6_cross[1,1] - 2.7982205915e+00) < 1e-10
+    assert (c6_cross == c6_cross.T).all()
+    assert (c6_cross > 0).all()
+    b_cross = part_pair_dampdisp.pair_pot.b_cross
+    assert abs(b_cross[0,0] - 3.2421589363e+00/angstrom) < 1e-10
+    assert abs(b_cross[0,1] - 3.3501628381e+00/angstrom) < 1e-10
+    assert abs(b_cross[1,1] - 3.4581667399e+00/angstrom) < 1e-10
+    assert (b_cross == b_cross.T).all()
+    assert (b_cross > 0).all()
     # check exprep parameters
     assert (part_pair_exprep.pair_pot.ffatype_ids == system.ffatype_ids).all()
     amp_cross = part_pair_exprep.pair_pot.amp_cross

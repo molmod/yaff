@@ -477,7 +477,10 @@ cdef class PairPotExpRep(PairPot):
         assert (b_cross == b_cross.T).all()
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
         self.set_truncation(tr)
-        pair_pot.pair_data_exprep_init(self._c_pair_pot, nffatype, <long*>ffatype_ids.data, <double*>amp_cross.data, <double*>b_cross.data)
+        pair_pot.pair_data_exprep_init(
+            self._c_pair_pot, nffatype, <long*> ffatype_ids.data,
+            <double*> amp_cross.data, <double*> b_cross.data
+        )
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
         self._c_ffatype_ids = ffatype_ids
@@ -534,52 +537,83 @@ cdef class PairPotExpRep(PairPot):
 
 
 cdef class PairPotDampDisp(PairPot):
-    cdef np.ndarray _c_c6s
-    cdef np.ndarray _c_bs
-    cdef np.ndarray _c_vols
+    cdef long _c_nffatype
+    cdef np.ndarray _c_c6_cross
+    cdef np.ndarray _c_b_cross
     name = 'dampdisp'
 
-    def __cinit__(self, np.ndarray[double, ndim=1] c6s,
-                  np.ndarray[double, ndim=1] bs,
-                  np.ndarray[double, ndim=1] vols, double rcut,
-                  Truncation tr=None):
-        assert c6s.flags['C_CONTIGUOUS']
-        assert bs.flags['C_CONTIGUOUS']
-        assert vols.flags['C_CONTIGUOUS']
-        assert c6s.shape[0] == bs.shape[0]
-        assert c6s.shape[0] == vols.shape[0]
+    def __cinit__(self, np.ndarray[long, ndim=1] ffatype_ids not None,
+                  np.ndarray[double, ndim=2] c6_cross not None,
+                  np.ndarray[double, ndim=2] b_cross not None,
+                  double rcut, Truncation tr=None,
+                  np.ndarray[double, ndim=1] c6s=None,
+                  np.ndarray[double, ndim=1] bs=None,
+                  np.ndarray[double, ndim=1] vols=None):
+        assert ffatype_ids.flags['C_CONTIGUOUS']
+        assert c6_cross.flags['C_CONTIGUOUS']
+        assert b_cross.flags['C_CONTIGUOUS']
+        nffatype = c6_cross.shape[0]
+        assert ffatype_ids.min() >= 0
+        assert ffatype_ids.max() < nffatype
+        assert c6_cross.shape[1] == nffatype
+        assert b_cross.shape[0] == nffatype
+        assert b_cross.shape[1] == nffatype
+        if c6s is not None or vols is not None:
+            assert c6s is not None
+            assert vols is not None
+            assert c6s.flags['C_CONTIGUOUS']
+            assert vols.flags['C_CONTIGUOUS']
+            assert c6s.shape[0] == nffatype
+            assert bs.shape[0] == nffatype
+            self._init_c6_cross(nffatype, c6_cross, c6s, vols)
+        if bs is not None:
+            assert bs.flags['C_CONTIGUOUS']
+            self._init_b_cross(nffatype, b_cross, bs)
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
         self.set_truncation(tr)
-        pair_pot.pair_data_dampdisp_init(self._c_pair_pot, <double*>c6s.data,
-                                         <double*>bs.data, <double*>vols.data)
+        pair_pot.pair_data_dampdisp_init(
+            self._c_pair_pot, nffatype, <long*> ffatype_ids.data,
+            <double*> c6_cross.data, <double*> b_cross.data,
+        )
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
-        self._c_c6s = c6s
-        self._c_bs = bs
-        self._c_vols = vols
+        self._c_nffatype = nffatype
+        self._c_c6_cross = c6_cross
+        self._c_b_cross = b_cross
+
+    def _init_c6_cross(self, nffatype, c6_cross, c6s, vols):
+        for i0 in xrange(nffatype):
+            for i1 in xrange(i0+1):
+                if c6_cross[i0, i1] == 0.0:
+                    ratio = (vols[i0]/vols[i1])**2
+                    c6_cross[i0, i1] = 2.0*c6s[i0]*c6s[i1]/(c6s[i0]*ratio+c6s[i1]/ratio)
+                    c6_cross[i1, i0] = c6_cross[i0, i1]
+
+    def _init_b_cross(self, nffatype, b_cross, bs):
+        for i0 in xrange(nffatype):
+            for i1 in xrange(i0+1):
+                if b_cross[i0, i1] == 0.0:
+                    b_cross[i0, i1] = 0.5*(bs[i0] + bs[i1])
+                    b_cross[i1, i0] = b_cross[i0, i1]
 
     def log(self):
         if log.do_high:
             log.hline()
-            log('   Atom         C6          B        VOL')
+            log('ffatype_id0 ffatype_id1         C6          B')
             log.hline()
-            for i in xrange(self._c_c6s.shape[0]):
-                log('%7i %s %s %s' % (i, log.c6(self._c_c6s[i]), log.length(self._c_bs[i]), log.volume(self._c_vols[i])))
+            for i0 in xrange(self._c_nffatype):
+                for i1 in xrange(i0+1):
+                    log('%11i %11i %s %s' % (i0, i1, log.c6(self._c_c6_cross[i0,i1]), log.length(self._c_b_cross[i0,i1])))
 
-    def get_c6s(self):
-        return self._c_c6s.view()
+    def get_c6_cross(self):
+        return self._c_c6_cross.view()
 
-    c6s = property(get_c6s)
+    c6_cross = property(get_c6_cross)
 
-    def get_bs(self):
-        return self._c_bs.view()
+    def get_b_cross(self):
+        return self._c_b_cross.view()
 
-    bs = property(get_bs)
-
-    def get_vols(self):
-        return self._c_vols.view()
-
-    vols = property(get_vols)
+    b_cross = property(get_b_cross)
 
 
 cdef class PairPotEI(PairPot):

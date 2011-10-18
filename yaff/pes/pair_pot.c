@@ -281,21 +281,21 @@ double pair_fn_exprep(void *pair_data, long center_index, long other_index, doub
   if (g != NULL) {
     *g = -e*b/d;
   }
-  //printf("C %i %i %f %f %f\n", center_index, other_index, (*pd).amp_cross[i], b, e);
   return e;
 }
 
 
 
-void pair_data_dampdisp_init(pair_pot_type *pair_pot, double *c6, double *b, double *vol) {
+void pair_data_dampdisp_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *c6_cross, double *b_cross) {
   pair_data_dampdisp_type *pair_data;
   pair_data = malloc(sizeof(pair_data_dampdisp_type));
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
     (*pair_pot).pair_fn = pair_fn_dampdisp;
-    (*pair_data).c6 = c6;
-    (*pair_data).b = b;
-    (*pair_data).vol = vol;
+    (*pair_data).nffatype = nffatype;
+    (*pair_data).ffatype_ids = ffatype_ids;
+    (*pair_data).c6_cross = c6_cross;
+    (*pair_data).b_cross = b_cross;
   }
 }
 
@@ -320,22 +320,19 @@ double tang_toennies(double x, int order, double *g){
 }
 
 double pair_fn_dampdisp(void *pair_data, long center_index, long other_index, double d, double *g) {
-  double c60, c61, ratio, c6, b, disp, damp;
+  long i;
+  double b, disp, damp;
   // Load parameters from data structure and mix
   pair_data_dampdisp_type *pd;
   pd = (pair_data_dampdisp_type*)pair_data;
-  c60 = (*pd).c6[center_index];
-  c61 = (*pd).c6[other_index];
-  ratio = (*pd).vol[center_index]/(*pd).vol[other_index];
-  ratio *= ratio;
-  c6 = 2.0*c60*c61/(c60*ratio+c61/ratio);
-  b = 0.5*((*pd).b[center_index]+(*pd).b[other_index]);
   // compute the damping
+  i = (*pd).ffatype_ids[center_index]*(*pd).nffatype + (*pd).ffatype_ids[other_index];
+  b = (*pd).b_cross[i];
   damp = tang_toennies(b*d, 6, g);
   // compute the energy
   disp = d*d;
   disp *= disp*disp;
-  disp = -c6/disp;
+  disp = -(*pd).c6_cross[i]/disp;
   if (g != NULL) {
     *g = ((*g)*b-6.0/d*damp)*disp/d;
   }

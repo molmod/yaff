@@ -96,12 +96,13 @@ double pair_fn_exprep(void *pair_data, long center_index, long other_index, doub
 
 
 typedef struct {
-  double *c6;
-  double *b;
-  double *vol;
+  long nffatype;
+  long *ffatype_ids;
+  double *c6_cross;
+  double *b_cross;
 } pair_data_dampdisp_type;
 
-void pair_data_dampdisp_init(pair_pot_type *pair_pot, double *c6, double *b, double *vol);
+void pair_data_dampdisp_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *c6_cross, double *b_cross);
 double pair_fn_dampdisp(void *pair_data, long center_index, long other_index, double d, double *g);
 
 

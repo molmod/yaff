@@ -54,7 +54,7 @@ cdef extern from "pair_pot.h":
 
     void pair_data_exprep_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *amp_cross, double *b_cross)
 
-    void pair_data_dampdisp_init(pair_pot_type *pair_pot, double *c6, double *b, double *vol)
+    void pair_data_dampdisp_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *c6_cross, double *b_cross)
 
 
     void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha)
