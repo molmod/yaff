@@ -72,8 +72,11 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
         s = (cosfac*cosfac+sinfac*sinfac);
         energy += c*s;
         if (gpos != NULL) {
+          x = 2.0*c;
+          cosfac *= x;
+          sinfac *= x;
           for (i=0; i<natom; i++) {
-            x = 2.0*c*(cosfac*work[2*i+1] + sinfac*work[2*i]);
+            x = cosfac*work[2*i+1] + sinfac*work[2*i];
             gpos[3*i] += k[0]*x;
             gpos[3*i+1] += k[1]*x;
             gpos[3*i+2] += k[2]*x;
