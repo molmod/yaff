@@ -113,7 +113,7 @@ class TimerGroup(object):
             log('Label          Total   Own')
             log.hline()
             bar_width = log.width-27
-            for label, timer in sorted(self.parts.iteritems()):
+            for label, timer in sorted(self.parts.iteritems(), key=(lambda p: -p[1].total.cpu)):
                 #if timer.total.cpu == 0.0:
                 #    continue
                 if max_own_cpu > 0:
