@@ -173,8 +173,9 @@ class AndersenThermostatMcDonaldBarostat(Hook):
             # B) Change the velocities
             iterative.vel[:] = iterative.get_random_vel(self.temp, False)
             # C) Update the kinetic energy and the reference for the conserved quantity
+            ekin0 = iterative.ekin
             ekin1 = 0.5*(iterative.vel**2*iterative.masses.reshape(-1,1)).sum()
-            iterative.econs_ref += iterative.ekin - ekin1
+            iterative.econs_ref += ekin0 - ekin1
             iterative.ekin = ekin1
             if log.do_medium:
                 with log.section('ATMB'):
@@ -184,7 +185,7 @@ class AndersenThermostatMcDonaldBarostat(Hook):
                         log('BARO   energy change %s      (new vol)**(1/3) %s' % (
                             log.energy(epot1 - epot0), log.length(vol1**(1.0/3.0))
                         ))
-                    log('THERMO energy change %s' % log.energy(iterative.ekin - ekin1))
+                    log('THERMO energy change %s' % log.energy(ekin0 - ekin1))
 
 
 class KineticAnnealing(Hook):
