@@ -193,37 +193,37 @@ def get_part_water32_4A_exprep(amp_mix, amp_mix_coeff, b_mix, b_mix_coeff):
     nlists = NeighborLists(system)
     scalings = Scalings(system, 0.0, 1.0, 1.0)
     # Initialize parameters
-    amp_table = {1: 2.3514195495e+00, 8: 4.2117588157e+02}
-    b_table = {1: 4.4107388814e+00/angstrom, 8: 4.4661933834e+00/angstrom}
-    amps = np.zeros(96, float)
-    bs = np.zeros(96, float)
-    for i in xrange(system.natom):
-        amps[i] = amp_table[system.numbers[i]]
-        bs[i] = b_table[system.numbers[i]]
+    amps = np.array([2.3514195495e+00, 4.2117588157e+02])
+    bs = np.array([4.4107388814e+00, 4.4661933834e+00])/angstrom
+    # Allocate some arrays for the pair potential
+    assert len(system.ffatypes) == 2
+    amp_cross = np.zeros((2, 2), float)
+    b_cross = np.zeros((2, 2), float)
     # Create the pair_pot and part_pair
     rcut = 4*angstrom
-    pair_pot = PairPotExpRep(amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff, rcut, Switch3(2.0))
-    assert abs(pair_pot.amps - amps).max() == 0.0
-    assert pair_pot.amp_mix == amp_mix
-    assert pair_pot.amp_mix_coeff == amp_mix_coeff
-    assert abs(pair_pot.bs - bs).max() == 0.0
-    assert pair_pot.b_mix == b_mix
-    assert pair_pot.b_mix_coeff == b_mix_coeff
+    pair_pot = PairPotExpRep(
+        system.ffatype_ids, amp_cross, b_cross, rcut, Switch3(2.0),
+        amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff,
+    )
     part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     # Create a pair function:
-    def pair_fn(i, j, d):
+    def pair_fn(i0, i1, d):
+        amp0 = amps[system.ffatype_ids[i0]]
+        amp1 = amps[system.ffatype_ids[i1]]
+        b0 = bs[system.ffatype_ids[i0]]
+        b1 = bs[system.ffatype_ids[i1]]
         if amp_mix == 0:
-            amp = np.sqrt(amps[i]*amps[j])
+            amp = np.sqrt(amp0*amp1)
         elif amp_mix == 1:
-            cor = 1-amp_mix_coeff*abs(np.log(amps[i]/amps[j]))
-            amp = np.exp( (np.log(amps[i])+np.log(amps[j]))/2*cor)
+            cor = 1-amp_mix_coeff*abs(np.log(amp0/amp1))
+            amp = np.exp( (np.log(amp0)+np.log(amp1))/2*cor)
         else:
             raise NotImplementedError
         if b_mix == 0:
-            b = (bs[i]+bs[j])/2
+            b = (b0+b1)/2
         elif b_mix == 1:
-            cor = 1-b_mix_coeff*abs(np.log(amps[i]/amps[j]))
-            b = (bs[i]+bs[j])/2*cor
+            cor = 1-b_mix_coeff*abs(np.log(amp0/amp1))
+            b = (b0+b1)/2*cor
         else:
             raise NotImplementedError
         # truncation
@@ -407,43 +407,46 @@ def get_part_caffeine_exprep_5A(amp_mix, amp_mix_coeff, b_mix, b_mix_coeff):
     nlists = NeighborLists(system)
     scalings = Scalings(system, 0.0, 1.0, 1.0)
     # Initialize (random) parameters
-    amp_table = {
-        1: 2.35,
-        6: 410,
-        7: 410,
-        8: 421,
-    }
-    b_table = {
-        1: 4.46/angstrom,
-        6: 4.43/angstrom,
-        7: 4.43/angstrom,
-        8: 4.41/angstrom,
-    }
-    amps = np.zeros(24, float)
-    bs = np.zeros(24, float)
-    for i in xrange(system.natom):
-        amps[i] = amp_table[system.numbers[i]]
-        bs[i] = b_table[system.numbers[i]]
+    amps = np.array([2.35, 410, 410, 421])
+    bs = np.array([4.46, 4.43, 4.43, 4.41])/angstrom
+    # Allocate some arrays for the pair potential
+    assert len(system.ffatypes) == 4
+    amp_cross = np.zeros((4, 4), float)
+    b_cross = np.zeros((4, 4), float)
     # Construct the pair potential and part
-    pair_pot = PairPotExpRep(amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff, 5*angstrom)
+    pair_pot = PairPotExpRep(
+        system.ffatype_ids, amp_cross, b_cross, 5*angstrom, None,
+        amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff,
+    )
+    print pair_pot.amp_cross
+    print pair_pot.b_cross
+    assert (pair_pot.amp_cross > 0).all()
+    assert (pair_pot.b_cross > 0).all()
+    assert abs(np.diag(pair_pot.amp_cross) - amps).max() < 1e-10
+    assert abs(np.diag(pair_pot.b_cross) - bs).max() < 1e-10
     part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
     # The pair function
-    def pair_fn(i, j, d):
+    def pair_fn(i0, i1, d):
+        amp0 = amps[system.ffatype_ids[i0]]
+        amp1 = amps[system.ffatype_ids[i1]]
+        b0 = bs[system.ffatype_ids[i0]]
+        b1 = bs[system.ffatype_ids[i1]]
         if amp_mix == 0:
-            amp = np.sqrt(amps[i]*amps[j])
+            amp = np.sqrt(amp0*amp1)
         elif amp_mix == 1:
-            cor = 1-amp_mix_coeff*abs(np.log(amps[i]/amps[j]))
-            amp = np.exp( (np.log(amps[i])+np.log(amps[j]))/2*cor )
+            cor = 1-amp_mix_coeff*abs(np.log(amp0/amp1))
+            amp = np.exp( (np.log(amp0)+np.log(amp1))/2*cor )
         else:
             raise NotImplementedError
         if b_mix == 0:
-            b = (bs[i]+bs[j])/2
+            b = (b0+b1)/2
         elif b_mix == 1:
-            cor = 1-b_mix_coeff*abs(np.log(amps[i]/amps[j]))
-            b = (bs[i]+bs[j])/2*cor
+            cor = 1-b_mix_coeff*abs(np.log(amp0/amp1))
+            b = (b0+b1)/2*cor
         else:
             raise NotImplementedError
         energy = amp*np.exp(-b*d)
+        #print 'PYTHON', i0, i1, amp, b, energy
         return energy
     return system, nlists, scalings, part_pair, pair_fn
 
@@ -487,7 +490,7 @@ def get_part_caffeine_dampdisp_9A():
     vols = np.zeros(24, float)
     for i in xrange(system.natom):
         c6s[i] = c6_table[system.numbers[i]]
-        bs[i] = b_table[system.numbers[i]]
+        b0 = b_table[system.numbers[i]]
         vols[i] = vol_table[system.numbers[i]]
     # Construct the pair potential and part
     pair_pot = PairPotDampDisp(c6s, bs, vols, 9*angstrom)

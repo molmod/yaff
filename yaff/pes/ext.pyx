@@ -442,76 +442,95 @@ cdef class PairPotGrimme(PairPot):
 
 
 cdef class PairPotExpRep(PairPot):
-    cdef np.ndarray _c_amps
-    cdef np.ndarray _c_bs
+    cdef long _c_nffatype
+    cdef np.ndarray _c_ffatype_ids
+    cdef np.ndarray _c_amp_cross
+    cdef np.ndarray _c_b_cross
     name = 'exprep'
 
-    def __cinit__(self, np.ndarray[double, ndim=1] amps, int amp_mix,
-                  double amp_mix_coeff, np.ndarray[double, ndim=1] bs, int b_mix,
-                  double b_mix_coeff, double rcut, Truncation tr=None):
-        assert amps.flags['C_CONTIGUOUS']
-        assert bs.flags['C_CONTIGUOUS']
-        assert amps.shape[0] == bs.shape[0]
-        assert amp_mix == 0 or amp_mix == 1
-        assert amp_mix_coeff >= 0 and amp_mix_coeff <= 1
-        assert b_mix == 0 or b_mix == 1
-        assert b_mix_coeff >= 0 and b_mix_coeff <= 1
+    def __cinit__(self, np.ndarray[long, ndim=1] ffatype_ids not None,
+                  np.ndarray[double, ndim=2] amp_cross not None,
+                  np.ndarray[double, ndim=2] b_cross not None,
+                  double rcut, Truncation tr=None,
+                  np.ndarray[double, ndim=1] amps=None, long amp_mix=-1, double amp_mix_coeff=-1,
+                  np.ndarray[double, ndim=1] bs=None, long b_mix=-1, double b_mix_coeff=-1):
+        assert ffatype_ids.flags['C_CONTIGUOUS']
+        assert amp_cross.flags['C_CONTIGUOUS']
+        assert b_cross.flags['C_CONTIGUOUS']
+        nffatype = amp_cross.shape[0]
+        assert amp_cross.shape[1] == nffatype
+        assert b_cross.shape[0] == nffatype
+        assert b_cross.shape[1] == nffatype
+        assert ffatype_ids.min() >= 0
+        assert ffatype_ids.max() < nffatype
+        if amps is not None:
+            assert amps.shape[0] == nffatype
+            assert amp_mix == 0 or amp_mix == 1
+            assert amp_mix_coeff >= 0 and amp_mix_coeff <= 1
+            self._init_amp_cross(nffatype, amp_cross, amps, amp_mix, amp_mix_coeff)
+        assert (amp_cross == amp_cross.T).all()
+        if bs is not None:
+            assert bs.shape[0] == nffatype
+            assert b_mix == 0 or b_mix == 1
+            assert b_mix_coeff >= 0 and b_mix_coeff <= 1
+            self._init_b_cross(nffatype, b_cross, bs, b_mix, b_mix_coeff, amps)
+        assert (b_cross == b_cross.T).all()
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
         self.set_truncation(tr)
-        pair_pot.pair_data_exprep_init(self._c_pair_pot, <double*>amps.data, amp_mix, amp_mix_coeff, <double*>bs.data, b_mix, b_mix_coeff)
+        pair_pot.pair_data_exprep_init(self._c_pair_pot, nffatype, <long*>ffatype_ids.data, <double*>amp_cross.data, <double*>b_cross.data)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
-        self._c_amps = amps
-        self._c_bs = bs
+        self._c_ffatype_ids = ffatype_ids
+        self._c_amp_cross = amp_cross
+        self._c_b_cross = b_cross
+
+    def _init_amp_cross(self, nffatype, amp_cross, amps, amp_mix, amp_mix_coeff):
+        for i0 in xrange(nffatype):
+            for i1 in xrange(i0+1):
+                if amp_cross[i0, i1] == 0.0:
+                    if amp_mix == 0:
+                        amp_cross[i0, i1] = np.sqrt(amps[i0]*amps[i1])
+                    else:
+                        amp = (np.log(amps[i0])+np.log(amps[i1]))/2;
+                        amp *= 1 - amp_mix_coeff*abs(np.log(amps[i0]/amps[i1]));
+                        amp_cross[i0, i1] = np.exp(amp)
+                    amp_cross[i1, i0] = amp_cross[i0, i1]
+
+    def _init_b_cross(self, nffatype, b_cross, bs, b_mix, b_mix_coeff, amps):
+        for i0 in xrange(nffatype):
+            for i1 in xrange(i0+1):
+                if b_cross[i0, i1] == 0.0:
+                    if b_mix == 0:
+                        b_cross[i0, i1] = (bs[i0] + bs[i1])/2
+                    else:
+                        b = (bs[i0] + bs[i1])/2;
+                        b *= 1 - b_mix_coeff*abs(np.log(amps[i0]/amps[i1]));
+                        b_cross[i0, i1] = b
+                    b_cross[i1, i0] = b_cross[i0, i1]
 
     def log(self):
-        if log.do_medium:
-            if self.amp_mix == 0:
-                log('  A Mixing rule:     geometric')
-            else:
-                log('  A Mixing rule:     geometric with correction')
-                log('  A Mixing corr:     %10.3e' % self.amp_mix_coeff)
-            if self.b_mix == 0:
-                log('  B Mixing rule:     arithmetic')
-            else:
-                log('  B Mixing rule:     arithmetic with correction')
-                log('  B Mixing corr:     %10.3e' % self.b_mix_coeff)
         if log.do_high:
             log.hline()
-            log('   Atom          A          B')
+            log('ffatype_id0 ffatype_id1          A          B')
             log.hline()
-            for i in xrange(self._c_amps.shape[0]):
-                log('%7i %s %s' % (i, log.energy(self._c_amps[i]), log.length(self._c_bs[i])))
+            for i0 in xrange(self._c_nffatype):
+                for i1 in xrange(i0+1):
+                    log('%11i %11i %s %s' % (i0, i1, log.energy(self._c_amp_cross[i0, i1]), log.length(self._c_b_cross[i0,i1])))
 
-    def get_amps(self):
-        return self._c_amps.view()
+    def get_ffatype_ids(self):
+        return self._c_ffatype_ids.view()
 
-    amps = property(get_amps)
+    ffatype_ids = property(get_ffatype_ids)
 
-    def get_amp_mix(self):
-        return pair_pot.pair_data_exprep_get_amp_mix(self._c_pair_pot)
+    def get_amp_cross(self):
+        return self._c_amp_cross.view()
 
-    amp_mix = property(get_amp_mix)
+    amp_cross = property(get_amp_cross)
 
-    def get_amp_mix_coeff(self):
-        return pair_pot.pair_data_exprep_get_amp_mix_coeff(self._c_pair_pot)
+    def get_b_cross(self):
+        return self._c_b_cross.view()
 
-    amp_mix_coeff = property(get_amp_mix_coeff)
-
-    def get_bs(self):
-        return self._c_bs.view()
-
-    bs = property(get_bs)
-
-    def get_b_mix(self):
-        return pair_pot.pair_data_exprep_get_b_mix(self._c_pair_pot)
-
-    b_mix = property(get_b_mix)
-
-    def get_b_mix_coeff(self):
-        return pair_pot.pair_data_exprep_get_b_mix_coeff(self._c_pair_pot)
-
-    b_mix_coeff = property(get_b_mix_coeff)
+    b_cross = property(get_b_cross)
 
 
 cdef class PairPotDampDisp(PairPot):

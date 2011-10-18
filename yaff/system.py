@@ -259,6 +259,7 @@ class System(object):
             log.blank()
 
     natom = property(lambda self: len(self.pos))
+    nffatype = property(lambda self: len(self.ffatypes))
 
     @classmethod
     def from_file(cls, *fns, **user_kwargs):

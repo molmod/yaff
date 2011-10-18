@@ -136,14 +136,15 @@ def test_generator_water32_exprep1():
     assert len(ff.parts) == 1
     part_pair_exprep = ff.part_pair_exprep
     # check parameters
-    assert part_pair_exprep.pair_pot.amp_mix == 0
-    assert part_pair_exprep.pair_pot.amp_mix_coeff == 0.0
-    assert part_pair_exprep.pair_pot.b_mix == 0
-    assert part_pair_exprep.pair_pot.b_mix_coeff == 0.0
-    assert part_pair_exprep.pair_pot.amps[0] == 4.2117588157e+02
-    assert part_pair_exprep.pair_pot.amps[1] == 2.3514195495e+00
-    assert abs(part_pair_exprep.pair_pot.bs[0] - 4.4661933834e+00/angstrom) < 1e-10
-    assert abs(part_pair_exprep.pair_pot.bs[1] - 4.4107388814e+00/angstrom) < 1e-10
+    assert (part_pair_exprep.pair_pot.ffatype_ids == system.ffatype_ids).all()
+    amp_cross = part_pair_exprep.pair_pot.amp_cross
+    assert (amp_cross > 0).all()
+    assert abs(amp_cross[0,0] - 4.2117588157e+02) < 1e-10
+    assert abs(amp_cross[1,1] - 2.3514195495e+00) < 1e-10
+    b_cross = part_pair_exprep.pair_pot.b_cross
+    assert (b_cross > 0).all()
+    assert abs(b_cross[0,0] - 4.4661933834e+00/angstrom) < 1e-10
+    assert abs(b_cross[1,1] - 4.4107388814e+00/angstrom) < 1e-10
 
 
 def test_generator_water32_lj():
@@ -176,14 +177,15 @@ def test_generator_water32_exprep2():
     assert len(ff.parts) == 1
     part_pair_exprep = ff.part_pair_exprep
     # check parameters
-    assert part_pair_exprep.pair_pot.amp_mix == 1
-    assert part_pair_exprep.pair_pot.amp_mix_coeff == 2.385e-2
-    assert part_pair_exprep.pair_pot.b_mix == 1
-    assert part_pair_exprep.pair_pot.b_mix_coeff == 7.897e-3
-    assert part_pair_exprep.pair_pot.amps[0] == 4.2117588157e+02
-    assert part_pair_exprep.pair_pot.amps[1] == 2.3514195495e+00
-    assert abs(part_pair_exprep.pair_pot.bs[0] - 4.4661933834e+00/angstrom) < 1e-10
-    assert abs(part_pair_exprep.pair_pot.bs[1] - 4.4107388814e+00/angstrom) < 1e-10
+    assert (part_pair_exprep.pair_pot.ffatype_ids == system.ffatype_ids).all()
+    amp_cross = part_pair_exprep.pair_pot.amp_cross
+    assert (amp_cross > 0).all()
+    assert abs(amp_cross[0,0] - 4.2117588157e+02) < 1e-10
+    assert abs(amp_cross[1,1] - 2.3514195495e+00) < 1e-10
+    b_cross = part_pair_exprep.pair_pot.b_cross
+    assert (b_cross > 0).all()
+    assert abs(b_cross[0,0] - 4.4661933834e+00/angstrom) < 1e-10
+    assert abs(b_cross[1,1] - 4.4107388814e+00/angstrom) < 1e-10
 
 
 def test_generator_water32_dampdisp():
@@ -220,14 +222,15 @@ def test_generator_water32():
     assert abs(part_pair_dampdisp.pair_pot.vols[0] - 3.13071058512e+00) < 1e-10
     assert abs(part_pair_dampdisp.pair_pot.vols[1] - 5.13207980365e+00) < 1e-10
     # check exprep parameters
-    assert part_pair_exprep.pair_pot.amp_mix == 1
-    assert part_pair_exprep.pair_pot.amp_mix_coeff == 2.385e-2
-    assert part_pair_exprep.pair_pot.b_mix == 1
-    assert part_pair_exprep.pair_pot.b_mix_coeff == 7.897e-3
-    assert part_pair_exprep.pair_pot.amps[0] == 4.2117588157e+02
-    assert part_pair_exprep.pair_pot.amps[1] == 2.3514195495e+00
-    assert abs(part_pair_exprep.pair_pot.bs[0] - 4.4661933834e+00/angstrom) < 1e-10
-    assert abs(part_pair_exprep.pair_pot.bs[1] - 4.4107388814e+00/angstrom) < 1e-10
+    assert (part_pair_exprep.pair_pot.ffatype_ids == system.ffatype_ids).all()
+    amp_cross = part_pair_exprep.pair_pot.amp_cross
+    assert (amp_cross > 0).all()
+    assert abs(amp_cross[0,0] - 4.2117588157e+02) < 1e-10
+    assert abs(amp_cross[1,1] - 2.3514195495e+00) < 1e-10
+    b_cross = part_pair_exprep.pair_pot.b_cross
+    assert (b_cross > 0).all()
+    assert abs(b_cross[0,0] - 4.4661933834e+00/angstrom) < 1e-10
+    assert abs(b_cross[1,1] - 4.4107388814e+00/angstrom) < 1e-10
     # check charges
     for i in xrange(system.natom):
         if system.numbers[i] == 1:

@@ -175,6 +175,8 @@ class ForceField(ForcePart):
            with the default constructor. Parameters for atom types that are not
            present in the system, are simply ignored.
         """
+        if system.ffatype_ids is None:
+            raise ValueError('The generators needs ffatype_ids in the system object.')
         log.enter('GEN')
         timer.start('Generator')
         from yaff.pes.generator import ParsedPars, generators, FFArgs

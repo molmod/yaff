@@ -257,71 +257,32 @@ double pair_fn_grimme(void *pair_data, long center_index, long other_index, doub
 
 
 
-void pair_data_exprep_init(pair_pot_type *pair_pot, double *amp, int amp_mix, double amp_mix_coeff, double *b, int b_mix, double b_mix_coeff) {
+void pair_data_exprep_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *amp_cross, double *b_cross) {
   pair_data_exprep_type *pair_data;
   pair_data = malloc(sizeof(pair_data_exprep_type));
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
     (*pair_pot).pair_fn = pair_fn_exprep;
-    (*pair_data).amp = amp;
-    (*pair_data).amp_mix = amp_mix;
-    (*pair_data).amp_mix_coeff = amp_mix_coeff;
-    (*pair_data).b = b;
-    (*pair_data).b_mix = b_mix;
-    (*pair_data).b_mix_coeff = b_mix_coeff;
+    (*pair_data).nffatype = nffatype;
+    (*pair_data).ffatype_ids = ffatype_ids;
+    (*pair_data).amp_cross = amp_cross;
+    (*pair_data).b_cross = b_cross;
   }
 }
 
 double pair_fn_exprep(void *pair_data, long center_index, long other_index, double d, double *g) {
-  double amp0, amp1, amp, b, e;
+  long i;
+  double b, e;
   pair_data_exprep_type *pd;
   pd = (pair_data_exprep_type*)pair_data;
-  amp0 = (*pd).amp[center_index];
-  amp1 = (*pd).amp[other_index];
-  switch ((*pd).amp_mix) {
-    case 0:
-      amp = sqrt(amp0*amp1);
-      break;
-    case 1:
-      amp = (log(amp0)+log(amp1))/2;
-      amp *= 1 - ((*pd).amp_mix_coeff)*fabs(log(amp0/amp1));
-      amp = exp(amp);
-      break;
-    default:
-      amp = FP_NAN;
-  }
-  switch ((*pd).b_mix) {
-    case 0:
-      b = ((*pd).b[center_index]+(*pd).b[other_index])/2;
-      break;
-    case 1:
-      b = ((*pd).b[center_index]+(*pd).b[other_index])/2;
-      b *= 1 - ((*pd).b_mix_coeff)*fabs(log(amp0/amp1));
-      break;
-    default:
-      b = FP_NAN;
-  }
-  e = amp*exp(-b*d);
+  i = (*pd).ffatype_ids[center_index]*(*pd).nffatype + (*pd).ffatype_ids[other_index];
+  b = (*pd).b_cross[i];
+  e = (*pd).amp_cross[i]*exp(-b*d);
   if (g != NULL) {
     *g = -e*b/d;
   }
+  //printf("C %i %i %f %f %f\n", center_index, other_index, (*pd).amp_cross[i], b, e);
   return e;
-}
-
-int pair_data_exprep_get_amp_mix(pair_pot_type *pair_pot) {
-  return (*(pair_data_exprep_type*)((*pair_pot).pair_data)).amp_mix;
-}
-
-double pair_data_exprep_get_amp_mix_coeff(pair_pot_type *pair_pot) {
-  return (*(pair_data_exprep_type*)((*pair_pot).pair_data)).amp_mix_coeff;
-}
-
-int pair_data_exprep_get_b_mix(pair_pot_type *pair_pot) {
-  return (*(pair_data_exprep_type*)((*pair_pot).pair_data)).b_mix;
-}
-
-double pair_data_exprep_get_b_mix_coeff(pair_pot_type *pair_pot){
-  return (*(pair_data_exprep_type*)((*pair_pot).pair_data)).b_mix_coeff;
 }
 
 

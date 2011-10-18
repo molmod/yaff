@@ -478,14 +478,13 @@ class ExpRepGenerator(NonbondedGenerator):
 
     def apply(self, par_table, scale_table, mixing_rules, system, ff_args):
         # Prepare the atomic parameters
-        amps = np.zeros(system.natom)
-        bs = np.zeros(system.natom)
-        for i in xrange(system.natom):
-            key = (system.get_ffatype(i),)
-            pars = par_table.get(key)
+        amps = np.zeros(system.nffatype, float)
+        bs = np.zeros(system.nffatype, float)
+        for i in xrange(system.nffatype):
+            pars = par_table.get((system.ffatypes[i],))
             if pars is None:
                 if log.do_warning:
-                    log.warn('No EXPREP parameters found for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
+                    log.warn('No EXPREP parameters found for ffatype %s.' % system.ffatypes[i])
             else:
                 amps[i], bs[i] = pars
 
@@ -507,7 +506,14 @@ class ExpRepGenerator(NonbondedGenerator):
         if part_pair is not None:
             raise RuntimeError('Internal inconsistency: the EXPREP part should not be present yet.')
 
-        pair_pot = PairPotExpRep(amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff, ff_args.rcut, ff_args.tr)
+        # Allocate the arrays for the pair potential
+        amp_cross = np.zeros((system.nffatype, system.nffatype), float)
+        b_cross = np.zeros((system.nffatype, system.nffatype), float)
+
+        pair_pot = PairPotExpRep(
+            system.ffatype_ids, amp_cross, b_cross, ff_args.rcut, ff_args.tr,
+            amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff,
+        )
         nlists = ff_args.get_nlists(system)
         part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
         ff_args.parts.append(part_pair)

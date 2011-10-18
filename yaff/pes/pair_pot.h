@@ -85,20 +85,14 @@ double pair_fn_grimme(void *pair_data, long center_index, long other_index, doub
 
 
 typedef struct {
-  double *amp;
-  int amp_mix;
-  double amp_mix_coeff;
-  double *b;
-  int b_mix;
-  double b_mix_coeff;
+  long nffatype;
+  long *ffatype_ids;
+  double *amp_cross;
+  double *b_cross;
 } pair_data_exprep_type;
 
-void pair_data_exprep_init(pair_pot_type *pair_pot, double *amp, int amp_mix, double amp_mix_coeff, double *b, int b_mix, double b_mix_coeff);
+void pair_data_exprep_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *amp_cross, double *b_cross);
 double pair_fn_exprep(void *pair_data, long center_index, long other_index, double d, double *g);
-int pair_data_exprep_get_amp_mix(pair_pot_type *pair_pot);
-double pair_data_exprep_get_amp_mix_coeff(pair_pot_type *pair_pot);
-int pair_data_exprep_get_b_mix(pair_pot_type *pair_pot);
-double pair_data_exprep_get_b_mix_coeff(pair_pot_type *pair_pot);
 
 
 typedef struct {
