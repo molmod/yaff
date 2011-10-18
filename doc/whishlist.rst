@@ -5,7 +5,8 @@ Whish list
 #. skin parameter in neighborlist
 #. ACKS2
 #. Restart functionality.
-#. Nonbonding parameters without mixing rules, i.e. using tabulated cross parameters
+#. Nonbonding parameters without mixing rules, i.e. using tabulated cross
+   parameters. This may be more accurate and will be much faster.
 #. MPI
 #. Cell lists.
 #. NlogN scaling of the electrostatics: develop a real-space-grid Poisson solver

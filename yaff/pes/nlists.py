@@ -24,6 +24,7 @@
 import numpy as np
 
 from yaff.log import log
+from yaff.timer import timer
 from yaff.pes.ext import nlist_status_init, nlist_status_finish, nlist_update
 
 
@@ -68,6 +69,7 @@ class NeighborLists(object):
                 log('rmax a,b,c   = %i,%i,%i' % tuple(self.rmax))
 
     def update(self):
+        timer.start('NLists')
         log.enter('NLIST')
         assert self.rcut > 0
         # if there are no items yet, lets make them first:
@@ -98,3 +100,4 @@ class NeighborLists(object):
         if log.do_debug:
             log('min/max size = %i/%i' % (self.nlist_sizes.min(), self.nlist_sizes.max()))
         log.leave()
+        timer.stop()
