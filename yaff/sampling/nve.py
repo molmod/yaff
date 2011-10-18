@@ -137,55 +137,54 @@ class AndersenThermostatMcDonaldBarostat(Hook):
         Hook.__init__(self, start, step)
 
     def __call__(self, iterative):
-        timer.start('ATMB')
         def initialize():
             iterative.gpos[:] = 0.0
             iterative.ff.update_pos(iterative.pos)
             iterative.epot = iterative.ff.compute(iterative.gpos)
             iterative.acc = -iterative.gpos/iterative.masses.reshape(-1,1)
 
-        # A) Change the logarithm of the volume isotropically.
-        scale = np.exp(np.random.uniform(-self.amp, self.amp))
-        # A.1) scale the system and recompute the energy
-        vol0 = iterative.ff.system.cell.volume
-        epot0 = iterative.epot
-        rvecs0 = iterative.ff.system.cell.rvecs.copy()
-        iterative.ff.update_rvecs(rvecs0*scale)
-        pos0 = iterative.pos.copy()
-        iterative.pos[:] = pos0*scale
-        initialize()
-        epot1 = iterative.epot
-        vol1 = iterative.ff.system.cell.volume
-        # A.2) compute the acceptance ratio
-        beta = 1/(boltzmann*self.temp)
-        natom = iterative.ff.system.natom
-        arg = (epot1 - epot0 + self.press*(vol1 - vol0) - (natom+1)/beta*np.log(vol1/vol0))
-        accepted = arg < 0 or np.random.uniform(0, 1) < np.exp(-beta*arg)
-        if accepted:
-            # add a correction to the conserved quantity
-            iterative.econs_ref += epot0 - epot1
-        else:
-            # revert the cell and the positions in the original state
-            iterative.ff.update_rvecs(rvecs0)
-            iterative.pos[:] = pos0
-            # reinitialize the iterative algorithm
+        with timer.section('ATMB'):
+            # A) Change the logarithm of the volume isotropically.
+            scale = np.exp(np.random.uniform(-self.amp, self.amp))
+            # A.1) scale the system and recompute the energy
+            vol0 = iterative.ff.system.cell.volume
+            epot0 = iterative.epot
+            rvecs0 = iterative.ff.system.cell.rvecs.copy()
+            iterative.ff.update_rvecs(rvecs0*scale)
+            pos0 = iterative.pos.copy()
+            iterative.pos[:] = pos0*scale
             initialize()
-        # B) Change the velocities
-        iterative.vel[:] = iterative.get_random_vel(self.temp, False)
-        # C) Update the kinetic energy and the reference for the conserved quantity
-        ekin1 = 0.5*(iterative.vel**2*iterative.masses.reshape(-1,1)).sum()
-        iterative.econs_ref += iterative.ekin - ekin1
-        iterative.ekin = ekin1
-        if log.do_medium:
-            with log.section('ATMB'):
-                s = {True: 'accepted', False: 'rejected'}[accepted]
-                log('BARO   volscale %10.7f      arg %s      %s' % (scale, log.energy(arg), s))
-                if accepted:
-                    log('BARO   energy change %s      (new vol)**(1/3) %s' % (
-                        log.energy(epot1 - epot0), log.length(vol1**(1.0/3.0))
-                    ))
-                log('THERMO energy change %s' % log.energy(iterative.ekin - ekin1))
-        timer.stop()
+            epot1 = iterative.epot
+            vol1 = iterative.ff.system.cell.volume
+            # A.2) compute the acceptance ratio
+            beta = 1/(boltzmann*self.temp)
+            natom = iterative.ff.system.natom
+            arg = (epot1 - epot0 + self.press*(vol1 - vol0) - (natom+1)/beta*np.log(vol1/vol0))
+            accepted = arg < 0 or np.random.uniform(0, 1) < np.exp(-beta*arg)
+            if accepted:
+                # add a correction to the conserved quantity
+                iterative.econs_ref += epot0 - epot1
+            else:
+                # revert the cell and the positions in the original state
+                iterative.ff.update_rvecs(rvecs0)
+                iterative.pos[:] = pos0
+                # reinitialize the iterative algorithm
+                initialize()
+            # B) Change the velocities
+            iterative.vel[:] = iterative.get_random_vel(self.temp, False)
+            # C) Update the kinetic energy and the reference for the conserved quantity
+            ekin1 = 0.5*(iterative.vel**2*iterative.masses.reshape(-1,1)).sum()
+            iterative.econs_ref += iterative.ekin - ekin1
+            iterative.ekin = ekin1
+            if log.do_medium:
+                with log.section('ATMB'):
+                    s = {True: 'accepted', False: 'rejected'}[accepted]
+                    log('BARO   volscale %10.7f      arg %s      %s' % (scale, log.energy(arg), s))
+                    if accepted:
+                        log('BARO   energy change %s      (new vol)**(1/3) %s' % (
+                            log.energy(epot1 - epot0), log.length(vol1**(1.0/3.0))
+                        ))
+                    log('THERMO energy change %s' % log.energy(iterative.ekin - ekin1))
 
 
 class KineticAnnealing(Hook):

@@ -239,7 +239,7 @@ class ScreenLog(object):
         if not self.do_warning:
             raise RuntimeError('The runlevel should be at least warning when logging.')
         if not self._active:
-            timer.start('Total')
+            timer._start('Total')
             prefix = self.prefix
             self.print_header()
             self.prefix = prefix
@@ -322,7 +322,7 @@ class ScreenLog(object):
     def print_footer(self):
         if self.do_warning and self._active:
             self._print_basic_info()
-            timer.stop()
+            timer._stop()
             timer.report(self)
             print >> self._file, foot_banner
 

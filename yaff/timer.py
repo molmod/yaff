@@ -23,6 +23,7 @@
 
 
 import time
+from contextlib import contextmanager
 
 
 __all__ = ['timer']
@@ -68,7 +69,15 @@ class TimerGroup(object):
         self.parts = {}
         self.stack = []
 
-    def start(self, label):
+    @contextmanager
+    def section(self, label):
+        self._start(label)
+        try:
+            yield
+        finally:
+            self._stop()
+
+    def _start(self, label):
         # get the right timer object
         timer = self.parts.get(label)
         if timer is None:
@@ -81,7 +90,7 @@ class TimerGroup(object):
         # put it on the stack
         self.stack.append(timer)
 
-    def stop(self):
+    def _stop(self):
         timer = self.stack.pop(-1)
         timer.stop()
         if len(self.stack) > 0:

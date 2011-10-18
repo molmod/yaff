@@ -176,8 +176,7 @@ class ForceField(ForcePart):
         """
         if system.ffatype_ids is None:
             raise ValueError('The generators needs ffatype_ids in the system object.')
-        timer.start('Generator')
-        with log.section('GEN'):
+        with log.section('GEN'), timer.section('Generator'):
             from yaff.pes.generator import ParsedPars, generators, FFArgs
             parsed_pars = ParsedPars(fn_parameters)
             ff_args = FFArgs(**kwargs)
@@ -188,8 +187,7 @@ class ForceField(ForcePart):
                         log.warn('There is no generator named %s.' % prefix)
                 else:
                     generator(system, parsed_pars.get_section(prefix), ff_args)
-        timer.stop()
-        return ForceField(system, ff_args.parts, ff_args.nlists)
+            return ForceField(system, ff_args.parts, ff_args.nlists)
 
     def update_rvecs(self, rvecs):
         ForcePart.update_rvecs(self, rvecs)
@@ -234,13 +232,12 @@ class ForcePartPair(ForcePart):
                 log.hline()
 
     def _internal_compute(self, gpos, vtens):
-        timer.start('PP %s' % self.pair_pot.name)
-        assert len(self.nlists) == len(self.scalings)
-        result = 0.0
-        for i in xrange(len(self.nlists)):
-            result += self.pair_pot.compute(i, self.nlists[i], self.scalings[i], gpos, vtens)
-        timer.stop()
-        return result
+        with timer.section('PP %s' % self.pair_pot.name):
+            assert len(self.nlists) == len(self.scalings)
+            result = 0.0
+            for i in xrange(len(self.nlists)):
+                result += self.pair_pot.compute(i, self.nlists[i], self.scalings[i], gpos, vtens)
+            return result
 
 
 class ForcePartEwaldReciprocal(ForcePart):
@@ -276,13 +273,11 @@ class ForcePartEwaldReciprocal(ForcePart):
         self.update_gmax()
 
     def _internal_compute(self, gpos, vtens):
-        timer.start('Ewald Reci')
-        energy = compute_ewald_reci(
-            self.system.pos, self.system.charges, self.system.cell, self.alpha,
-            self.gmax, self.gcut, gpos, self.work, vtens
-        )
-        timer.stop()
-        return energy
+        with timer.section('Ewald Reci'):
+            return compute_ewald_reci(
+                self.system.pos, self.system.charges, self.system.cell, self.alpha,
+                self.gmax, self.gcut, gpos, self.work, vtens
+            )
 
 
 class ForcePartEwaldCorrection(ForcePart):
@@ -304,15 +299,13 @@ class ForcePartEwaldCorrection(ForcePart):
                 log.hline()
 
     def _internal_compute(self, gpos, vtens):
-        timer.start('Ewald corr.')
-        result = sum([
-            compute_ewald_corr(self.system.pos, i, self.system.charges,
-                               self.system.cell, self.alpha, self.scalings[i],
-                               gpos, vtens)
-            for i in xrange(len(self.scalings))
-        ])
-        timer.stop()
-        return result
+        with timer.section('Ewald corr.'):
+            return sum([
+                compute_ewald_corr(self.system.pos, i, self.system.charges,
+                                   self.system.cell, self.alpha, self.scalings[i],
+                                   gpos, vtens)
+                for i in xrange(len(self.scalings))
+            ])
 
 
 class ForcePartEwaldNeutralizing(ForcePart):
@@ -332,12 +325,11 @@ class ForcePartEwaldNeutralizing(ForcePart):
                 log.hline()
 
     def _internal_compute(self, gpos, vtens):
-        timer.start('Ewald neut.')
-        fac = self.system.charges.sum()**2*np.pi/(2.0*self.system.cell.volume*self.alpha**2)
-        if vtens is not None:
-            vtens.ravel()[::4] -= fac
-        timer.stop()
-        return fac
+        with timer.section('Ewald neut.'):
+            fac = self.system.charges.sum()**2*np.pi/(2.0*self.system.cell.volume*self.alpha**2)
+            if vtens is not None:
+                vtens.ravel()[::4] -= fac
+            return fac
 
 
 class ForcePartValence(ForcePart):
@@ -358,13 +350,12 @@ class ForcePartValence(ForcePart):
         self.vlist.add_term(term)
 
     def _internal_compute(self, gpos, vtens):
-        timer.start('Valence')
-        self.dlist.forward()
-        self.iclist.forward()
-        energy = self.vlist.forward()
-        if not ((gpos is None) and (vtens is None)):
-            self.vlist.back()
-            self.iclist.back()
-            self.dlist.back(gpos, vtens)
-        timer.stop()
-        return energy
+        with timer.section('Valence'):
+            self.dlist.forward()
+            self.iclist.forward()
+            energy = self.vlist.forward()
+            if not ((gpos is None) and (vtens is None)):
+                self.vlist.back()
+                self.iclist.back()
+                self.dlist.back(gpos, vtens)
+            return energy

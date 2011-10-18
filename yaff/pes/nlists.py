@@ -69,8 +69,7 @@ class NeighborLists(object):
                 log('rmax a,b,c   = %i,%i,%i' % tuple(self.rmax))
 
     def update(self):
-        timer.start('NLists')
-        with log.section('NLIST'):
+        with log.section('NLIST'), timer.section('Nlists'):
             assert self.rcut > 0
             # if there are no items yet, lets make them first:
             if self.nlists is None:
@@ -99,4 +98,3 @@ class NeighborLists(object):
                 self.nlist_sizes[i] = nlist_status_finish(nlist_status)
             if log.do_debug:
                 log('min/max size = %i/%i' % (self.nlist_sizes.min(), self.nlist_sizes.max()))
-        timer.stop()
