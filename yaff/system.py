@@ -94,7 +94,6 @@ class System(object):
              system.neighs3[j] is ``True`` if there are three bonds between
              atoms i and j.
         '''
-        log.enter('SYS')
         if len(numbers.shape) != 1:
             raise ValueError('Argument numbers must be a one-dimensional array.')
         if pos.shape != (len(numbers), 3):
@@ -110,8 +109,8 @@ class System(object):
         self.charges = charges
         self.masses = masses
         # compute some derived attributes
-        self._init_derived()
-        log.leave()
+        with log.section('SYS'):
+            self._init_derived()
 
     def _init_derived(self):
         if self.bonds is not None:
@@ -292,41 +291,40 @@ class System(object):
                 Internal text-based checkpoint format. It just contains a
                 dictionary with the constructor arguments.
         """
-        log.enter('SYS')
-        kwargs = {}
-        for fn in fns:
-            if fn.endswith('.xyz'):
-                from molmod import Molecule
-                mol = Molecule.from_file(fn)
-                kwargs['numbers'] = mol.numbers
-                kwargs['pos'] = mol.coordinates
-                words = mol.title.split()
-                if len(words) == 9:
-                    try:
-                        rvecs = np.array([float(w) for w in words]).reshape((3,-1))*angstrom
-                        kwargs['rvecs'] = rvecs
-                    except ValueError:
-                        rvecs = None
-                    if rvecs is not None:
-                        mol.unit_cell = UnitCell(rvecs.transpose())
-                mol.set_default_graph()
-                if len(mol.graph.edges) > 0:
-                    kwargs['bonds'] = np.array(mol.graph.edges)
-            elif fn.endswith('.psf'):
-                from molmod.io import PSFFile
-                psf = PSFFile(fn)
-                kwargs['ffatypes'] = psf.atom_types
-                kwargs['bonds'] = np.array(psf.bonds, copy=False)
-                kwargs['charges'] = np.array(psf.charges, copy=False)
-            elif fn.endswith('.chk'):
-                from molmod.io import load_chk
-                kwargs.update(load_chk(fn))
-            else:
-                raise IOError('Can not read from file \'%s\'.' % fn)
-            if log.do_high:
-                log('Read system parameters from %s.' % fn)
-        kwargs.update(user_kwargs)
-        log.leave()
+        with log.section('SYS'):
+            kwargs = {}
+            for fn in fns:
+                if fn.endswith('.xyz'):
+                    from molmod import Molecule
+                    mol = Molecule.from_file(fn)
+                    kwargs['numbers'] = mol.numbers
+                    kwargs['pos'] = mol.coordinates
+                    words = mol.title.split()
+                    if len(words) == 9:
+                        try:
+                            rvecs = np.array([float(w) for w in words]).reshape((3,-1))*angstrom
+                            kwargs['rvecs'] = rvecs
+                        except ValueError:
+                            rvecs = None
+                        if rvecs is not None:
+                            mol.unit_cell = UnitCell(rvecs.transpose())
+                    mol.set_default_graph()
+                    if len(mol.graph.edges) > 0:
+                        kwargs['bonds'] = np.array(mol.graph.edges)
+                elif fn.endswith('.psf'):
+                    from molmod.io import PSFFile
+                    psf = PSFFile(fn)
+                    kwargs['ffatypes'] = psf.atom_types
+                    kwargs['bonds'] = np.array(psf.bonds, copy=False)
+                    kwargs['charges'] = np.array(psf.charges, copy=False)
+                elif fn.endswith('.chk'):
+                    from molmod.io import load_chk
+                    kwargs.update(load_chk(fn))
+                else:
+                    raise IOError('Can not read from file \'%s\'.' % fn)
+                if log.do_high:
+                    log('Read system parameters from %s.' % fn)
+            kwargs.update(user_kwargs)
         return cls(**kwargs)
 
     def get_scope(self, index):
@@ -351,13 +349,12 @@ class System(object):
         return np.array([i for i in xrange(self.natom) if fn(self, i)])
 
     def set_standard_masses(self):
-        log.enter('SYS')
-        from molmod.periodic import periodic
-        if self.masses is not None:
-            if log.do_warning:
-                log.warn('Overwriting existing masses with default masses.')
-        self.masses = np.array([periodic[n].mass for n in self.numbers])
-        log.leave()
+        with log.section('SYS'):
+            from molmod.periodic import periodic
+            if self.masses is not None:
+                if log.do_warning:
+                    log.warn('Overwriting existing masses with default masses.')
+            self.masses = np.array([periodic[n].mass for n in self.numbers])
 
     def to_file(self, fn_chk):
         """Write the system in the internal checkpoint format.
@@ -383,6 +380,5 @@ class System(object):
             'masses': self.masses,
         })
         if log.do_high:
-            log.enter('SYS')
-            log('Wrote system to %s.' % fn_chk)
-            log.leave()
+            with log.section('SYS'):
+                log('Wrote system to %s.' % fn_chk)

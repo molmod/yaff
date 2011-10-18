@@ -69,9 +69,8 @@ class Iterative(object):
             self.hooks = [hooks]
         self.counter = counter0
         timer.start(self.log_name)
-        log.enter(self.log_name)
-        self.initialize()
-        log.leave()
+        with log.section(self.log_name):
+            self.initialize()
         timer.stop()
 
     def initialize(self):
@@ -91,11 +90,10 @@ class Iterative(object):
 
     def run(self, nstep):
         timer.start(self.log_name)
-        log.enter(self.log_name)
-        for i in xrange(nstep):
-            self.propagate()
-        self.finalize()
-        log.leave()
+        with log.section(self.log_name):
+            for i in xrange(nstep):
+                self.propagate()
+            self.finalize()
         timer.stop()
 
     def propagate(self):

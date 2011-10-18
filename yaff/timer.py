@@ -98,25 +98,24 @@ class TimerGroup(object):
         max_own_cpu = self.get_max_own_cpu()
         #if max_own_cpu == 0.0:
         #    return
-        log.enter('TIMER')
-        log('Overview of CPU time usage.')
-        log.hline()
-        log('Label          Total   Own')
-        log.hline()
-        bar_width = log.width-27
-        for label, timer in sorted(self.parts.iteritems()):
-            #if timer.total.cpu == 0.0:
-            #    continue
-            if max_own_cpu > 0:
-                cpu_bar = "W"*int(timer.own.cpu/max_own_cpu*bar_width)
-            else:
-                cpu_bar = ""
-            log('%14s %5.1f %5.1f %30s' % (
-                label.ljust(14),
-                timer.total.cpu, timer.own.cpu, cpu_bar.ljust(bar_width),
-            ))
-        log.hline()
-        log.leave()
+        with log.section('TIMER'):
+            log('Overview of CPU time usage.')
+            log.hline()
+            log('Label          Total   Own')
+            log.hline()
+            bar_width = log.width-27
+            for label, timer in sorted(self.parts.iteritems()):
+                #if timer.total.cpu == 0.0:
+                #    continue
+                if max_own_cpu > 0:
+                    cpu_bar = "W"*int(timer.own.cpu/max_own_cpu*bar_width)
+                else:
+                    cpu_bar = ""
+                log('%14s %5.1f %5.1f %30s' % (
+                    label.ljust(14),
+                    timer.total.cpu, timer.own.cpu, cpu_bar.ljust(bar_width),
+                ))
+            log.hline()
 
 
 timer = TimerGroup()

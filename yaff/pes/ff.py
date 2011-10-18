@@ -146,12 +146,11 @@ class ForceField(ForcePart):
                 raise ValueError('The part %s occurs twice in the force field.' % name)
             self.__dict__[name] = part
         if log.do_medium:
-            log.enter('FFINIT')
-            log('Force field with %i parts:&%s.' % (
-                len(self.parts), ', '.join(part.name for part in self.parts)
-            ))
-            log('Neighborlists present: %s' % (self.nlists is not None))
-            log.leave()
+            with log.section('FFINIT'):
+                log('Force field with %i parts:&%s.' % (
+                    len(self.parts), ', '.join(part.name for part in self.parts)
+                ))
+                log('Neighborlists present: %s' % (self.nlists is not None))
 
 
     @classmethod
@@ -177,19 +176,18 @@ class ForceField(ForcePart):
         """
         if system.ffatype_ids is None:
             raise ValueError('The generators needs ffatype_ids in the system object.')
-        log.enter('GEN')
         timer.start('Generator')
-        from yaff.pes.generator import ParsedPars, generators, FFArgs
-        parsed_pars = ParsedPars(fn_parameters)
-        ff_args = FFArgs(**kwargs)
-        for prefix in parsed_pars.info:
-            generator = generators.get(prefix)
-            if generator is None:
-                if log.do_warning:
-                    log.warn('There is no generator named %s.' % prefix)
-            else:
-                generator(system, parsed_pars.get_section(prefix), ff_args)
-        log.leave()
+        with log.section('GEN'):
+            from yaff.pes.generator import ParsedPars, generators, FFArgs
+            parsed_pars = ParsedPars(fn_parameters)
+            ff_args = FFArgs(**kwargs)
+            for prefix in parsed_pars.info:
+                generator = generators.get(prefix)
+                if generator is None:
+                    if log.do_warning:
+                        log.warn('There is no generator named %s.' % prefix)
+                else:
+                    generator(system, parsed_pars.get_section(prefix), ff_args)
         timer.stop()
         return ForceField(system, ff_args.parts, ff_args.nlists)
 
@@ -207,12 +205,10 @@ class ForceField(ForcePart):
             self.needs_nlists_update = True
 
     def _internal_compute(self, gpos, vtens):
-        log.enter('FFEVAL')
         if self.needs_nlists_update:
             self.nlists.update()
             self.needs_nlists_update = False
         result = sum([part.compute(gpos, vtens) for part in self.parts])
-        log.leave()
         return result
 
 
@@ -224,19 +220,18 @@ class ForcePartPair(ForcePart):
         self.pair_pot = pair_pot
         self.nlists.request_rcut(pair_pot.rcut)
         if log.do_medium:
-            log.enter('FPINIT')
-            log('Force part: %s' % self.name)
-            log.hline()
-            log('  scalings:          %5.3f %5.3f %5.3f' % (scalings.scale1, scalings.scale2, scalings.scale3))
-            log('  real space cutoff: %s' % log.length(pair_pot.rcut))
-            tr = pair_pot.get_truncation()
-            if tr is None:
-                log('  truncation:     none')
-            else:
-                log('  truncation:     %s' % tr.get_log())
-            self.pair_pot.log()
-            log.hline()
-            log.leave()
+            with log.section('FPINIT'):
+                log('Force part: %s' % self.name)
+                log.hline()
+                log('  scalings:          %5.3f %5.3f %5.3f' % (scalings.scale1, scalings.scale2, scalings.scale3))
+                log('  real space cutoff: %s' % log.length(pair_pot.rcut))
+                tr = pair_pot.get_truncation()
+                if tr is None:
+                    log('  truncation:     none')
+                else:
+                    log('  truncation:     %s' % tr.get_log())
+                self.pair_pot.log()
+                log.hline()
 
     def _internal_compute(self, gpos, vtens):
         timer.start('PP %s' % self.pair_pot.name)
@@ -262,21 +257,19 @@ class ForcePartEwaldReciprocal(ForcePart):
         self.work = np.empty(system.natom*2)
         self.needs_update_gmax = True
         if log.do_medium:
-            log.enter('FPINIT')
-            log('Force part: %s' % self.name)
-            log.hline()
-            log('  alpha:             %s' % log.invlength(self.alpha))
-            log('  gcut:              %s' % log.invlength(self.gcut))
-            log.hline()
-            log.leave()
+            with log.section('FPINIT'):
+                log('Force part: %s' % self.name)
+                log.hline()
+                log('  alpha:             %s' % log.invlength(self.alpha))
+                log('  gcut:              %s' % log.invlength(self.gcut))
+                log.hline()
 
 
     def update_gmax(self):
         self.gmax = np.ceil(self.gcut/self.system.cell.gspacings-0.5).astype(int)
         if log.do_debug:
-            log.enter('EWALD')
-            log('gmax a,b,c   = %i,%i,%i' % tuple(self.gmax))
-            log.leave()
+            with log.section('EWALD'):
+                log('gmax a,b,c   = %i,%i,%i' % tuple(self.gmax))
 
     def update_rvecs(self, rvecs):
         ForcePart.update_rvecs(self, rvecs)
@@ -303,13 +296,12 @@ class ForcePartEwaldCorrection(ForcePart):
         self.alpha = alpha
         self.scalings = scalings
         if log.do_medium:
-            log.enter('FPINIT')
-            log('Force part: %s' % self.name)
-            log.hline()
-            log('  alpha:             %s' % log.invlength(self.alpha))
-            log('  scalings:          %5.3f %5.3f %5.3f' % (scalings.scale1, scalings.scale2, scalings.scale3))
-            log.hline()
-            log.leave()
+            with log.section('FPINIT'):
+                log('Force part: %s' % self.name)
+                log.hline()
+                log('  alpha:             %s' % log.invlength(self.alpha))
+                log('  scalings:          %5.3f %5.3f %5.3f' % (scalings.scale1, scalings.scale2, scalings.scale3))
+                log.hline()
 
     def _internal_compute(self, gpos, vtens):
         timer.start('Ewald corr.')
@@ -333,12 +325,11 @@ class ForcePartEwaldNeutralizing(ForcePart):
         self.system = system
         self.alpha = alpha
         if log.do_medium:
-            log.enter('FPINIT')
-            log('Force part: %s' % self.name)
-            log.hline()
-            log('  alpha:             %s' % log.invlength(self.alpha))
-            log.hline()
-            log.leave()
+            with log.section('FPINIT'):
+                log('Force part: %s' % self.name)
+                log.hline()
+                log('  alpha:             %s' % log.invlength(self.alpha))
+                log.hline()
 
     def _internal_compute(self, gpos, vtens):
         timer.start('Ewald neut.')
@@ -356,16 +347,14 @@ class ForcePartValence(ForcePart):
         self.iclist = InternalCoordinateList(self.dlist)
         self.vlist = ValenceList(self.iclist)
         if log.do_medium:
-            log.enter('FPINIT')
-            log('Force part: %s' % self.name)
-            log.hline()
-            log.leave()
+            with log.section('FPINIT'):
+                log('Force part: %s' % self.name)
+                log.hline()
 
     def add_term(self, term):
         if log.do_high:
-            log.enter('VTERM')
-            log('%7i %s %s' % (self.vlist.nv, term.get_log(), ' '.join(ic.get_log() for ic in term.ics)))
-            log.leave()
+            with log.section('VTERM'):
+                log('%7i %s %s' % (self.vlist.nv, term.get_log(), ' '.join(ic.get_log() for ic in term.ics)))
         self.vlist.add_term(term)
 
     def _internal_compute(self, gpos, vtens):

@@ -70,34 +70,33 @@ class NeighborLists(object):
 
     def update(self):
         timer.start('NLists')
-        log.enter('NLIST')
-        assert self.rcut > 0
-        # if there are no items yet, lets make them first:
-        if self.nlists is None:
-            self.nlists = [np.empty(10, dtype=nlist_dtype) for i in xrange(self.system.natom)]
-            self.nlist_sizes = np.zeros(self.system.natom, dtype=int)
-        # build all neighbor lists
-        for i in xrange(self.system.natom):
-            # make an initial nlist array
-            nlist = self.nlists[i]
-            last_start = 0
-            # make an initial status object for the nlist algorithm
-            nlist_status = nlist_status_init(i, self.rmax)
-            while True:
-                done = nlist_update(
-                    self.system.pos, i, self.rcut, self.rmax,
-                    self.system.cell, nlist_status, nlist[last_start:]
-                )
-                if done:
-                    break
-                last_start = len(nlist)
-                new_nlist = np.empty((len(nlist)*3)/2, dtype=nlist_dtype)
-                new_nlist[:last_start] = nlist
-                nlist = new_nlist
-                del new_nlist
-            self.nlists[i] = nlist
-            self.nlist_sizes[i] = nlist_status_finish(nlist_status)
-        if log.do_debug:
-            log('min/max size = %i/%i' % (self.nlist_sizes.min(), self.nlist_sizes.max()))
-        log.leave()
+        with log.section('NLIST'):
+            assert self.rcut > 0
+            # if there are no items yet, lets make them first:
+            if self.nlists is None:
+                self.nlists = [np.empty(10, dtype=nlist_dtype) for i in xrange(self.system.natom)]
+                self.nlist_sizes = np.zeros(self.system.natom, dtype=int)
+            # build all neighbor lists
+            for i in xrange(self.system.natom):
+                # make an initial nlist array
+                nlist = self.nlists[i]
+                last_start = 0
+                # make an initial status object for the nlist algorithm
+                nlist_status = nlist_status_init(i, self.rmax)
+                while True:
+                    done = nlist_update(
+                        self.system.pos, i, self.rcut, self.rmax,
+                        self.system.cell, nlist_status, nlist[last_start:]
+                    )
+                    if done:
+                        break
+                    last_start = len(nlist)
+                    new_nlist = np.empty((len(nlist)*3)/2, dtype=nlist_dtype)
+                    new_nlist[:last_start] = nlist
+                    nlist = new_nlist
+                    del new_nlist
+                self.nlists[i] = nlist
+                self.nlist_sizes[i] = nlist_status_finish(nlist_status)
+            if log.do_debug:
+                log('min/max size = %i/%i' % (self.nlist_sizes.min(), self.nlist_sizes.max()))
         timer.stop()

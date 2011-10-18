@@ -22,6 +22,7 @@
 
 
 import sys, atexit, os, datetime, getpass
+from contextlib import contextmanager
 
 from molmod.units import kjmol, kcalmol, electronvolt, angstrom, nanometer, \
     femtosecond, picosecond, amu, deg
@@ -86,16 +87,15 @@ class UnitSystem(object):
 
     def log_info(self):
         if log.do_low:
-            log.enter('UNITS')
-            log('The following units will be used below:')
-            log.hline()
-            log('Kind          Conversion               Format Notation')
-            log.hline()
-            for unit in self.units:
-                log('%13s %21.15e %9s %s' % (unit.kind, unit.conversion, unit.format, unit.notation))
-            log.hline()
-            log('The internal data is divided by the corresponding conversion factor before it gets printed on screen.')
-            log.leave()
+            with log.section('UNITS'):
+                log('The following units will be used below:')
+                log.hline()
+                log('Kind          Conversion               Format Notation')
+                log.hline()
+                for unit in self.units:
+                    log('%13s %21.15e %9s %s' % (unit.kind, unit.conversion, unit.format, unit.notation))
+                log.hline()
+                log('The internal data is divided by the corresponding conversion factor before it gets printed on screen.')
 
     def apply(self, some):
         for unit in self.units:
@@ -286,17 +286,25 @@ class ScreenLog(object):
     def blank(self):
         print >> self._file
 
-    def enter(self, prefix):
+    def _enter(self, prefix):
         if len(prefix) > self.margin-1:
             raise ValueError('The prefix must be at most %s characters wide.' % (self.margin-1))
         self.stack.append(self.prefix)
         self.prefix = prefix.upper().rjust(self.margin-1, ' ')
         self.add_newline = True
 
-    def leave(self):
+    def _exit(self):
         self.prefix = self.stack.pop(-1)
         if self._active:
             self.add_newline = True
+
+    @contextmanager
+    def section(self, prefix):
+        self._enter(prefix)
+        try:
+            yield
+        finally:
+            self._exit()
 
     def set_unitsys(self, unitsys):
         self.unitsys = unitsys
@@ -321,15 +329,14 @@ class ScreenLog(object):
     def _print_basic_info(self):
         if log.do_low:
             import yaff
-            log.enter('ENV')
-            log('User:          &' + getpass.getuser())
-            log('Machine info:  &' + ' '.join(os.uname()))
-            log('Time:          &' + datetime.datetime.now().isoformat())
-            log('Python version:&' + sys.version.replace('\n', ''))
-            log('YAFF version:  &' + yaff.__version__)
-            log('Current Dir:   &' + os.getcwd())
-            log('Command line:  &' + ' '.join(sys.argv))
-            log.leave()
+            with log.section('ENV'):
+                log('User:          &' + getpass.getuser())
+                log('Machine info:  &' + ' '.join(os.uname()))
+                log('Time:          &' + datetime.datetime.now().isoformat())
+                log('Python version:&' + sys.version.replace('\n', ''))
+                log('YAFF version:  &' + yaff.__version__)
+                log('Current Dir:   &' + os.getcwd())
+                log('Command line:  &' + ' '.join(sys.argv))
 
 
 log = ScreenLog()

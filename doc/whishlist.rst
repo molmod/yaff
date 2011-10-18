@@ -1,7 +1,6 @@
 Whish list
 ##########
 
-#. ``with`` interface for log and timer
 #. All the TODO items of the Howto.
 #. skin parameter in neighborlist
 #. ACKS2

@@ -177,15 +177,14 @@ class AndersenThermostatMcDonaldBarostat(Hook):
         iterative.econs_ref += iterative.ekin - ekin1
         iterative.ekin = ekin1
         if log.do_medium:
-            log.enter('ATMB')
-            s = {True: 'accepted', False: 'rejected'}[accepted]
-            log('BARO   volscale %10.7f      arg %s      %s' % (scale, log.energy(arg), s))
-            if accepted:
-                log('BARO   energy change %s      (new vol)**(1/3) %s' % (
-                    log.energy(epot1 - epot0), log.length(vol1**(1.0/3.0))
-                ))
-            log('THERMO energy change %s' % log.energy(iterative.ekin - ekin1))
-            log.leave()
+            with log.section('ATMB'):
+                s = {True: 'accepted', False: 'rejected'}[accepted]
+                log('BARO   volscale %10.7f      arg %s      %s' % (scale, log.energy(arg), s))
+                if accepted:
+                    log('BARO   energy change %s      (new vol)**(1/3) %s' % (
+                        log.energy(epot1 - epot0), log.length(vol1**(1.0/3.0))
+                    ))
+                log('THERMO energy change %s' % log.energy(iterative.ekin - ekin1))
         timer.stop()
 
 
