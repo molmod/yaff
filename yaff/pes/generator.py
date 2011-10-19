@@ -99,7 +99,7 @@ class ParsedPars(object):
 
 
 class FFArgs(object):
-    def __init__(self, rcut=18.89726133921252, tr=Switch3(7.558904535685008)):
+    def __init__(self, rcut=18.89726133921252, tr=Switch3(7.558904535685008), alpha_scale=4.5, gcut_scale=1.33):
         """
            **Optional arguments:**
 
@@ -113,11 +113,31 @@ class FFArgs(object):
                 Default truncation model for everything except the electrostatic
                 interactions. The electrostatic interactions are not truncated
                 by default.
+
+           alpha_scale
+                Determines the alpha parameter in the Ewald summation based on
+                the real-space cutoff: alpha = alpha_scale / rcut. The higher
+                this parameter, the better the truncation will be.
+
+           gcut_scale
+                Determines the reciprocale space cutoff based on the alpha
+                parameter: gcut = gcut_scale * alpha. The higher this parameter,
+                the more accurate the computation.
+
+           The actual value of gcut, which depends on both gcut_scale and
+           alpha_scale, determines the computational cost of the reciprocal term
+           in the Ewald summation. The default values are just examples. An
+           optimal tradeoff between accuracy and computational cost requires
+           some tuning. Dimensionless scaling parameters are used to make sure
+           that the numerical errors do not depend too much on the real space
+           cutoff and the system size.
         """
         self.parts = []
         self.nlists = None
         self.rcut = rcut
         self.tr = tr
+        self.alpha_scale = alpha_scale
+        self.gcut_scale = gcut_scale
 
     def get_nlists(self, system):
         if self.nlists is None:
@@ -144,14 +164,11 @@ class FFArgs(object):
     def add_electrostatic_parts(self, system, scalings):
         if self.get_part_pair(PairPotEI) is not None:
             return
-        # TODO: make it possible to tune alpha and gcut scaling parameters.
-        # TODO: document the effects of these scaling parameters, i.e. define
-        #       four regimes such as fast, normal, accurate and very_accurate.
         nlists = self.get_nlists(system)
         if system.cell.nvec == 0:
             alpha = 0.0
         elif system.cell.nvec == 3:
-            alpha = 4.5/self.rcut
+            alpha = self.alpha_scale/self.rcut
         else:
             raise NotImplementedError('Only zero- and three-dimensional electrostatics are supported.')
         # Real-space electrostatics
@@ -160,7 +177,7 @@ class FFArgs(object):
         self.parts.append(part_pair_ei)
         if system.cell.nvec == 3:
             # Reciprocal-space electrostatics
-            part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=alpha/0.75)
+            part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=self.gcut_scale*alpha)
             self.parts.append(part_ewald_reci)
             # Ewald corrections
             part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)

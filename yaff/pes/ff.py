@@ -273,7 +273,7 @@ class ForcePartEwaldReciprocal(ForcePart):
         self.update_gmax()
 
     def _internal_compute(self, gpos, vtens):
-        with timer.section('Ewald Reci'):
+        with timer.section('Ewald reci.'):
             return compute_ewald_reci(
                 self.system.pos, self.system.charges, self.system.cell, self.alpha,
                 self.gmax, self.gcut, gpos, self.work, vtens

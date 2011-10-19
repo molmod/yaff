@@ -69,6 +69,11 @@ class TimerGroup(object):
         self.parts = {}
         self.stack = []
 
+    def reset(self):
+        for timer in self.parts.itervalues():
+            timer.total.cpu = 0.0
+            timer.own.cpu = 0.0
+
     @contextmanager
     def section(self, label):
         self._start(label)

@@ -29,5 +29,6 @@ from yaff.log import *
 from yaff.pes import *
 from yaff.sampling import *
 from yaff.system import *
+from yaff.timer import *
 
 __version__ = '0.0'
