@@ -61,3 +61,14 @@ def test_plot_temp_dist():
     finally:
         shutil.rmtree(dn_tmp)
         f.close()
+
+
+def test_plot_density():
+    dn_tmp, nve, f = get_nve_water32()
+    try:
+        fn_png = '%s/density1.png' % dn_tmp
+        plot_density(f, fn_png)
+        assert os.path.isfile(fn_png)
+    finally:
+        shutil.rmtree(dn_tmp)
+        f.close()

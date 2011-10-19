@@ -25,7 +25,7 @@ import sys, atexit, os, datetime, getpass
 from contextlib import contextmanager
 
 from molmod.units import kjmol, kcalmol, electronvolt, angstrom, nanometer, \
-    femtosecond, picosecond, amu, deg
+    femtosecond, picosecond, amu, deg, gram, centimeter
 from yaff.timer import timer
 
 
@@ -134,6 +134,7 @@ class ScreenLog(object):
         Unit('angle', deg, 'deg', '%10.5f'),
         Unit('c6', 1, 'E_h*a_0**6', '%10.5f'),
         Unit('diffconst', angstrom**2/picosecond, 'A**2/ps', '%10.5f'),
+        Unit('density', gram/centimeter**3, 'g/cm^3', '%10.3f'),
     )
     cal = UnitSystem(
         Unit('energy', kcalmol, 'kcal/mol', '%10.2f'),
@@ -152,6 +153,7 @@ class ScreenLog(object):
         Unit('angle', deg, 'deg', '%10.5f'),
         Unit('c6', 1, 'E_h*a_0**6', '%10.5f'),
         Unit('diffconst', angstrom**2/femtosecond, 'A**2/fs', '%10.5f'),
+        Unit('density', gram/centimeter**3, 'g/cm^3', '%10.3f'),
     )
     solid = UnitSystem(
         Unit('energy', electronvolt, 'eV', '%10.4f'),
@@ -170,6 +172,7 @@ class ScreenLog(object):
         Unit('angle', deg, 'deg', '%10.5f'),
         Unit('c6', 1, 'E_h*a_0**6', '%10.5f'),
         Unit('diffconst', angstrom**2/femtosecond, 'A**2/fs', '%10.5f'),
+        Unit('density', gram/centimeter**3, 'g/cm^3', '%10.3f'),
     )
     bio = UnitSystem(
         Unit('energy', kcalmol, 'kcal/mol', '%10.2f'),
@@ -188,6 +191,7 @@ class ScreenLog(object):
         Unit('angle', deg, 'deg', '%10.5f'),
         Unit('c6', 1, 'E_h*a_0**6', '%10.5f'),
         Unit('diffconst', nanometer**2/picosecond, 'nm**2/ps', '%10.2f'),
+        Unit('density', gram/centimeter**3, 'g/cm^3', '%10.3f'),
     )
     atomic = UnitSystem(
         Unit('energy', 1, 'E_h', '%10.6f'),
@@ -206,6 +210,7 @@ class ScreenLog(object):
         Unit('angle', 1, 'rad', '%10.7f'),
         Unit('c6', 1, 'E_h*a_0**6', '%10.5f'),
         Unit('diffconst', 1, 'a_0**2/aut', '%10.2f'),
+        Unit('density', 1, 'aum/a_0^3', '%10.3f'),
     )
 
 

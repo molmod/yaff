@@ -30,7 +30,9 @@ from yaff.log import log
 from yaff.analysis.utils import get_slice
 
 
-__all__ = ['plot_energies', 'plot_temperature', 'plot_temp_dist']
+__all__ = [
+    'plot_energies', 'plot_temperature', 'plot_temp_dist', 'plot_density'
+]
 
 
 def plot_energies(f, fn_png='energies.png', **kwargs):
@@ -257,4 +259,38 @@ def plot_temp_dist(f, fn_png='temp_dist.png', select=None, **kwargs):
     pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
     pt.xlabel('Temperature [%s]' % log.temperature.notation)
 
+    pt.savefig(fn_png)
+
+
+def plot_density(f, fn_png='density.png', **kwargs):
+    """Make a plot of the mass density as function of time
+
+       **Arguments:**
+
+       f
+            An h5py.File instance containing the trajectory data.
+
+       **Optional arguments:**
+
+       fn_png
+            The png file to write the figure to
+
+       The optional arguments of the ``get_slice`` function are also accepted in
+       the form of keyword arguments.
+
+       The units for making the plot are taken from the yaff screen logger.
+    """
+    import matplotlib.pyplot as pt
+    start, end, step = get_slice(f, **kwargs)
+
+    mass = f['system/masses'][:].sum()
+    vol = f['trajectory/volume'][start:end:step]
+    rho = mass/vol/log.density.conversion
+    time = f['trajectory/time'][start:end:step]/log.time.conversion
+
+    pt.clf()
+    pt.plot(time, rho, 'k-')
+    pt.xlim(time[0], time[-1])
+    pt.xlabel('Time [%s]' % log.time.notation)
+    pt.ylabel('Density [%s]' % log.density.notation)
     pt.savefig(fn_png)
