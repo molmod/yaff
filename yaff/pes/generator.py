@@ -99,7 +99,7 @@ class ParsedPars(object):
 
 
 class FFArgs(object):
-    def __init__(self, rcut=18.89726133921252, tr=Switch3(7.558904535685008), alpha_scale=4.5, gcut_scale=1.33):
+    def __init__(self, rcut=18.89726133921252, tr=Switch3(7.558904535685008), alpha_scale=3.0, gcut_scale=1.1):
         """
            **Optional arguments:**
 
