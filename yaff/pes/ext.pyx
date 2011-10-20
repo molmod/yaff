@@ -179,9 +179,6 @@ def nlist_status_init(rmax):
     # * b
     # * number of rows consumed
     result = np.array([0, 0, 0, 0, 0, 0], int)
-    for i in xrange(len(rmax)):
-        if len(rmax) > 0:
-            result[i] = -rmax[i]
     return result
 
 

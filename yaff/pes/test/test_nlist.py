@@ -72,27 +72,26 @@ def test_nlist_water32_9A():
         (nlist.neighs['r1'][:nneigh] != 0) |
         (nlist.neighs['r2'][:nneigh] != 0)
     ).all()
-    for i in random.sample(xrange(system.natom), 5):
+    for a in random.sample(xrange(system.natom), 5):
         # compute the distances in the neighborlist manually and check.
         check = {}
-        for j in xrange(system.natom):
-            delta = system.pos[j] - system.pos[i]
+        for b in xrange(system.natom):
+            delta = system.pos[b] - system.pos[a]
             delta -= np.floor(delta/(9.865*angstrom)+0.5)*(9.865*angstrom)
             assert abs(delta).max() < 0.5*9.865*angstrom
-            for l0 in xrange(-1, 2):
-                for l1 in xrange(-1, 2):
-                    for l2 in xrange(-1, 2):
+            for l2 in xrange(0, 2):
+                for l1 in xrange((l2!=0)*-1, 2):
+                    for l0 in xrange((l2!=0 or l1!=0)*-1, 2):
                         my_delta = delta + np.array([l0,l1,l2])*9.865*angstrom
                         d = np.linalg.norm(my_delta)
                         if d <= rcut:
-                            if (l0!=0) or (l1!=0) or (l2!=0) or (i>j):
-                                check[(j, l0, l1, l2)] = (d, my_delta)
+                            if (l0!=0) or (l1!=0) or (l2!=0) or (a>b):
+                                check[(b, l0, l1, l2)] = (d, my_delta)
         # compare
         counter = 0
         for row in nlist.neighs[:nneigh]:
-            if row['a'] == i:
+            if row['a'] == a:
                 key = row['b'], row['r0'], row['r1'], row['r2']
-                print i, key
                 assert key in check
                 assert abs(check[key][0]) <= rcut
                 assert abs(check[key][0] - row['d']) < 1e-8
@@ -122,8 +121,8 @@ def test_nlist_graphene8_9A():
         for j in xrange(system.natom):
             delta = system.pos[j] - system.pos[i]
             system.cell.mic(delta)
-            for r0 in xrange(-3, 4):
-                for r1 in xrange(-3, 4):
+            for r1 in xrange(0, 4):
+                for r0 in xrange((r1!=0)*-3, 4):
                     my_delta = delta + r0*system.cell.rvecs[0] + r1*system.cell.rvecs[1]
                     d = np.linalg.norm(my_delta)
                     if d <= rcut:
@@ -168,7 +167,7 @@ def test_nlist_polyethylene4_9A():
         for j in xrange(system.natom):
             delta = system.pos[j] - system.pos[i]
             system.cell.mic(delta)
-            for r0 in xrange(-3, 3):
+            for r0 in xrange(0, 3):
                 my_delta = delta + r0*system.cell.rvecs[0]
                 d = np.linalg.norm(my_delta)
                 if d <= rcut:
@@ -247,9 +246,9 @@ def test_nlist_quartz_9A():
         for j in xrange(system.natom):
             delta = system.pos[j] - system.pos[i]
             system.cell.mic(delta)
-            for r0 in xrange(-3, 3):
-                for r1 in xrange(-3, 3):
-                    for r2 in xrange(-3, 3):
+            for r2 in xrange(0, 3):
+                for r1 in xrange((r2!=0)*-2, 3):
+                    for r0 in xrange((r2!=0 or r1!=0)*-2, 3):
                         my_delta = delta + r0*rvecs[0] + r1*rvecs[1] + r2*rvecs[2]
                         d = np.linalg.norm(my_delta)
                         if d <= rcut:
@@ -293,9 +292,9 @@ def test_nlist_quartz_20A():
         for j in xrange(system.natom):
             delta = system.pos[j] - system.pos[i]
             system.cell.mic(delta)
-            for r0 in xrange(-6, 6):
-                for r1 in xrange(-6, 6):
-                    for r2 in xrange(-6, 6):
+            for r2 in xrange(0, 6):
+                for r1 in xrange((r2!=0)*-5, 6):
+                    for r0 in xrange((r2!=0 or r1!=0)*-5, 6):
                         my_delta = delta + r0*rvecs[0] + r1*rvecs[1] + r2*rvecs[2]
                         d = np.linalg.norm(my_delta)
                         if d <= rcut:
@@ -331,7 +330,7 @@ def test_nlist_quartz_110A():
     assert (nlist.neighs['r1'][:nlist.nneigh] <= nlist.rmax[1]).all()
     assert (nlist.neighs['r1'][:nlist.nneigh] >= -nlist.rmax[1]).all()
     assert (nlist.neighs['r2'][:nlist.nneigh] <= nlist.rmax[2]).all()
-    assert (nlist.neighs['r2'][:nlist.nneigh] >= -nlist.rmax[2]).all()
+    assert (nlist.neighs['r2'][:nlist.nneigh] >= 0).all()
 
 
 def test_nlist_glycine_9A():
@@ -359,62 +358,58 @@ def test_nlist_glycine_9A():
 def test_nlist_inc_r3():
     cell = get_system_water32().cell
     rmax = np.array([2, 2, 2])
-    r = np.array([-2, -2, -2])
+    r = np.array([-2, 1, 1])
     assert nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([-1, -2, -2])).all()
+    assert (r == np.array([-1, 1, 1])).all()
     assert nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([0, -2, -2])).all()
+    assert (r == np.array([0, 1, 1])).all()
     assert nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([1, -2, -2])).all()
+    assert (r == np.array([1, 1, 1])).all()
     assert nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([2, -2, -2])).all()
+    assert (r == np.array([2, 1, 1])).all()
     assert nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([-2, -1, -2])).all()
+    assert (r == np.array([-2, 2, 1])).all()
     assert nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([-1, -1, -2])).all()
-    r = np.array([2, 2, -2])
+    assert (r == np.array([-1, 2, 1])).all()
+    r = np.array([2, 2, 0])
     assert nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([-2, -2, -1])).all()
+    assert (r == np.array([-2, -2, 1])).all()
     r = np.array([2, 2, 2])
     assert not nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([-2, -2, -2])).all()
+    assert (r == np.array([0, 0, 0])).all()
 
 
 def test_nlist_inc_r2():
     cell = get_system_graphene8().cell
     rmax = np.array([2, 2])
-    r = np.array([-2, -2])
+    r = np.array([-2, 1])
     assert nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([-1, -2])).all()
+    assert (r == np.array([-1, 1])).all()
     assert nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([0, -2])).all()
+    assert (r == np.array([0, 1])).all()
     assert nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([1, -2])).all()
+    assert (r == np.array([1, 1])).all()
     assert nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([2, -2])).all()
+    assert (r == np.array([2, 1])).all()
     assert nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([-2, -1])).all()
+    assert (r == np.array([-2, 2])).all()
     assert nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([-1, -1])).all()
+    assert (r == np.array([-1, 2])).all()
     r = np.array([2, 2])
     assert not nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([-2, -2])).all()
+    assert (r == np.array([0, 0])).all()
 
 
 def test_nlist_inc_r1():
     cell = get_system_polyethylene4().cell
     rmax = np.array([2])
-    r = np.array([-2])
-    assert nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([-1])).all()
-    assert nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([0])).all()
+    r = np.array([0])
     assert nlist_inc_r(cell, r, rmax)
     assert (r == np.array([1])).all()
     assert nlist_inc_r(cell, r, rmax)
     assert (r == np.array([2])).all()
     assert not nlist_inc_r(cell, r, rmax)
-    assert (r == np.array([-2])).all()
+    assert (r == np.array([0])).all()
 
 
 def test_nlist_inc_r0():

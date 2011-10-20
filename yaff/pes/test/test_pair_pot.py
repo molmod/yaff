@@ -77,10 +77,10 @@ def check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, eps):
             delta = system.pos[b] - system.pos[a]
             delta -= np.floor(delta/(9.865*angstrom)+0.5)*(9.865*angstrom)
             assert abs(delta).max() < 0.5*9.865*angstrom
-            for l0 in xrange(-1, 2):
-                for l1 in xrange(-1, 2):
-                    for l2 in xrange(-1, 2):
-                        if l0==0 and l1==0 and l2==0:
+            for r2 in xrange(0, 2):
+                for r1 in xrange((r2!=0)*-1, 2):
+                    for r0 in xrange((r2!=0 or r1!=0)*-1, 2):
+                        if r0==0 and r1==0 and r2==0:
                             if a<=b:
                                 continue
                             # find the scaling
@@ -90,10 +90,8 @@ def check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, eps):
                             if fac == 0.0:
                                 continue
                         else:
-                            # Interactions with neighboring cells are counted
-                            # half. (The energy per unit cell is computed.)
-                            fac = 0.5
-                        my_delta = delta + np.array([l0,l1,l2])*9.865*angstrom
+                            fac = 1.0
+                        my_delta = delta + np.array([r0,r1,r2])*9.865*angstrom
                         d = np.linalg.norm(my_delta)
                         if d <= nlist.rcut:
                             check_energy += fac*pair_fn(a, b, d)

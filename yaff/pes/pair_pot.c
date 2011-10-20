@@ -97,7 +97,7 @@ double pair_pot_compute(neigh_row_type *neighs,
       if ((neighs[i].r0 == 0) && (neighs[i].r1 == 0) && (neighs[i].r2 == 0)) {
         s = get_scaling(stab, center_index, other_index, &srow, nstab);
       } else {
-        s = 0.5;
+        s = 1.0;
       }
       // If the scale is non-zero, compute the contribution.
       if (s > 0.0) {
