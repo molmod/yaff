@@ -66,11 +66,7 @@ int nlist_update_low(double *pos, double rcut, long *rmax,
       delta[0] = delta0[0];
       delta[1] = delta0[1];
       delta[2] = delta0[2];
-      for (i=0; i<(*unitcell).nvec; i++) {
-        delta[0] += r[i]*(*unitcell).rvecs[3*i];
-        delta[1] += r[i]*(*unitcell).rvecs[3*i+1];
-        delta[2] += r[i]*(*unitcell).rvecs[3*i+2];
-      }
+      cell_add_vec(delta, unitcell, r);
       // Compute the distance and store the record if distance is below the rcut.
       d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
       if (d < rcut) {

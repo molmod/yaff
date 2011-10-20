@@ -145,7 +145,12 @@ cdef class Cell:
 
     def mic(self, np.ndarray[double, ndim=1] delta):
         assert delta.size == 3
-        cell.cell_mic(<double *>delta.data, self._c_cell)
+        cell.cell_mic(<double*> delta.data, self._c_cell)
+
+    def add_vec(self, np.ndarray[double, ndim=1] delta, np.ndarray[long, ndim=1] r):
+        assert delta.size == 3
+        assert r.size == self.nvec
+        cell.cell_add_vec(<double*> delta.data, self._c_cell, <long*> r.data)
 
     def compute_distances(self, np.ndarray[double, ndim=1] output,
                           np.ndarray[double, ndim=2] pos0,

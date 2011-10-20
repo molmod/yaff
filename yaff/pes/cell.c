@@ -90,6 +90,17 @@ void cell_mic(double *delta, cell_type* cell) {
   }
 }
 
+
+void cell_add_vec(double *delta, cell_type* cell, long* r) {
+  long i;
+  for (i=0; i<(*cell).nvec; i++) {
+    delta[0] += r[i]*(*cell).rvecs[3*i];
+    delta[1] += r[i]*(*cell).rvecs[3*i+1];
+    delta[2] += r[i]*(*cell).rvecs[3*i+2];
+  }
+}
+
+
 void cell_compute_distances1(cell_type* cell, double* pos, double* output, long natom) {
   double delta[3];
   long i0, i1;

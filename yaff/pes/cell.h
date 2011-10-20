@@ -36,6 +36,7 @@ void cell_free(cell_type* cell);
 void cell_update(cell_type* cell, double *rvecs, double *gvecs, int nvec);
 
 void cell_mic(double *delta, cell_type* cell);
+void cell_add_vec(double *delta, cell_type* cell, long* r);
 
 void cell_compute_distances1(cell_type* cell, double* pos, double* output, long natom);
 void cell_compute_distances2(cell_type* cell, double* pos0, double* pos1, double* output, long natom0, long natom1);
