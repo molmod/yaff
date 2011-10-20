@@ -67,12 +67,11 @@ int nlist_update_low(double *pos, double rcut, long *rmax,
       delta[1] += r[i]*(*unitcell).rvecs[3*i+1];
       delta[2] += r[i]*(*unitcell).rvecs[3*i+2];
     }
-    // Compute the distance and store the record if distance is below the rcut.
-    d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
-    if (d < rcut) {
-      // it is crucial that a<b for the central cell!!! See pair_pot.c:get_scaling
-      // TODO: move this condition to an earlier point
-      if ((r[0]!=0)||(r[1]!=0)||(r[2]!=0)||(a>b)) {
+    if ((r[0]!=0)||(r[1]!=0)||(r[2]!=0)||(a>b)) {
+      // Compute the distance and store the record if distance is below the rcut.
+      d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
+      if (d < rcut) {
+        // it is crucial that a<b for the central cell!!! See pair_pot.c:get_scaling
         (*neighs).a = a;
         (*neighs).b = b;
         (*neighs).d = d;
