@@ -4,7 +4,6 @@ Whish list
 #. All the TODO items of the Howto.
 #. Neighborlist improvements:
     * Skin parameter
-    * isolate loop of r in nlists.c
     * one big nlist
     * rename modules
     * only consider half of the periodic images and get rid of factor 0.5

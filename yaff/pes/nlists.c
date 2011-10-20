@@ -84,32 +84,7 @@ int nlist_update_low(double *pos, long center_index, double rcut, long *rmax,
       }
     }
     // Increase the appropriate counters in the quadruple loop.
-    if ((*unitcell).nvec > 0) {
-      r[0]++;
-      if (r[0] > rmax[0]) {
-        r[0] = -rmax[0];
-        if ((*unitcell).nvec > 1) {
-          r[1]++;
-          if (r[1] > rmax[1]) {
-            r[1] = -rmax[1];
-            if ((*unitcell).nvec > 2) {
-              r[2]++;
-              if (r[2] > rmax[2]) {
-                r[2] = -rmax[2];
-                other_index++;
-                update_delta0 = 1;
-              }
-            } else {
-              other_index++;
-              update_delta0 = 1;
-            }
-          }
-        } else {
-          other_index++;
-          update_delta0 = 1;
-        }
-      }
-    } else {
+    if (!inc_r(unitcell, r, rmax)) {
       other_index++;
       update_delta0 = 1;
     }
@@ -122,4 +97,38 @@ int nlist_update_low(double *pos, long center_index, double rcut, long *rmax,
   nlist_status[3] = other_index;
   nlist_status[4] += row;
   return 0;
+}
+
+
+int inc_r(cell_type *unitcell, long *r, long *rmax) {
+  // increment the counters for the periodic images.
+  // returns true when the counters were incremented succesfully.
+  // returns false and resets all the counters when the iteration over all cells
+  // is complete.
+  if ((*unitcell).nvec > 0) {
+    r[0]++;
+    if (r[0] > rmax[0]) {
+      r[0] = -rmax[0];
+      if ((*unitcell).nvec > 1) {
+        r[1]++;
+        if (r[1] > rmax[1]) {
+          r[1] = -rmax[1];
+          if ((*unitcell).nvec > 2) {
+            r[2]++;
+            if (r[2] > rmax[2]) {
+              r[2] = -rmax[2];
+              return 0;
+            }
+          } else {
+            return 0;
+          }
+        }
+      } else {
+        return 0;
+      }
+    }
+  } else {
+    return 0;
+  }
+  return 1;
 }
