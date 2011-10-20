@@ -115,6 +115,7 @@ double compute_ewald_corr(double *pos, double *charges,
   long i, center_index, other_index;
   double energy, delta[3], d, x, g, pot, fac;
   energy = 0.0;
+  g = 0.0;
   // Self-interaction correction (no gpos or vtens contribution)
   x = alpha/M_SQRT_PI;
   for (i = 0; i < natom; i++) {

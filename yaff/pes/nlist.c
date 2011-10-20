@@ -31,7 +31,7 @@ int nlist_update_low(double *pos, double rcut, long *rmax,
 
   long a, b, row;
   long *r;
-  int update_delta0, i, central;
+  int update_delta0, central;
   double delta0[3], delta[3], d;
 
   r = status;

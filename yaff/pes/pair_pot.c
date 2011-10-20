@@ -369,19 +369,12 @@ double pair_fn_ei(void *pair_data, long center_index, long other_index, double d
   alpha = (*(pair_data_ei_type*)pair_data).alpha;
   if (alpha > 0) {
     x = alpha*d;
-    pot = erfc(x)/d;
+    pot = qprod*erfc(x)/d;
+    if (g != NULL) *g = (-M_TWO_DIV_SQRT_PI*alpha*exp(-x*x)*qprod - pot)/(d*d);
   } else {
-    pot = 1.0/d;
+    pot = qprod/d;
+    if (g != NULL) *g = -pot/(d*d);
   }
-  if (g != NULL) {
-    if (alpha > 0) {
-      *g = (-M_TWO_DIV_SQRT_PI*alpha*exp(-x*x) - pot)/d;
-    } else {
-      *g = -pot/d;
-    }
-    *g *= qprod/d; // compute derivative divided by d
-  }
-  pot *= qprod;
   return pot;
 }
 

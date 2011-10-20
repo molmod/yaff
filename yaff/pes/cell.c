@@ -78,26 +78,52 @@ void cell_update(cell_type* cell, double *rvecs, double *gvecs, int nvec) {
 }
 
 void cell_mic(double *delta, cell_type* cell) {
-  // applies the Minimum Image Convention.
-  long i;
+  // Applies the Minimum Image Convention. Well, sort of. It does not always work like this.
+  // This function contains an unrolled loop for speed.
+  int nvec;
   double x;
-  for (i=0; i<(*cell).nvec; i++) {
-    x = (*cell).gvecs[3*i]*delta[0] + (*cell).gvecs[3*i+1]*delta[1] + (*cell).gvecs[3*i+2]*delta[2];
-    x = ceil(x-0.5);
-    delta[0] -= x*(*cell).rvecs[3*i];
-    delta[1] -= x*(*cell).rvecs[3*i+1];
-    delta[2] -= x*(*cell).rvecs[3*i+2];
-  }
+  double *rvecs;
+  double *gvecs;
+  nvec = (*cell).nvec;
+  if (nvec == 0) return;
+  rvecs = (*cell).rvecs;
+  gvecs = (*cell).gvecs;
+  x = ceil(gvecs[0]*delta[0] + gvecs[1]*delta[1] + gvecs[2]*delta[2] - 0.5);
+  delta[0] -= x*rvecs[0];
+  delta[1] -= x*rvecs[1];
+  delta[2] -= x*rvecs[2];
+  if (nvec == 1) return;
+  x = ceil(gvecs[3]*delta[0] + gvecs[4]*delta[1] + gvecs[5]*delta[2] - 0.5);
+  delta[0] -= x*rvecs[3];
+  delta[1] -= x*rvecs[4];
+  delta[2] -= x*rvecs[5];
+  if (nvec == 2) return;
+  x = ceil(gvecs[6]*delta[0] + gvecs[7]*delta[1] + gvecs[8]*delta[2] - 0.5);
+  delta[0] -= x*rvecs[6];
+  delta[1] -= x*rvecs[7];
+  delta[2] -= x*rvecs[8];
 }
 
 
 void cell_add_vec(double *delta, cell_type* cell, long* r) {
-  long i;
-  for (i=0; i<(*cell).nvec; i++) {
-    delta[0] += r[i]*(*cell).rvecs[3*i];
-    delta[1] += r[i]*(*cell).rvecs[3*i+1];
-    delta[2] += r[i]*(*cell).rvecs[3*i+2];
-  }
+  // Simply adds an linear combination of cell vectors to delta.
+  // This function contains an unrolled loop for speed.
+  int nvec;
+  double *rvecs;
+  nvec = (*cell).nvec;
+  if (nvec == 0) return;
+  rvecs = (*cell).rvecs;
+  delta[0] += r[0]*rvecs[0];
+  delta[1] += r[0]*rvecs[1];
+  delta[2] += r[0]*rvecs[2];
+  if (nvec == 1) return;
+  delta[0] += r[1]*rvecs[3];
+  delta[1] += r[1]*rvecs[4];
+  delta[2] += r[1]*rvecs[5];
+  if (nvec == 2) return;
+  delta[0] += r[2]*rvecs[6];
+  delta[1] += r[2]*rvecs[7];
+  delta[2] += r[2]*rvecs[8];
 }
 
 

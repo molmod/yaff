@@ -3,10 +3,6 @@ Whish list
 
 #. All the TODO items of the Howto.
 #. Neighborlist improvements:
-    * replace all parts with loops over the number of cell vectors by ``cell_*``
-      routines
-    * unroll C loops over nvec. For each unrolled loop there should be a
-      function in ``cell.c``
     * Skin parameter
 #. ACKS2
 #. Restart functionality.
