@@ -318,3 +318,72 @@ def test_nlists_glycine_9A():
             assert abs(check[key][1][0] - row['dx']) < 1e-8
             assert abs(check[key][1][1] - row['dy']) < 1e-8
             assert abs(check[key][1][2] - row['dz']) < 1e-8
+
+
+def test_nlist_inc_r3():
+    cell = get_system_water32().cell
+    rmax = np.array([2, 2, 2])
+    r = np.array([-2, -2, -2])
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([-1, -2, -2])).all()
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([0, -2, -2])).all()
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([1, -2, -2])).all()
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([2, -2, -2])).all()
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([-2, -1, -2])).all()
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([-1, -1, -2])).all()
+    r = np.array([2, 2, -2])
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([-2, -2, -1])).all()
+    r = np.array([2, 2, 2])
+    assert not nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([-2, -2, -2])).all()
+
+
+def test_nlist_inc_r2():
+    cell = get_system_graphene8().cell
+    rmax = np.array([2, 2])
+    r = np.array([-2, -2])
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([-1, -2])).all()
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([0, -2])).all()
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([1, -2])).all()
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([2, -2])).all()
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([-2, -1])).all()
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([-1, -1])).all()
+    r = np.array([2, 2])
+    assert not nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([-2, -2])).all()
+
+
+def test_nlist_inc_r1():
+    cell = get_system_polyethylene4().cell
+    rmax = np.array([2])
+    r = np.array([-2])
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([-1])).all()
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([0])).all()
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([1])).all()
+    assert nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([2])).all()
+    assert not nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([-2])).all()
+
+
+def test_nlist_inc_r0():
+    cell = get_system_glycine().cell
+    rmax = np.array([], dtype=int)
+    r = np.array([], dtype=int)
+    assert not nlist_inc_r(cell, r, rmax)
+    assert (r == np.array([], dtype=int)).all()

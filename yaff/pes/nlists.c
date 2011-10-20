@@ -84,7 +84,7 @@ int nlist_update_low(double *pos, long center_index, double rcut, long *rmax,
       }
     }
     // Increase the appropriate counters in the quadruple loop.
-    if (!inc_r(unitcell, r, rmax)) {
+    if (!nlist_inc_r(unitcell, r, rmax)) {
       other_index++;
       update_delta0 = 1;
     }
@@ -100,7 +100,7 @@ int nlist_update_low(double *pos, long center_index, double rcut, long *rmax,
 }
 
 
-int inc_r(cell_type *unitcell, long *r, long *rmax) {
+int nlist_inc_r(cell_type *unitcell, long *r, long *rmax) {
   // increment the counters for the periodic images.
   // returns true when the counters were incremented succesfully.
   // returns false and resets all the counters when the iteration over all cells

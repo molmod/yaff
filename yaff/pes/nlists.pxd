@@ -34,3 +34,5 @@ cdef extern from "nlists.h":
                           long *rmax, cell.cell_type* cell, long
                           *nlist_status, nlist_row_type *nlist, long pos_size,
                           long nlist_size)
+
+    bint nlist_inc_r(cell.cell_type *unitcell, long *r, long *rmax)

@@ -37,4 +37,6 @@ int nlist_update_low(double *pos, long center_index, double rcut, long *rmax,
                      cell_type *unitcell, long *nlist_status,
                      nlist_row_type *nlist, long pos_size, long nlist_size);
 
+int nlist_inc_r(cell_type *unitcell, long *r, long *rmax);
+
 #endif

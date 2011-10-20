@@ -37,10 +37,10 @@ from yaff.log import log
 
 __all__ = [
     'Cell', 'nlist_status_init', 'nlist_update', 'nlist_status_finish',
-    'Hammer', 'Switch3', 'PairPot', 'PairPotLJ', 'PairPotMM3', 'PairPotGrimme',
-    'PairPotExpRep', 'PairPotDampDisp', 'PairPotEI', 'compute_ewald_reci',
-    'compute_ewald_corr', 'dlist_forward', 'dlist_back', 'iclist_forward',
-    'iclist_back', 'vlist_forward', 'vlist_back',
+    'nlist_inc_r', 'Hammer', 'Switch3', 'PairPot', 'PairPotLJ', 'PairPotMM3',
+    'PairPotGrimme', 'PairPotExpRep', 'PairPotDampDisp', 'PairPotEI',
+    'compute_ewald_reci', 'compute_ewald_corr', 'dlist_forward', 'dlist_back',
+    'iclist_forward', 'iclist_back', 'vlist_forward', 'vlist_back',
 ]
 
 
@@ -208,6 +208,10 @@ def nlist_update(np.ndarray[double, ndim=2] pos, long center_index,
 
 def nlist_status_finish(nlist_status):
     return nlist_status[4]
+
+
+def nlist_inc_r(Cell unitcell, np.ndarray[long, ndim=1] r, np.ndarray[long, ndim=1] rmax):
+    return nlists.nlist_inc_r(unitcell._c_cell, <long*>r.data, <long*>rmax.data)
 
 
 #
