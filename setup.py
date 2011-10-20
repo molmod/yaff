@@ -41,7 +41,7 @@ setup(
     cmdclass = {'build_ext': build_ext},
     ext_modules=[
         Extension("yaff.pes.ext", [
-            'yaff/pes/ext.pyx', 'yaff/pes/nlists.c', 'yaff/pes/pair_pot.c',
+            'yaff/pes/ext.pyx', 'yaff/pes/nlist.c', 'yaff/pes/pair_pot.c',
             'yaff/pes/ewald.c', 'yaff/pes/dlist.c', 'yaff/pes/iclist.c',
             'yaff/pes/vlist.c', 'yaff/pes/cell.c', 'yaff/pes/truncation.c',
         ]),

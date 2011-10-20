@@ -116,7 +116,7 @@ class ForcePart(object):
 
 
 class ForceField(ForcePart):
-    def __init__(self, system, parts, nlists=None):
+    def __init__(self, system, parts, nlist=None):
         """
            **Arguments:**
 
@@ -130,15 +130,15 @@ class ForceField(ForcePart):
 
            **Optional arguments:**
 
-           nlists
-                A NeighborLists instance. This is only required if some parts
+           nlist
+                A NeighborList instance. This is only required if some parts
                 use this.
         """
         ForcePart.__init__(self, 'all', system)
         self.system = system
         self.parts = parts
-        self.nlists = nlists
-        self.needs_nlists_update = nlists is not None
+        self.nlist = nlist
+        self.needs_nlist_update = nlist is not None
         # Make the parts also accessible as simple attributes.
         for part in parts:
             name = 'part_%s' % part.name
@@ -150,7 +150,7 @@ class ForceField(ForcePart):
                 log('Force field with %i parts:&%s.' % (
                     len(self.parts), ', '.join(part.name for part in self.parts)
                 ))
-                log('Neighborlists present: %s' % (self.nlists is not None))
+                log('Neighborlists present: %s' % (self.nlist is not None))
 
 
     @classmethod
@@ -187,36 +187,36 @@ class ForceField(ForcePart):
                         log.warn('There is no generator named %s.' % prefix)
                 else:
                     generator(system, parsed_pars.get_section(prefix), ff_args)
-            return ForceField(system, ff_args.parts, ff_args.nlists)
+            return ForceField(system, ff_args.parts, ff_args.nlist)
 
     def update_rvecs(self, rvecs):
         ForcePart.update_rvecs(self, rvecs)
         self.system.cell.update_rvecs(rvecs)
-        if self.nlists is not None:
-            self.nlists.update_rmax()
-            self.needs_nlists_update = True
+        if self.nlist is not None:
+            self.nlist.update_rmax()
+            self.needs_nlist_update = True
 
     def update_pos(self, pos):
         ForcePart.update_pos(self, pos)
         self.system.pos[:] = pos
-        if self.nlists is not None:
-            self.needs_nlists_update = True
+        if self.nlist is not None:
+            self.needs_nlist_update = True
 
     def _internal_compute(self, gpos, vtens):
-        if self.needs_nlists_update:
-            self.nlists.update()
-            self.needs_nlists_update = False
+        if self.needs_nlist_update:
+            self.nlist.update()
+            self.needs_nlist_update = False
         result = sum([part.compute(gpos, vtens) for part in self.parts])
         return result
 
 
 class ForcePartPair(ForcePart):
-    def __init__(self, system, nlists, scalings, pair_pot):
+    def __init__(self, system, nlist, scalings, pair_pot):
         ForcePart.__init__(self, 'pair_%s' % pair_pot.name, system)
-        self.nlists = nlists
+        self.nlist = nlist
         self.scalings = scalings
         self.pair_pot = pair_pot
-        self.nlists.request_rcut(pair_pot.rcut)
+        self.nlist.request_rcut(pair_pot.rcut)
         if log.do_medium:
             with log.section('FPINIT'):
                 log('Force part: %s' % self.name)
@@ -233,11 +233,7 @@ class ForcePartPair(ForcePart):
 
     def _internal_compute(self, gpos, vtens):
         with timer.section('PP %s' % self.pair_pot.name):
-            assert len(self.nlists) == len(self.scalings)
-            result = 0.0
-            for i in xrange(len(self.nlists)):
-                result += self.pair_pot.compute(i, self.nlists[i], self.scalings[i], gpos, vtens)
-            return result
+            return self.pair_pot.compute(self.nlist.neighs, self.scalings.stab, gpos, vtens, self.nlist.nneigh)
 
 
 class ForcePartEwaldReciprocal(ForcePart):
@@ -300,12 +296,10 @@ class ForcePartEwaldCorrection(ForcePart):
 
     def _internal_compute(self, gpos, vtens):
         with timer.section('Ewald corr.'):
-            return sum([
-                compute_ewald_corr(self.system.pos, i, self.system.charges,
-                                   self.system.cell, self.alpha, self.scalings[i],
-                                   gpos, vtens)
-                for i in xrange(len(self.scalings))
-            ])
+            return compute_ewald_corr(
+                self.system.pos, self.system.charges, self.system.cell,
+                self.alpha, self.scalings.stab, gpos, vtens
+            )
 
 
 class ForcePartEwaldNeutralizing(ForcePart):

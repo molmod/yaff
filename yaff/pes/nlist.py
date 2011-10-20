@@ -12,7 +12,7 @@
 #
 # YAFF is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# MERCHAnlistILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
@@ -28,34 +28,27 @@ from yaff.timer import timer
 from yaff.pes.ext import nlist_status_init, nlist_status_finish, nlist_update
 
 
-__all__ = ['NeighborLists']
+__all__ = ['NeighborList']
 
 
-nlist_dtype = [
-    ('i', int), ('d', float), ('dx', float), ('dy', float), ('dz', float),
+neigh_dtype = [
+    ('a', int), ('b', int), ('d', float),
+    ('dx', float), ('dy', float), ('dz', float),
     ('r0', int), ('r1', int), ('r2', int)
 ]
 
 
-class NeighborLists(object):
+class NeighborList(object):
     def __init__(self, system):
         self.system = system
         self.rcut = 0.0
-        self.nlists = None
-        self.nlist_sizes = None
+        self.neighs = np.empty(10, dtype=neigh_dtype)
+        self.nneigh = 0
         self.rmax = None
-
-    natom = property(lambda self: self.system.natom)
 
     def request_rcut(self, rcut):
         self.rcut = max(self.rcut, rcut)
         self.update_rmax()
-
-    def __len__(self):
-        return len(self.nlists)
-
-    def __getitem__(self, index):
-        return self.nlists[index][:self.nlist_sizes[index]]
 
     def update_rmax(self):
         # determine the number of periodic images
@@ -71,30 +64,22 @@ class NeighborLists(object):
     def update(self):
         with log.section('NLIST'), timer.section('Nlists'):
             assert self.rcut > 0
-            # if there are no items yet, lets make them first:
-            if self.nlists is None:
-                self.nlists = [np.empty(10, dtype=nlist_dtype) for i in xrange(self.system.natom)]
-                self.nlist_sizes = np.zeros(self.system.natom, dtype=int)
             # build all neighbor lists
-            for i in xrange(self.system.natom):
-                # make an initial nlist array
-                nlist = self.nlists[i]
-                last_start = 0
-                # make an initial status object for the nlist algorithm
-                nlist_status = nlist_status_init(i, self.rmax)
-                while True:
-                    done = nlist_update(
-                        self.system.pos, i, self.rcut, self.rmax,
-                        self.system.cell, nlist_status, nlist[last_start:]
-                    )
-                    if done:
-                        break
-                    last_start = len(nlist)
-                    new_nlist = np.empty((len(nlist)*3)/2, dtype=nlist_dtype)
-                    new_nlist[:last_start] = nlist
-                    nlist = new_nlist
-                    del new_nlist
-                self.nlists[i] = nlist
-                self.nlist_sizes[i] = nlist_status_finish(nlist_status)
+            last_start = 0
+            # make an initial status object for the neighbor list algorithm
+            status = nlist_status_init(self.rmax)
+            while True:
+                done = nlist_update(
+                    self.system.pos, self.rcut, self.rmax,
+                    self.system.cell, status, self.neighs[last_start:]
+                )
+                if done:
+                    break
+                last_start = len(self.neighs)
+                new_neighs = np.empty((len(self.neighs)*3)/2, dtype=neigh_dtype)
+                new_neighs[:last_start] = self.neighs
+                self.neighs = new_neighs
+                del new_neighs
+            self.nneigh = nlist_status_finish(status)
             if log.do_debug:
-                log('min/max size = %i/%i' % (self.nlist_sizes.min(), self.nlist_sizes.max()))
+                log('nlist size = %i' % self.nneigh)

@@ -22,12 +22,12 @@
 
 
 cimport numpy as np
-cimport nlists
+cimport nlist
 cimport truncation
 
 cdef extern from "pair_pot.h":
     ctypedef struct scaling_row_type:
-        np.long_t i
+        np.long_t a, b
         np.float64_t scale
 
     ctypedef struct pair_pot_type:
@@ -41,10 +41,10 @@ cdef extern from "pair_pot.h":
     void pair_pot_set_trunc_scheme(pair_pot_type *pair_pot, truncation.trunc_scheme_type *trunc_sceme)
     void pair_data_free(pair_pot_type *pair_pot)
 
-    double pair_pot_compute(long center_index, nlists.nlist_row_type* nlist,
-                            long nlist_size, scaling_row_type* scaling,
-                            long scaling_size, pair_pot_type* pair_pot,
-                            double *gpos, double* vtens)
+    double pair_pot_compute(nlist.neigh_row_type* neighs, long nneigh,
+                            scaling_row_type* scaling, long scaling_size,
+                            pair_pot_type* pair_pot, double *gpos,
+                            double* vtens)
 
     void pair_data_lj_init(pair_pot_type *pair_pot, double *sigma, double *epsilon)
 

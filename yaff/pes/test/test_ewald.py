@@ -54,6 +54,7 @@ def check_alpha_depedence(system):
     energies = np.array(energies)
     gposs = np.array(gposs)
     vtenss = np.array(vtenss)
+    print energies
     assert abs(energies - energies.mean()).max() < 1e-8
     assert abs(gposs - gposs.mean(axis=0)).max() < 1e-8
     assert abs(vtenss - vtenss.mean(axis=0)).max() < 1e-8
@@ -61,11 +62,11 @@ def check_alpha_depedence(system):
 
 def get_electrostatic_energy(alpha, system):
     # Creat system
-    nlists = NeighborLists(system)
+    nlist = NeighborList(system)
     scalings = Scalings(system, 0.0, 0.0, 0.5)
     # Construct the ewald real-space potential and part
     ewald_real_pot = PairPotEI(system.charges, alpha, rcut=5.5/alpha)
-    part_pair_ewald_real = ForcePartPair(system, nlists, scalings, ewald_real_pot)
+    part_pair_ewald_real = ForcePartPair(system, nlist, scalings, ewald_real_pot)
     assert part_pair_ewald_real.pair_pot.alpha == alpha
     # Construct the ewald reciprocal and correction part
     part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=alpha/0.5)
@@ -73,7 +74,7 @@ def get_electrostatic_energy(alpha, system):
     part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
     assert part_ewald_corr.alpha == alpha
     # Construct the force field
-    ff = ForceField(system, [part_pair_ewald_real, part_ewald_reci, part_ewald_corr], nlists)
+    ff = ForceField(system, [part_pair_ewald_real, part_ewald_reci, part_ewald_corr], nlist)
     ff.update_pos(system.pos)
     gpos = np.zeros(system.pos.shape, float)
     vtens = np.zeros((3, 3), float)
@@ -114,6 +115,25 @@ def test_ewald_reci_volchange_quartz():
         energy2 = part_ewald_reci.compute()
         # energies must be the same
         assert abs(energy1 - energy2) < 1e-5*abs(energy1)
+
+
+def test_ewald_corr_quartz():
+    from scipy.special import erf
+    system = get_system_quartz()
+    for alpha in 0.05, 0.1, 0.2:
+        scalings = Scalings(system, np.random.uniform(0.1, 0.9), np.random.uniform(0.1, 0.9), np.random.uniform(0.1, 0.9))
+        part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
+        energy1 = part_ewald_corr.compute()
+        # self-interaction corrections
+        energy2 = -alpha/np.sqrt(np.pi)*(system.charges**2).sum()
+        # corrections from scaled interactions
+        for i0, i1, scale in scalings.stab:
+            delta = system.pos[i0] - system.pos[i1]
+            system.cell.mic(delta)
+            d = np.linalg.norm(delta)
+            term = erf(alpha*d)/d*(1-scale)*system.charges[i0]*system.charges[i1]
+            energy2 -= term
+        assert abs(energy1 - energy2) < 1e-10
 
 
 def test_ewald_gpos_vtens_corr_water32():

@@ -60,35 +60,42 @@ void pair_pot_set_trunc_scheme(pair_pot_type *pair_pot, trunc_scheme_type *trunc
 }
 
 
-double get_scaling(scaling_row_type *scaling, long center_index, long other_index, long *counter, long size) {
-  if (*counter >= size) return 1.0;
-  while (scaling[*counter].i < other_index) {
-    (*counter)++;
-    if (*counter >= size) return 1.0;
+double get_scaling(scaling_row_type *stab, long a, long b, long *row, long size) {
+  if (*row >= size) return 1.0;
+  while (stab[*row].a < a) {
+    (*row)++;
+    if (*row >= size) return 1.0;
   }
-  if (scaling[*counter].i == other_index) {
-    return scaling[*counter].scale;
+  if (stab[*row].a != a) return 1.0;
+  while (stab[*row].b < b) {
+    (*row)++;
+    if (*row >= size) return 1.0;
+    if (stab[*row].a != a) return 1.0;
+  }
+  if ((stab[*row].b == b) && (stab[*row].a == a)) {
+    return stab[*row].scale;
   }
   return 1.0;
 }
 
 
-double pair_pot_compute(long center_index, nlist_row_type *nlist,
-                        long nlist_size, scaling_row_type *scaling,
-                        long scaling_size, pair_pot_type *pair_pot,
+double pair_pot_compute(neigh_row_type *neighs,
+                        long nneigh, scaling_row_type *stab,
+                        long nstab, pair_pot_type *pair_pot,
                         double *gpos, double* vtens) {
-  long i, other_index, scaling_counter;
+  long i, srow, center_index, other_index;
   double s, energy, v, vg, h, hg;
   energy = 0.0;
-  // Reset the counter for the scaling.
-  scaling_counter = 0;
+  // Reset the row counter for the scaling.
+  srow = 0;
   // Compute the interactions.
-  for (i=0; i<nlist_size; i++) {
+  for (i=0; i<nneigh; i++) {
     // Find the scale
-    if (nlist[i].d < (*pair_pot).rcut) {
-      other_index = nlist[i].i;
-      if ((nlist[i].r0 == 0) && (nlist[i].r1 == 0) && (nlist[i].r2 == 0)) {
-        s = get_scaling(scaling, center_index, other_index, &scaling_counter, scaling_size);
+    if (neighs[i].d < (*pair_pot).rcut) {
+      center_index = neighs[i].a;
+      other_index = neighs[i].b;
+      if ((neighs[i].r0 == 0) && (neighs[i].r1 == 0) && (neighs[i].r2 == 0)) {
+        s = get_scaling(stab, center_index, other_index, &srow, nstab);
       } else {
         s = 0.5;
       }
@@ -96,46 +103,47 @@ double pair_pot_compute(long center_index, nlist_row_type *nlist,
       if (s > 0.0) {
         if ((gpos==NULL) && (vtens==NULL)) {
           // Call the potential function without g argument.
-          v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, nlist[i].d, NULL);
+          v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, neighs[i].d, NULL);
           // If a truncation scheme is defined, apply it.
           if ((*pair_pot).trunc_scheme!=NULL) {
-            v *= (*(*pair_pot).trunc_scheme).trunc_fn(nlist[i].d, (*pair_pot).rcut, (*(*pair_pot).trunc_scheme).par, NULL);
+            v *= (*(*pair_pot).trunc_scheme).trunc_fn(neighs[i].d, (*pair_pot).rcut, (*(*pair_pot).trunc_scheme).par, NULL);
           }
+          //printf("C %i %i %i %i %i %e\n", center_index, other_index, neighs[i].r0, neighs[i].r1, neighs[i].r2, s*v);
         } else {
           // Call the potential function with vg argument.
           // vg is the derivative of the pair potential divided by the distance.
-          v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, nlist[i].d, &vg);
+          v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, neighs[i].d, &vg);
           // If a truncation scheme is defined, apply it.
           if ((*pair_pot).trunc_scheme!=NULL) {
             // hg is (a pointer to) the derivative of the truncation function.
-            h = (*(*pair_pot).trunc_scheme).trunc_fn(nlist[i].d, (*pair_pot).rcut, (*(*pair_pot).trunc_scheme).par, &hg);
+            h = (*(*pair_pot).trunc_scheme).trunc_fn(neighs[i].d, (*pair_pot).rcut, (*(*pair_pot).trunc_scheme).par, &hg);
             // chain rule:
-            vg = vg*h + v*hg/nlist[i].d;
+            vg = vg*h + v*hg/neighs[i].d;
             v *= h;
           }
           vg *= s;
           if (gpos!=NULL) {
-            h = nlist[i].dx*vg;
+            h = neighs[i].dx*vg;
             gpos[3*other_index  ] += h;
             gpos[3*center_index   ] -= h;
-            h = nlist[i].dy*vg;
+            h = neighs[i].dy*vg;
             gpos[3*other_index+1] += h;
             gpos[3*center_index +1] -= h;
-            h = nlist[i].dz*vg;
+            h = neighs[i].dz*vg;
             gpos[3*other_index+2] += h;
             gpos[3*center_index +2] -= h;
           }
           if (vtens!=NULL) {
-            vtens[0] += nlist[i].dx*nlist[i].dx*vg;
-            vtens[4] += nlist[i].dy*nlist[i].dy*vg;
-            vtens[8] += nlist[i].dz*nlist[i].dz*vg;
-            h = nlist[i].dx*nlist[i].dy*vg;
+            vtens[0] += neighs[i].dx*neighs[i].dx*vg;
+            vtens[4] += neighs[i].dy*neighs[i].dy*vg;
+            vtens[8] += neighs[i].dz*neighs[i].dz*vg;
+            h = neighs[i].dx*neighs[i].dy*vg;
             vtens[1] += h;
             vtens[3] += h;
-            h = nlist[i].dx*nlist[i].dz*vg;
+            h = neighs[i].dx*neighs[i].dz*vg;
             vtens[2] += h;
             vtens[6] += h;
-            h = nlist[i].dy*nlist[i].dz*vg;
+            h = neighs[i].dy*neighs[i].dz*vg;
             vtens[5] += h;
             vtens[7] += h;
           }

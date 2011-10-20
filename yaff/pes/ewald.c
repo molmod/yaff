@@ -108,19 +108,22 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
   return energy;
 }
 
-double compute_ewald_corr(double *pos, long center_index, double *charges,
+double compute_ewald_corr(double *pos, double *charges,
                           cell_type *unitcell, double alpha,
-                          scaling_row_type *scaling, long scaling_size,
-                          double *gpos, double *vtens) {
-  long i, other_index;
+                          scaling_row_type *stab, long nstab,
+                          double *gpos, double *vtens, long natom) {
+  long i, center_index, other_index;
   double energy, delta[3], d, x, g, pot, fac;
   energy = 0.0;
   // Self-interaction correction (no gpos or vtens contribution)
-  energy -= alpha/M_SQRT_PI*charges[center_index]*charges[center_index];
+  x = alpha/M_SQRT_PI;
+  for (i = 0; i < natom; i++) {
+    energy -= x*charges[i]*charges[i];
+  }
   // Scaling corrections
-  for (i = 0; i < scaling_size; i++) {
-    other_index = scaling[i].i;
-    if (other_index >= center_index) continue; // avoid double counting.
+  for (i = 0; i < nstab; i++) {
+    center_index = stab[i].a;
+    other_index = stab[i].b;
     delta[0] = pos[3*other_index    ] - pos[3*center_index    ];
     delta[1] = pos[3*other_index + 1] - pos[3*center_index + 1];
     delta[2] = pos[3*other_index + 2] - pos[3*center_index + 2];
@@ -128,7 +131,7 @@ double compute_ewald_corr(double *pos, long center_index, double *charges,
     d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
     x = alpha*d;
     pot = erf(x)/d;
-    fac = (1-scaling[i].scale)*charges[other_index]*charges[center_index];
+    fac = (1-stab[i].scale)*charges[other_index]*charges[center_index];
     if ((gpos != NULL) || (vtens != NULL)) {
       g = -fac*(M_TWO_DIV_SQRT_PI*alpha*exp(-x*x) - pot)/d/d;
     }

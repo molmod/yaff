@@ -32,7 +32,7 @@ from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
     ForcePartEwaldNeutralizing
 from yaff.pes.iclist import Bond, BendAngle, BendCos
-from yaff.pes.nlists import NeighborLists
+from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
 from yaff.pes.vlist import Harmonic, Fues
 
@@ -133,16 +133,16 @@ class FFArgs(object):
            cutoff and the system size.
         """
         self.parts = []
-        self.nlists = None
+        self.nlist = None
         self.rcut = rcut
         self.tr = tr
         self.alpha_scale = alpha_scale
         self.gcut_scale = gcut_scale
 
-    def get_nlists(self, system):
-        if self.nlists is None:
-            self.nlists = NeighborLists(system)
-        return self.nlists
+    def get_nlist(self, system):
+        if self.nlist is None:
+            self.nlist = NeighborList(system)
+        return self.nlist
 
     def get_part(self, ForcePartClass):
         for part in self.parts:
@@ -164,7 +164,7 @@ class FFArgs(object):
     def add_electrostatic_parts(self, system, scalings):
         if self.get_part_pair(PairPotEI) is not None:
             return
-        nlists = self.get_nlists(system)
+        nlist = self.get_nlist(system)
         if system.cell.nvec == 0:
             alpha = 0.0
         elif system.cell.nvec == 3:
@@ -173,7 +173,7 @@ class FFArgs(object):
             raise NotImplementedError('Only zero- and three-dimensional electrostatics are supported.')
         # Real-space electrostatics
         pair_pot_ei = PairPotEI(system.charges, alpha, self.rcut)
-        part_pair_ei = ForcePartPair(system, nlists, scalings, pair_pot_ei)
+        part_pair_ei = ForcePartPair(system, nlist, scalings, pair_pot_ei)
         self.parts.append(part_pair_ei)
         if system.cell.nvec == 3:
             # Reciprocal-space electrostatics
@@ -431,8 +431,8 @@ class LJGenerator(NonbondedGenerator):
             raise RuntimeError('Internal inconsistency: the LJ part should not be present yet.')
 
         pair_pot = PairPotLJ(sigmas, epsilons, ff_args.rcut, ff_args.tr)
-        nlists = ff_args.get_nlists(system)
-        part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
+        nlist = ff_args.get_nlist(system)
+        part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
         ff_args.parts.append(part_pair)
 
 
@@ -470,8 +470,8 @@ class MM3Generator(NonbondedGenerator):
             raise RuntimeError('Internal inconsistency: the MM3 part should not be present yet.')
 
         pair_pot = PairPotMM3(sigmas, epsilons, ff_args.rcut, ff_args.tr)
-        nlists = ff_args.get_nlists(system)
-        part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
+        nlist = ff_args.get_nlist(system)
+        part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
         ff_args.parts.append(part_pair)
 
 
@@ -547,8 +547,8 @@ class ExpRepGenerator(NonbondedGenerator):
             system.ffatype_ids, amp_cross, b_cross, ff_args.rcut, ff_args.tr,
             amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff,
         )
-        nlists = ff_args.get_nlists(system)
-        part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
+        nlist = ff_args.get_nlist(system)
+        part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
         ff_args.parts.append(part_pair)
 
 
@@ -605,8 +605,8 @@ class DampDispGenerator(NonbondedGenerator):
             raise RuntimeError('Internal inconsistency: the DAMPDISP part should not be present yet.')
 
         pair_pot = PairPotDampDisp(system.ffatype_ids, c6_cross, b_cross, ff_args.rcut, ff_args.tr, c6s, bs, vols)
-        nlists = ff_args.get_nlists(system)
-        part_pair = ForcePartPair(system, nlists, scalings, pair_pot)
+        nlist = ff_args.get_nlist(system)
+        part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
         ff_args.parts.append(part_pair)
 
 

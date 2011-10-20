@@ -23,16 +23,15 @@
 
 cimport cell
 
-cdef extern from "nlists.h":
-    ctypedef struct nlist_row_type:
-        long i
+cdef extern from "nlist.h":
+    ctypedef struct neigh_row_type:
+        long a, b
         double d
         double dx, dy, dz
         long r0, r1, r2
 
-    bint nlist_update_low(double *pos, long center_index, double rcut,
-                          long *rmax, cell.cell_type* cell, long
-                          *nlist_status, nlist_row_type *nlist, long pos_size,
-                          long nlist_size)
+    bint nlist_update_low(double *pos, double rcut, long *rmax,
+                          cell.cell_type* cell, long *nlist_status,
+                          neigh_row_type *neighs, long pos_size, long nneigh)
 
     bint nlist_inc_r(cell.cell_type *unitcell, long *r, long *rmax)

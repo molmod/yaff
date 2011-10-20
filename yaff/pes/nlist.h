@@ -21,21 +21,21 @@
 // --
 
 
-#ifndef YAFF_NLISTS_H
-#define YAFF_NLISTS_H
+#ifndef YAFF_NLIST_H
+#define YAFF_NLIST_H
 
 #include "cell.h"
 
 typedef struct {
-    long i;
+    long a, b;
     double d;
     double dx, dy, dz;
     long r0, r1, r2;
-} nlist_row_type;
+} neigh_row_type;
 
-int nlist_update_low(double *pos, long center_index, double rcut, long *rmax,
-                     cell_type *unitcell, long *nlist_status,
-                     nlist_row_type *nlist, long pos_size, long nlist_size);
+int nlist_update_low(double *pos, double rcut, long *rmax, cell_type *unitcell,
+                     long *nlist_status, neigh_row_type *neighs, long pos_size,
+                     long nneigh);
 
 int nlist_inc_r(cell_type *unitcell, long *r, long *rmax);
 

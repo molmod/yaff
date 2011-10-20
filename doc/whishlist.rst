@@ -3,12 +3,10 @@ Whish list
 
 #. All the TODO items of the Howto.
 #. Neighborlist improvements:
-    * Skin parameter
-    * one big nlist
-    * rename modules
     * only consider half of the periodic images and get rid of factor 0.5
     * unroll C loops over nvec. For each unrolled loop there should be a
       function in ``cell.c``
+    * Skin parameter
 #. ACKS2
 #. Restart functionality.
 #. Nonbonding parameters without mixing rules, i.e. using tabulated cross

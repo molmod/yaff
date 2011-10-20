@@ -53,9 +53,9 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
         parts.append(part_valence)
     if do_lj or do_eireal:
         # Neighbor lists, scalings
-        nlists = NeighborLists(system)
+        nlist = NeighborList(system)
     else:
-        nlists = None
+        nlist = None
     if do_lj:
         # Lennard-Jones part
         rminhalf_table = {1: 0.2245*angstrom, 8: 1.7682*angstrom}
@@ -66,13 +66,13 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
             sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
             epsilons[i] = epsilon_table[system.numbers[i]]
         pair_pot_lj = PairPotLJ(sigmas, epsilons, rcut, tr)
-        part_pair_lj = ForcePartPair(system, nlists, scalings, pair_pot_lj)
+        part_pair_lj = ForcePartPair(system, nlist, scalings, pair_pot_lj)
         parts.append(part_pair_lj)
     # electrostatics
     if do_eireal:
         # Real-space electrostatics
         pair_pot_ei = PairPotEI(system.charges, alpha, rcut)
-        part_pair_ei = ForcePartPair(system, nlists, scalings, pair_pot_ei)
+        part_pair_ei = ForcePartPair(system, nlist, scalings, pair_pot_ei)
         parts.append(part_pair_ei)
     if do_eireci:
         # Reciprocal-space electrostatics
@@ -81,7 +81,7 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
         # Ewald corrections
         part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
         parts.append(part_ewald_corr)
-    return ForceField(system, parts, nlists)
+    return ForceField(system, parts, nlist)
 
 
 def test_gpos_water32_full():

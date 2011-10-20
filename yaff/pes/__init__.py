@@ -26,5 +26,5 @@ from yaff.pes.iclist import *
 from yaff.pes.vlist import *
 from yaff.pes.generator import *
 from yaff.pes.ff import *
-from yaff.pes.nlists import *
+from yaff.pes.nlist import *
 from yaff.pes.scaling import *

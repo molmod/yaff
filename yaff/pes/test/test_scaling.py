@@ -31,41 +31,35 @@ from yaff import *
 
 def test_scaling_water32():
     system = get_system_water32()
-    scalings = Scalings(system)
-    assert len(scalings) == system.natom
-    for i in xrange(system.natom):
-        if system.numbers[i] == 8:
-            assert i%3 == 0
-            assert len(scalings[i]) == 2
-            assert scalings[i][0]['i'] == i+1
-            assert scalings[i][0]['scale'] == 0.0
-            assert scalings[i][1]['i'] == i+2
-            assert scalings[i][1]['scale'] == 0.0
-        elif system.numbers[i] == 1:
-            assert len(scalings[i]) == 2
-            assert scalings[i][0]['i'] == (i/3)*3
-            assert scalings[i][0]['scale'] == 0.0
-            assert scalings[i][1]['i'] == (i/3)*3 + (3-i%3)
-            assert scalings[i][1]['scale'] == 0.0
+    stab = Scalings(system, 0.5, 0.0, 1.0).stab
+    assert (stab['a'] > stab['b']).all()
+    assert len(stab) == system.natom
+    for i0, i1, scale in stab:
+        if system.numbers[i1] == 8:
+            assert (i0 == i1+1) or (i0 == i1+2)
+            assert scale == 0.5
+        elif system.numbers[i1] == 1:
+            assert i0 == i1+1
+            assert scale == 0.0
 
 
 def test_scaling_glycine():
     system = get_system_glycine()
-    scalings = Scalings(system, 1.0, 0.5, 0.2) # warning: absurd numbers
-    for i in xrange(system.natom):
-        assert len(scalings[i]) == len(system.neighs2[i]) + len(system.neighs3[i])
-        for j, scale in scalings[i]:
-            if j in system.neighs2[i]:
-                assert scale == 0.5
-            if j in system.neighs3[i]:
-                assert scale == 0.2
+    stab = Scalings(system, 1.0, 0.5, 0.2).stab # warning: absurd numbers
+    assert (stab['a'] > stab['b']).all()
+    assert len(stab) == sum(len(system.neighs2[i]) + len(system.neighs3[i]) for i in xrange(system.natom))/2
+    for i0, i1, scale in stab:
+        if i0 in system.neighs2[i1]:
+            assert scale == 0.5
+        elif i0 in system.neighs3[i1]:
+            assert scale == 0.2
 
 
 def test_scaling_quartz():
     system = get_system_quartz()
-    scalings = Scalings(system)
-    assert len(scalings) == system.natom
-    for i in xrange(system.natom):
-        scaling = scalings[i]
-        for j in xrange(len(scaling)-1):
-            assert scaling[j]['i'] != scaling[j+1]['i']
+    stab = Scalings(system).stab
+    assert (stab['a'] > stab['b']).all()
+    assert len(stab) == sum(len(system.neighs1[i]) + len(system.neighs2[i]) for i in xrange(system.natom))/2
+    for i0, i1, scale in stab:
+        assert scale == 0.0
+        assert i0 in system.neighs1[i1] or i0 in system.neighs2[i1]

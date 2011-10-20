@@ -21,37 +21,37 @@
 // --
 
 #include <math.h>
-#include "nlists.h"
+#include "nlist.h"
 #include "cell.h"
 
 
-int nlist_update_low(double *pos, long center_index, double rcut, long *rmax,
-                     cell_type *unitcell, long *nlist_status,
-                     nlist_row_type *nlist, long pos_size, long nlist_size) {
+int nlist_update_low(double *pos, double rcut, long *rmax,
+                     cell_type *unitcell, long *status,
+                     neigh_row_type *neighs, long natom, long nneigh) {
 
-  long other_index, row;
+  long a, b, row;
   long *r;
   int update_delta0, i;
   double delta0[3], delta[3], d;
-  double *center_pos;
 
-  r = nlist_status;
-  other_index = nlist_status[3];
-  center_pos = pos + 3*center_index;
+  r = status;
+  a = status[3];
+  b = status[4];
 
   update_delta0 = 1;
   row = 0;
 
-  while (row < nlist_size) {
-    if (other_index >= pos_size) {
-      nlist_status[4] += row;
+  while (row < nneigh) {
+    if (a >= natom) {
+      // Completely done.
+      status[5] += row;
       return 1;
     }
     if (update_delta0) {
       // Compute the relative vector.
-      delta0[0] = pos[3*other_index  ] - center_pos[0];
-      delta0[1] = pos[3*other_index+1] - center_pos[1];
-      delta0[2] = pos[3*other_index+2] - center_pos[2];
+      delta0[0] = pos[3*b  ] - pos[3*a  ];
+      delta0[1] = pos[3*b+1] - pos[3*a+1];
+      delta0[2] = pos[3*b+2] - pos[3*a+2];
       // Subtract the cell vectors as to make the relative vector as short
       // as possible. (This is the minimum image convention.)
       cell_mic(delta0, unitcell);
@@ -70,32 +70,40 @@ int nlist_update_low(double *pos, long center_index, double rcut, long *rmax,
     // Compute the distance and store the record if distance is below the rcut.
     d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
     if (d < rcut) {
-      if ((r[0]!=0)||(r[1]!=0)||(r[2]!=0)||(center_index<other_index)) {
-        (*nlist).i = other_index;
-        (*nlist).d = d;
-        (*nlist).dx = delta[0];
-        (*nlist).dy = delta[1];
-        (*nlist).dz = delta[2];
-        (*nlist).r0 = r[0];
-        (*nlist).r1 = r[1];
-        (*nlist).r2 = r[2];
-        nlist++;
+      // it is crucial that a<b for the central cell!!! See pair_pot.c:get_scaling
+      // TODO: move this condition to an earlier point
+      if ((r[0]!=0)||(r[1]!=0)||(r[2]!=0)||(a>b)) {
+        (*neighs).a = a;
+        (*neighs).b = b;
+        (*neighs).d = d;
+        (*neighs).dx = delta[0];
+        (*neighs).dy = delta[1];
+        (*neighs).dz = delta[2];
+        (*neighs).r0 = r[0];
+        (*neighs).r1 = r[1];
+        (*neighs).r2 = r[2];
+        neighs++;
         row++;
       }
     }
-    // Increase the appropriate counters in the quadruple loop.
+    // Increase the appropriate counters in the quintuple loop.
     if (!nlist_inc_r(unitcell, r, rmax)) {
-      other_index++;
       update_delta0 = 1;
+      b++;
+      if (b >= natom) {
+        b = 0;
+        a++;
+      }
     }
   }
   // Exit before the job is done. Keep track of the status. Work will be resumed
   // in a next call.
-  nlist_status[0] = r[0];
-  nlist_status[1] = r[1];
-  nlist_status[2] = r[2];
-  nlist_status[3] = other_index;
-  nlist_status[4] += row;
+  status[0] = r[0];
+  status[1] = r[1];
+  status[2] = r[2];
+  status[3] = a;
+  status[4] = b;
+  status[5] += row;
   return 0;
 }
 

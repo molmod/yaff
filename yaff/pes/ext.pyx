@@ -24,7 +24,7 @@
 import numpy as np
 cimport numpy as np
 cimport cell
-cimport nlists
+cimport nlist
 cimport pair_pot
 cimport ewald
 cimport dlist
@@ -170,48 +170,47 @@ cdef class Cell:
 #
 
 
-def nlist_status_init(center_index, rmax):
-    # five integer status fields:
+def nlist_status_init(rmax):
+    # six integer status fields:
     # * r0
     # * r1
     # * r2
-    # * other_index
+    # * a
+    # * b
     # * number of rows consumed
-    result = np.array([0, 0, 0, 0, 0], int)
+    result = np.array([0, 0, 0, 0, 0, 0], int)
     for i in xrange(len(rmax)):
         if len(rmax) > 0:
             result[i] = -rmax[i]
     return result
 
 
-def nlist_update(np.ndarray[double, ndim=2] pos, long center_index,
-                 double rcut, np.ndarray[long, ndim=1] rmax,
-                 Cell unitcell, np.ndarray[long, ndim=1] nlist_status,
-                 np.ndarray[nlists.nlist_row_type, ndim=1] nlist):
+def nlist_update(np.ndarray[double, ndim=2] pos, double rcut,
+                 np.ndarray[long, ndim=1] rmax,
+                 Cell unitcell, np.ndarray[long, ndim=1] status,
+                 np.ndarray[nlist.neigh_row_type, ndim=1] neighs):
     assert pos.shape[1] == 3
     assert pos.flags['C_CONTIGUOUS']
-    assert center_index >= 0
-    assert center_index < pos.shape[0]
     assert rcut > 0
     assert rmax.shape[0] <= 3
     assert rmax.flags['C_CONTIGUOUS']
-    assert nlist_status.shape[0] == 5
-    assert nlist_status.flags['C_CONTIGUOUS']
-    assert nlist.flags['C_CONTIGUOUS']
+    assert status.shape[0] == 6
+    assert status.flags['C_CONTIGUOUS']
+    assert neighs.flags['C_CONTIGUOUS']
     assert rmax.shape[0] == unitcell.nvec
-    return nlists.nlist_update_low(
-        <double*>pos.data, center_index, rcut, <long*>rmax.data,
-        unitcell._c_cell, <long*>nlist_status.data,
-        <nlists.nlist_row_type*>nlist.data, len(pos), len(nlist)
+    return nlist.nlist_update_low(
+        <double*>pos.data, rcut, <long*>rmax.data,
+        unitcell._c_cell, <long*>status.data,
+        <nlist.neigh_row_type*>neighs.data, len(pos), len(neighs)
     )
 
 
-def nlist_status_finish(nlist_status):
-    return nlist_status[4]
+def nlist_status_finish(status):
+    return status[5]
 
 
 def nlist_inc_r(Cell unitcell, np.ndarray[long, ndim=1] r, np.ndarray[long, ndim=1] rmax):
-    return nlists.nlist_inc_r(unitcell._c_cell, <long*>r.data, <long*>rmax.data)
+    return nlist.nlist_inc_r(unitcell._c_cell, <long*>r.data, <long*>rmax.data)
 
 
 #
@@ -297,17 +296,16 @@ cdef class PairPot:
     def get_truncation(self):
         return self.tr
 
-    def compute(self, long center_index,
-                np.ndarray[nlists.nlist_row_type, ndim=1] nlist,
-                np.ndarray[pair_pot.scaling_row_type, ndim=1] scaling,
+    def compute(self, np.ndarray[nlist.neigh_row_type, ndim=1] neighs,
+                np.ndarray[pair_pot.scaling_row_type, ndim=1] stab,
                 np.ndarray[double, ndim=2] gpos,
-                np.ndarray[double, ndim=2] vtens):
+                np.ndarray[double, ndim=2] vtens, long nneigh):
         cdef double *my_gpos
         cdef double *my_vtens
 
         assert pair_pot.pair_pot_ready(self._c_pair_pot)
-        assert nlist.flags['C_CONTIGUOUS']
-        assert scaling.flags['C_CONTIGUOUS']
+        assert neighs.flags['C_CONTIGUOUS']
+        assert stab.flags['C_CONTIGUOUS']
 
         if gpos is None:
             my_gpos = NULL
@@ -325,8 +323,8 @@ cdef class PairPot:
             my_vtens = <double*>vtens.data
 
         return pair_pot.pair_pot_compute(
-            center_index, <nlists.nlist_row_type*>nlist.data, len(nlist),
-            <pair_pot.scaling_row_type*>scaling.data, len(scaling),
+            <nlist.neigh_row_type*>neighs.data, nneigh,
+            <pair_pot.scaling_row_type*>stab.data, len(stab),
             self._c_pair_pot, my_gpos, my_vtens
         )
 
@@ -709,10 +707,9 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
 
 
 def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
-                       long center_index,
                        np.ndarray[double, ndim=1] charges,
                        Cell unitcell, double alpha,
-                       np.ndarray[pair_pot.scaling_row_type, ndim=1] scaling,
+                       np.ndarray[pair_pot.scaling_row_type, ndim=1] stab,
                        np.ndarray[double, ndim=2] gpos,
                        np.ndarray[double, ndim=2] vtens):
     cdef double *my_gpos
@@ -723,7 +720,7 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
     assert charges.flags['C_CONTIGUOUS']
     assert charges.shape[0] == pos.shape[0]
     assert alpha > 0
-    assert scaling.flags['C_CONTIGUOUS']
+    assert stab.flags['C_CONTIGUOUS']
 
     if gpos is None:
         my_gpos = NULL
@@ -741,11 +738,11 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
         assert vtens.shape[1] == 3
         my_vtens = <double*>vtens.data
 
-    return ewald.compute_ewald_corr(<double*>pos.data, center_index,
-                                    <double*>charges.data, unitcell._c_cell,
-                                    alpha,
-                                    <pair_pot.scaling_row_type*>scaling.data,
-                                    len(scaling), my_gpos, my_vtens)
+    return ewald.compute_ewald_corr(
+        <double*>pos.data, <double*>charges.data, unitcell._c_cell, alpha,
+        <pair_pot.scaling_row_type*>stab.data, len(stab), my_gpos,
+        my_vtens, len(pos)
+    )
 
 
 #
