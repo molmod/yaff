@@ -115,9 +115,9 @@ class TimerGroup(object):
         with log.section('TIMER'):
             log('Overview of CPU time usage.')
             log.hline()
-            log('Label          Total   Own')
+            log('Label             Total      Own')
             log.hline()
-            bar_width = log.width-27
+            bar_width = log.width-33
             for label, timer in sorted(self.parts.iteritems()):
                 #if timer.total.cpu == 0.0:
                 #    continue
@@ -125,7 +125,7 @@ class TimerGroup(object):
                     cpu_bar = "W"*int(timer.own.cpu/max_own_cpu*bar_width)
                 else:
                     cpu_bar = ""
-                log('%14s %5.1f %5.1f %30s' % (
+                log('%14s %8.1f %8.1f %s' % (
                     label.ljust(14),
                     timer.total.cpu, timer.own.cpu, cpu_bar.ljust(bar_width),
                 ))
