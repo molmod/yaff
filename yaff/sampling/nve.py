@@ -263,9 +263,12 @@ class ConsErrTracker(object):
         self.econs_sumsq += econs**2
 
     def get(self):
-        ekin_var = self.ekin_sumsq/self.counter - (self.ekin_sum/self.counter)**2
-        econs_var = self.econs_sumsq/self.counter - (self.econs_sum/self.counter)**2
-        return np.sqrt(econs_var/ekin_var)
+        if self.counter > 0:
+            ekin_var = self.ekin_sumsq/self.counter - (self.ekin_sum/self.counter)**2
+            if ekin_var > 0:
+                econs_var = self.econs_sumsq/self.counter - (self.econs_sum/self.counter)**2
+                return np.sqrt(econs_var/ekin_var)
+        return 0.0
 
 
 class NVEIntegrator(Iterative):
