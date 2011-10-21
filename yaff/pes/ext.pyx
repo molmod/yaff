@@ -36,11 +36,12 @@ from yaff.log import log
 
 
 __all__ = [
-    'Cell', 'nlist_status_init', 'nlist_update', 'nlist_status_finish',
-    'nlist_inc_r', 'Hammer', 'Switch3', 'PairPot', 'PairPotLJ', 'PairPotMM3',
-    'PairPotGrimme', 'PairPotExpRep', 'PairPotDampDisp', 'PairPotEI',
-    'compute_ewald_reci', 'compute_ewald_corr', 'dlist_forward', 'dlist_back',
-    'iclist_forward', 'iclist_back', 'vlist_forward', 'vlist_back',
+    'Cell', 'nlist_status_init', 'nlist_build', 'nlist_status_finish',
+    'nlist_recompute', 'nlist_inc_r', 'Hammer', 'Switch3', 'PairPot',
+    'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep',
+    'PairPotDampDisp', 'PairPotEI', 'compute_ewald_reci', 'compute_ewald_corr',
+    'dlist_forward', 'dlist_back', 'iclist_forward', 'iclist_back',
+    'vlist_forward', 'vlist_back',
 ]
 
 
@@ -147,6 +148,13 @@ cdef class Cell:
         assert delta.size == 3
         cell.cell_mic(<double*> delta.data, self._c_cell)
 
+    def to_center(self, np.ndarray[double, ndim=1] delta):
+        assert delta.size == 3
+        cdef np.ndarray[long, ndim=1] result
+        result = np.zeros(self.nvec, int)
+        cell.cell_to_center(<double*> delta.data, self._c_cell, <long*> result.data)
+        return result
+
     def add_vec(self, np.ndarray[double, ndim=1] delta, np.ndarray[long, ndim=1] r):
         assert delta.size == 3
         assert r.size == self.nvec
@@ -187,10 +195,10 @@ def nlist_status_init(rmax):
     return result
 
 
-def nlist_update(np.ndarray[double, ndim=2] pos, double rcut,
-                 np.ndarray[long, ndim=1] rmax,
-                 Cell unitcell, np.ndarray[long, ndim=1] status,
-                 np.ndarray[nlist.neigh_row_type, ndim=1] neighs):
+def nlist_build(np.ndarray[double, ndim=2] pos, double rcut,
+                np.ndarray[long, ndim=1] rmax,
+                Cell unitcell, np.ndarray[long, ndim=1] status,
+                np.ndarray[nlist.neigh_row_type, ndim=1] neighs):
     assert pos.shape[1] == 3
     assert pos.flags['C_CONTIGUOUS']
     assert rcut > 0
@@ -200,7 +208,7 @@ def nlist_update(np.ndarray[double, ndim=2] pos, double rcut,
     assert status.flags['C_CONTIGUOUS']
     assert neighs.flags['C_CONTIGUOUS']
     assert rmax.shape[0] == unitcell.nvec
-    return nlist.nlist_update_low(
+    return nlist.nlist_build_low(
         <double*>pos.data, rcut, <long*>rmax.data,
         unitcell._c_cell, <long*>status.data,
         <nlist.neigh_row_type*>neighs.data, len(pos), len(neighs)
@@ -209,6 +217,22 @@ def nlist_update(np.ndarray[double, ndim=2] pos, double rcut,
 
 def nlist_status_finish(status):
     return status[5]
+
+
+def nlist_recompute(np.ndarray[double, ndim=2] pos,
+                    np.ndarray[double, ndim=2] pos_old,
+                    Cell unitcell,
+                    np.ndarray[nlist.neigh_row_type, ndim=1] neighs):
+    assert pos.shape[1] == 3
+    assert pos.flags['C_CONTIGUOUS']
+    assert pos_old.shape[1] == 3
+    assert pos_old.flags['C_CONTIGUOUS']
+    assert pos.shape[0] == pos_old.shape[0]
+    assert neighs.flags['C_CONTIGUOUS']
+    nlist.nlist_recompute_low(
+        <double*>pos.data, <double*>pos_old.data, unitcell._c_cell,
+        <nlist.neigh_row_type*>neighs.data, len(neighs)
+    )
 
 
 def nlist_inc_r(Cell unitcell, np.ndarray[long, ndim=1] r, np.ndarray[long, ndim=1] rmax):

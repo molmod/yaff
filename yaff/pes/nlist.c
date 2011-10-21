@@ -25,9 +25,9 @@
 #include "cell.h"
 
 
-int nlist_update_low(double *pos, double rcut, long *rmax,
-                     cell_type *unitcell, long *status,
-                     neigh_row_type *neighs, long natom, long nneigh) {
+int nlist_build_low(double *pos, double rcut, long *rmax,
+                    cell_type *unitcell, long *status,
+                    neigh_row_type *neighs, long natom, long nneigh) {
 
   long a, b, row;
   long *r;
@@ -152,4 +152,56 @@ endloop:
   if ((*unitcell).nvec > 1) r[1] = 0;
   if ((*unitcell).nvec > 2) r[2] = 0;
   return 0;
+}
+
+
+void nlist_recompute_low(double *pos, double *pos_old, cell_type* unitcell,
+                         neigh_row_type *neighs, long nneigh) {
+  long i, a, b;
+  int update_delta0, central;
+  long center[3];
+  double delta0[3], delta[3], d;
+
+  update_delta0 = 1;
+  a = -1;
+  b = -1;
+
+  for (i=nneigh-1; i>=0; i--) {
+    if ((*neighs).a != a) {
+      update_delta0 = 1;
+    } else if ((*neighs).b != b) {
+      update_delta0 = 1;
+    }
+    if (update_delta0) {
+      a = (*neighs).a;
+      b = (*neighs).b;
+      // Compute the old relative vector.
+      delta0[0] = pos_old[3*b  ] - pos_old[3*a  ];
+      delta0[1] = pos_old[3*b+1] - pos_old[3*a+1];
+      delta0[2] = pos_old[3*b+2] - pos_old[3*a+2];
+      // Compute the cell vectors to be subtracted to bring the old to the MIC
+      cell_to_center(delta0, unitcell, center);
+      // Compute the new relative vector.
+      delta0[0] = pos[3*b  ] - pos[3*a  ];
+      delta0[1] = pos[3*b+1] - pos[3*a+1];
+      delta0[2] = pos[3*b+2] - pos[3*a+2];
+      // Apply the same cell displacement to the new relative vector
+      cell_add_vec(delta0, unitcell, center);
+      // Done updating delta0.
+      update_delta0 = 0;
+    }
+    // Construct delta by adding the appropriate cell vector to delta0
+    delta[0] = delta0[0];
+    delta[1] = delta0[1];
+    delta[2] = delta0[2];
+    cell_add_vec(delta, unitcell, &((*neighs).r0));
+    // Compute the distance and store the record if distance is below the rcut.
+    d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
+    // Store the new results;
+    (*neighs).d = d;
+    (*neighs).dx = delta[0];
+    (*neighs).dy = delta[1];
+    (*neighs).dz = delta[2];
+    neighs++;
+  }
 }

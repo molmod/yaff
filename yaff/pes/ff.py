@@ -150,7 +150,7 @@ class ForceField(ForcePart):
                 log('Force field with %i parts:&%s.' % (
                     len(self.parts), ', '.join(part.name for part in self.parts)
                 ))
-                log('Neighborlists present: %s' % (self.nlist is not None))
+                log('Neighborlist present: %s' % (self.nlist is not None))
 
 
     @classmethod

@@ -418,3 +418,59 @@ def test_nlist_inc_r0():
     r = np.array([], dtype=int)
     assert not nlist_inc_r(cell, r, rmax)
     assert (r == np.array([], dtype=int)).all()
+
+
+def check_nlist_skin(system, rcut, skin):
+    nlist1 = NeighborList(system, skin)
+    nlist1.request_rcut(rcut)
+    nlist1.update()
+    # Displace all atoms with a random vector the rebuild is not triggered
+    for i in xrange(system.natom):
+        vec = np.random.normal(-1, 1, 3)
+        vec *= 0.45/(nlist1.rmax.max()+1)*skin/np.linalg.norm(vec)
+        system.pos[i] += vec
+    assert not nlist1.need_rebuild()
+    nlist1.update()
+
+    nlist2 = NeighborList(system)
+    nlist2.request_rcut(rcut)
+
+    # Check if all distances present in nlist2 are also present in nlist1.
+    lookup = {}
+    for row in nlist1.neighs[:nlist1.nneigh]:
+        key = row['a'], row['b'], row['r0'], row['r1'], row['r2']
+        value = row['d'], row['dx'], row['dy'], row['dz']
+        lookup[key] = value
+
+    for row in nlist2.neighs[:nlist2.nneigh]:
+        key = row['a'], row['b'], row['r0'], row['r1'], row['r2']
+        value = lookup.get(key)
+        assert value is not None
+        d, dx, dy, dz = value
+
+        assert abs(d - row['d']) < 1e-8
+        assert abs(dx - row['dx']) < 1e-8
+        assert abs(dy - row['dy']) < 1e-8
+        assert abs(dz - row['dz']) < 1e-8
+
+    # Displace all atoms with a random vector the rebuild is triggered.
+    for i in xrange(system.natom):
+        vec = np.random.normal(-1, 1, 3)
+        vec *= 0.55/(nlist1.rmax.max()+1)*skin/np.linalg.norm(vec)
+        system.pos[i] += vec
+    assert nlist1.need_rebuild()
+
+
+def test_nlist_quartz_6A_skin3A():
+    system = get_system_quartz()
+    check_nlist_skin(system, 6*angstrom, 3*angstrom)
+
+
+def test_nlist_water32_6A_skin3A():
+    system = get_system_water32()
+    check_nlist_skin(system, 6*angstrom, 3*angstrom)
+
+
+def test_nlist_water32_10A_skin2A():
+    system = get_system_water32()
+    check_nlist_skin(system, 10*angstrom, 2*angstrom)

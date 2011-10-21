@@ -33,9 +33,12 @@ typedef struct {
     long r0, r1, r2;
 } neigh_row_type;
 
-int nlist_update_low(double *pos, double rcut, long *rmax, cell_type *unitcell,
-                     long *nlist_status, neigh_row_type *neighs, long pos_size,
-                     long nneigh);
+int nlist_build_low(double *pos, double rcut, long *rmax, cell_type *unitcell,
+                    long *nlist_status, neigh_row_type *neighs, long pos_size,
+                    long nneigh);
+
+void nlist_recompute_low(double *pos, double *pos_old, cell_type* unitcell,
+                         neigh_row_type *neighs, long nneigh);
 
 int nlist_inc_r(cell_type *unitcell, long *r, long *rmax);
 

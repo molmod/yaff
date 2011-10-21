@@ -25,7 +25,8 @@ import numpy as np
 
 from yaff.log import log
 from yaff.timer import timer
-from yaff.pes.ext import nlist_status_init, nlist_status_finish, nlist_update
+from yaff.pes.ext import nlist_status_init, nlist_status_finish, nlist_build, \
+    nlist_recompute
 
 
 __all__ = ['NeighborList']
@@ -39,20 +40,59 @@ neigh_dtype = [
 
 
 class NeighborList(object):
-    def __init__(self, system):
+    def __init__(self, system, skin=0):
+        """Algorithms to keep track of all distances below a given rcut
+
+           **Arguments:**
+
+           system
+                A System instance.
+
+           **Optional arguments:**
+
+           skin
+                A margin added to the rcut parameter. Only when atoms are
+                displaced by half this distance, the neighborlist is rebuilt
+                from scratch. In the other case, the distances of the known
+                pairs are just recomputed. If set to zero, the default, the
+                neighborlist is rebuilt at each update.
+
+                A reasonable skin setting can drastically improve the
+                performance of the neighborlist updates. For example, when
+                ``rcut`` is ``10*angstrom``, a ``skin`` of ``2*angstrom`` is
+                reasonable. If the skin is set too large, the updates will
+                become very inefficient. Some tuning of ``rcut`` and ``skin``
+                may be beneficial.
+        """
+        if skin < 0:
+            raise ValueError('The skin parameter must be positive.')
         self.system = system
+        self.skin = skin
         self.rcut = 0.0
+        # the neighborlist:
         self.neighs = np.empty(10, dtype=neigh_dtype)
         self.nneigh = 0
+        # rmax determines the number of periodic images that are considered.
+        # Along the a direction, images are taken from -rmax[0] to rmax[0]
+        # (inclusive), etc.
         self.rmax = None
+        # for skin algorithm:
+        self._pos_old = None
+        self.rebuild_next = False
 
     def request_rcut(self, rcut):
+        """Make sure the internal rcut parameter is at least is high as rcut."""
         self.rcut = max(self.rcut, rcut)
         self.update_rmax()
 
     def update_rmax(self):
+        """Update the rmax attribute.
+
+           This may be necessary for two reasons: (i) the cutoff has changed,
+           and (ii) the cell vectors have changed.
+        """
         # determine the number of periodic images
-        self.rmax = np.ceil(self.rcut/self.system.cell.rspacings-0.5).astype(int)
+        self.rmax = np.ceil((self.rcut+self.skin)/self.system.cell.rspacings-0.5).astype(int)
         if log.do_high:
             if len(self.rmax) == 1:
                 log('rmax a       = %i' % tuple(self.rmax))
@@ -60,26 +100,64 @@ class NeighborList(object):
                 log('rmax a,b     = %i,%i' % tuple(self.rmax))
             elif len(self.rmax) == 3:
                 log('rmax a,b,c   = %i,%i,%i' % tuple(self.rmax))
+        # Request a rebuild of the neighborlist because there is no simple way
+        # to figure out whether an update is sufficient. TODO: look at other
+        # codes to see how this is done.
+        self.rebuild_next = True
 
     def update(self):
         with log.section('NLIST'), timer.section('Nlists'):
             assert self.rcut > 0
-            # build all neighbor lists
-            last_start = 0
-            # make an initial status object for the neighbor list algorithm
-            status = nlist_status_init(self.rmax)
-            while True:
-                done = nlist_update(
-                    self.system.pos, self.rcut, self.rmax,
-                    self.system.cell, status, self.neighs[last_start:]
-                )
-                if done:
-                    break
-                last_start = len(self.neighs)
-                new_neighs = np.empty((len(self.neighs)*3)/2, dtype=neigh_dtype)
-                new_neighs[:last_start] = self.neighs
-                self.neighs = new_neighs
-                del new_neighs
-            self.nneigh = nlist_status_finish(status)
+
+            if self._need_rebuild():
+                # *rebuild* the entire neighborlist
+                # 1) make an initial status object for the neighbor list algorithm
+                status = nlist_status_init(self.rmax)
+                # 2) a loop of consecutive update/allocate calls
+                last_start = 0
+                while True:
+                    done = nlist_build(
+                        self.system.pos, self.rcut + self.skin, self.rmax,
+                        self.system.cell, status, self.neighs[last_start:]
+                    )
+                    if done:
+                        break
+                    last_start = len(self.neighs)
+                    new_neighs = np.empty((len(self.neighs)*3)/2, dtype=neigh_dtype)
+                    new_neighs[:last_start] = self.neighs
+                    self.neighs = new_neighs
+                    del new_neighs
+                # 3) get the number of neighbors in the list.
+                self.nneigh = nlist_status_finish(status)
+                if log.do_debug:
+                    log('Rebuilt, size = %i' % self.nneigh)
+                # 4) store the current state to check in future calls if we
+                #    need to do a rebuild or a recompute.
+                self._checkpoint()
+                self.rebuild_next = False
+            else:
+                # just *recompute* the deltas and the distance in the
+                # neighborlist
+                nlist_recompute(self.system.pos, self._pos_old, self.system.cell, self.neighs[:self.nneigh])
+                if log.do_debug:
+                    log('Recomputed')
+
+    def _checkpoint(self):
+        if self.skin > 0:
+            # Only use the skin algorithm if this parameter is larger than zero.
+            if self._pos_old is None:
+                self._pos_old = self.system.pos.copy()
+            else:
+                self._pos_old[:] = self.system.pos
+
+    def _need_rebuild(self):
+        if self.skin <= 0 or self._pos_old is None or self.rebuild_next:
+            return True
+        else:
+            # Compute an upper bound for the maximum relative displacement.
+            disp = np.sqrt(((self.system.pos - self._pos_old)**2).sum(axis=1).max())
+            disp *= 2*(self.rmax.max()+1)
             if log.do_debug:
-                log('nlist size = %i' % self.nneigh)
+                log('Maximum relative displacement %s      Skin %s' % (log.length(disp), log.length(self.skin)))
+            # Compare with skin parameter
+            return disp >= self.skin

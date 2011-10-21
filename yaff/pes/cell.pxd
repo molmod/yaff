@@ -30,6 +30,7 @@ cdef extern from "cell.h":
     void cell_update(cell_type* cell, double *rvecs, double *gvecs, int nvec)
 
     void cell_mic(double *delta, cell_type* cell)
+    void cell_to_center(double *car, cell_type* cell, long *center)
     void cell_add_vec(double *delta, cell_type* cell, long* r)
 
     void cell_compute_distances1(cell_type* cell, double* pos, double* output, long natom)

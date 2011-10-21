@@ -36,7 +36,7 @@ from yaff.pes.test.common import check_gpos_ff, check_vtens_ff
 def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=False):
     tr = Switch3(3*angstrom)
     system = get_system_water32()
-    rcut = 9*angstrom
+    rcut = 7*angstrom
     alpha = 4.5/rcut
     scalings = Scalings(system)
     parts = []
@@ -53,7 +53,7 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
         parts.append(part_valence)
     if do_lj or do_eireal:
         # Neighbor lists, scalings
-        nlist = NeighborList(system)
+        nlist = NeighborList(system, skin=2*angstrom)
     else:
         nlist = None
     if do_lj:

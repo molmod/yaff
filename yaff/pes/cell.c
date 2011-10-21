@@ -105,6 +105,21 @@ void cell_mic(double *delta, cell_type* cell) {
 }
 
 
+void cell_to_center(double *cart, cell_type* cell, long *center) {
+  // Transfroms to fractional coordinates
+  int nvec;
+  double *gvecs;
+  nvec = (*cell).nvec;
+  if (nvec == 0) return;
+  gvecs = (*cell).gvecs;
+  center[0] = -ceil(gvecs[0]*cart[0] + gvecs[1]*cart[1] + gvecs[2]*cart[2] - 0.5);
+  if (nvec == 1) return;
+  center[1] = -ceil(gvecs[3]*cart[0] + gvecs[4]*cart[1] + gvecs[5]*cart[2] - 0.5);
+  if (nvec == 2) return;
+  center[2] = -ceil(gvecs[6]*cart[0] + gvecs[7]*cart[1] + gvecs[8]*cart[2] - 0.5);
+}
+
+
 void cell_add_vec(double *delta, cell_type* cell, long* r) {
   // Simply adds an linear combination of cell vectors to delta.
   // This function contains an unrolled loop for speed.

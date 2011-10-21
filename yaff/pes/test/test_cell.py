@@ -35,11 +35,14 @@ def test_cell_water32():
     assert (cell.gspacings == 1/(9.865*angstrom)).all()
     assert abs(cell.volume - np.linalg.det(cell.rvecs)) < 1e-10
     assert abs(np.dot(cell.gvecs, cell.rvecs.transpose()) - np.identity(3)).max() < 1e-5
-    vec = np.array([10.0, 0.0, 5.0])*angstrom
-    cell.mic(vec)
-    assert abs(vec - np.array([0.135, 0.0, -4.865])*angstrom).max() < 1e-10
-    cell.add_vec(vec, np.array([1,2,3]))
-    assert abs(vec - np.array([10.0, 19.73, 24.73])*angstrom).max() < 1e-10
+    vec1 = np.array([10.0, 0.0, 5.0])*angstrom
+    cell.mic(vec1)
+    assert abs(vec1 - np.array([0.135, 0.0, -4.865])*angstrom).max() < 1e-10
+    vec2 = np.array([10.0, 0.0, 5.0])*angstrom
+    cell.add_vec(vec2, cell.to_center(vec2))
+    assert abs(vec1 - vec2).max() < 1e-10
+    cell.add_vec(vec1, np.array([1,2,3]))
+    assert abs(vec1 - np.array([10.0, 19.73, 24.73])*angstrom).max() < 1e-10
 
 
 
@@ -47,11 +50,14 @@ def test_cell_graphene8():
     cell = get_system_graphene8().cell
     assert abs(cell.volume - np.linalg.norm(np.cross(cell.rvecs[0], cell.rvecs[1]))) < 1e-10
     assert abs(np.dot(cell.gvecs, cell.rvecs.transpose()) - np.identity(2)).max() < 1e-5
-    vec = np.array([10.0, 0.0, 105.0])*angstrom
-    cell.mic(vec)
-    assert abs(vec - np.array([0.156, 0.0, 105])*angstrom).max() < 1e-3
-    cell.add_vec(vec, np.array([1,2]))
-    assert abs(vec - np.array([10.002, 8.524, 105])*angstrom).max() < 1e-3
+    vec1 = np.array([10.0, 0.0, 105.0])*angstrom
+    cell.mic(vec1)
+    assert abs(vec1 - np.array([0.156, 0.0, 105])*angstrom).max() < 1e-3
+    vec2 = np.array([10.0, 0.0, 105.0])*angstrom
+    cell.add_vec(vec2, cell.to_center(vec2))
+    assert abs(vec1 - vec2).max() < 1e-10
+    cell.add_vec(vec1, np.array([1,2]))
+    assert abs(vec1 - np.array([10.002, 8.524, 105])*angstrom).max() < 1e-3
 
 
 def test_cell_polyethylene4():
@@ -60,11 +66,14 @@ def test_cell_polyethylene4():
     assert cell.gvecs.shape == (1, 3)
     assert abs(cell.volume - np.linalg.norm(cell.rvecs[0])) < 1e-10
     assert abs(np.dot(cell.gvecs, cell.rvecs.transpose()) - 1) < 1e-5
-    vec = np.array([10.0, 0.0, 105.0])*angstrom
-    cell.mic(vec)
-    assert abs(vec - np.array([-0.15, -0.374, 104.89])*angstrom).max() < 1e-3
-    cell.add_vec(vec, np.array([1]))
-    assert abs(vec - np.array([4.925, -0.187, 104.945])*angstrom).max() < 1e-3
+    vec1 = np.array([10.0, 0.0, 105.0])*angstrom
+    cell.mic(vec1)
+    assert abs(vec1 - np.array([-0.15, -0.374, 104.89])*angstrom).max() < 1e-3
+    vec2 = np.array([10.0, 0.0, 105.0])*angstrom
+    cell.add_vec(vec2, cell.to_center(vec2))
+    assert abs(vec1 - vec2).max() < 1e-10
+    cell.add_vec(vec1, np.array([1]))
+    assert abs(vec1 - np.array([4.925, -0.187, 104.945])*angstrom).max() < 1e-3
 
 
 def test_cell_quartz():
@@ -81,11 +90,14 @@ def test_cell_glycine():
     assert cell.gvecs.shape == (0, 3)
     assert cell.rspacings.shape == (0,)
     assert cell.gspacings.shape == (0,)
-    vec = np.array([10.0, 0.0, 105.0])*angstrom
-    cell.mic(vec)
-    assert abs(vec - np.array([10.0, 0.0, 105.0])*angstrom).max() < 1e-3
-    cell.add_vec(vec, np.array([], dtype=int))
-    assert abs(vec - np.array([10.0, 0.0, 105.0])*angstrom).max() < 1e-3
+    vec1 = np.array([10.0, 0.0, 105.0])*angstrom
+    cell.mic(vec1)
+    assert abs(vec1 - np.array([10.0, 0.0, 105.0])*angstrom).max() < 1e-3
+    vec2 = np.array([10.0, 0.0, 105.0])*angstrom
+    cell.add_vec(vec2, cell.to_center(vec2))
+    assert abs(vec1 - vec2).max() < 1e-10
+    cell.add_vec(vec1, np.array([], dtype=int))
+    assert abs(vec1 - np.array([10.0, 0.0, 105.0])*angstrom).max() < 1e-3
 
 
 def test_compute_distances1():

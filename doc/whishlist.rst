@@ -2,8 +2,6 @@ Whish list
 ##########
 
 #. All the TODO items of the Howto.
-#. Neighborlist improvements:
-    * Skin parameter
 #. ACKS2
 #. Restart functionality.
 #. Nonbonding parameters without mixing rules, i.e. using tabulated cross
@@ -19,3 +17,4 @@ Whish list
 #. Corretly treat the periodic boundary conditions in very skewed cells.
    The current implementation of the minimum image convention is, just like in
    most MD codes, rather naive.
+#. Reference system, so users know what to cite.
