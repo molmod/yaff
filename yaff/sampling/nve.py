@@ -333,7 +333,7 @@ class NVEIntegrator(Iterative):
             masses = self.masses[select]
             shape = (len(select), 3)
         result = np.random.normal(0, 1, shape)*np.sqrt(boltzmann*temp0/masses).reshape(-1,1)
-        if scalevel0:
+        if scalevel0 and temp0 > 0:
             temp = (result**2*masses.reshape(-1,1)).mean()/boltzmann
             scale = np.sqrt(temp0/temp)
             result *= scale
