@@ -429,7 +429,7 @@ def check_nlist_skin(system, rcut, skin):
         vec = np.random.normal(-1, 1, 3)
         vec *= 0.45/(nlist1.rmax.max()+1)*skin/np.linalg.norm(vec)
         system.pos[i] += vec
-    assert not nlist1.need_rebuild()
+    assert not nlist1._need_rebuild()
     nlist1.update()
 
     nlist2 = NeighborList(system)
@@ -458,7 +458,7 @@ def check_nlist_skin(system, rcut, skin):
         vec = np.random.normal(-1, 1, 3)
         vec *= 0.55/(nlist1.rmax.max()+1)*skin/np.linalg.norm(vec)
         system.pos[i] += vec
-    assert nlist1.need_rebuild()
+    assert nlist1._need_rebuild()
 
 
 def test_nlist_quartz_6A_skin3A():
