@@ -229,6 +229,7 @@ cdef class Truncation:
 
     def trunc_fn(self, double d, double rcut):
         cdef double hg
+        hg = 0.0
         h = truncation.trunc_scheme_fn(self._c_trunc_scheme, d, rcut, &hg)
         return h, hg
 
