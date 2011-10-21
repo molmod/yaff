@@ -41,21 +41,22 @@ __all__ = [
 class NVEScreenLog(Hook):
     def __init__(self, start=0, step=1):
         Hook.__init__(self, start, step)
-        self.ref_econs = None
         self.time0 = None
 
     def __call__(self, iterative):
         if log.do_medium:
-            if self.ref_econs is None:
-                self.ref_econs = iterative.econs
+            if self.time0 is None:
                 self.time0 = time.time()
                 if log.do_medium:
                     log.hline()
-                    log('counter  Rel.Econs       Temp     d-RMSD     g-RMSD   Walltime')
+                    log('Cons.Err. =&the root of the ratio of the variance on the conserved quantity and the variance on the kinetic energy.')
+                    log('d-rmsd    =&the root-mean-square displacement of the atoms.')
+                    log('g-rmsd    =&the root-mean-square gradient of the energy.')
+                    log('counter  Cons.Err.       Temp     d-RMSD     g-RMSD   Walltime')
                     log.hline()
-            log('%7i %s %s %s %s %10.1f' % (
+            log('%7i %10.5f %s %s %s %10.1f' % (
                 iterative.counter,
-                log.energy(iterative.econs - self.ref_econs),
+                iterative.cons_err,
                 log.temperature(iterative.temp),
                 log.length(iterative.rmsd_delta),
                 log.force(iterative.rmsd_gpos),
@@ -246,6 +247,27 @@ class CellStateItem(StateItem):
         return iterative.ff.system.cell.rvecs
 
 
+class ConsErrTracker(object):
+    def __init__(self):
+        self.counter = 0
+        self.ekin_sum = 0.0
+        self.ekin_sumsq = 0.0
+        self.econs_sum = 0.0
+        self.econs_sumsq = 0.0
+
+    def update(self, ekin, econs):
+        self.counter += 1
+        self.ekin_sum += ekin
+        self.ekin_sumsq += ekin**2
+        self.econs_sum += econs
+        self.econs_sumsq += econs**2
+
+    def get(self):
+        ekin_var = self.ekin_sumsq/self.counter - (self.ekin_sum/self.counter)**2
+        econs_var = self.econs_sumsq/self.counter - (self.econs_sum/self.counter)**2
+        return np.sqrt(econs_var/ekin_var)
+
+
 class NVEIntegrator(Iterative):
     default_state = [
         AttributeStateItem('counter'),
@@ -259,6 +281,7 @@ class NVEIntegrator(Iterative):
         AttributeStateItem('temp'),
         AttributeStateItem('etot'),
         AttributeStateItem('econs'),
+        AttributeStateItem('cons_err'),
         VolumeStateItem(),
         CellStateItem(),
     ]
@@ -321,6 +344,9 @@ class NVEIntegrator(Iterative):
         # econs_ref should be changed by hooks that change positions or
         # velocities, such that a conserved quantity can be computed.
         self.econs_ref = 0
+        # cons_err is an object that keeps track of the error on the conserved
+        # quantity.
+        self._cons_err_tracker = ConsErrTracker()
         Iterative.__init__(self, ff, state, hooks, counter0)
         if not any(isinstance(hook, NVEScreenLog) for hook in self.hooks):
             self.hooks.append(NVEScreenLog())
@@ -367,6 +393,8 @@ class NVEIntegrator(Iterative):
         self.temp = self.ekin/self.ff.system.natom/3.0*2.0/boltzmann
         self.etot = self.ekin + self.epot
         self.econs = self.etot + self.econs_ref
+        self._cons_err_tracker.update(self.ekin, self.econs)
+        self.cons_err = self._cons_err_tracker.get()
 
     def finalize(self):
         if log.do_medium:
