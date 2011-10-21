@@ -158,7 +158,7 @@ endloop:
 void nlist_recompute_low(double *pos, double *pos_old, cell_type* unitcell,
                          neigh_row_type *neighs, long nneigh) {
   long i, a, b;
-  int update_delta0, central;
+  int update_delta0;
   long center[3];
   double delta0[3], delta[3], d;
 
