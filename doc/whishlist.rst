@@ -3,6 +3,7 @@ Whish list
 
 #. All the TODO items of the Howto.
 #. A Cook
+#. Proper trunction of electrostatic interactions.
 #. ACKS2
 #. Restart functionality.
 #. Constraints and restraints.

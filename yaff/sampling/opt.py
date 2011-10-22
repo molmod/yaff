@@ -68,7 +68,7 @@ class DOF(object):
 
 class CartesianDOF(DOF):
     """Cartesian degrees of freedom for the optimizers"""
-    def __init__(self, gpos_max=3e-4, gpos_rms=1e-4, dpos_max=3e-2, dpos_rms=1e-2):
+    def __init__(self, gpos_max=3e-5, gpos_rms=1e-5, dpos_max=3e-3, dpos_rms=1e-3):
         """
            **Optional arguments:**
 
@@ -168,7 +168,7 @@ class CartesianDOF(DOF):
 
 class FullCellDOF(DOF):
     """Fractional coordinates and cell parameters"""
-    def __init__(self, gpos_max=3e-4, gpos_rms=1e-4, dpos_max=3e-2, dpos_rms=1e-2, gcell_max=3e-4, gcell_rms=1e-4, dcell_max=3e-2, dcell_rms=1e-2):
+    def __init__(self, gpos_max=3e-5, gpos_rms=1e-5, dpos_max=3e-3, dpos_rms=1e-3, gcell_max=3e-5, gcell_rms=1e-5, dcell_max=3e-3, dcell_rms=1e-3):
         """
            **Optional arguments:**
 
@@ -225,7 +225,9 @@ class FullCellDOF(DOF):
         nvec = system.cell.nvec
         if nvec == 0:
             raise ValueError('A cell optimization requires a system that is periodic.')
-        self._cell_scale = system.cell.volume**(1.0/nvec)
+        self._cell_scale = system.cell.volume**(1.0/nvec)*10
+        if log.do_debug:
+            log('Cell scale set to %s.' % log.length(self._cell_scale))
         frac = np.dot(system.pos, system.cell.gvecs.T)
         x = np.concatenate([system.cell.rvecs.ravel()/self._cell_scale, frac.ravel()])
         self._init_gx(len(x))
@@ -384,7 +386,11 @@ class CGOptimizer(Iterative):
         Iterative.initialize(self)
 
     def propagate(self):
-        self.minimizer.propagate()
+        success = self.minimizer.propagate()
+        if success == False:
+            if log.do_warning:
+                log.warn('Line search failed in optimizer. Aborting optimization. This is probably due to a dicontinuity in the energy or the forces. Check the truncation of the non-bonding interactions and the Ewald summation parameters.')
+            return True
         self.dof.check_convergence()
         Iterative.propagate(self)
         return self.dof.converged

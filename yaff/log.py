@@ -283,7 +283,7 @@ class ScreenLog(object):
         self._last_used_prefix = self.prefix
 
     def warn(self, *words):
-        self('WARNING!!', *words)
+        self('WARNING!!&'+' '.join(words))
 
     def hline(self, char='~'):
         self(char*self.width)
