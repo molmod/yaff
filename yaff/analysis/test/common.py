@@ -39,3 +39,17 @@ def get_nve_water32():
     nve.run(5)
     assert nve.counter == 5
     return dn_tmp, nve, hdf5.f
+
+
+def get_opt_water32():
+    # Make a temporary directory
+    dn_tmp = tempfile.mkdtemp(suffix='yaff', prefix='water_32')
+    # Setup a test FF
+    ff = get_ff_water32()
+    # Run a test simulation
+    f = h5py.File('%s/output.h5' % dn_tmp)
+    hdf5 = HDF5Writer(f)
+    opt = CGOptimizer(ff, FullCellDOF(), hooks=hdf5)
+    opt.run(5)
+    assert opt.counter == 5
+    return dn_tmp, opt, hdf5.f

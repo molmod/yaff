@@ -31,8 +31,16 @@ from yaff.analysis.utils import get_slice
 
 
 __all__ = [
-    'plot_energies', 'plot_temperature', 'plot_temp_dist', 'plot_density'
+    'plot_energies', 'plot_temperature', 'plot_temp_dist', 'plot_density',
+    'plot_cell_pars',
 ]
+
+
+def get_time(f, start, end, step):
+    if 'trajectory/time' in f:
+        return f['trajectory/time'][start:end:step]/log.time.conversion
+    else:
+        return f['trajectory/counter'][start:end:step]
 
 
 def plot_energies(f, fn_png='energies.png', **kwargs):
@@ -58,14 +66,16 @@ def plot_energies(f, fn_png='energies.png', **kwargs):
     start, end, step = get_slice(f, **kwargs)
 
     epot = f['trajectory/epot'][start:end:step]/log.energy.conversion
-    etot = f['trajectory/etot'][start:end:step]/log.energy.conversion
-    econs = f['trajectory/econs'][start:end:step]/log.energy.conversion
-    time = f['trajectory/time'][start:end:step]/log.time.conversion
+    time = get_time(f, start, end, step)
 
     pt.clf()
     pt.plot(time, epot, 'k-', label='E_pot')
-    pt.plot(time, etot, 'r-', label='E_tot')
-    pt.plot(time, econs, 'g-', label='E_cons')
+    if 'trajectory/etot' in f:
+        etot = f['trajectory/etot'][start:end:step]/log.energy.conversion
+        pt.plot(time, etot, 'r-', label='E_tot')
+    if 'trajectory/econs' in f:
+        econs = f['trajectory/econs'][start:end:step]/log.energy.conversion
+        pt.plot(time, econs, 'g-', label='E_cons')
     pt.xlim(time[0], time[-1])
     pt.xlabel('Time [%s]' % log.time.notation)
     pt.ylabel('Energy [%s]' % log.energy.notation)
@@ -96,7 +106,7 @@ def plot_temperature(f, fn_png='temperature.png', **kwargs):
     start, end, step = get_slice(f, **kwargs)
 
     temp = f['trajectory/temp'][start:end:step]
-    time = f['trajectory/time'][start:end:step]/log.time.conversion
+    time = get_time(f, start, end, step)
 
     pt.clf()
     pt.plot(time, temp, 'k-')
@@ -289,11 +299,47 @@ def plot_density(f, fn_png='density.png', **kwargs):
     mass = f['system/masses'][:].sum()
     vol = f['trajectory/volume'][start:end:step]
     rho = mass/vol/log.density.conversion
-    time = f['trajectory/time'][start:end:step]/log.time.conversion
+    time = get_time(f, start, end, step)
 
     pt.clf()
     pt.plot(time, rho, 'k-')
     pt.xlim(time[0], time[-1])
     pt.xlabel('Time [%s]' % log.time.notation)
     pt.ylabel('Density [%s]' % log.density.notation)
+    pt.savefig(fn_png)
+
+
+def plot_cell_pars(f, fn_png='cell_pars.png', **kwargs):
+    """Make a plot of the cell parameters as function of time
+
+       **Arguments:**
+
+       f
+            An h5py.File instance containing the trajectory data.
+
+       **Optional arguments:**
+
+       fn_png
+            The png file to write the figure to
+
+       The optional arguments of the ``get_slice`` function are also accepted in
+       the form of keyword arguments.
+
+       The units for making the plot are taken from the yaff screen logger.
+    """
+    import matplotlib.pyplot as pt
+    start, end, step = get_slice(f, **kwargs)
+
+    cell = f['trajectory/cell'][start:end:step]
+    abc = np.sqrt((cell**2).sum(axis=2))/log.length.conversion
+    time = get_time(f, start, end, step)
+
+    pt.clf()
+    pt.plot(time, abc[:,0], 'r-', label='a')
+    pt.plot(time, abc[:,1], 'g-', label='b')
+    pt.plot(time, abc[:,2], 'b-', label='c')
+    pt.xlim(time[0], time[-1])
+    pt.xlabel('Time [%s]' % log.time.notation)
+    pt.ylabel('a, b, c [%s]' % log.length.notation)
+    pt.legend(loc=0)
     pt.savefig(fn_png)

@@ -24,11 +24,22 @@
 import shutil, os
 
 from yaff import *
-from yaff.analysis.test.common import get_nve_water32
+from yaff.analysis.test.common import get_nve_water32, get_opt_water32
 
 
-def test_plot_energies():
+def test_plot_energies_nve():
     dn_tmp, nve, f = get_nve_water32()
+    try:
+        fn_png = '%s/energies1.png' % dn_tmp
+        plot_energies(f, fn_png)
+        assert os.path.isfile(fn_png)
+    finally:
+        shutil.rmtree(dn_tmp)
+        f.close()
+
+
+def test_plot_energies_opt():
+    dn_tmp, opt, f = get_opt_water32()
     try:
         fn_png = '%s/energies1.png' % dn_tmp
         plot_energies(f, fn_png)
@@ -68,6 +79,17 @@ def test_plot_density():
     try:
         fn_png = '%s/density1.png' % dn_tmp
         plot_density(f, fn_png)
+        assert os.path.isfile(fn_png)
+    finally:
+        shutil.rmtree(dn_tmp)
+        f.close()
+
+
+def test_plot_cell_pars():
+    dn_tmp, opt, f = get_opt_water32()
+    try:
+        fn_png = '%s/cell_pars1.png' % dn_tmp
+        plot_cell_pars(f, fn_png)
         assert os.path.isfile(fn_png)
     finally:
         shutil.rmtree(dn_tmp)
