@@ -2,10 +2,11 @@ Whish list
 ##########
 
 #. All the TODO items of the Howto.
+#. A Cook
 #. ACKS2
 #. Restart functionality.
-#. Nonbonding parameters without mixing rules, i.e. using tabulated cross
-   parameters. This may be more accurate and will be much faster.
+#. Constraints and restraints.
+#. An optional select argument for the iterative algorithms.
 #. MPI
 #. Cell lists.
 #. NlogN scaling of the electrostatics: develop a real-space-grid Poisson solver
