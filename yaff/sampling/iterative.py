@@ -27,7 +27,10 @@ from yaff.log import log
 from yaff.timer import timer
 
 
-__all__ = ['Iterative', 'StateItem', 'AttributeStateItem', 'Hook']
+__all__ = [
+    'Iterative', 'StateItem', 'AttributeStateItem', 'VolumeStateItem',
+    'CellStateItem', 'Hook',
+]
 
 
 class Iterative(object):
@@ -67,9 +70,13 @@ class Iterative(object):
             self.hooks = hooks
         else:
             self.hooks = [hooks]
+        self._add_default_hooks()
         self.counter = counter0
         with log.section(self.log_name), timer.section(self.log_name):
             self.initialize()
+
+    def _add_default_hooks(self):
+        pass
 
     def initialize(self):
         self.call_hooks()
@@ -122,6 +129,22 @@ class StateItem(object):
 class AttributeStateItem(StateItem):
     def get_value(self, iterative):
         return getattr(iterative, self.key)
+
+
+class VolumeStateItem(StateItem):
+    def __init__(self):
+        StateItem.__init__(self, 'volume')
+
+    def get_value(self, iterative):
+        return iterative.ff.system.cell.volume
+
+
+class CellStateItem(StateItem):
+    def __init__(self):
+        StateItem.__init__(self, 'cell')
+
+    def get_value(self, iterative):
+        return iterative.ff.system.cell.rvecs
 
 
 class Hook(object):

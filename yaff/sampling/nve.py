@@ -29,7 +29,7 @@ from molmod import boltzmann
 from yaff.log import log
 from yaff.timer import timer
 from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
-    Hook
+    VolumeStateItem, CellStateItem, Hook
 
 
 __all__ = [
@@ -231,22 +231,6 @@ class KineticAnnealing(Hook):
         iterative.ekin = ekin_after
 
 
-class VolumeStateItem(StateItem):
-    def __init__(self):
-        StateItem.__init__(self, 'volume')
-
-    def get_value(self, iterative):
-        return iterative.ff.system.cell.volume
-
-
-class CellStateItem(StateItem):
-    def __init__(self):
-        StateItem.__init__(self, 'cell')
-
-    def get_value(self, iterative):
-        return iterative.ff.system.cell.rvecs
-
-
 class ConsErrTracker(object):
     def __init__(self):
         self.counter = 0
@@ -351,6 +335,8 @@ class NVEIntegrator(Iterative):
         # quantity.
         self._cons_err_tracker = ConsErrTracker()
         Iterative.__init__(self, ff, state, hooks, counter0)
+
+    def _add_default_hooks(self):
         if not any(isinstance(hook, NVEScreenLog) for hook in self.hooks):
             self.hooks.append(NVEScreenLog())
 
