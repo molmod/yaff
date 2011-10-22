@@ -133,7 +133,7 @@ class XYZWriter(Hook):
             self.xyz_writer = XYZWriter(self.fn_xyz, symbols)
         title = '%7i E_pot = %.10f' % (iterative.counter, iterative.epot)
         if self.select is None:
-            pos = iterative.pos
+            pos = iterative.ff.system.pos
         else:
-            pos = iterative.pos[self.select]
+            pos = iterative.ff.system.pos[self.select]
         self.xyz_writer.dump(title, pos)
