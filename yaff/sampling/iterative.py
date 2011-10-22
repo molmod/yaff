@@ -92,10 +92,16 @@ class Iterative(object):
                         state_updated = True
                     hook(self)
 
-    def run(self, nstep):
+    def run(self, nstep=None):
         with log.section(self.log_name), timer.section(self.log_name):
-            for i in xrange(nstep):
-                self.propagate()
+            if nstep is None:
+                while True:
+                    if self.propagate():
+                        break
+            else:
+                for i in xrange(nstep):
+                    if self.propagate():
+                        break
             self.finalize()
 
     def propagate(self):

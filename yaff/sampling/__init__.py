@@ -23,3 +23,4 @@
 from yaff.sampling.io import *
 from yaff.sampling.iterative import *
 from yaff.sampling.nve import *
+from yaff.sampling.opt import *
