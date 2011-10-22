@@ -30,7 +30,7 @@ from yaff.sampling.iterative import Iterative, AttributeStateItem, \
     PosStateItem, VolumeStateItem, CellStateItem, Hook
 
 
-__all__ = ['OptScreenLog', 'CartesianDOF', 'CGOptimizer']
+__all__ = ['OptScreenLog', 'CartesianDOF', 'FullCellDOF', 'CGOptimizer']
 
 
 class OptScreenLog(Hook):
@@ -72,23 +72,23 @@ class CartesianDOF(DOF):
         """
            **Optional arguments:**
 
-           gpos_max, gpos_rms, step_max, step_rms
+           gpos_max, gpos_rms, dpos_max, dpos_rms
                 Thresholds that define the convergence. If all of the actual
                 values drop below these thresholds, the minimizer stops.
 
            **Convergence conditions:**
 
            gpos_max
-                The maximum of the norm of the gposient on an atom.
+                The maximum of the norm of the gradient of an atom.
 
            gpos_rms
-                The root-mean-square of the norm of the gposients on the atoms.
+                The root-mean-square of the norm of the gradients of the atoms.
 
            dpos_max
-                The maximum of the norm of the dposlacement of an atom.
+                The maximum of the norm of the displacement of an atom.
 
            dpos_rms
-                The root-mean-square of the norm of the dposlacements of the
+                The root-mean-square of the norm of the displacements of the
                 atoms.
         """
         self.th_gpos_max = gpos_max
@@ -144,6 +144,7 @@ class CartesianDOF(DOF):
         self.gpos_rms = np.sqrt(gpossq.mean())
         self._dpos[:] = self._pos
         self._dpos -= self._last_pos
+        #
         dpossq = (self._dpos**2).sum(axis=1)
         self.dpos_max = np.sqrt(dpossq.max())
         self.dpos_rms = np.sqrt(dpossq.mean())
@@ -163,6 +164,163 @@ class CartesianDOF(DOF):
         self.conv_count = sum(int(v>=1) for v, n in conv_vals)
         self.converged = (self.conv_count == 0)
         self._last_pos[:] = self._pos[:]
+
+
+class FullCellDOF(DOF):
+    """Fractional coordinates and cell parameters"""
+    def __init__(self, gpos_max=3e-4, gpos_rms=1e-4, dpos_max=3e-2, dpos_rms=1e-2, gcell_max=3e-4, gcell_rms=1e-4, dcell_max=3e-2, dcell_rms=1e-2):
+        """
+           **Optional arguments:**
+
+           gpos_max, gpos_rms, dpos_max, dpos_rms, gcell_max, gcell_rms, dcell_max, dcell_rms
+                Thresholds that define the convergence. If all of the actual
+                values drop below these thresholds, the minimizer stops.
+
+           **Convergence conditions:**
+
+           gpos_max
+                The maximum of the norm of the gradient of an atom.
+
+           gpos_rms
+                The root-mean-square of the norm of the gradients of the atoms.
+
+           dpos_max
+                The maximum of the norm of the displacement of an atom.
+
+           dpos_rms
+                The root-mean-square of the norm of the displacements of the
+                atoms.
+
+           gcell_max
+                The maximum of the norm of the gradient of acell vector.
+
+           gcell_rms
+                The root-mean-square of the norm of the gradients of the cell
+                vectors.
+
+           dcell_max
+                The maximum of the norm of the displacement of a cell vector.
+
+           dcell_rms
+                The root-mean-square of the norm of the displacements of the
+                cell vectors.
+        """
+        self.th_gpos_max = gpos_max
+        self.th_gpos_rms = gpos_rms
+        self.th_dpos_max = dpos_max
+        self.th_dpos_rms = dpos_rms
+        self.th_gcell_max = gcell_max
+        self.th_gcell_rms = gcell_rms
+        self.th_dcell_max = dcell_max
+        self.th_dcell_rms = dcell_rms
+        DOF.__init__(self)
+        self._pos = None
+        self._last_pos = None
+        self._cell = None
+        self._last_cell = None
+        self._cell_scale = 1.0
+
+    def get_initial(self, system):
+        """Return the initial value of the unknowns"""
+        nvec = system.cell.nvec
+        if nvec == 0:
+            raise ValueError('A cell optimization requires a system that is periodic.')
+        self._cell_scale = system.cell.volume**(1.0/nvec)
+        frac = np.dot(system.pos, system.cell.gvecs.T)
+        x = np.concatenate([system.cell.rvecs.ravel()/self._cell_scale, frac.ravel()])
+        self._init_gx(len(x))
+        self._pos = system.pos.copy()
+        self._dpos = np.zeros(system.pos.shape, float)
+        self._gpos = np.zeros(system.pos.shape, float)
+        self._cell = system.cell.rvecs.copy()
+        self._dcell = np.zeros((nvec,3), float)
+        self._vtens = np.zeros((nvec,3), float)
+        self._gcell = np.zeros((nvec,3), float)
+        return x
+
+    def fun(self, x, ff, do_gradient=False):
+        """computes the energy i.f.o x, and optionally the gradient.
+
+           **Arguments:**
+
+           x
+                The degrees of freedom
+
+           system
+                The system object in which these
+        """
+        i = ff.system.cell.nvec*3
+        self._cell[:] = x[:i].reshape(-1,3)*self._cell_scale
+        frac = x[i:].reshape(-1,3)
+        self._pos[:] = np.dot(frac, self._cell)
+        ff.update_pos(self._pos[:])
+        ff.update_rvecs(self._cell[:])
+        if do_gradient:
+            self._gpos[:] = 0.0
+            self._vtens[:] = 0.0
+            v = ff.compute(self._gpos, self._vtens)
+            self._gcell[:] = np.dot(ff.system.cell.gvecs, self._vtens)
+            self._gx[:i] = self._gcell.ravel()/self._cell_scale
+            self._gx[i:] = np.dot(self._gpos, ff.system.cell.gvecs.T).ravel()
+            return v, self._gx
+        else:
+            return ff.compute()
+
+    def check_convergence(self):
+        # When called for the first time, initialize _last_pos
+        if self._last_pos is None:
+            self._last_pos = self._pos.copy()
+            self._last_cell = self._cell.copy()
+            self.converged = False
+            self.conv_val = 2
+            self.conv_worst = 'first_step'
+            self.conv_count = -1
+            return
+        # Compute the values that have to be compared to the thresholds
+        gpossq = (self._gpos**2).sum(axis=1)
+        self.gpos_max = np.sqrt(gpossq.max())
+        self.gpos_rms = np.sqrt(gpossq.mean())
+        self._dpos[:] = self._pos
+        self._dpos -= self._last_pos
+        #
+        dpossq = (self._dpos**2).sum(axis=1)
+        self.dpos_max = np.sqrt(dpossq.max())
+        self.dpos_rms = np.sqrt(dpossq.mean())
+        #
+        gcellsq = (self._gcell**2).sum(axis=1)
+        self.gcell_max = np.sqrt(gcellsq.max())
+        self.gcell_rms = np.sqrt(gcellsq.mean())
+        self._dcell[:] = self._cell
+        self._dcell -= self._last_cell
+        #
+        dcellsq = (self._dcell**2).sum(axis=1)
+        self.dcell_max = np.sqrt(dcellsq.max())
+        self.dcell_rms = np.sqrt(dcellsq.mean())
+        # Compute a general value that has to go below 1.0 to have convergence.
+        conv_vals = []
+        if self.th_gpos_max is not None:
+            conv_vals.append((self.gpos_max/self.th_gpos_max, 'gpos_max'))
+        if self.th_gpos_rms is not None:
+            conv_vals.append((self.gpos_rms/self.th_gpos_rms, 'gpos_rms'))
+        if self.th_dpos_max is not None:
+            conv_vals.append((self.dpos_max/self.th_dpos_max, 'dpos_max'))
+        if self.th_dpos_rms is not None:
+            conv_vals.append((self.dpos_rms/self.th_dpos_rms, 'dpos_rms'))
+        if self.th_gcell_max is not None:
+            conv_vals.append((self.gcell_max/self.th_gcell_max, 'gcell_max'))
+        if self.th_gcell_rms is not None:
+            conv_vals.append((self.gcell_rms/self.th_gcell_rms, 'gcell_rms'))
+        if self.th_dcell_max is not None:
+            conv_vals.append((self.dcell_max/self.th_dcell_max, 'dcell_max'))
+        if self.th_dcell_rms is not None:
+            conv_vals.append((self.dcell_rms/self.th_dcell_rms, 'dcell_rms'))
+        if len(conv_vals) == 0:
+            raise RuntimeError('At least one convergence criterion must be present.')
+        self.conv_val, self.conv_worst = max(conv_vals)
+        self.conv_count = sum(int(v>=1) for v, n in conv_vals)
+        self.converged = (self.conv_count == 0)
+        self._last_pos[:] = self._pos[:]
+        self._last_cell[:] = self._cell[:]
 
 
 class CGOptimizer(Iterative):

@@ -28,8 +28,20 @@ from yaff.sampling.test.common import get_ff_water32
 
 def test_basic_5steps():
     opt = CGOptimizer(get_ff_water32(), CartesianDOF())
+    epot0 = opt.epot
     opt.run(5)
+    epot1 = opt.epot
     assert opt.counter == 5
+    assert epot1 < epot0
+
+
+def test_full_cell_5steps():
+    opt = CGOptimizer(get_ff_water32(), FullCellDOF())
+    epot0 = opt.epot
+    opt.run(5)
+    epot1 = opt.epot
+    assert opt.counter == 5
+    assert epot1 < epot0
 
 
 def test_basic_until_converged():
