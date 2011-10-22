@@ -248,8 +248,8 @@ class Generator(object):
                 )
             except ValueError:
                 parsed_pars.complain(counter, 'has parameters that can not be converted to floating point numbers.')
-            if key in par_table:
-                parsed_pars.complain(counter, 'contains duplicate parameters.')
+            if key in par_table and par_table[key] != pars:
+                parsed_pars.complain(counter, 'contains duplicate incompatible parameters.')
             for key in self.iter_alt_keys(key):
                 par_table[key] = pars
         return par_table
@@ -365,8 +365,8 @@ class NonbondedGenerator(Generator):
                 scale = float(words[1])
             except ValueError:
                 parsed_pars.complain(counter, 'has parameters that can not be converted. The first argument must be an integer. The second argument must be a float.')
-            if num_bonds in result:
-                parsed_pars.complain(counter, 'contains a duplicate scale command.')
+            if num_bonds in result and result[num_bonds] != scale:
+                parsed_pars.complain(counter, 'contains a duplicate incompatible scale command.')
             if scale < 0 or scale > 1:
                 parsed_pars.complain(counter, 'has a scale that is not in the range [0,1].')
             result[num_bonds] = scale
