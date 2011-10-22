@@ -29,7 +29,7 @@ from molmod import boltzmann
 from yaff.log import log
 from yaff.timer import timer
 from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
-    VolumeStateItem, CellStateItem, Hook
+    PosStateItem, VolumeStateItem, CellStateItem, Hook
 
 
 __all__ = [
@@ -260,7 +260,7 @@ class NVEIntegrator(Iterative):
         AttributeStateItem('counter'),
         AttributeStateItem('time'),
         AttributeStateItem('epot'),
-        AttributeStateItem('pos'),
+        PosStateItem(),
         AttributeStateItem('vel'),
         AttributeStateItem('rmsd_delta'),
         AttributeStateItem('rmsd_gpos'),

@@ -28,8 +28,8 @@ from yaff.timer import timer
 
 
 __all__ = [
-    'Iterative', 'StateItem', 'AttributeStateItem', 'VolumeStateItem',
-    'CellStateItem', 'Hook',
+    'Iterative', 'StateItem', 'AttributeStateItem', 'PosStateItem',
+    'VolumeStateItem', 'CellStateItem', 'Hook',
 ]
 
 
@@ -135,6 +135,14 @@ class StateItem(object):
 class AttributeStateItem(StateItem):
     def get_value(self, iterative):
         return getattr(iterative, self.key)
+
+
+class PosStateItem(StateItem):
+    def __init__(self):
+        StateItem.__init__(self, 'pos')
+
+    def get_value(self, iterative):
+        return iterative.ff.system.pos
 
 
 class VolumeStateItem(StateItem):

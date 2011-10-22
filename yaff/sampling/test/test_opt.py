@@ -27,23 +27,23 @@ from yaff import *
 from yaff.sampling.test.common import get_ff_water32
 
 def test_basic_5steps():
-    opt = CGOptimizer(get_ff_water32())
+    opt = CGOptimizer(get_ff_water32(), CartesianDOF())
     opt.run(5)
     assert opt.counter == 5
 
 
 def test_basic_until_converged():
-    opt = CGOptimizer(get_ff_water32(), grad_max=3e-1, grad_rms=1e-1, disp_max=None, disp_rms=None)
-    assert opt.th_grad_max == 3e-1
-    assert opt.th_grad_rms == 1e-1
-    assert opt.th_disp_max is None
-    assert opt.th_disp_rms is None
+    opt = CGOptimizer(get_ff_water32(), CartesianDOF(gpos_max=3e-1, gpos_rms=1e-1, dpos_max=None, dpos_rms=None))
+    assert opt.dof.th_gpos_max == 3e-1
+    assert opt.dof.th_gpos_rms == 1e-1
+    assert opt.dof.th_dpos_max is None
+    assert opt.dof.th_dpos_rms is None
     opt.run()
-    assert opt.conv_count == 0
-    assert opt.conv_val < 1
-    assert opt.conv_worst.startswith('grad_')
-    assert opt.grad_max < 3e-1
-    assert opt.grad_rms < 1e-1
+    assert opt.dof.conv_count == 0
+    assert opt.dof.conv_val < 1
+    assert opt.dof.conv_worst.startswith('gpos_')
+    assert opt.dof.gpos_max < 3e-1
+    assert opt.dof.gpos_rms < 1e-1
 
 
 def check_hdf5_common(f):
@@ -65,7 +65,7 @@ def test_hdf5():
     f = h5py.File('tmp.h5', driver='core', backing_store=False)
     try:
         hdf5 = HDF5Writer(f)
-        opt = CGOptimizer(get_ff_water32(), hooks=hdf5)
+        opt = CGOptimizer(get_ff_water32(), CartesianDOF(), hooks=hdf5)
         opt.run(15)
         assert opt.counter == 15
         check_hdf5_common(hdf5.f)
