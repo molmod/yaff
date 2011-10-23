@@ -23,8 +23,8 @@
 
 import numpy as np, time
 
-from molmod.minimizer import ConjugateGradient, NewtonLineSearch, Minimizer, \
-    check_delta
+from molmod.minimizer import ConjugateGradient, QuasiNewton, NewtonLineSearch, \
+    Minimizer, check_delta
 
 from yaff.log import log
 from yaff.sampling.iterative import Iterative, AttributeStateItem, \
@@ -33,7 +33,7 @@ from yaff.sampling.iterative import Iterative, AttributeStateItem, \
 
 __all__ = [
     'OptScreenLog', 'CartesianDOF', 'FullCell', 'AnisoCell', 'IsoCell',
-    'CellDOF', 'CGOptimizer'
+    'CellDOF', 'BaseOptimizer', 'CGOptimizer',
 ]
 
 
@@ -381,7 +381,7 @@ class CellDOF(DOF):
         self._last_cell[:] = self._cell[:]
 
 
-class CGOptimizer(Iterative):
+class BaseOptimizer(Iterative):
     default_state = [
         AttributeStateItem('counter'),
         AttributeStateItem('epot'),
@@ -389,9 +389,9 @@ class CGOptimizer(Iterative):
         VolumeStateItem(),
         CellStateItem(),
     ]
-    log_name = 'CGOPT'
+    log_name = 'XXOPT'
 
-    def __init__(self, ff, dof, state=None, hooks=None, counter0=0):
+    def __init__(self, ff, dof, search_direction, state=None, hooks=None, counter0=0):
         """
            **Arguments:**
 
@@ -401,6 +401,9 @@ class CGOptimizer(Iterative):
            dof
                 A specification of the degrees of freedom. The convergence
                 criteria are also part of this argument.
+
+           search_direction
+                A search direction object
 
            **Optional arguments:**
 
@@ -418,7 +421,7 @@ class CGOptimizer(Iterative):
         """
         self.dof = dof
         self.minimizer = Minimizer(
-            self.dof.get_initial(ff.system), self.fun, ConjugateGradient(),
+            self.dof.get_initial(ff.system), self.fun, search_direction,
             NewtonLineSearch(), None, None, anagrad=True, verbose=False,
         )
         Iterative.__init__(self, ff, state, hooks, counter0)
@@ -462,3 +465,18 @@ class CGOptimizer(Iterative):
         x = self.minimizer.x
         dxs = np.random.uniform(-eps, eps, (100, len(x)))
         check_delta(self.fun, x, dxs)
+
+
+class CGOptimizer(BaseOptimizer):
+    log_name = 'CGOPT'
+
+    def __init__(self, ff, dof, state=None, hooks=None, counter0=0):
+        BaseOptimizer.__init__(self, ff, dof, ConjugateGradient(), state, hooks, counter0)
+
+
+# TODO: figure out why this one does not work well:
+#class QNOptimizer(BaseOptimizer):
+#    log_name = 'QNOPT'
+#
+#    def __init__(self, ff, dof, state=None, hooks=None, counter0=0):
+#        BaseOptimizer.__init__(self, ff, dof, QuasiNewton(), state, hooks, counter0)

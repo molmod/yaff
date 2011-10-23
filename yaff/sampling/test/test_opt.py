@@ -26,7 +26,7 @@ import h5py
 from yaff import *
 from yaff.sampling.test.common import get_ff_water32
 
-def test_basic_5steps():
+def test_cg_5steps():
     opt = CGOptimizer(get_ff_water32(), CartesianDOF())
     epot0 = opt.epot
     opt.run(5)
