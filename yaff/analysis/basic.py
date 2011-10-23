@@ -333,16 +333,57 @@ def plot_cell_pars(f, fn_png='cell_pars.png', **kwargs):
     import matplotlib.pyplot as pt
     start, end, step = get_slice(f, **kwargs)
 
-    cell = f['trajectory/cell'][start:end:step]
-    abc = np.sqrt((cell**2).sum(axis=2))/log.length.conversion
+    cell = f['trajectory/cell'][start:end:step]/log.length.conversion
+    lengths = np.sqrt((cell**2).sum(axis=2))
     time, tlabel = get_time(f, start, end, step)
+    nvec = lengths.shape[1]
+
+    def get_angle(i0, i1):
+        return np.arccos(np.clip((cell[:,i0]*cell[:,i1]).sum(axis=1)**2/lengths[:,i0]/lengths[:,i1], -1,1))/log.angle.conversion
 
     pt.clf()
-    pt.plot(time, abc[:,0], 'r-', label='a')
-    pt.plot(time, abc[:,1], 'g-', label='b')
-    pt.plot(time, abc[:,2], 'b-', label='c')
-    pt.xlim(time[0], time[-1])
-    pt.xlabel(tlabel)
-    pt.ylabel('a, b, c [%s]' % log.length.notation)
-    pt.legend(loc=0)
+
+    if nvec == 3:
+        pt.subplot(2,1,1)
+        pt.plot(time, lengths[:,0], 'r-', label='a')
+        pt.plot(time, lengths[:,1], 'g-', label='b')
+        pt.plot(time, lengths[:,2], 'b-', label='c')
+        pt.xlim(time[0], time[-1])
+        pt.ylabel('Lengths [%s]' % log.length.notation)
+        pt.legend(loc=0)
+
+        alpha = get_angle(1, 2)
+        beta = get_angle(2, 0)
+        gamma = get_angle(0, 1)
+        pt.subplot(2, 1, 2)
+        pt.plot(time, alpha, 'r-', label='alpha')
+        pt.plot(time, beta, 'g-', label='beta')
+        pt.plot(time, gamma, 'b-', label='gamma')
+        pt.xlim(time[0], time[-1])
+        pt.xlabel(tlabel)
+        pt.ylabel('Angles [%s]' % log.angle.notation)
+        pt.legend(loc=0)
+    elif nvec == 2:
+        pt.subplot(2,1,1)
+        pt.plot(time, lengths[:,0], 'r-', label='a')
+        pt.plot(time, lengths[:,1], 'g-', label='b')
+        pt.xlim(time[0], time[-1])
+        pt.ylabel('Lengths [%s]' % log.length.notation)
+        pt.legend(loc=0)
+
+        gamma = get_angle(0, 1)
+        pt.subplot(2, 1, 2)
+        pt.plot(time, gamma, 'b-', label='gamma')
+        pt.xlim(time[0], time[-1])
+        pt.xlabel(tlabel)
+        pt.ylabel('Angle [%s]' % log.angle.notation)
+        pt.legend(loc=0)
+    elif nvec == 1:
+        pt.plot(time, lengths[:,0], 'k-')
+        pt.xlim(time[0], time[-1])
+        pt.xlabel(tlabel)
+        pt.ylabel('Lengths [%s]' % log.length.notation)
+    else:
+        raise ValueError('Can not plot cell parameters if the system is not periodic.')
+
     pt.savefig(fn_png)
