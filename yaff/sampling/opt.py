@@ -28,7 +28,7 @@ from molmod.minimizer import ConjugateGradient, QuasiNewton, NewtonLineSearch, \
 
 from yaff.log import log
 from yaff.sampling.iterative import Iterative, AttributeStateItem, \
-    PosStateItem, VolumeStateItem, CellStateItem, Hook
+    PosStateItem, DipoleStateItem, VolumeStateItem, CellStateItem, Hook
 
 
 __all__ = [
@@ -386,6 +386,7 @@ class BaseOptimizer(Iterative):
         AttributeStateItem('counter'),
         AttributeStateItem('epot'),
         PosStateItem(),
+        DipoleStateItem(),
         VolumeStateItem(),
         CellStateItem(),
     ]

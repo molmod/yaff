@@ -93,6 +93,7 @@ def check_hdf5_common(f):
     assert 'counter' in f['trajectory']
     assert 'epot' in f['trajectory']
     assert 'pos' in f['trajectory']
+    assert 'dipole' in f['trajectory']
 
 
 def test_hdf5():

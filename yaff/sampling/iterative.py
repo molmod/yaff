@@ -29,7 +29,8 @@ from yaff.timer import timer
 
 __all__ = [
     'Iterative', 'StateItem', 'AttributeStateItem', 'PosStateItem',
-    'VolumeStateItem', 'CellStateItem', 'Hook',
+    'DipoleStateItem', 'DipoleVelStateItem', 'VolumeStateItem', 'CellStateItem',
+    'Hook',
 ]
 
 
@@ -143,6 +144,23 @@ class PosStateItem(StateItem):
 
     def get_value(self, iterative):
         return iterative.ff.system.pos
+
+
+class DipoleStateItem(StateItem):
+    def __init__(self):
+        StateItem.__init__(self, 'dipole')
+
+    def get_value(self, iterative):
+        sys = iterative.ff.system
+        return np.dot(sys.charges, sys.pos)
+
+
+class DipoleVelStateItem(StateItem):
+    def __init__(self):
+        StateItem.__init__(self, 'dipole_vel')
+
+    def get_value(self, iterative):
+        return np.dot(iterative.ff.system.charges, iterative.vel)
 
 
 class VolumeStateItem(StateItem):
