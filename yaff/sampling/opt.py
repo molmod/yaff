@@ -335,7 +335,7 @@ class CGOptimizer(Iterative):
     ]
     log_name = 'CGOPT'
 
-    def __init__(self, ff, dof, state=None, hooks=None):
+    def __init__(self, ff, dof, state=None, hooks=None, counter0=0):
         """
            **Arguments:**
 
@@ -357,13 +357,15 @@ class CGOptimizer(Iterative):
                 A function (or a list of functions) that is called after every
                 iterative.
 
+           counter0
+                The counter value associated with the initial state.
         """
         self.dof = dof
         self.minimizer = Minimizer(
             self.dof.get_initial(ff.system), self.fun, ConjugateGradient(),
             NewtonLineSearch(), None, None, anagrad=True, verbose=False,
         )
-        Iterative.__init__(self, ff, state, hooks)
+        Iterative.__init__(self, ff, state, hooks, counter0)
 
     def _add_default_hooks(self):
         if not any(isinstance(hook, OptScreenLog) for hook in self.hooks):
