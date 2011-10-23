@@ -30,7 +30,10 @@ from yaff.sampling.iterative import Iterative, AttributeStateItem, \
     PosStateItem, VolumeStateItem, CellStateItem, Hook
 
 
-__all__ = ['OptScreenLog', 'CartesianDOF', 'FullCellDOF', 'CGOptimizer']
+__all__ = [
+    'OptScreenLog', 'CartesianDOF', 'FullCell', 'AnisoCell', 'IsoCell',
+    'CellDOF', 'CGOptimizer'
+]
 
 
 class OptScreenLog(Hook):
@@ -166,10 +169,67 @@ class CartesianDOF(DOF):
         self._last_pos[:] = self._pos[:]
 
 
-class FullCellDOF(DOF):
+
+class FullCell(object):
+    def get_initial(self, system):
+        self.nvec = system.cell.nvec
+        if self.nvec == 0:
+            raise ValueError('A cell optimization requires a system that is periodic.')
+        self._cell_scale = system.cell.volume**(1.0/self.nvec)*10
+        if log.do_debug:
+            log('Cell scale set to %s.' % log.length(self._cell_scale))
+        return system.cell.rvecs.ravel()/self._cell_scale
+
+    def x_to_rvecs(self, x):
+        index = self.nvec*3
+        return x[:index].reshape(-1,3)*self._cell_scale, index
+
+    def grvecs_to_gx(self, grvecs):
+        return grvecs.ravel()/self._cell_scale
+
+
+class AnisoCell(object):
+    def get_initial(self, system):
+        self.nvec = system.cell.nvec
+        if self.nvec == 0:
+            raise ValueError('A cell optimization requires a system that is periodic.')
+        self.rvecs0 = system.cell.rvecs.copy()
+        return np.ones(self.nvec, float)
+
+    def x_to_rvecs(self, x):
+        index = self.nvec
+        return self.rvecs0*x[:index].reshape(-1,1), index
+
+    def grvecs_to_gx(self, grvecs):
+        return (grvecs*self.rvecs0).sum(axis=1)
+
+
+class IsoCell(object):
+    def get_initial(self, system):
+        self.nvec = system.cell.nvec
+        if self.nvec == 0:
+            raise ValueError('A cell optimization requires a system that is periodic.')
+        self.rvecs0 = system.cell.rvecs.copy()
+        return np.ones(1, float)
+
+    def x_to_rvecs(self, x):
+        return self.rvecs0*x[0], 1
+
+    def grvecs_to_gx(self, grvecs):
+        return (grvecs*self.rvecs0).sum()
+
+
+class CellDOF(DOF):
     """Fractional coordinates and cell parameters"""
-    def __init__(self, gpos_max=3e-5, gpos_rms=1e-5, dpos_max=3e-3, dpos_rms=1e-3, gcell_max=3e-5, gcell_rms=1e-5, dcell_max=3e-3, dcell_rms=1e-3):
+    def __init__(self, cell_spec, gpos_max=3e-5, gpos_rms=1e-5, dpos_max=3e-3, dpos_rms=1e-3, gcell_max=3e-5, gcell_rms=1e-5, dcell_max=3e-3, dcell_rms=1e-3):
         """
+           **Arguments:**
+
+           cell_spec
+                A cell specification. This object defines which parts of the
+                cell parameters are fixed/free. Some examples: FullCell(),
+                AnisoCell(), IsoCell().
+
            **Optional arguments:**
 
            gpos_max, gpos_rms, dpos_max, dpos_rms, gcell_max, gcell_rms, dcell_max, dcell_rms
@@ -205,6 +265,7 @@ class FullCellDOF(DOF):
                 The root-mean-square of the norm of the displacements of the
                 cell vectors.
         """
+        self.cell_spec = cell_spec
         self.th_gpos_max = gpos_max
         self.th_gpos_rms = gpos_rms
         self.th_dpos_max = dpos_max
@@ -222,22 +283,17 @@ class FullCellDOF(DOF):
 
     def get_initial(self, system):
         """Return the initial value of the unknowns"""
-        nvec = system.cell.nvec
-        if nvec == 0:
-            raise ValueError('A cell optimization requires a system that is periodic.')
-        self._cell_scale = system.cell.volume**(1.0/nvec)*10
-        if log.do_debug:
-            log('Cell scale set to %s.' % log.length(self._cell_scale))
+        cell_vars = self.cell_spec.get_initial(system)
         frac = np.dot(system.pos, system.cell.gvecs.T)
-        x = np.concatenate([system.cell.rvecs.ravel()/self._cell_scale, frac.ravel()])
+        x = np.concatenate([cell_vars, frac.ravel()])
         self._init_gx(len(x))
         self._pos = system.pos.copy()
         self._dpos = np.zeros(system.pos.shape, float)
         self._gpos = np.zeros(system.pos.shape, float)
         self._cell = system.cell.rvecs.copy()
-        self._dcell = np.zeros((nvec,3), float)
-        self._vtens = np.zeros((nvec,3), float)
-        self._gcell = np.zeros((nvec,3), float)
+        self._dcell = np.zeros(self._cell.shape, float)
+        self._vtens = np.zeros(self._cell.shape, float)
+        self._gcell = np.zeros(self._cell.shape, float)
         return x
 
     def fun(self, x, ff, do_gradient=False):
@@ -251,9 +307,8 @@ class FullCellDOF(DOF):
            system
                 The system object in which these
         """
-        i = ff.system.cell.nvec*3
-        self._cell[:] = x[:i].reshape(-1,3)*self._cell_scale
-        frac = x[i:].reshape(-1,3)
+        self._cell, index = self.cell_spec.x_to_rvecs(x)
+        frac = x[index:].reshape(-1,3)
         self._pos[:] = np.dot(frac, self._cell)
         ff.update_pos(self._pos[:])
         ff.update_rvecs(self._cell[:])
@@ -262,8 +317,8 @@ class FullCellDOF(DOF):
             self._vtens[:] = 0.0
             v = ff.compute(self._gpos, self._vtens)
             self._gcell[:] = np.dot(ff.system.cell.gvecs, self._vtens)
-            self._gx[:i] = self._gcell.ravel()/self._cell_scale
-            self._gx[i:] = np.dot(self._gpos, ff.system.cell.gvecs.T).ravel()
+            self._gx[:index] = self.cell_spec.grvecs_to_gx(self._gcell)
+            self._gx[index:] = np.dot(self._gpos, ff.system.cell.gvecs.T).ravel()
             return v, self._gx
         else:
             return ff.compute()

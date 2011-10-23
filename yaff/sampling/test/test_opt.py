@@ -36,7 +36,25 @@ def test_basic_5steps():
 
 
 def test_full_cell_5steps():
-    opt = CGOptimizer(get_ff_water32(), FullCellDOF())
+    opt = CGOptimizer(get_ff_water32(), CellDOF(FullCell()))
+    epot0 = opt.epot
+    opt.run(5)
+    epot1 = opt.epot
+    assert opt.counter == 5
+    assert epot1 < epot0
+
+
+def test_aniso_cell_5steps():
+    opt = CGOptimizer(get_ff_water32(), CellDOF(AnisoCell()))
+    epot0 = opt.epot
+    opt.run(5)
+    epot1 = opt.epot
+    assert opt.counter == 5
+    assert epot1 < epot0
+
+
+def test_iso_cell_5steps():
+    opt = CGOptimizer(get_ff_water32(), CellDOF(IsoCell()))
     epot0 = opt.epot
     opt.run(5)
     epot1 = opt.epot
