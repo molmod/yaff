@@ -91,4 +91,10 @@ def estimate_hessian(ff, eps=1e-4, select=None):
         rows = rows.reshape((ndof, ndof))
 
         # Enforce symmetry and return
-        return 0.5*(rows + rows.T)
+        hessian = 0.5*(rows + rows.T)
+
+        # Restore the original positions in the system object
+        ff.update_pos(pos0)
+
+        # Done
+        return hessian

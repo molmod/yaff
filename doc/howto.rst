@@ -305,34 +305,60 @@ NVTLangevinIntegrator, and so on.
 
 One may also use a geometry optimizer instead of an integrator::
 
-    opt = CGOptimizer(ff, hooks=HDF5Writer(h5py.File('output.h5', mode='w')))
+    hdf5 = HDF5Writer(h5py.File('output.h5', mode='w'))
+    opt = CGOptimizer(ff, CartesianDOF(), hooks=hdf5)
     opt.run(5000)
 
-Again, convergence criteria are controlled through optional arguments of the
-constructor. the ``run`` method has the maximum number of iterations as the only
-argument. By default the positions of the atoms or optimized, without changing
-the cell vectors. This behavior can be changed through the ``dof_transform``
-argument::
+The ``CartesianDOF()`` argument indicates that only the positions of the nuclei
+will be optimized. The convergence criteria are controlled through optional
+arguments of the ``CartesianDOF`` class. The ``run`` method has the maximum
+number of iterations as the only optional argument. If ``run`` is called without
+arguments, the optimization continues until convergence is reached.
 
-    opt = CGOptimizer(ff, dof_transform=cell_opt, hooks=HDF5Writer(h5py.File('output.h5', mode='w')))
+One may also perform an optimization of the nuclei and the cell parameters is
+follows::
+
+    hdf5 = HDF5Writer(h5py.File('output.h5', mode='w'))
+    opt = CGOptimizer(ff, CellDOF(FullCell()), hooks=hdf5)
     opt.run(5000)
 
 This will transform the degrees of freedom (DOF's) of the system (cell vectors
 and cartesian atomic coordinates) into a new set of DOF's (scaled cell vectors
 and reduced coordinates) to allow an efficient optimization of both cell
-parameters atomic positions. Several other dof_transform options are discussed
-in XXX.
+parameters atomic positions. One may replace ``FullCell`` by ``AnisoCell`` or
+``IsoCell``. The optional arguments of ``CellDOF`` also include convergence
+criteria for the cell parameters.
+
+
+**Vibrational analysis**
+
+The Hessian is computed as follows::
+
+    hessian = estimate_hessian(ff)
+
+This function uses the symmetric finite difference approximation to estimate the
+Hessian using many gradient computations. Further vibrational analysis based on
+this Hessian can be carried out with TAMkin::
+
+    hessian = estimate_hessian(ff)
+    gpos = np.zeros(ff.system.pos.shape, float)
+    epot = ff.compute(gpos)
+
+    import tamkin
+    mol = tamkin.Molecule(system.numbers, system.pos, system.masses, epot, gpos, hessian)
+    nma = tamkin.NMA(mol)
+    invcm = lightspeed/centimeter
+    print nma.freqs/invcm
+
+One may also compute the Hessian of a subsystem, e.g. for the first three atoms,
+as follows::
+
+    hessian = estimate_hessian(ff, select=[0, 1, 2])
 
 
 **TODO:**
 
 #. [LOW PRIORITY] ``RefTraj`` derivative of the Iterative class.
-
-#. [LATER] Optimizer stuff. We should use the molmod optimizer, but change it
-   such that the main loop of the optimizer is done in Yaff instead of in
-   molmod.
-
-#. [LATER] Numerical (partial) Hessian
 
 
 Analyzing the results
@@ -413,8 +439,30 @@ computations that can either be done in a post-processing step, or on-line.
     rdf.plot()
     rdf.plot_crdf()
 
+* A vibrational spectrum can be computed as follows::
+
+    spectrum = Spectrum(f, bsize=512)
+    spectrum.plot()
+    spectrum.plot_ac()
+
+  The ``bsize`` argument determines the size of the blocks used for the
+  spectral analysis. The trajectory is cut into blocks of the given size. For
+  each block, the spectrum is computed, and then averaged over all blocks. The
+  ``plot`` method makes a figure of the spectrum. The ``plot_ac`` method makes
+  a figure of the corresponding autocorrelation function. All the results are
+  also available as attributes of the spectrum object. Similar to the RDF
+  analysis, the spectrum can be computed both on-line and off-line.
+
+* The diffusion constant is computed as follows::
+
+    diff = Diffusion(f, step=10, mult=5, select=select0)
+    diff.plot()
+
 
 **TODO:**
+
+#. Make it easy to compute the IR spectrum in addition to the standard
+   vibrational spectrum.
 
 #. [LOW PRIORITY] Port other things from MD-Tracks, including the conversion stuff.
 
