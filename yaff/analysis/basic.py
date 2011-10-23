@@ -38,9 +38,12 @@ __all__ = [
 
 def get_time(f, start, end, step):
     if 'trajectory/time' in f:
-        return f['trajectory/time'][start:end:step]/log.time.conversion
+        label = 'Time [%s]' % log.time.notation
+        time = f['trajectory/time'][start:end:step]/log.time.conversion
     else:
-        return f['trajectory/counter'][start:end:step]
+        label = 'Step'
+        time = f['trajectory/counter'][start:end:step]
+    return time, label
 
 
 def plot_energies(f, fn_png='energies.png', **kwargs):
@@ -66,7 +69,7 @@ def plot_energies(f, fn_png='energies.png', **kwargs):
     start, end, step = get_slice(f, **kwargs)
 
     epot = f['trajectory/epot'][start:end:step]/log.energy.conversion
-    time = get_time(f, start, end, step)
+    time, tlabel = get_time(f, start, end, step)
 
     pt.clf()
     pt.plot(time, epot, 'k-', label='E_pot')
@@ -77,7 +80,7 @@ def plot_energies(f, fn_png='energies.png', **kwargs):
         econs = f['trajectory/econs'][start:end:step]/log.energy.conversion
         pt.plot(time, econs, 'g-', label='E_cons')
     pt.xlim(time[0], time[-1])
-    pt.xlabel('Time [%s]' % log.time.notation)
+    pt.xlabel(tlabel)
     pt.ylabel('Energy [%s]' % log.energy.notation)
     pt.legend(loc=0)
     pt.savefig(fn_png)
@@ -106,12 +109,12 @@ def plot_temperature(f, fn_png='temperature.png', **kwargs):
     start, end, step = get_slice(f, **kwargs)
 
     temp = f['trajectory/temp'][start:end:step]
-    time = get_time(f, start, end, step)
+    time, tlabel = get_time(f, start, end, step)
 
     pt.clf()
     pt.plot(time, temp, 'k-')
     pt.xlim(time[0], time[-1])
-    pt.xlabel('Time [%s]' % log.time.notation)
+    pt.xlabel(tlabel)
     pt.ylabel('Temperature [K]')
     pt.savefig(fn_png)
 
@@ -299,12 +302,12 @@ def plot_density(f, fn_png='density.png', **kwargs):
     mass = f['system/masses'][:].sum()
     vol = f['trajectory/volume'][start:end:step]
     rho = mass/vol/log.density.conversion
-    time = get_time(f, start, end, step)
+    time, tlabel = get_time(f, start, end, step)
 
     pt.clf()
     pt.plot(time, rho, 'k-')
     pt.xlim(time[0], time[-1])
-    pt.xlabel('Time [%s]' % log.time.notation)
+    pt.xlabel(tlabel)
     pt.ylabel('Density [%s]' % log.density.notation)
     pt.savefig(fn_png)
 
@@ -332,14 +335,14 @@ def plot_cell_pars(f, fn_png='cell_pars.png', **kwargs):
 
     cell = f['trajectory/cell'][start:end:step]
     abc = np.sqrt((cell**2).sum(axis=2))/log.length.conversion
-    time = get_time(f, start, end, step)
+    time, tlabel = get_time(f, start, end, step)
 
     pt.clf()
     pt.plot(time, abc[:,0], 'r-', label='a')
     pt.plot(time, abc[:,1], 'g-', label='b')
     pt.plot(time, abc[:,2], 'b-', label='c')
     pt.xlim(time[0], time[-1])
-    pt.xlabel('Time [%s]' % log.time.notation)
+    pt.xlabel(tlabel)
     pt.ylabel('a, b, c [%s]' % log.length.notation)
     pt.legend(loc=0)
     pt.savefig(fn_png)
