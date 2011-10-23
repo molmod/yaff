@@ -20,6 +20,7 @@
 #
 # --
 
+from yaff.sampling.hessian import *
 from yaff.sampling.io import *
 from yaff.sampling.iterative import *
 from yaff.sampling.nve import *

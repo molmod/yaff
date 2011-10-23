@@ -29,7 +29,7 @@ from yaff import *
 
 
 __all__ = [
-    'get_system_water32', 'get_system_graphene8',
+    'get_system_water32', 'get_system_water', 'get_system_graphene8',
     'get_system_polyethylene4', 'get_system_quartz', 'get_system_glycine',
     'get_system_cyclopropene', 'get_system_caffeine', 'get_system_butanol',
     'get_system_2T',
@@ -81,6 +81,21 @@ def get_system_water32():
         bonds=np.array([[(i/3)*3,i] for i in xrange(96) if i%3!=0]),
         rvecs=np.array([[9.865, 0.0, 0.0], [0.0, 9.865, 0.0], [0.0, 0.0, 9.865]])*angstrom,
         charges=np.array([-0.834, 0.417, 0.417]*32)
+    )
+
+
+def get_system_water():
+    return System(
+        numbers=np.array([8, 1, 1]),
+        pos=np.array([
+            [-4.583, 5.333, 1.560],
+            [-3.777, 5.331, 0.943],
+            [-5.081, 4.589, 1.176],
+        ])*angstrom,
+        ffatypes=['O', 'H', 'H'],
+        bonds=np.array([[0,1], [0, 2]]),
+        rvecs=None,
+        charges=np.array([-0.834, 0.417, 0.417])
     )
 
 

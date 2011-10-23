@@ -21,19 +21,22 @@
 # --
 
 
+import numpy as np
+
 from yaff import *
-from yaff.test.common import get_system_water32, get_system_water
+from yaff.sampling.test.common import get_ff_water32, get_ff_water
 
 
-__all__ = ['get_ff_water32', 'get_ff_water']
+def test_hessian_parial_water32():
+    ff = get_ff_water32()
+    select = [1, 2, 3, 14, 15, 16]
+    hessian = estimate_hessian(ff, select=select)
+    assert hessian.shape == (18, 18)
 
 
-def get_ff_water32():
-    system = get_system_water32()
-    ff = ForceField.generate(system, 'input/parameters_water.txt')
-    return ff
-
-def get_ff_water():
-    system = get_system_water()
-    ff = ForceField.generate(system, 'input/parameters_water.txt')
-    return ff
+def test_hessian_full_water():
+    ff = get_ff_water()
+    hessian = estimate_hessian(ff)
+    assert hessian.shape == (9, 9)
+    evals = np.linalg.eigvalsh(hessian)
+    assert sum(abs(evals) < 1e-10) == 3
