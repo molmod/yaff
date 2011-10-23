@@ -99,7 +99,9 @@ class ParsedPars(object):
 
 
 class FFArgs(object):
-    def __init__(self, rcut=18.89726133921252, tr=Switch3(7.558904535685008), alpha_scale=3.0, gcut_scale=1.1, skin=0):
+    def __init__(self, rcut=18.89726133921252, tr=Switch3(7.558904535685008),
+                 alpha_scale=3.0, gcut_scale=1.1, skin=0, smooth_ei=False,
+                 reci_ei='ewald'):
         """
            **Optional arguments:**
 
@@ -127,6 +129,15 @@ class FFArgs(object):
            skin
                 The skin parameter for the neighborlist.
 
+           smooth_ei
+                Flag for smooth truncations for the electrostatic interactions.
+
+           reci_ei
+                The method to be used for the reciprocal contribution to the
+                electrostatic interactions in the case of periodic systems. This
+                must be one of 'ignore' or 'ewald'. The 'ewald' option is only
+                supported for 3D periodic systems.
+
            The actual value of gcut, which depends on both gcut_scale and
            alpha_scale, determines the computational cost of the reciprocal term
            in the Ewald summation. The default values are just examples. An
@@ -135,13 +146,18 @@ class FFArgs(object):
            that the numerical errors do not depend too much on the real space
            cutoff and the system size.
         """
-        self.parts = []
-        self.nlist = None
+        if reci_ei not in ['ignore', 'ewald']:
+            raise ValueError('The reci_ei option must be one of \'ignore\' or \'ewald\'.')
         self.rcut = rcut
         self.tr = tr
         self.alpha_scale = alpha_scale
         self.gcut_scale = gcut_scale
         self.skin = skin
+        self.smooth_ei = smooth_ei
+        self.reci_ei = reci_ei
+        # arguments for the ForceField constructor
+        self.parts = []
+        self.nlist = None
 
     def get_nlist(self, system):
         if self.nlist is None:
@@ -176,19 +192,31 @@ class FFArgs(object):
         else:
             raise NotImplementedError('Only zero- and three-dimensional electrostatics are supported.')
         # Real-space electrostatics
-        pair_pot_ei = PairPotEI(system.charges, alpha, self.rcut)
+        if self.smooth_ei:
+            pair_pot_ei = PairPotEI(system.charges, alpha, self.rcut, self.tr)
+        else:
+            pair_pot_ei = PairPotEI(system.charges, alpha, self.rcut)
         part_pair_ei = ForcePartPair(system, nlist, scalings, pair_pot_ei)
         self.parts.append(part_pair_ei)
-        if system.cell.nvec == 3:
-            # Reciprocal-space electrostatics
-            part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=self.gcut_scale*alpha)
-            self.parts.append(part_ewald_reci)
-            # Ewald corrections
-            part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
-            self.parts.append(part_ewald_corr)
-            # Neutralizing background
-            part_ewald_neut = ForcePartEwaldNeutralizing(system, alpha)
-            self.parts.append(part_ewald_neut)
+        if self.reci_ei == 'ignore':
+            # Nothing to do
+            pass
+        elif self.reci_ei == 'ewald':
+            if system.cell.nvec == 3:
+                # Reciprocal-space electrostatics
+                # TODO: also make these smooth if smooth_ei is True
+                part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=self.gcut_scale*alpha)
+                self.parts.append(part_ewald_reci)
+                # Ewald corrections
+                part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
+                self.parts.append(part_ewald_corr)
+                # Neutralizing background
+                part_ewald_neut = ForcePartEwaldNeutralizing(system, alpha)
+                self.parts.append(part_ewald_neut)
+            elif system.cell.nvec != 0:
+                raise NotImplementedError('The ewald summation is only available for 3D periodic systems.')
+        else:
+            raise NotImplementedError
 
 
 class Generator(object):
