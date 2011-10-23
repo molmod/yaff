@@ -33,6 +33,7 @@ def test_basic_5steps():
     epot1 = opt.epot
     assert opt.counter == 5
     assert epot1 < epot0
+    opt.check_delta()
 
 
 def test_full_cell_5steps():
@@ -42,6 +43,7 @@ def test_full_cell_5steps():
     epot1 = opt.epot
     assert opt.counter == 5
     assert epot1 < epot0
+    opt.check_delta()
 
 
 def test_aniso_cell_5steps():
@@ -51,6 +53,7 @@ def test_aniso_cell_5steps():
     epot1 = opt.epot
     assert opt.counter == 5
     assert epot1 < epot0
+    opt.check_delta()
 
 
 def test_iso_cell_5steps():
@@ -60,6 +63,7 @@ def test_iso_cell_5steps():
     epot1 = opt.epot
     assert opt.counter == 5
     assert epot1 < epot0
+    opt.check_delta()
 
 
 def test_basic_until_converged():

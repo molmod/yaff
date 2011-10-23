@@ -23,7 +23,8 @@
 
 import numpy as np, time
 
-from molmod.minimizer import ConjugateGradient, NewtonLineSearch, Minimizer
+from molmod.minimizer import ConjugateGradient, NewtonLineSearch, Minimizer, \
+    check_delta
 
 from yaff.log import log
 from yaff.sampling.iterative import Iterative, AttributeStateItem, \
@@ -185,7 +186,7 @@ class FullCell(object):
         return x[:index].reshape(-1,3)*self._cell_scale, index
 
     def grvecs_to_gx(self, grvecs):
-        return grvecs.ravel()/self._cell_scale
+        return grvecs.ravel()*self._cell_scale
 
 
 class AnisoCell(object):
@@ -318,7 +319,7 @@ class CellDOF(DOF):
             v = ff.compute(self._gpos, self._vtens)
             self._gcell[:] = np.dot(ff.system.cell.gvecs, self._vtens)
             self._gx[:index] = self.cell_spec.grvecs_to_gx(self._gcell)
-            self._gx[index:] = np.dot(self._gpos, ff.system.cell.gvecs.T).ravel()
+            self._gx[index:] = np.dot(self._gpos, self._cell.T).ravel()
             return v, self._gx
         else:
             return ff.compute()
@@ -455,3 +456,9 @@ class CGOptimizer(Iterative):
     def finalize(self):
         if log.do_medium:
             log.hline()
+
+    def check_delta(self, eps=1e-4):
+        """Test the analytical derivatives"""
+        x = self.minimizer.x
+        dxs = np.random.uniform(-eps, eps, (100, len(x)))
+        check_delta(self.fun, x, dxs)
