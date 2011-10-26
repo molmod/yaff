@@ -124,6 +124,26 @@ def test_generator_water32_ubharm():
     assert part_valence.vlist.nv == 32
 
 
+def test_generator_water32_bondcross():
+    system = get_system_water32()
+    ff = ForceField.generate(system, 'input/parameters_water_bondcross.txt')
+    assert len(ff.parts) == 1
+    assert isinstance(ff.parts[0], ForcePartValence)
+    part_valence = ff.part_valence
+    assert part_valence.dlist.ndelta == 64
+    for i, j in system.bonds:
+        row0 = part_valence.dlist.lookup.get((i, j))
+        row1 = part_valence.dlist.lookup.get((j, i))
+        assert row0 is not None or row1 is not None
+    assert (part_valence.iclist.ictab['kind'] == 0).all()
+    assert part_valence.iclist.nic == 64
+    assert (part_valence.vlist.vtab['kind'] == 3).all()
+    assert abs(part_valence.vlist.vtab['par0'] - 1.1354652314e+01*(kjmol/angstrom**2)).max() < 1e-10
+    assert abs(part_valence.vlist.vtab['par1'] - 1.1247753211e+00*angstrom).max() < 1e-10
+    assert abs(part_valence.vlist.vtab['par2'] - 1.1247753211e+00*angstrom).max() < 1e-10
+    assert part_valence.vlist.nv == 32
+
+
 def test_generator_water32_lj():
     system = get_system_water32()
     ff = ForceField.generate(system, 'input/parameters_water_lj.txt')

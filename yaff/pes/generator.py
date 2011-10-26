@@ -34,16 +34,22 @@ from yaff.pes.ff import ForcePartPair, ForcePartValence, \
 from yaff.pes.iclist import Bond, BendAngle, BendCos, UreyBradley
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
-from yaff.pes.vlist import Harmonic, Fues
+from yaff.pes.vlist import Harmonic, Fues, Cross
 
 
 __all__ = [
-    'ParsedPars', 'FFArgs', 'Generator', 'ValenceGenerator', 'BondGenerator',
-    'BondHarmGenerator', 'BondFuesGenerator', 'BendGenerator',
-    'BendAngleHarmGenerator', 'BendCosHarmGenerator',
-    'UreyBradleyHarmGenerator', 'NonbondedGenerator', 'LJGenerator',
-    'MM3Generator', 'ExpRepGenerator', 'DampDispGenerator',
-    'FixedChargeGenerator', 'generators'
+    'ParsedPars', 'FFArgs', 'Generator',
+
+    'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator',
+    'BondFuesGenerator', 'BendGenerator', 'BendAngleHarmGenerator',
+    'BendCosHarmGenerator', 'UreyBradleyHarmGenerator',
+
+    'ValenceCrossGenerator', 'BondCrossGeneratorGenerator',
+
+    'NonbondedGenerator', 'LJGenerator', 'MM3Generator', 'ExpRepGenerator',
+    'DampDispGenerator', 'FixedChargeGenerator',
+
+    'generators',
 ]
 
 
@@ -385,6 +391,73 @@ class UreyBradleyHarmGenerator(BendGenerator):
     par_names = ['K', 'R0']
     prefix = 'UBHARM'
     ICClass = UreyBradley
+
+
+class ValenceCrossGenerator(Generator):
+    commands = ['UNIT', 'PARS']
+    nffatype = None
+    ICClass0 = None
+    ICClass1 = None
+    VClass = None
+
+    def __call__(self, system, parsed_pars, ff_args):
+        self.check_commands(parsed_pars)
+        conversions = self.process_units(parsed_pars.get_section('UNIT'))
+        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions, self.nffatype)
+        if len(par_table) > 0:
+            self.apply(par_table, system, ff_args)
+
+    def apply(self, par_table, system, ff_args):
+        if system.bonds is None:
+            raise ValueError('The system must have bonds in order to define valence cross terms.')
+        part_valence = ff_args.get_part_valence(system)
+        for indexes in self.iter_indexes(system):
+            key = tuple(system.get_ffatype(i) for i in indexes)
+            pars = par_table.get(key)
+            if pars is None and log.do_warning:
+                log.warn('No valence %s parameters found for atoms %s with key %s' % (self.prefix, indexes, key))
+                continue
+            pars = self.mod_pars(pars)
+            indexes0 = self.get_indexes0(indexes)
+            indexes1 = self.get_indexes1(indexes)
+            args = pars + (self.ICClass0(*indexes0), self.ICClass1(*indexes1))
+            part_valence.add_term(self.VClass(*args))
+
+    def mod_pars(self, pars):
+        # By default, the parameters do not have to be modified.
+        return pars
+
+    def get_indexes0(self, indexes):
+        raise NotImplementedError
+
+    def get_indexes1(self, indexes):
+        raise NotImplementedError
+
+
+class BondCrossGeneratorGenerator(ValenceCrossGenerator):
+    prefix = 'BONDCROSS'
+    par_names = ['K', 'R0', 'R1']
+    nffatype = 3
+    ICClass0 = Bond
+    ICClass1 = Bond
+    VClass = Cross
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        for i1 in xrange(system.natom):
+            for i0 in system.neighs1[i1]:
+                for i2 in system.neighs1[i1]:
+                    if i0 > i2:
+                        yield i0, i1, i2
+
+    def get_indexes0(self, indexes):
+        return indexes[:2]
+
+    def get_indexes1(self, indexes):
+        return indexes[1:]
 
 
 class NonbondedGenerator(Generator):
