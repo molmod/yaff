@@ -32,6 +32,10 @@ __all__ = [
     'BendCos','DihedAngle','DihedCos','UreyBradley',
 ]
 
+
+# TODO: normalize the order of the indexes in the IC objects to maximize reuse.
+
+
 iclist_dtype = [
     ('kind', int),
     ('i0', int), ('sign0', int),
@@ -40,6 +44,7 @@ iclist_dtype = [
     ('i3', int), ('sign3', int),
     ('value', float), ('grad', float)
 ]
+
 
 class InternalCoordinateList(object):
     def __init__(self, dlist):
@@ -97,6 +102,7 @@ class Bond(InternalCoordinate):
 
     def get_conversion(self):
         return log.length.conversion
+
 
 class BendCos(InternalCoordinate):
     kind = 1

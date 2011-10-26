@@ -101,6 +101,29 @@ def test_generator_water32_bendcharm():
     assert part_valence.vlist.nv == 32
 
 
+def test_generator_water32_ubharm():
+    system = get_system_water32()
+    ff = ForceField.generate(system, 'input/parameters_water_ubharm.txt')
+    assert len(ff.parts) == 1
+    assert isinstance(ff.parts[0], ForcePartValence)
+    part_valence = ff.parts[0]
+    assert part_valence.dlist.ndelta == 32
+    for i, j in system.bonds:
+        row = part_valence.dlist.lookup.get((i, j))
+        assert row is None
+    for i, n2s in system.neighs2.iteritems():
+        for j in n2s:
+            row0 = part_valence.dlist.lookup.get((i, j))
+            row1 = part_valence.dlist.lookup.get((j, i))
+            assert row0 is not None or row1 is not None
+    assert (part_valence.iclist.ictab['kind'] == 5).all()
+    assert part_valence.iclist.nic == 32
+    assert (part_valence.vlist.vtab['kind'] == 0).all()
+    assert abs(part_valence.vlist.vtab['par0'] - 2.5465456475e+02*(kjmol/angstrom**2)).max() < 1e-10
+    assert abs(part_valence.vlist.vtab['par1'] - 2.6123213151e+00*angstrom).max() < 1e-10
+    assert part_valence.vlist.nv == 32
+
+
 def test_generator_water32_lj():
     system = get_system_water32()
     ff = ForceField.generate(system, 'input/parameters_water_lj.txt')

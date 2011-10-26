@@ -31,7 +31,7 @@ from yaff.pes.ext import PairPotEI, PairPotLJ, PairPotMM3, PairPotExpRep, \
 from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
     ForcePartEwaldNeutralizing
-from yaff.pes.iclist import Bond, BendAngle, BendCos
+from yaff.pes.iclist import Bond, BendAngle, BendCos, UreyBradley
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
 from yaff.pes.vlist import Harmonic, Fues
@@ -40,8 +40,9 @@ from yaff.pes.vlist import Harmonic, Fues
 __all__ = [
     'ParsedPars', 'FFArgs', 'Generator', 'ValenceGenerator', 'BondGenerator',
     'BondHarmGenerator', 'BondFuesGenerator', 'BendGenerator',
-    'BendAngleHarmGenerator', 'BendCosHarmGenerator', 'NonbondedGenerator',
-    'LJGenerator', 'MM3Generator', 'ExpRepGenerator', 'DampDispGenerator',
+    'BendAngleHarmGenerator', 'BendCosHarmGenerator',
+    'UreyBradleyHarmGenerator', 'NonbondedGenerator', 'LJGenerator',
+    'MM3Generator', 'ExpRepGenerator', 'DampDispGenerator',
     'FixedChargeGenerator', 'generators'
 ]
 
@@ -306,11 +307,12 @@ class ValenceGenerator(Generator):
         if system.bonds is None:
             raise ValueError('The system must have bonds in order to define valence terms.')
         part_valence = ff_args.get_part_valence(system)
-        from yaff.pes.iclist import Bond
-        from yaff.pes.vlist import Harmonic
         for indexes in self.iter_indexes(system):
             key = tuple(system.get_ffatype(i) for i in indexes)
             pars = par_table.get(key)
+            if pars is None and log.do_warning:
+                log.warn('No valence %s parameters found for atoms %s with key %s' % (self.prefix, indexes, key))
+                continue
             pars = self.mod_pars(pars)
             args = pars + (self.ICClass(*indexes),)
             part_valence.add_term(self.VClass(*args))
@@ -377,6 +379,12 @@ class BendCosHarmGenerator(BendGenerator):
         k, a0 = pars
         c0 = np.cos(a0)
         return k, c0
+
+
+class UreyBradleyHarmGenerator(BendGenerator):
+    par_names = ['K', 'R0']
+    prefix = 'UBHARM'
+    ICClass = UreyBradley
 
 
 class NonbondedGenerator(Generator):
