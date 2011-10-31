@@ -21,14 +21,14 @@ BONDFUES:PARS        O        H  4.0088096730e+03  1.0238240000e+00
 
 # Mathematical form depends on the kind selected below. Few kinds are supported:
 # - BENDAHARM: 0.5*K*(theta-THETA0)**2
-# - BENDCHARM: 0.5*K*(cos(theta)-cos(THETA0))**2
+# - BENDCHARM: 0.5*K*(cos(theta)-cos(COS0))**2
 # The actual parameters and their units may depend on the kind.
 BENDCHARM:UNIT K kjmol
-BENDCHARM:UNIT THETA0 deg
+BENDCHARM:UNIT COS0 1
 # ---------------------------------------------------------------------------
-# KEY            label0   label1   label2  K                 THETA0
+# KEY            label0   label1   label2  K                 THETA0/COS0
 # ---------------------------------------------------------------------------
-BENDCHARM:PARS        H        O        H  3.0230353700e+02  8.8401698835e+01
+BENDCHARM:PARS        H        O        H  3.0230353700e+02  2.7892000007e-02
 
 
 # Fixed charges

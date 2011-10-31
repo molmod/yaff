@@ -319,13 +319,8 @@ class ValenceGenerator(Generator):
             if pars is None and log.do_warning:
                 log.warn('No valence %s parameters found for atoms %s with key %s' % (self.prefix, indexes, key))
                 continue
-            pars = self.mod_pars(pars)
             args = pars + (self.ICClass(*indexes),)
             part_valence.add_term(self.VClass(*args))
-
-    def mod_pars(self, pars):
-        # By default, the parameters do not have to be modified.
-        return pars
 
 
 class BondGenerator(ValenceGenerator):
@@ -354,7 +349,6 @@ class BondFuesGenerator(BondGenerator):
 
 
 class BendGenerator(ValenceGenerator):
-    par_names = ['K', 'THETA0']
     nffatype = 3
     ICClass = None
     VClass = Harmonic
@@ -372,19 +366,15 @@ class BendGenerator(ValenceGenerator):
 
 
 class BendAngleHarmGenerator(BendGenerator):
+    par_names = ['K', 'THETA0']
     prefix = 'BENDAHARM'
     ICClass = BendAngle
 
 
 class BendCosHarmGenerator(BendGenerator):
+    par_names = ['K', 'COS0']
     prefix = 'BENDCHARM'
     ICClass = BendCos
-
-    def mod_pars(self, pars):
-        # The rest angle has to be transformed into a rest cosine
-        k, a0 = pars
-        c0 = np.cos(a0)
-        return k, c0
 
 
 class UreyBradleyHarmGenerator(BendGenerator):
