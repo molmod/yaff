@@ -93,6 +93,7 @@ def test_iclist_peroxide_dihedral_cos():
         system = get_system_peroxide()
         dlist = DeltaList(system)
         iclist = InternalCoordinateList(dlist)
+        # The bonds are added randomly to get different situations in the delta list
         bonds=[]
         while len(bonds)<3:
             i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
@@ -113,6 +114,7 @@ def test_iclist_peroxide_dihedral_angle():
         system = get_system_peroxide()
         dlist = DeltaList(system)
         iclist = InternalCoordinateList(dlist)
+        # The bonds are added randomly to get different situations in the delta list
         bonds=[]
         while len(bonds)<3:
             i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
@@ -228,3 +230,16 @@ def test_iclist_ub_water():
         delta = system.pos[i2] - system.pos[i0]
         system.cell.mic(delta)
         assert abs(iclist.ictab[row]['value'] - bond_length([np.zeros(3, float), delta])[0]) < 1e-5
+
+
+def test_ic_list_dihedral_pernicious():
+    system = get_system_peroxide()
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    iclist.add_ic(DihedAngle(0,1,2,3))
+    dlist.deltas[0] = (2.5645894177015855, -0.004063261303208772, 1.2798248429146284, 1, 2, 0.0, 0.0, 0.0)
+    dlist.deltas[1] = (2.0394633015500796, -0.0032335148484117426, -1.98698089493469, 2, 3, 0.0, 0.0, 0.0)
+    dlist.deltas[2] = (-1.8836397803889104, 0.0029844605526122576, -0.8613076025533011, 17, 3, 0.0, 0.0, 0.0)
+    iclist.ictab[0] = (4, 0, -1, 1, 1, 2, -1, 0, 0, 0.0, 0.0)
+    iclist.forward()
+    assert abs(abs(iclist.ictab[0]['value']) - np.pi) < 1e-8
