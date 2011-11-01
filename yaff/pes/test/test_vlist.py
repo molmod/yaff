@@ -215,7 +215,7 @@ def test_vlist_peroxide_dihed_angle_cosine():
         energy = vlist.forward()
         # calculate energy manually
         angle = dihed_angle(system.pos)[0]
-        check_energy = amp*np.cos(mult*(angle-phi0))
+        check_energy = 0.5*amp*(1-np.cos(mult*(angle-phi0)))
         assert abs(energy - check_energy) < 1e-8
 
 

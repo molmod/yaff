@@ -48,9 +48,9 @@ double forward_cross(vlist_row_type* term, iclist_row_type* ictab) {
 }
 
 double forward_cosine(vlist_row_type* term, iclist_row_type* ictab) {
-  return (*term).par1*cos(
+  return 0.5*(*term).par1*(1-cos(
     (*term).par0*(ictab[(*term).ic0].value - (*term).par2)
-  );
+  ));
 }
 
 v_forward_type v_forward_fns[5] = {
@@ -92,7 +92,7 @@ void back_cross(vlist_row_type* term, iclist_row_type* ictab) {
 }
 
 void back_cosine(vlist_row_type* term, iclist_row_type* ictab) {
-  ictab[(*term).ic0].grad -= (*term).par1*(*term).par0*sin(
+  ictab[(*term).ic0].grad += 0.5*(*term).par1*(*term).par0*sin(
     (*term).par0*(ictab[(*term).ic0].value - (*term).par2)
   );
 }

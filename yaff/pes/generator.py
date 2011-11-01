@@ -826,7 +826,11 @@ class FixedChargeGenerator(NonbondedGenerator):
                 system.charges[i] += charge
                 radii[i] = radius
         for i0, i1 in system.bonds:
-            charge_transfer = bond_table.get((system.get_ffatype(i0), system.get_ffatype(i1)))
+            ffatype0 = system.get_ffatype(i0)
+            ffatype1 = system.get_ffatype(i1)
+            if ffatype0 == ffatype1:
+                continue
+            charge_transfer = bond_table.get((ffatype0, ffatype1))
             if charge_transfer is None and log.do_warning:
                 log.warn('No charge transfer parameter for atom pair (%i,%i) with fftype (%s,%s).' % (i0, i1, system.get_ffatype(i0), system.get_ffatype(i1)))
             else:
