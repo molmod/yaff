@@ -257,7 +257,7 @@ This is a simple example of a Lennard-Jones force field::
 
    .. literalinclude:: ../input/parameters_water.txt
 
-#. [PARTIALLY DONE, TODO: TORSION, GRIMME] The generate method.
+#. [PARTIALLY DONE, TODO: GRIMME] The generate method.
 
 
 Running an FF simulation

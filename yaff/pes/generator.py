@@ -238,6 +238,7 @@ class Generator(object):
     prefix = None
     par_info = None
     commands = None
+    allow_superposition = False
 
     def __call__(self, system, parsed_pars, ff_args):
         raise NotImplementedError
@@ -287,11 +288,13 @@ class Generator(object):
                         pars.append(dtype(word))
                 pars = tuple(pars)
             except ValueError:
-                parsed_pars.complain(counter, 'has parameters that can not be converted to floating point numbers.')
-            if key in par_table and par_table[key] != pars:
-                parsed_pars.complain(counter, 'contains duplicate incompatible parameters.')
+                parsed_pars.complain(counter, 'has parameters that can not be converted to numbers.')
+            par_list = par_table.get(key, [])
+            if len(par_list) > 0 and not self.allow_superposition:
+                parsed_pars.complain(counter, 'conts duplicate parameters, which is not allowed for generator %s.' % self.prefix)
+            par_list.append(pars)
             for key in self.iter_alt_keys(key):
-                par_table[key] = pars
+                par_table[key] = par_list
         return par_table
 
     def iter_alt_keys(self, key):
@@ -320,12 +323,13 @@ class ValenceGenerator(Generator):
         part_valence = ff_args.get_part_valence(system)
         for indexes in self.iter_indexes(system):
             key = tuple(system.get_ffatype(i) for i in indexes)
-            pars = par_table.get(key)
-            if pars is None and log.do_warning:
+            par_list = par_table.get(key, [])
+            if len(par_list) == 0 and log.do_warning:
                 log.warn('No valence %s parameters found for atoms %s with key %s' % (self.prefix, indexes, key))
                 continue
-            args = pars + (self.ICClass(*indexes),)
-            part_valence.add_term(self.VClass(*args))
+            for pars in par_list:
+                args = pars + (self.ICClass(*indexes),)
+                part_valence.add_term(self.VClass(*args))
 
 
 class BondGenerator(ValenceGenerator):
@@ -394,6 +398,7 @@ class TorsionGenerator(ValenceGenerator):
     prefix = 'TORSION'
     ICClass = DihedAngle
     VClass = Cosine
+    allow_superposition = True
 
     def iter_alt_keys(self, key):
         yield key
@@ -429,19 +434,16 @@ class ValenceCrossGenerator(Generator):
         part_valence = ff_args.get_part_valence(system)
         for indexes in self.iter_indexes(system):
             key = tuple(system.get_ffatype(i) for i in indexes)
-            pars = par_table.get(key)
-            if pars is None and log.do_warning:
+            par_list = par_table.get(key, [])
+            if len(par_list) == 0 is None and log.do_warning:
                 log.warn('No valence %s parameters found for atoms %s with key %s' % (self.prefix, indexes, key))
                 continue
-            pars = self.mod_pars(pars)
-            indexes0 = self.get_indexes0(indexes)
-            indexes1 = self.get_indexes1(indexes)
-            args = pars + (self.ICClass0(*indexes0), self.ICClass1(*indexes1))
-            part_valence.add_term(self.VClass(*args))
-
-    def mod_pars(self, pars):
-        # By default, the parameters do not have to be modified.
-        return pars
+            for pars in par_list:
+                pars = self.mod_pars(pars)
+                indexes0 = self.get_indexes0(indexes)
+                indexes1 = self.get_indexes1(indexes)
+                args = pars + (self.ICClass0(*indexes0), self.ICClass1(*indexes1))
+                part_valence.add_term(self.VClass(*args))
 
     def get_indexes0(self, indexes):
         raise NotImplementedError
@@ -544,12 +546,12 @@ class LJGenerator(NonbondedGenerator):
         epsilons = np.zeros(system.natom)
         for i in xrange(system.natom):
             key = (system.get_ffatype(i),)
-            pars = par_table.get(key)
-            if pars is None:
+            par_list = par_table.get(key, [])
+            if len(par_list) == 0:
                 if log.do_warning:
                     log.warn('No LJ parameters found for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
             else:
-                sigmas[i], epsilons[i] = pars
+                sigmas[i], epsilons[i] = par_list[0]
 
         # Prepare the global parameters
         scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
@@ -583,12 +585,12 @@ class MM3Generator(NonbondedGenerator):
         epsilons = np.zeros(system.natom)
         for i in xrange(system.natom):
             key = (system.get_ffatype(i),)
-            pars = par_table.get(key)
-            if pars is None:
+            par_list = par_table.get(key, [])
+            if len(par_list) == 0:
                 if log.do_warning:
                     log.warn('No MM3 parameters found for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
             else:
-                sigmas[i], epsilons[i] = pars
+                sigmas[i], epsilons[i] = par_list[0]
 
         # Prepare the global parameters
         scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
@@ -633,26 +635,27 @@ class ExpRepGenerator(NonbondedGenerator):
         amps = np.zeros(system.nffatype, float)
         bs = np.zeros(system.nffatype, float)
         for i in xrange(system.nffatype):
-            pars = par_table.get((system.ffatypes[i],))
-            if pars is None:
+            key = (system.get_ffatype(i),)
+            par_list = par_table.get(key, [])
+            if len(par_list) == 0:
                 if log.do_warning:
                     log.warn('No EXPREP parameters found for ffatype %s.' % system.ffatypes[i])
             else:
-                amps[i], bs[i] = pars
+                amps[i], bs[i] = par_list[0]
 
         # Prepare the cross parameters
         amp_cross = np.zeros((system.nffatype, system.nffatype), float)
         b_cross = np.zeros((system.nffatype, system.nffatype), float)
         for i0 in xrange(system.nffatype):
             for i1 in xrange(i0+1):
-                cpars = cpar_table.get((system.ffatypes[i0], system.ffatypes[i1]))
-                if cpars is None:
+                cpar_list = cpar_table.get((system.ffatypes[i0], system.ffatypes[i1]), [])
+                if len(cpar_list) == 0:
                     if log.do_high:
                         log('No EXPREP cross parameters found for ffatypes %s,%s. Mixing rule will be used' % (system.ffatypes[i0], system.ffatypes[i1]))
                 else:
-                    amp_cross[i0,i1], b_cross[i0,i1] = cpars
+                    amp_cross[i0,i1], b_cross[i0,i1] = cpar_list[0]
                     if i0 != i1:
-                        amp_cross[i1,i0], b_cross[i1,i0] = cpars
+                        amp_cross[i1,i0], b_cross[i1,i0] = cpar_list[0]
 
         # Prepare the global parameters
         scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
@@ -705,26 +708,27 @@ class DampDispGenerator(NonbondedGenerator):
         bs = np.zeros(system.nffatype, float)
         vols = np.zeros(system.nffatype, float)
         for i in xrange(system.nffatype):
-            pars = par_table.get((system.ffatypes[i],))
-            if pars is None:
+            key = (system.get_ffatype(i),)
+            par_list = par_table.get(key, [])
+            if len(par_list) == 0:
                 if log.do_warning:
                     log.warn('No DAMPDISP parameters found for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
             else:
-                c6s[i], bs[i], vols[i] = pars
+                c6s[i], bs[i], vols[i] = par_list[0]
 
         # Prepare the cross parameters
         c6_cross = np.zeros((system.nffatype, system.nffatype), float)
         b_cross = np.zeros((system.nffatype, system.nffatype), float)
         for i0 in xrange(system.nffatype):
             for i1 in xrange(i0+1):
-                cpars = cpar_table.get((system.ffatypes[i0], system.ffatypes[i1]))
-                if cpars is None:
+                cpar_list = cpar_table.get((system.ffatypes[i0], system.ffatypes[i1]), [])
+                if len(cpar_list) == 0:
                     if log.do_high:
                         log('No DAMPDISP cross parameters found for ffatypes %s,%s. Mixing rule will be used' % (system.ffatypes[i0], system.ffatypes[i1]))
                 else:
-                    c6_cross[i0,i1], b_cross[i0,i1] = cpars
+                    c6_cross[i0,i1], b_cross[i0,i1] = cpar_list[0]
                     if i0 != i1:
-                        c6_cross[i1,i0], b_cross[i1,i0] = cpars
+                        c6_cross[i1,i0], b_cross[i1,i0] = cpar_list[0]
 
         # Prepare the global parameters
         scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
