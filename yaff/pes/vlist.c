@@ -47,8 +47,15 @@ double forward_cross(vlist_row_type* term, iclist_row_type* ictab) {
   return (*term).par0*( ictab[(*term).ic0].value - (*term).par1 )*( ictab[(*term).ic1].value - (*term).par2 );
 }
 
-v_forward_type v_forward_fns[4] = {
-  forward_harmonic, forward_polyfour, forward_fues, forward_cross
+double forward_cosine(vlist_row_type* term, iclist_row_type* ictab) {
+  return (*term).par1*cos(
+    (*term).par0*(ictab[(*term).ic0].value - (*term).par2)
+  );
+}
+
+v_forward_type v_forward_fns[5] = {
+  forward_harmonic, forward_polyfour, forward_fues, forward_cross,
+  forward_cosine
 };
 
 double vlist_forward(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
@@ -84,8 +91,14 @@ void back_cross(vlist_row_type* term, iclist_row_type* ictab) {
   ictab[(*term).ic1].grad += (*term).par0*( ictab[(*term).ic0].value - (*term).par1 );
 }
 
-v_back_type v_back_fns[4] = {
-  back_harmonic, back_polyfour, back_fues, back_cross
+void back_cosine(vlist_row_type* term, iclist_row_type* ictab) {
+  ictab[(*term).ic0].grad -= (*term).par1*(*term).par0*sin(
+    (*term).par0*(ictab[(*term).ic0].value - (*term).par2)
+  );
+}
+
+v_back_type v_back_fns[5] = {
+  back_harmonic, back_polyfour, back_fues, back_cross, back_cosine
 };
 
 void vlist_back(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {

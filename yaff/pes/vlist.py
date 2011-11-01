@@ -27,7 +27,10 @@ from yaff.log import log
 from yaff.pes.ext import vlist_forward, vlist_back
 
 
-__all__ = ['ValenceList', 'ValenceTerm', 'Harmonic', 'PolyFour', 'Fues', 'Cross']
+__all__ = [
+    'ValenceList', 'ValenceTerm', 'Harmonic', 'PolyFour', 'Fues', 'Cross',
+    'Cosine'
+]
 
 
 vlist_dtype = [
@@ -83,7 +86,11 @@ class Harmonic(ValenceTerm):
 
     def get_log(self):
         c = self.ics[0].get_conversion()
-        return '%s(FC=%.5e,RV=%.5e)' % (self.__class__.__name__, self.pars[0]/(log.energy.conversion/c**2), self.pars[1]/c)
+        return '%s(FC=%.5e,RV=%.5e)' % (
+            self.__class__.__name__,
+            self.pars[0]/(log.energy.conversion/c**2),
+            self.pars[1]/c
+        )
 
 
 class PolyFour(ValenceTerm):
@@ -112,7 +119,11 @@ class Fues(ValenceTerm):
 
     def get_log(self):
         c = self.ics[0].get_conversion()
-        return '%s(FC=%.5e,RV=%.5e)' % (self.__class__.__name__, self.pars[0]/(log.energy.conversion/c**2), self.pars[1]/c)
+        return '%s(FC=%.5e,RV=%.5e)' % (
+            self.__class__.__name__,
+            self.pars[0]/(log.energy.conversion/c**2),
+            self.pars[1]/c
+        )
 
 
 class Cross(ValenceTerm):
@@ -128,4 +139,19 @@ class Cross(ValenceTerm):
             self.pars[0]/(log.energy.conversion/c0/c1),
             self.pars[1]/c0,
             self.pars[2]/c1,
+        )
+
+
+class Cosine(ValenceTerm):
+    kind = 4
+    def __init__(self, m, a, phi0, ic):
+        ValenceTerm.__init__(self, [m, a, phi0], [ic])
+
+    def get_log(self):
+        c = self.ics[0].get_conversion()
+        return '%s(M=%i,A=%.5e,PHI0=%.5e)' % (
+            self.__class__.__name__,
+            int(self.pars[0]),
+            self.pars[1]/log.energy.conversion,
+            self.pars[2]/c
         )

@@ -192,6 +192,33 @@ def test_vlist_peroxide_dihed_angle():
         assert abs(energy - check_energy) < 1e-8
 
 
+def test_vlist_peroxide_dihed_angle_cosine():
+    number_of_tests=50
+    for i in xrange(number_of_tests):
+        system = get_system_peroxide()
+        dlist = DeltaList(system)
+        iclist = InternalCoordinateList(dlist)
+        vlist = ValenceList(iclist)
+        bonds=[]
+        while len(bonds)<3:
+            i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
+            if i0==i1 or (i0,i1) in bonds or (i1,i0) in bonds: continue
+            if (i0,i1) in system.bonds or (i1,i0) in system.bonds:
+                iclist.add_ic(Bond(i0,i1))
+                bonds.append((i0,i1))
+        mult = np.random.randint(1, 4)
+        amp = np.random.normal(0, 1)
+        phi0 = np.random.uniform(0, 2*np.pi)
+        vlist.add_term(Cosine(mult, amp, phi0, DihedAngle(0,1,2,3)))
+        dlist.forward()
+        iclist.forward()
+        energy = vlist.forward()
+        # calculate energy manually
+        angle = dihed_angle(system.pos)[0]
+        check_energy = amp*np.cos(mult*(angle-phi0))
+        assert abs(energy - check_energy) < 1e-8
+
+
 def test_vlist_polyfour_water32():
     system = get_system_water32()
     part = ForcePartValence(system)
@@ -319,6 +346,14 @@ def test_gpos_vtens_dihed_angle_peroxide():
     system = get_system_peroxide()
     part = ForcePartValence(system)
     part.add_term(Harmonic(1.5, 1.0, DihedAngle(0,1,2,3)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
+
+
+def test_gpos_vtens_dihed_angle_cosine_peroxide():
+    system = get_system_peroxide()
+    part = ForcePartValence(system)
+    part.add_term(Cosine(3, 1.5, 2*np.pi/3, DihedAngle(0,1,2,3)))
     check_gpos_part(system, part)
     check_vtens_part(system, part)
 
