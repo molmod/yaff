@@ -31,10 +31,10 @@ from yaff.pes.ext import PairPotEI, PairPotLJ, PairPotMM3, PairPotExpRep, \
 from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
     ForcePartEwaldNeutralizing
-from yaff.pes.iclist import Bond, BendAngle, BendCos, UreyBradley
+from yaff.pes.iclist import Bond, BendAngle, BendCos, UreyBradley, DihedAngle
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
-from yaff.pes.vlist import Harmonic, Fues, Cross
+from yaff.pes.vlist import Harmonic, Fues, Cross, Cosine
 
 
 __all__ = [
@@ -236,7 +236,7 @@ class Generator(object):
        important.
     """
     prefix = None
-    par_names = None
+    par_info = None
     commands = None
 
     def __call__(self, system, parsed_pars, ff_args):
@@ -249,38 +249,43 @@ class Generator(object):
 
     def process_units(self, parsed_pars):
         result = {}
+        expected_names = [name for name, dtype in self.par_info if dtype is float]
         for counter, line in parsed_pars.info:
             words = line.split()
             if len(words) != 2:
                 parsed_pars.complain(counter, 'must have two arguments in UNIT command.')
             name = words[0].upper()
-            if name not in self.par_names:
-                parsed_pars.complain(counter, 'specifies a unit for an unknown parameter. (Must be one of %s, but got %s.)' % (self.par_names, name))
+            if name not in expected_names:
+                parsed_pars.complain(counter, 'specifies a unit for an unknown parameter. (Must be one of %s, but got %s.)' % (expected_names, name))
             try:
                 result[name] = parse_unit(words[1])
             except (NameError, ValueError):
                 parsed_pars.complain(counter, 'has a UNIT command with an unknown unit.')
-        if len(result) != len(self.par_names):
+        if len(result) != len(expected_names):
             raise IOError('Not all units are specified for generator %s in file %s. Got %s, should have %s.' % (
-                self.prefix, parsed_pars.fn, result.keys(), self.par_names
+                self.prefix, parsed_pars.fn, result.keys(), expected_names
             ))
         return result
 
-    def process_pars(self, parsed_pars, conversions, nffatype, par_names=None):
-        if par_names is None:
-            par_names = self.par_names
+    def process_pars(self, parsed_pars, conversions, nffatype, par_info=None):
+        if par_info is None:
+            par_info = self.par_info
         par_table = {}
         for counter, line in parsed_pars.info:
             words = line.split()
-            num_args = nffatype + len(par_names)
+            num_args = nffatype + len(par_info)
             if len(words) != num_args:
                 parsed_pars.complain(counter, 'should have %s arguments.' % num_args)
             key = tuple(words[:nffatype])
             try:
-                pars = tuple(
-                    float(words[i+nffatype])*conversions[par_name]
-                    for i, par_name in enumerate(par_names)
-                )
+                pars = []
+                for i, (name, dtype) in enumerate(par_info):
+                    word = words[i+nffatype]
+                    if dtype is float:
+                        pars.append(float(word)*conversions[name])
+                    else:
+                        pars.append(dtype(word))
+                pars = tuple(pars)
             except ValueError:
                 parsed_pars.complain(counter, 'has parameters that can not be converted to floating point numbers.')
             if key in par_table and par_table[key] != pars:
@@ -324,7 +329,7 @@ class ValenceGenerator(Generator):
 
 
 class BondGenerator(ValenceGenerator):
-    par_names = ['K', 'R0']
+    par_info = [('K', float), ('R0', float)]
     nffatype = 2
     ICClass = Bond
     VClass = None
@@ -366,21 +371,42 @@ class BendGenerator(ValenceGenerator):
 
 
 class BendAngleHarmGenerator(BendGenerator):
-    par_names = ['K', 'THETA0']
+    par_info = [('K', float), ('THETA0', float)]
     prefix = 'BENDAHARM'
     ICClass = BendAngle
 
 
 class BendCosHarmGenerator(BendGenerator):
-    par_names = ['K', 'COS0']
+    par_info = [('K', float), ('COS0', float)]
     prefix = 'BENDCHARM'
     ICClass = BendCos
 
 
 class UreyBradleyHarmGenerator(BendGenerator):
-    par_names = ['K', 'R0']
+    par_info = [('K', float), ('R0', float)]
     prefix = 'UBHARM'
     ICClass = UreyBradley
+
+
+class TorsionGenerator(ValenceGenerator):
+    nffatype = 4
+    par_info = [('M', int), ('A', float), ('PHI0', float)]
+    prefix = 'TORSION'
+    ICClass = DihedAngle
+    VClass = Cosine
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        for i1, i2 in system.bonds:
+            for i0 in system.neighs1[i1]:
+                if i0==i2: continue
+                for i3 in system.neighs1[i2]:
+                    if i1==i3: continue
+                    if i0==i3: continue
+                    yield i0, i1, i2, i3
 
 
 class ValenceCrossGenerator(Generator):
@@ -426,7 +452,7 @@ class ValenceCrossGenerator(Generator):
 
 class BondCrossGeneratorGenerator(ValenceCrossGenerator):
     prefix = 'BONDCROSS'
-    par_names = ['K', 'R0', 'R1']
+    par_info = [('K', float), ('R0', float), ('R1', float)]
     nffatype = 3
     ICClass0 = Bond
     ICClass1 = Bond
@@ -503,7 +529,7 @@ class NonbondedGenerator(Generator):
 class LJGenerator(NonbondedGenerator):
     prefix = 'LJ'
     commands = ['UNIT', 'SCALE', 'PARS']
-    par_names = ['SIGMA', 'EPSILON']
+    par_info = [('SIGMA', float), ('EPSILON', float)]
 
     def __call__(self, system, parsed_pars, ff_args):
         self.check_commands(parsed_pars)
@@ -542,7 +568,7 @@ class LJGenerator(NonbondedGenerator):
 class MM3Generator(NonbondedGenerator):
     prefix = 'MM3'
     commands = ['UNIT', 'SCALE', 'PARS']
-    par_names = ['SIGMA', 'EPSILON']
+    par_info = [('SIGMA', float), ('EPSILON', float)]
 
     def __call__(self, system, parsed_pars, ff_args):
         self.check_commands(parsed_pars)
@@ -581,7 +607,7 @@ class MM3Generator(NonbondedGenerator):
 class ExpRepGenerator(NonbondedGenerator):
     prefix = 'EXPREP'
     commands = ['UNIT', 'SCALE', 'MIX', 'PARS', 'CPARS']
-    par_names = ['A', 'B']
+    par_info = [('A', float), ('B', float)]
     mixing_rules = {
         ('A', 'GEOMETRIC'): (0, 0),
         ('A', 'GEOMETRIC_COR'): (1, 1),
@@ -658,13 +684,14 @@ class ExpRepGenerator(NonbondedGenerator):
 class DampDispGenerator(NonbondedGenerator):
     prefix = 'DAMPDISP'
     commands = ['UNIT', 'SCALE', 'PARS', 'CPARS']
-    par_names = ['C6', 'B', 'VOL']
+    par_info = [('C6', float), ('B', float), ('VOL', float)]
+    cpar_info = [('C6', float), ('B', float)]
 
     def __call__(self, system, parsed_pars, ff_args):
         self.check_commands(parsed_pars)
         conversions = self.process_units(parsed_pars.get_section('UNIT'))
         par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions, 1)
-        cpar_table = self.process_pars(parsed_pars.get_section('CPARS'), conversions, 2, ['C6', 'B'])
+        cpar_table = self.process_pars(parsed_pars.get_section('CPARS'), conversions, 2, self.cpar_info)
         scale_table = self.process_scales(parsed_pars.get_section('SCALE'))
         self.apply(par_table, cpar_table, scale_table, system, ff_args)
 
@@ -716,7 +743,7 @@ class DampDispGenerator(NonbondedGenerator):
 class FixedChargeGenerator(NonbondedGenerator):
     prefix = 'FIXQ'
     commands = ['UNIT', 'SCALE', 'ATOM', 'BOND', 'DIELECTRIC']
-    par_names = ['Q0', 'P', 'R']
+    par_info = [('Q0', float), ('P', float), ('R', float)]
 
     def __call__(self, system, parsed_pars, ff_args):
         self.check_commands(parsed_pars)

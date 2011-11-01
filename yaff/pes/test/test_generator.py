@@ -26,7 +26,7 @@ import numpy as np
 from yaff import kjmol, angstrom, deg, angstrom, kcalmol
 from yaff import ForceField, ForcePartValence
 
-from yaff.test.common import get_system_water32
+from yaff.test.common import get_system_water32, get_system_glycine
 
 
 def test_generator_water32_bondharm():
@@ -122,6 +122,23 @@ def test_generator_water32_ubharm():
     assert abs(part_valence.vlist.vtab['par0'] - 2.5465456475e+02*(kjmol/angstrom**2)).max() < 1e-10
     assert abs(part_valence.vlist.vtab['par1'] - 2.6123213151e+00*angstrom).max() < 1e-10
     assert part_valence.vlist.nv == 32
+
+
+def test_generator_glycine_torsion():
+    system = get_system_glycine()
+    ff = ForceField.generate(system, 'input/parameters_glycine_torsion.txt')
+    assert len(ff.parts) == 1
+    part_valence = ff.part_valence
+    assert part_valence.vlist.nv == 7
+    assert part_valence.dlist.ndelta == 9
+    m_counts = {}
+    for row in part_valence.vlist.vtab[:7]:
+        key = int(row['par0'])
+        m_counts[key] = m_counts.get(key, 0) + 1
+    assert len(m_counts) == 3
+    assert m_counts[1] == 1
+    assert m_counts[2] == 2
+    assert m_counts[3] == 4
 
 
 def test_generator_water32_bondcross():

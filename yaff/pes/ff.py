@@ -340,7 +340,7 @@ class ForcePartValence(ForcePart):
     def add_term(self, term):
         if log.do_high:
             with log.section('VTERM'):
-                log('%7i %s %s' % (self.vlist.nv, term.get_log(), ' '.join(ic.get_log() for ic in term.ics)))
+                log('%7i&%s %s' % (self.vlist.nv, term.get_log(), ' '.join(ic.get_log() for ic in term.ics)))
         self.vlist.add_term(term)
 
     def _internal_compute(self, gpos, vtens):
