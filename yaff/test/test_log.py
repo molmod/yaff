@@ -28,7 +28,7 @@ from yaff.log import ScreenLog
 
 def test_line_wrapping():
     f = StringIO()
-    log = ScreenLog(f)
+    log = ScreenLog('TEST', '0.0', '', '', f)
     log._active = True
     with log.section('NVE'):
         log('This is just a long test message that should get splitted into two lines properly.')
@@ -37,7 +37,7 @@ def test_line_wrapping():
 
 
 def test_levels():
-    log = ScreenLog()
+    log = ScreenLog('TEST', '0.0', '', '')
     assert log.do_medium
     assert not log.do_high
     log.set_level(log.low)
@@ -46,7 +46,7 @@ def test_levels():
 
 def test_hline():
     f = StringIO()
-    log = ScreenLog(f)
+    log = ScreenLog('TEST', '0.0', '', '', f)
     log._active = True
     with log.section('FOOBAR'):
         log.hline()
@@ -56,14 +56,14 @@ def test_hline():
 def test_unitsys():
     from molmod.units import kjmol, kcalmol
     f = StringIO()
-    log = ScreenLog(f)
+    log = ScreenLog('TEST', '0.0', '', '', f)
     assert abs(log.energy.conversion - kjmol) < 1e-10
     log.set_unitsys(log.cal)
     assert abs(log.energy.conversion - kcalmol) < 1e-10
 
 def test_lead():
     f = StringIO()
-    log = ScreenLog(f)
+    log = ScreenLog('TEST', '0.0', '', '', f)
     log._active = True
     with log.section('AAA'):
         log('Some prefix:&followed by a long text that needs to be wrapped over multiple lines.')
@@ -72,7 +72,7 @@ def test_lead():
 
 def test_enter_leave():
     f = StringIO()
-    log = ScreenLog(f)
+    log = ScreenLog('TEST', '0.0', '', '', f)
     with log.section('FOO'):
         assert log.prefix == '    FOO'
         with log.section('BAR'):

@@ -27,6 +27,7 @@ from contextlib import contextmanager
 from molmod.units import kjmol, kcalmol, electronvolt, angstrom, nanometer, \
     femtosecond, picosecond, amu, deg, gram, centimeter
 from yaff.timer import timer
+import yaff
 
 
 __all__ = ['ScreenLog', 'log']
@@ -214,7 +215,11 @@ class ScreenLog(object):
     )
 
 
-    def __init__(self, f=None):
+    def __init__(self, name, version, head_banner, foot_banner, f=None):
+        self.name = name
+        self.version = version
+        self.head_banner = head_banner
+        self.foot_banner = foot_banner
         self._active = False
         self._level = self.medium
         self.unitsys = self.joule
@@ -320,7 +325,7 @@ class ScreenLog(object):
     def print_header(self):
         if self.do_warning and not self._active:
             self._active = True
-            print >> self._file, head_banner
+            print >> self._file, self.head_banner
             self._print_basic_info()
             self.unitsys.log_info()
 
@@ -329,7 +334,7 @@ class ScreenLog(object):
             self._print_basic_info()
             timer._stop()
             timer.report(self)
-            print >> self._file, foot_banner
+            print >> self._file, self.foot_banner
 
     def _print_basic_info(self):
         if log.do_low:
@@ -339,10 +344,10 @@ class ScreenLog(object):
                 log('Machine info:  &' + ' '.join(os.uname()))
                 log('Time:          &' + datetime.datetime.now().isoformat())
                 log('Python version:&' + sys.version.replace('\n', ''))
-                log('YAFF version:  &' + yaff.__version__)
+                log('%s&%s' % (('%s version:' % self.name).ljust(15), self.version))
                 log('Current Dir:   &' + os.getcwd())
                 log('Command line:  &' + ' '.join(sys.argv))
 
 
-log = ScreenLog()
+log = ScreenLog('YAFF', yaff.__version__, head_banner, foot_banner)
 atexit.register(log.print_footer)
