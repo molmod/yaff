@@ -439,7 +439,6 @@ class ValenceCrossGenerator(Generator):
                 log.warn('No valence %s parameters found for atoms %s with key %s' % (self.prefix, indexes, key))
                 continue
             for pars in par_list:
-                pars = self.mod_pars(pars)
                 indexes0 = self.get_indexes0(indexes)
                 indexes1 = self.get_indexes1(indexes)
                 args = pars + (self.ICClass0(*indexes0), self.ICClass1(*indexes1))
