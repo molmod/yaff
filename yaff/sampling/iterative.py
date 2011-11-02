@@ -23,8 +23,7 @@
 
 import numpy as np
 
-from yaff.log import log
-from yaff.timer import timer
+from yaff.log import log, timer
 
 
 __all__ = [

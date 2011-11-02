@@ -26,8 +26,7 @@ import numpy as np, time
 
 from molmod import boltzmann
 
-from yaff.log import log
-from yaff.timer import timer
+from yaff.log import log, timer
 from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
     PosStateItem, DipoleStateItem, DipoleVelStateItem, VolumeStateItem, \
     CellStateItem, Hook

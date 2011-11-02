@@ -23,8 +23,7 @@
 
 import numpy as np
 
-from yaff.log import log
-from yaff.timer import timer
+from yaff.log import log, timer
 from yaff.pes.ext import nlist_status_init, nlist_status_finish, nlist_build, \
     nlist_recompute
 

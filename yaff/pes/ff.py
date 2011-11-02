@@ -23,8 +23,7 @@
 
 import numpy as np
 
-from yaff.log import log
-from yaff.timer import timer
+from yaff.log import log, timer
 from yaff.pes.ext import compute_ewald_reci, compute_ewald_corr, PairPotEI, \
     PairPotLJ, PairPotMM3, PairPotGrimme
 from yaff.pes.dlist import DeltaList
