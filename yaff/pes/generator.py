@@ -343,8 +343,7 @@ class BondGenerator(ValenceGenerator):
         yield key[::-1]
 
     def iter_indexes(self, system):
-        for i0, i1 in system.bonds:
-            yield i0, i1
+        return system.iter_bonds()
 
 
 class BondHarmGenerator(BondGenerator):
@@ -367,11 +366,7 @@ class BendGenerator(ValenceGenerator):
         yield key[::-1]
 
     def iter_indexes(self, system):
-        for i1 in xrange(system.natom):
-            for i0 in system.neighs1[i1]:
-                for i2 in system.neighs1[i1]:
-                    if i0 > i2:
-                        yield i0, i1, i2
+        return system.iter_angles()
 
 
 class BendAngleHarmGenerator(BendGenerator):
@@ -405,13 +400,7 @@ class TorsionGenerator(ValenceGenerator):
         yield key[::-1]
 
     def iter_indexes(self, system):
-        for i1, i2 in system.bonds:
-            for i0 in system.neighs1[i1]:
-                if i0==i2: continue
-                for i3 in system.neighs1[i2]:
-                    if i1==i3: continue
-                    if i0==i3: continue
-                    yield i0, i1, i2, i3
+        return system.iter_dihedrals()
 
 
 class ValenceCrossGenerator(Generator):
@@ -464,11 +453,7 @@ class BondCrossGeneratorGenerator(ValenceCrossGenerator):
         yield key[::-1]
 
     def iter_indexes(self, system):
-        for i1 in xrange(system.natom):
-            for i0 in system.neighs1[i1]:
-                for i2 in system.neighs1[i1]:
-                    if i0 > i2:
-                        yield i0, i1, i2
+        return system.iter_angles()
 
     def get_indexes0(self, indexes):
         return indexes[:2]
