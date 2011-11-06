@@ -669,6 +669,8 @@ class ExpRepGenerator(NonbondedGenerator):
 
 
 class DampDispGenerator(NonbondedGenerator):
+    # TODO: it seems that the dispersion interactions are just too strong. check
+    # if this is a bug.
     prefix = 'DAMPDISP'
     commands = ['UNIT', 'SCALE', 'PARS', 'CPARS']
     par_info = [('C6', float), ('B', float), ('VOL', float)]

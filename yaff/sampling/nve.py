@@ -256,6 +256,9 @@ class ConsErrTracker(object):
 
 
 class NVEIntegrator(Iterative):
+    # TODO: This should be copied upon initialization. As it is now, two
+    # consecutive simulations with a different number of atoms will raise an
+    # exception.
     default_state = [
         AttributeStateItem('counter'),
         AttributeStateItem('time'),
