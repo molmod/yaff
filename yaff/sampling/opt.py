@@ -72,32 +72,29 @@ class DOF(object):
 
 class CartesianDOF(DOF):
     """Cartesian degrees of freedom for the optimizers"""
-    def __init__(self, gpos_max=3e-5, gpos_rms=1e-5, dpos_max=3e-3, dpos_rms=1e-3):
+    def __init__(self, gpos_rms=1e-5, dpos_rms=1e-3):
         """
            **Optional arguments:**
 
-           gpos_max, gpos_rms, dpos_max, dpos_rms
+           gpos_rms, dpos_rms
                 Thresholds that define the convergence. If all of the actual
                 values drop below these thresholds, the minimizer stops.
 
-           **Convergence conditions:**
+                For each rms threshold, a corresponding max threshold is
+                included automatically. The maximum of the absolute value of a
+                component should be smaller than 3/sqrt(N) times the rms
+                threshold, where N is the number of degrees of freedom.
 
-           gpos_max
-                The maximum of the norm of the gradient of an atom.
+           **Convergence conditions:**
 
            gpos_rms
                 The root-mean-square of the norm of the gradients of the atoms.
-
-           dpos_max
-                The maximum of the norm of the displacement of an atom.
 
            dpos_rms
                 The root-mean-square of the norm of the displacements of the
                 atoms.
         """
-        self.th_gpos_max = gpos_max
         self.th_gpos_rms = gpos_rms
-        self.th_dpos_max = dpos_max
         self.th_dpos_rms = dpos_rms
         DOF.__init__(self)
         self._pos = None
@@ -154,21 +151,18 @@ class CartesianDOF(DOF):
         self.dpos_rms = np.sqrt(dpossq.mean())
         # Compute a general value that has to go below 1.0 to have convergence.
         conv_vals = []
-        if self.th_gpos_max is not None:
-            conv_vals.append((self.gpos_max/self.th_gpos_max, 'gpos_max'))
         if self.th_gpos_rms is not None:
             conv_vals.append((self.gpos_rms/self.th_gpos_rms, 'gpos_rms'))
-        if self.th_dpos_max is not None:
-            conv_vals.append((self.dpos_max/self.th_dpos_max, 'dpos_max'))
+            conv_vals.append((self.gpos_max/(self.th_gpos_rms*3/np.sqrt(gpossq.size)), 'gpos_max'))
         if self.th_dpos_rms is not None:
             conv_vals.append((self.dpos_rms/self.th_dpos_rms, 'dpos_rms'))
+            conv_vals.append((self.dpos_max/(self.th_dpos_rms*3/np.sqrt(dpossq.size)), 'dpos_max'))
         if len(conv_vals) == 0:
             raise RuntimeError('At least one convergence criterion must be present.')
         self.conv_val, self.conv_worst = max(conv_vals)
         self.conv_count = sum(int(v>=1) for v, n in conv_vals)
         self.converged = (self.conv_count == 0)
         self._last_pos[:] = self._pos[:]
-
 
 
 class FullCell(object):
@@ -222,7 +216,7 @@ class IsoCell(object):
 
 class CellDOF(DOF):
     """Fractional coordinates and cell parameters"""
-    def __init__(self, cell_spec, gpos_max=3e-5, gpos_rms=1e-5, dpos_max=3e-3, dpos_rms=1e-3, gcell_max=3e-5, gcell_rms=1e-5, dcell_max=3e-3, dcell_rms=1e-3):
+    def __init__(self, cell_spec, gpos_rms=1e-5, dpos_rms=1e-3, gcell_rms=1e-5, dcell_rms=1e-3):
         """
            **Arguments:**
 
@@ -233,47 +227,36 @@ class CellDOF(DOF):
 
            **Optional arguments:**
 
-           gpos_max, gpos_rms, dpos_max, dpos_rms, gcell_max, gcell_rms, dcell_max, dcell_rms
+           gpos_rms, dpos_rms, gcell_rms, dcell_rms
                 Thresholds that define the convergence. If all of the actual
                 values drop below these thresholds, the minimizer stops.
 
-           **Convergence conditions:**
+                For each rms threshold, a corresponding max threshold is
+                included automatically. The maximum of the absolute value of a
+                component should be smaller than 3/sqrt(N) times the rms
+                threshold, where N is the number of degrees of freedom.
 
-           gpos_max
-                The maximum of the norm of the gradient of an atom.
+           **Convergence conditions:**
 
            gpos_rms
                 The root-mean-square of the norm of the gradients of the atoms.
-
-           dpos_max
-                The maximum of the norm of the displacement of an atom.
 
            dpos_rms
                 The root-mean-square of the norm of the displacements of the
                 atoms.
 
-           gcell_max
-                The maximum of the norm of the gradient of acell vector.
-
            gcell_rms
                 The root-mean-square of the norm of the gradients of the cell
                 vectors.
-
-           dcell_max
-                The maximum of the norm of the displacement of a cell vector.
 
            dcell_rms
                 The root-mean-square of the norm of the displacements of the
                 cell vectors.
         """
         self.cell_spec = cell_spec
-        self.th_gpos_max = gpos_max
         self.th_gpos_rms = gpos_rms
-        self.th_dpos_max = dpos_max
         self.th_dpos_rms = dpos_rms
-        self.th_gcell_max = gcell_max
         self.th_gcell_rms = gcell_rms
-        self.th_dcell_max = dcell_max
         self.th_dcell_rms = dcell_rms
         DOF.__init__(self)
         self._pos = None
@@ -356,22 +339,18 @@ class CellDOF(DOF):
         self.dcell_rms = np.sqrt(dcellsq.mean())
         # Compute a general value that has to go below 1.0 to have convergence.
         conv_vals = []
-        if self.th_gpos_max is not None:
-            conv_vals.append((self.gpos_max/self.th_gpos_max, 'gpos_max'))
         if self.th_gpos_rms is not None:
             conv_vals.append((self.gpos_rms/self.th_gpos_rms, 'gpos_rms'))
-        if self.th_dpos_max is not None:
-            conv_vals.append((self.dpos_max/self.th_dpos_max, 'dpos_max'))
+            conv_vals.append((self.gpos_max/(self.th_gpos_rms*3/np.sqrt(gpossq.size)), 'gpos_max'))
         if self.th_dpos_rms is not None:
             conv_vals.append((self.dpos_rms/self.th_dpos_rms, 'dpos_rms'))
-        if self.th_gcell_max is not None:
-            conv_vals.append((self.gcell_max/self.th_gcell_max, 'gcell_max'))
+            conv_vals.append((self.dpos_max/(self.th_dpos_rms*3/np.sqrt(dpossq.size)), 'dpos_max'))
         if self.th_gcell_rms is not None:
             conv_vals.append((self.gcell_rms/self.th_gcell_rms, 'gcell_rms'))
-        if self.th_dcell_max is not None:
-            conv_vals.append((self.dcell_max/self.th_dcell_max, 'dcell_max'))
+            conv_vals.append((self.gcell_max/(self.th_gcell_rms*3/np.sqrt(gcellsq.size)), 'gcell_max'))
         if self.th_dcell_rms is not None:
             conv_vals.append((self.dcell_rms/self.th_dcell_rms, 'dcell_rms'))
+            conv_vals.append((self.dcell_max/(self.th_dcell_rms*3/np.sqrt(dcellsq.size)), 'dcell_max'))
         if len(conv_vals) == 0:
             raise RuntimeError('At least one convergence criterion must be present.')
         self.conv_val, self.conv_worst = max(conv_vals)

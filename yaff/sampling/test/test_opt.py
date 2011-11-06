@@ -21,7 +21,7 @@
 # --
 
 
-import h5py
+import h5py, numpy as np
 
 from yaff import *
 from yaff.sampling.test.common import get_ff_water32
@@ -67,16 +67,14 @@ def test_iso_cell_5steps():
 
 
 def test_basic_until_converged():
-    opt = CGOptimizer(get_ff_water32(), CartesianDOF(gpos_max=3e-1, gpos_rms=1e-1, dpos_max=None, dpos_rms=None))
-    assert opt.dof.th_gpos_max == 3e-1
+    opt = CGOptimizer(get_ff_water32(), CartesianDOF(gpos_rms=1e-1, dpos_rms=None))
     assert opt.dof.th_gpos_rms == 1e-1
-    assert opt.dof.th_dpos_max is None
     assert opt.dof.th_dpos_rms is None
     opt.run()
     assert opt.dof.conv_count == 0
     assert opt.dof.conv_val < 1
     assert opt.dof.conv_worst.startswith('gpos_')
-    assert opt.dof.gpos_max < 3e-1
+    assert opt.dof.gpos_max < 1e-1*3/np.sqrt(96)
     assert opt.dof.gpos_rms < 1e-1
 
 
