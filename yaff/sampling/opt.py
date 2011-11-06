@@ -483,6 +483,41 @@ class BFGSHessianModel(object):
 
 
 class BFGSOptimizer(BaseOptimizer):
+    """BFGS optimizer
+
+       This is just a basic implementation of the algorithm, but it has the
+       potential to become more advanced and efficient. The following
+       improvements will be made when time permits:
+
+       1) Support for non-linear constraints. This should be relatively easy. We
+          need a routine that can bring the unknowns back to the constraints,
+          and a routine to solve a constrained second order problem with linear
+          equality/inequality constraints. These should be methods of an object
+          that is an attribute of the dof object, which is need to give the
+          constraint code access to the Cartesian coordinates. In the code
+          below, some comments are added to mark where the constraint methods
+          should be called.
+
+       2) The Hessian updates and the diagonalization are currently very slow
+          for big systems. This can be fixed with a rank-1 update algorithm for
+          the spectral decomposition.
+
+       3) The optimizer would become much more efficient if redundant
+          coordinates were used. This can be implemented efficiently by using
+          the same machinery as the constraint code, but using the dlist and
+          iclist concepts for the sake of efficiency.
+
+       4) It is in practice not needed to keep track of the full Hessian. The
+          L-BFGS algorithm is a nice method to obtain a linear memory usage and
+          computational cost. However, L-BFGS is not compatible with the trust
+          radius used in this class, while we want to keep the trust radius for
+          the sake of efficiency, robustness and support for constraints. Using
+          the rank-1 updates mentioned above, it should be relatively easy to
+          keep track of the decomposition of a subspace of the Hessian.
+          This subspace can be defined as the basis of the last N rank-1
+          updates. Simple assumptions about the remainder of the spectrum should
+          be sufficient to keep the algorithm efficient.
+    """
     log_name = 'BFGSOPT'
 
     def __init__(self, ff, dof, state=None, hooks=None, counter0=0):
@@ -525,6 +560,11 @@ class BFGSOptimizer(BaseOptimizer):
         while True:
             # Increase ridge until step is smaller than trust radius
             while True:
+                # MARKER FOR CONSTRAINT CODE: instead of the following line, a
+                # constrained harmonic solver should be added to find the step
+                # that minimes the local quadratic problem under a set of linear
+                # equality/inequality constraints. This can be implemented using
+                # the active set algorithm.
                 tmp2 = tmp1*evals/(evals**2 + ridge**2)
                 radius = np.linalg.norm(tmp2)
                 if log.do_high:
@@ -537,6 +577,8 @@ class BFGSOptimizer(BaseOptimizer):
                     ridge *= 1.2
             # Check if the step is trust worthy
             delta_x = np.dot(evecs, tmp2)
+            # MARKER FOR CONSTRAINT CODE: the following line should be replaced
+            # by something of the sort: x = self.shaker.fix(self.x_old + delta_x)
             x = self.x_old + delta_x
             f = self.fun(x, False)
             delta_f = f - self.f_old
