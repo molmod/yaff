@@ -371,7 +371,7 @@ class BaseOptimizer(Iterative):
     ]
     log_name = 'XXOPT'
 
-    def __init__(self, ff, dof, search_direction, state=None, hooks=None, counter0=0):
+    def __init__(self, ff, dof, state=None, hooks=None, counter0=0):
         """
            **Arguments:**
 
@@ -381,9 +381,6 @@ class BaseOptimizer(Iterative):
            dof
                 A specification of the degrees of freedom. The convergence
                 criteria are also part of this argument.
-
-           search_direction
-                A search direction object
 
            **Optional arguments:**
 
@@ -400,10 +397,6 @@ class BaseOptimizer(Iterative):
                 The counter value associated with the initial state.
         """
         self.dof = dof
-        self.minimizer = Minimizer(
-            self.dof.get_initial(ff.system), self.fun, search_direction,
-            NewtonLineSearch(), None, None, anagrad=True, verbose=False,
-        )
         Iterative.__init__(self, ff, state, hooks, counter0)
 
     def _add_default_hooks(self):
@@ -418,20 +411,13 @@ class BaseOptimizer(Iterative):
             self.epot = self.dof.fun(x, self.ff, False)
             return self.epot
 
-
     def initialize(self):
-        self.minimizer.initialize()
         # The first call to check_convergence will never flag convergence, but
         # it is need to keep track of some convergence criteria.
         self.dof.check_convergence()
         Iterative.initialize(self)
 
     def propagate(self):
-        success = self.minimizer.propagate()
-        if success == False:
-            if log.do_warning:
-                log.warn('Line search failed in optimizer. Aborting optimization. This is probably due to a dicontinuity in the energy or the forces. Check the truncation of the non-bonding interactions and the Ewald summation parameters.')
-            return True
         self.dof.check_convergence()
         Iterative.propagate(self)
         return self.dof.converged
@@ -451,12 +437,21 @@ class CGOptimizer(BaseOptimizer):
     log_name = 'CGOPT'
 
     def __init__(self, ff, dof, state=None, hooks=None, counter0=0):
-        BaseOptimizer.__init__(self, ff, dof, ConjugateGradient(), state, hooks, counter0)
+        self.minimizer = Minimizer(
+            dof.get_initial(ff.system), self.fun, ConjugateGradient(),
+            NewtonLineSearch(), None, None, anagrad=True, verbose=False,
+        )
+        BaseOptimizer.__init__(self, ff, dof, state, hooks, counter0)
 
+    def initialize(self):
+        self.minimizer.initialize()
+        BaseOptimizer.initialize(self)
 
-# TODO: figure out why this one does not work well:
-#class QNOptimizer(BaseOptimizer):
-#    log_name = 'QNOPT'
-#
-#    def __init__(self, ff, dof, state=None, hooks=None, counter0=0):
-#        BaseOptimizer.__init__(self, ff, dof, QuasiNewton(), state, hooks, counter0)
+    def propagate(self):
+        success = self.minimizer.propagate()
+        if success == False:
+            if log.do_warning:
+                log.warn('Line search failed in optimizer. Aborting optimization. This is probably due to a dicontinuity in the energy or the forces. Check the truncation of the non-bonding interactions and the Ewald summation parameters.')
+            return True
+        return BaseOptimizer.propagate(self)
+
