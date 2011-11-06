@@ -32,7 +32,7 @@ from yaff.analysis.utils import get_slice
 
 __all__ = [
     'plot_energies', 'plot_temperature', 'plot_temp_dist', 'plot_density',
-    'plot_cell_pars',
+    'plot_cell_pars', 'plot_epot_contribs',
 ]
 
 
@@ -386,4 +386,43 @@ def plot_cell_pars(f, fn_png='cell_pars.png', **kwargs):
     else:
         raise ValueError('Can not plot cell parameters if the system is not periodic.')
 
+    pt.savefig(fn_png)
+
+
+def plot_epot_contribs(f, fn_png='epot_contribs.png', **kwargs):
+    """Make a plot of the contributions to the potential energy as f. of time
+
+       **Arguments:**
+
+       f
+            An h5py.File instance containing the trajectory data.
+
+       **Optional arguments:**
+
+       fn_png
+            The png file to write the figure to
+
+       The optional arguments of the ``get_slice`` function are also accepted in
+       the form of keyword arguments.
+
+       The units for making the plot are taken from the yaff screen logger. This
+       type of plot is essential for checking the sanity of a simulation.
+    """
+    import matplotlib.pyplot as pt
+    start, end, step = get_slice(f, **kwargs)
+
+    epot = f['trajectory/epot'][start:end:step]/log.energy.conversion
+    epot_contribs = []
+    for i, name in enumerate(f['trajectory'].attrs['epot_contrib_names']):
+        epot_contribs.append((name, f['trajectory']['epot_contribs'][start:end:step,i]/log.energy.conversion))
+    time, tlabel = get_time(f, start, end, step)
+
+    pt.clf()
+    pt.plot(time, epot, 'k-', label='_nolegend_', lw=2)
+    for name, epot_contrib in epot_contribs:
+        pt.plot(time, epot_contrib, label=name)
+    pt.xlim(time[0], time[-1])
+    pt.xlabel(tlabel)
+    pt.ylabel('Energy [%s]' % log.energy.notation)
+    pt.legend(loc=0)
     pt.savefig(fn_png)

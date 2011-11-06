@@ -29,7 +29,7 @@ from yaff.log import log, timer
 __all__ = [
     'Iterative', 'StateItem', 'AttributeStateItem', 'PosStateItem',
     'DipoleStateItem', 'DipoleVelStateItem', 'VolumeStateItem', 'CellStateItem',
-    'Hook',
+    'EPotContribStateItem', 'Hook',
 ]
 
 
@@ -131,6 +131,9 @@ class StateItem(object):
     def get_value(self, iterative):
         raise NotImplementedError
 
+    def iter_attrs(self, iterative):
+        return []
+
 
 class AttributeStateItem(StateItem):
     def get_value(self, iterative):
@@ -183,6 +186,18 @@ class CellStateItem(StateItem):
 
     def get_value(self, iterative):
         return iterative.ff.system.cell.rvecs
+
+
+class EPotContribStateItem(StateItem):
+    """Keeps track of all the contributions to the potential energy."""
+    def __init__(self):
+        StateItem.__init__(self, 'epot_contribs')
+
+    def get_value(self, iterative):
+        return np.array([part.energy for part in iterative.ff.parts])
+
+    def iter_attrs(self, iterative):
+        yield 'epot_contrib_names', tuple(part.name for part in iterative.ff.parts)
 
 
 class Hook(object):

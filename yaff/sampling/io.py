@@ -50,7 +50,7 @@ class HDF5Writer(Hook):
         if 'system' not in self.f:
             self.dump_system(iterative.ff.system)
         if 'trajectory' not in self.f:
-            self.init_trajectory(iterative.state)
+            self.init_trajectory(iterative)
         tgrp = self.f['trajectory']
         # Get the number of rows written so far. It may seem redundant to have
         # the number of rows stored as an attribute, while each dataset also
@@ -60,6 +60,8 @@ class HDF5Writer(Hook):
         # executed, the data from this iteration is officially written.
         row = tgrp.attrs['row']
         for key, item in iterative.state.iteritems():
+            if len(item.shape) > 0 and min(item.shape) == 0:
+                continue
             ds = tgrp[key]
             if ds.shape[0] <= row:
                 # do not over-allocate. hdf5 works with chunks internally.
@@ -86,12 +88,16 @@ class HDF5Writer(Hook):
         if system.masses is not None:
             sgrp.create_dataset('masses', data=system.masses)
 
-    def init_trajectory(self, state):
+    def init_trajectory(self, iterative):
         tgrp = self.f.create_group('trajectory')
-        for key, item in state.iteritems():
+        for key, item in iterative.state.iteritems():
+            if len(item.shape) > 0 and min(item.shape) == 0:
+                continue
             maxshape = (None,) + item.shape
             shape = (0,) + item.shape
             dset = tgrp.create_dataset(key, shape, maxshape=maxshape, dtype=item.dtype)
+            for name, value in item.iter_attrs(iterative):
+               tgrp.attrs[name] = value
         tgrp.attrs['row'] = 0
 
 

@@ -55,6 +55,8 @@ def check_hdf5_common(f):
     assert 'econs' in f['trajectory']
     assert 'dipole' in f['trajectory']
     assert 'dipole_vel' in f['trajectory']
+    assert 'epot_contribs' in f['trajectory']
+    assert 'epot_contrib_names' in f['trajectory'].attrs
 
 
 def test_hdf5():

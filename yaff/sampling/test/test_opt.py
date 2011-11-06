@@ -93,6 +93,8 @@ def check_hdf5_common(f):
     assert 'epot' in f['trajectory']
     assert 'pos' in f['trajectory']
     assert 'dipole' in f['trajectory']
+    assert 'epot_contribs' in f['trajectory']
+    assert 'epot_contrib_names' in f['trajectory'].attrs
 
 
 def test_cg_hdf5():

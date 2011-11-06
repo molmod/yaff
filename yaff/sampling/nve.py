@@ -29,7 +29,7 @@ from molmod import boltzmann
 from yaff.log import log, timer
 from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
     PosStateItem, DipoleStateItem, DipoleVelStateItem, VolumeStateItem, \
-    CellStateItem, Hook
+    CellStateItem, EPotContribStateItem, Hook
 
 
 __all__ = [
@@ -273,6 +273,7 @@ class NVEIntegrator(Iterative):
         DipoleVelStateItem(),
         VolumeStateItem(),
         CellStateItem(),
+        EPotContribStateItem(),
     ]
 
     log_name = 'NVE'
