@@ -467,8 +467,16 @@ class BFGSHessianModel(object):
 
     def update(self, dx, dg):
         tmp = np.dot(self.hessian, dx)
-        self.hessian -= np.outer(tmp, tmp)/np.dot(dx, tmp)
-        self.hessian += np.outer(dg, dg)/np.dot(dg, dx)
+        hmax = abs(self.hessian).max()
+        # Only compute updates if the denominators do not blow up
+        denom1 = np.dot(dx, tmp)
+        if hmax*denom1 < 1e-5*abs(tmp).max():
+            return
+        denom2 = np.dot(dg, dx)
+        if hmax*denom2 < 1e-5*abs(dg).max():
+            return
+        self.hessian -= np.outer(tmp, tmp)/denom1
+        self.hessian += np.outer(dg, dg)/denom2
 
     def get_spectrum(self):
         return np.linalg.eigh(self.hessian)
@@ -534,7 +542,8 @@ class BFGSOptimizer(BaseOptimizer):
             delta_f = f - self.f_old
             if delta_f > 0:
                 # The function must decrease, if not the trust radius is too big
-                log('Function incraeses.')
+                if log.do_high:
+                    log('Function incraeses.')
                 self.trust_radius *= 0.5
                 continue
             # If we get here, we are done.
