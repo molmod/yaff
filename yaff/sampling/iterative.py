@@ -151,7 +151,10 @@ class DipoleStateItem(StateItem):
 
     def get_value(self, iterative):
         sys = iterative.ff.system
-        return np.dot(sys.charges, sys.pos)
+        if sys.charges is None:
+            np.zeros(3, float)
+        else:
+            return np.dot(sys.charges, sys.pos)
 
 
 class DipoleVelStateItem(StateItem):
@@ -159,7 +162,11 @@ class DipoleVelStateItem(StateItem):
         StateItem.__init__(self, 'dipole_vel')
 
     def get_value(self, iterative):
-        return np.dot(iterative.ff.system.charges, iterative.vel)
+        charges = iterative.ff.system.charges
+        if charges is None:
+            np.zeros(3, float)
+        else:
+            return np.dot(iterative.ff.system.charges, iterative.vel)
 
 
 class VolumeStateItem(StateItem):

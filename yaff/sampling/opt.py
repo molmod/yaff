@@ -33,7 +33,8 @@ from yaff.sampling.iterative import Iterative, AttributeStateItem, \
 
 __all__ = [
     'OptScreenLog', 'CartesianDOF', 'FullCell', 'AnisoCell', 'IsoCell',
-    'CellDOF', 'BaseOptimizer', 'CGOptimizer',
+    'CellDOF', 'BaseOptimizer', 'CGOptimizer', 'BFGSHessianModel',
+    'BFGSOptimizer',
 ]
 
 
@@ -107,7 +108,7 @@ class CartesianDOF(DOF):
         self._pos = system.pos.copy()
         self._dpos = np.zeros(system.pos.shape, float)
         self._gpos = np.zeros(system.pos.shape, float)
-        return x
+        return x.copy()
 
     def fun(self, x, ff, do_gradient=False):
         """computes the energy i.f.o x, and optionally the gradient.
@@ -126,7 +127,7 @@ class CartesianDOF(DOF):
             self._gpos[:] = 0.0
             v = ff.compute(self._gpos)
             self._gx[:] = self._gpos.ravel()
-            return v, self._gx
+            return v, self._gx.copy()
         else:
             return ff.compute()
 
@@ -426,9 +427,8 @@ class BaseOptimizer(Iterative):
         if log.do_medium:
             log.hline()
 
-    def check_delta(self, eps=1e-4):
+    def check_delta(self, x, eps=1e-4):
         """Test the analytical derivatives"""
-        x = self.minimizer.x
         dxs = np.random.uniform(-eps, eps, (100, len(x)))
         check_delta(self.fun, x, dxs)
 
@@ -455,3 +455,96 @@ class CGOptimizer(BaseOptimizer):
             return True
         return BaseOptimizer.propagate(self)
 
+    def check_delta(self, x=None, eps=1e-4):
+        if x is None:
+            x = self.minimizer.x
+        BaseOptimizer.check_delta(self, x, eps=1e-4)
+
+
+class BFGSHessianModel(object):
+    def __init__(self, size):
+        self.hessian = np.identity(size, float)
+
+    def update(self, dx, dg):
+        tmp = np.dot(self.hessian, dx)
+        self.hessian -= np.outer(tmp, tmp)/np.dot(dx, tmp)
+        self.hessian += np.outer(dg, dg)/np.dot(dg, dx)
+
+    def get_spectrum(self):
+        return np.linalg.eigh(self.hessian)
+
+
+class BFGSOptimizer(BaseOptimizer):
+    log_name = 'BFGSOPT'
+
+    def __init__(self, ff, dof, state=None, hooks=None, counter0=0):
+        self.x_old = dof.get_initial(ff.system)
+        self.hessian = BFGSHessianModel(len(self.x_old))
+        self.trust_radius = 1.0
+        BaseOptimizer.__init__(self, ff, dof, state, hooks, counter0)
+
+    def initialize(self):
+        self.f_old, self.g_old = self.fun(self.x_old, True)
+        self.x, self.f, self.g = self.make_step()
+        BaseOptimizer.initialize(self)
+
+    def propagate(self):
+        # Update the Hessian
+        self.hessian.update(self.x - self.x_old, self.g - self.g_old)
+        # Move new to old
+        self.x_old = self.x
+        self.f_old = self.f
+        self.g_old = self.g
+        # Compute a step
+        self.x, self.f, self.g = self.make_step()
+        return BaseOptimizer.propagate(self)
+
+    def make_step(self):
+        evals, evecs = self.hessian.get_spectrum()
+        tmp1 = -np.dot(evecs.T, self.g_old)
+
+        # Initial ridge parameter
+        if evals[0] <= 0:
+            ridge = abs(evals[0]) + 1e-3*abs(evals).max()
+        else:
+            ridge = 0.0
+
+        # Trust radius loop
+        if log.do_high:
+            log.hline()
+            log('       Ridge      Radius       Trust')
+            log.hline()
+        while True:
+            # Increase ridge until step is smaller than trust radius
+            while True:
+                tmp2 = tmp1*evals/(evals**2 + ridge**2)
+                radius = np.linalg.norm(tmp2)
+                if log.do_high:
+                    log('%12.5e %12.5e %12.5e' % (ridge, radius, self.trust_radius))
+                if radius < self.trust_radius:
+                    break
+                if ridge == 0.0:
+                    ridge = abs(evals[evals!=0.0]).min()
+                else:
+                    ridge *= 1.2
+            # Check if the step is trust worthy
+            delta_x = np.dot(evecs, tmp2)
+            x = self.x_old + delta_x
+            f = self.fun(x, False)
+            delta_f = f - self.f_old
+            if delta_f > 0:
+                # The function must decrease, if not the trust radius is too big
+                log('Function incraeses.')
+                self.trust_radius *= 0.5
+                continue
+            # If we get here, we are done.
+            if log.do_high:
+                log.hline()
+            self.trust_radius *= 1.2
+            f, g = self.fun(x, True)
+            return x, f, g
+
+    def check_delta(self, x=None, eps=1e-4):
+        if x is None:
+            x = self.x
+        BaseOptimizer.check_delta(self, x, eps=1e-4)

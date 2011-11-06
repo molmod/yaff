@@ -26,6 +26,7 @@ import h5py, numpy as np
 from yaff import *
 from yaff.sampling.test.common import get_ff_water32
 
+
 def test_cg_5steps():
     opt = CGOptimizer(get_ff_water32(), CartesianDOF())
     epot0 = opt.epot
@@ -36,7 +37,7 @@ def test_cg_5steps():
     opt.check_delta()
 
 
-def test_full_cell_5steps():
+def test_cg_full_cell_5steps():
     opt = CGOptimizer(get_ff_water32(), CellDOF(FullCell()))
     epot0 = opt.epot
     opt.run(5)
@@ -46,7 +47,7 @@ def test_full_cell_5steps():
     opt.check_delta()
 
 
-def test_aniso_cell_5steps():
+def test_cg_aniso_cell_5steps():
     opt = CGOptimizer(get_ff_water32(), CellDOF(AnisoCell()))
     epot0 = opt.epot
     opt.run(5)
@@ -56,7 +57,7 @@ def test_aniso_cell_5steps():
     opt.check_delta()
 
 
-def test_iso_cell_5steps():
+def test_cg_iso_cell_5steps():
     opt = CGOptimizer(get_ff_water32(), CellDOF(IsoCell()))
     epot0 = opt.epot
     opt.run(5)
@@ -66,7 +67,7 @@ def test_iso_cell_5steps():
     opt.check_delta()
 
 
-def test_basic_until_converged():
+def test_cg_until_converged():
     opt = CGOptimizer(get_ff_water32(), CartesianDOF(gpos_rms=1e-1, dpos_rms=None))
     assert opt.dof.th_gpos_rms == 1e-1
     assert opt.dof.th_dpos_rms is None
@@ -94,7 +95,7 @@ def check_hdf5_common(f):
     assert 'dipole' in f['trajectory']
 
 
-def test_hdf5():
+def test_cg_hdf5():
     f = h5py.File('tmp.h5', driver='core', backing_store=False)
     try:
         hdf5 = HDF5Writer(f)
@@ -106,3 +107,13 @@ def test_hdf5():
         assert f['trajectory/counter'][15] == 15
     finally:
         f.close()
+
+
+def test_bfgs_5steps():
+    opt = BFGSOptimizer(get_ff_water32(), CartesianDOF())
+    epot0 = opt.epot
+    opt.run(5)
+    epot1 = opt.epot
+    assert opt.counter == 5
+    assert epot1 < epot0
+    opt.check_delta()
