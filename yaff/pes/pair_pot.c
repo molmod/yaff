@@ -333,18 +333,29 @@ double pair_fn_dampdisp(void *pair_data, long center_index, long other_index, do
   // Load parameters from data structure and mix
   pair_data_dampdisp_type *pd;
   pd = (pair_data_dampdisp_type*)pair_data;
-  // compute the damping
   i = (*pd).ffatype_ids[center_index]*(*pd).nffatype + (*pd).ffatype_ids[other_index];
   b = (*pd).b_cross[i];
-  damp = tang_toennies(b*d, 6, g);
-  // compute the energy
-  disp = d*d;
-  disp *= disp*disp;
-  disp = -(*pd).c6_cross[i]/disp;
-  if (g != NULL) {
-    *g = ((*g)*b-6.0/d*damp)*disp/d;
+  if (b==0.0) {
+    // without damping
+    disp = d*d;
+    disp *= disp*disp;
+    disp = -(*pd).c6_cross[i]/disp;
+    if (g != NULL) {
+      *g = -6.0*disp/(d*d);
+    }
+    return disp;
+  } else {
+    // with damping
+    damp = tang_toennies(b*d, 6, g);
+    // compute the energy
+    disp = d*d;
+    disp *= disp*disp;
+    disp = -(*pd).c6_cross[i]/disp;
+    if (g != NULL) {
+      *g = ((*g)*b-6.0/d*damp)*disp/d;
+    }
+    return damp*disp;
   }
-  return damp*disp;
 }
 
 

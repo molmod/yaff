@@ -621,7 +621,7 @@ cdef class PairPotDampDisp(PairPot):
     def _init_b_cross(self, nffatype, b_cross, bs):
         for i0 in xrange(nffatype):
             for i1 in xrange(i0+1):
-                if b_cross[i0, i1] == 0.0:
+                if b_cross[i0, i1] == 0.0 and bs[i0] != 0.0 and bs[i1] != 0.0:
                     b_cross[i0, i1] = 0.5*(bs[i0] + bs[i1])
                     b_cross[i1, i0] = b_cross[i0, i1]
 

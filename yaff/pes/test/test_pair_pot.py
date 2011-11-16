@@ -482,7 +482,7 @@ def get_part_caffeine_dampdisp_9A():
     scalings = Scalings(system, 0.0, 1.0, 1.0)
     # Initialize (very random) parameters
     c6s = np.array([2.5, 27.0, 18.0, 13.0])
-    bs = np.array([2.5, 2.0, 1.9, 1.8])
+    bs = np.array([0.0, 2.0, 0.0, 1.8])
     vols = np.array([5, 3, 4, 5])*angstrom**3
     # Allocate some arrays
     assert system.nffatype == 4
@@ -499,16 +499,20 @@ def get_part_caffeine_dampdisp_9A():
         b1 = bs[system.ffatype_ids[i1]]
         vol0 = vols[system.ffatype_ids[i0]]
         vol1 = vols[system.ffatype_ids[i1]]
-        b = 0.5*(b0+b1)
         ratio = (vol0/vol1)**2
         c6 = 2*c60*c61/(c60*ratio+c61/ratio)
-        damp = 0
-        fac = 1
-        for k in xrange(7):
-            damp += (b*d)**k/fac
-            fac *= k+1
-        damp = 1 - np.exp(-b*d)*damp
-        return -c6/d**6*damp
+        if b0 != 0 and b1 != 0:
+            b = 0.5*(b0+b1)
+            damp = 0
+            fac = 1
+            for k in xrange(7):
+                damp += (b*d)**k/fac
+                fac *= k+1
+            damp = 1 - np.exp(-b*d)*damp
+            return -c6/d**6*damp
+        else:
+            damp = 1
+            return -c6/d**6
     return system, nlist, scalings, part_pair, pair_fn
 
 
