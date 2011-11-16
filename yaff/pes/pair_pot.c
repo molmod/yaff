@@ -105,7 +105,7 @@ double pair_pot_compute(neigh_row_type *neighs,
           // Call the potential function without g argument.
           v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, neighs[i].d, NULL);
           // If a truncation scheme is defined, apply it.
-          if ((*pair_pot).trunc_scheme!=NULL) {
+          if (((*pair_pot).trunc_scheme!=NULL) && (v!=0.0)) {
             v *= (*(*pair_pot).trunc_scheme).trunc_fn(neighs[i].d, (*pair_pot).rcut, (*(*pair_pot).trunc_scheme).par, NULL);
           }
           //printf("C %i %i %i %i %i %e\n", center_index, other_index, neighs[i].r0, neighs[i].r1, neighs[i].r2, s*v);
@@ -114,7 +114,7 @@ double pair_pot_compute(neigh_row_type *neighs,
           // vg is the derivative of the pair potential divided by the distance.
           v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, neighs[i].d, &vg);
           // If a truncation scheme is defined, apply it.
-          if ((*pair_pot).trunc_scheme!=NULL) {
+          if (((*pair_pot).trunc_scheme!=NULL) && ((v!=0.0) || (vg!=0.0))) {
             // hg is (a pointer to) the derivative of the truncation function.
             h = (*(*pair_pot).trunc_scheme).trunc_fn(neighs[i].d, (*pair_pot).rcut, (*(*pair_pot).trunc_scheme).par, &hg);
             // chain rule:
@@ -280,16 +280,20 @@ void pair_data_exprep_init(pair_pot_type *pair_pot, long nffatype, long* ffatype
 
 double pair_fn_exprep(void *pair_data, long center_index, long other_index, double d, double *g) {
   long i;
-  double b, e;
+  double amp, b, e;
   pair_data_exprep_type *pd;
   pd = (pair_data_exprep_type*)pair_data;
   i = (*pd).ffatype_ids[center_index]*(*pd).nffatype + (*pd).ffatype_ids[other_index];
+  amp = (*pd).amp_cross[i];
+  if (amp==0.0) goto bail;
   b = (*pd).b_cross[i];
-  e = (*pd).amp_cross[i]*exp(-b*d);
-  if (g != NULL) {
-    *g = -e*b/d;
-  }
+  if (b==0.0) goto bail;
+  e = amp*exp(-b*d);
+  if (g != NULL) *g = -e*b/d;
   return e;
+bail:
+  if (g != NULL) *g = 0.0;
+  return 0.0;
 }
 
 
@@ -329,17 +333,19 @@ double tang_toennies(double x, int order, double *g){
 
 double pair_fn_dampdisp(void *pair_data, long center_index, long other_index, double d, double *g) {
   long i;
-  double b, disp, damp;
+  double b, disp, damp, c6;
   // Load parameters from data structure and mix
   pair_data_dampdisp_type *pd;
   pd = (pair_data_dampdisp_type*)pair_data;
   i = (*pd).ffatype_ids[center_index]*(*pd).nffatype + (*pd).ffatype_ids[other_index];
+  c6 = (*pd).c6_cross[i];
+  if (c6==0.0) return 0.0;
   b = (*pd).b_cross[i];
   if (b==0.0) {
     // without damping
     disp = d*d;
     disp *= disp*disp;
-    disp = -(*pd).c6_cross[i]/disp;
+    disp = -c6/disp;
     if (g != NULL) {
       *g = -6.0*disp/(d*d);
     }
@@ -350,7 +356,7 @@ double pair_fn_dampdisp(void *pair_data, long center_index, long other_index, do
     // compute the energy
     disp = d*d;
     disp *= disp*disp;
-    disp = -(*pd).c6_cross[i]/disp;
+    disp = -c6/disp;
     if (g != NULL) {
       *g = ((*g)*b-6.0/d*damp)*disp/d;
     }

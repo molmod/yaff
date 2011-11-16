@@ -522,6 +522,8 @@ cdef class PairPotExpRep(PairPot):
                 if amp_cross[i0, i1] == 0.0:
                     if amp_mix == 0:
                         amp_cross[i0, i1] = np.sqrt(amps[i0]*amps[i1])
+                    elif amps[i0] == 0.0 or amps[i1] == 0.0:
+                        amp = 0.0
                     else:
                         amp = (np.log(amps[i0])+np.log(amps[i1]))/2;
                         amp *= 1 - amp_mix_coeff*abs(np.log(amps[i0]/amps[i1]));
@@ -534,6 +536,8 @@ cdef class PairPotExpRep(PairPot):
                 if b_cross[i0, i1] == 0.0:
                     if b_mix == 0:
                         b_cross[i0, i1] = (bs[i0] + bs[i1])/2
+                    elif amps[i0] == 0.0 or amps[i1] == 0.0:
+                        b = 0.0
                     else:
                         b = (bs[i0] + bs[i1])/2;
                         b *= 1 - b_mix_coeff*abs(np.log(amps[i0]/amps[i1]));

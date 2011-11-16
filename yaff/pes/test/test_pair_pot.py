@@ -424,8 +424,8 @@ def get_part_caffeine_exprep_5A(amp_mix, amp_mix_coeff, b_mix, b_mix_coeff):
     nlist = NeighborList(system)
     scalings = Scalings(system, 0.0, 1.0, 1.0)
     # Initialize (random) parameters
-    amps = np.array([2.35, 410, 410, 421])
-    bs = np.array([4.46, 4.43, 4.43, 4.41])/angstrom
+    amps = np.array([2.35, 410.0, 0.0, 421.0])
+    bs = np.array([4.46, 4.43, 0.0, 4.41])/angstrom
     # Allocate some arrays for the pair potential
     assert len(system.ffatypes) == 4
     amp_cross = np.zeros((4, 4), float)
@@ -435,8 +435,6 @@ def get_part_caffeine_exprep_5A(amp_mix, amp_mix_coeff, b_mix, b_mix_coeff):
         system.ffatype_ids, amp_cross, b_cross, 5*angstrom, None,
         amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff,
     )
-    assert (pair_pot.amp_cross > 0).all()
-    assert (pair_pot.b_cross > 0).all()
     assert abs(np.diag(pair_pot.amp_cross) - amps).max() < 1e-10
     assert abs(np.diag(pair_pot.b_cross) - bs).max() < 1e-10
     part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
@@ -448,6 +446,8 @@ def get_part_caffeine_exprep_5A(amp_mix, amp_mix_coeff, b_mix, b_mix_coeff):
         b1 = bs[system.ffatype_ids[i1]]
         if amp_mix == 0:
             amp = np.sqrt(amp0*amp1)
+        elif amp0 == 0.0 or amp1 == 0.0:
+            amp = 0.0
         elif amp_mix == 1:
             cor = 1-amp_mix_coeff*abs(np.log(amp0/amp1))
             amp = np.exp( (np.log(amp0)+np.log(amp1))/2*cor )
@@ -455,12 +455,17 @@ def get_part_caffeine_exprep_5A(amp_mix, amp_mix_coeff, b_mix, b_mix_coeff):
             raise NotImplementedError
         if b_mix == 0:
             b = (b0+b1)/2
+        elif amp0 == 0.0 or amp1 == 0.0:
+            b = 0.0
         elif b_mix == 1:
             cor = 1-b_mix_coeff*abs(np.log(amp0/amp1))
             b = (b0+b1)/2*cor
         else:
             raise NotImplementedError
-        energy = amp*np.exp(-b*d)
+        if amp == 0.0 or b == 0.0:
+            energy = 0.0
+        else:
+            energy = amp*np.exp(-b*d)
         return energy
     return system, nlist, scalings, part_pair, pair_fn
 
@@ -482,7 +487,7 @@ def get_part_caffeine_dampdisp_9A():
     scalings = Scalings(system, 0.0, 1.0, 1.0)
     # Initialize (very random) parameters
     c6s = np.array([2.5, 27.0, 18.0, 13.0])
-    bs = np.array([0.0, 2.0, 0.0, 1.8])
+    bs = np.array([2.5, 2.0, 0.0, 1.8])
     vols = np.array([5, 3, 4, 5])*angstrom**3
     # Allocate some arrays
     assert system.nffatype == 4
