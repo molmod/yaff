@@ -31,6 +31,14 @@ from yaff.pes.ext import Cell
 __all__ = ['System']
 
 
+def unravel_triangular(i):
+    """Transform a flattened triangular matrix index to a row and column"""
+    # TODO: test this routine
+    i0 = int(np.floor(0.5*(np.sqrt(1+8*i)-1)))
+    i1 = i - (i0*(i0-1))/2
+    return i0, i1
+
+
 class System(object):
     def __init__(self, numbers, pos, scopes=None, scope_ids=None, ffatypes=None, ffatype_ids=None, bonds=None, rvecs=None, charges=None, masses=None):
         '''
@@ -299,18 +307,6 @@ class System(object):
                     mol = Molecule.from_file(fn)
                     kwargs['numbers'] = mol.numbers
                     kwargs['pos'] = mol.coordinates
-                    words = mol.title.split()
-                    if len(words) == 9:
-                        try:
-                            rvecs = np.array([float(w) for w in words]).reshape((3,-1))*angstrom
-                            kwargs['rvecs'] = rvecs
-                        except ValueError:
-                            rvecs = None
-                        if rvecs is not None:
-                            mol.unit_cell = UnitCell(rvecs.transpose())
-                    mol.set_default_graph()
-                    if len(mol.graph.edges) > 0:
-                        kwargs['bonds'] = np.array(mol.graph.edges)
                 elif fn.endswith('.psf'):
                     from molmod.io import PSFFile
                     psf = PSFFile(fn)
@@ -367,6 +363,23 @@ class System(object):
                     if i1==i3: continue
                     if i0==i3: continue
                     yield i0, i1, i2, i3
+
+    def detect_bonds(self):
+        # TODO: test this routine
+        with log.section('SYS'):
+            from molmod.bonds import bonds
+            if self.bonds is not None:
+                if log.do_warning:
+                    log.warn('Overwriting existing bonds.')
+            work = np.array((self.natom*(self.natom-1))/2)
+            self.cell.compute_distances(self, work, self.pos)
+            ishort = (work < bonds.max_length*1.01).nonzero()[0]
+            bonds = []
+            for i in ishort:
+                i0, i1 = unravel_triangular(i)
+                if bonds.bonded(self.numbers[i0], self.numbers[i1], work[i]):
+                    bonds.append((i0, i1))
+            self.bonds = np.array(bonds)
 
     def set_standard_masses(self):
         with log.section('SYS'):
