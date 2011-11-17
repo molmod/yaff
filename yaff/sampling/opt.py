@@ -475,11 +475,13 @@ class BFGSHessianModel(object):
         hmax = abs(self.hessian).max()
         # Only compute updates if the denominators do not blow up
         denom1 = np.dot(dx, tmp)
-        if hmax*denom1 < 1e-5*abs(tmp).max():
+        if hmax*denom1 <= 1e-5*abs(tmp).max():
             return
         denom2 = np.dot(dg, dx)
-        if hmax*denom2 < 1e-5*abs(dg).max():
+        if hmax*denom2 <= 1e-5*abs(dg).max():
             return
+        if log.do_debug:
+            log('Updating BFGS Hessian.    denom1=%10.3e   denom2=%10.3e' % (denom1, denom2))
         self.hessian -= np.outer(tmp, tmp)/denom1
         self.hessian += np.outer(dg, dg)/denom2
 
