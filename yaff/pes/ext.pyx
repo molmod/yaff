@@ -617,7 +617,7 @@ cdef class PairPotDampDisp(PairPot):
     def _init_c6_cross(self, nffatype, c6_cross, c6s, vols):
         for i0 in xrange(nffatype):
             for i1 in xrange(i0+1):
-                if c6_cross[i0, i1] == 0.0:
+                if c6_cross[i0, i1] == 0.0 and vols[i0] != 0.0 and vols[i1] != 0.0:
                     ratio = (vols[i0]/vols[i1])**2
                     c6_cross[i0, i1] = 2.0*c6s[i0]*c6s[i1]/(c6s[i0]*ratio+c6s[i1]/ratio)
                     c6_cross[i1, i0] = c6_cross[i0, i1]

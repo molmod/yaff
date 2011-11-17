@@ -27,7 +27,7 @@ from scipy.special import erfc
 from molmod import angstrom, kcalmol
 
 from yaff.test.common import get_system_water32, get_system_caffeine, \
-    get_system_2atoms
+    get_system_2atoms, get_system_quartz
 from yaff.pes.test.common import check_gpos_part, check_vtens_part
 
 from yaff import *
@@ -658,3 +658,18 @@ def test_pair_pot_grimme_2atoms():
     #print "d=%f" %d
     #print "energy=%f , check_energy=%f" %(energy, check_energy)
     assert abs(energy-check_energy)<1e-10
+
+
+def test_bks_isfinite():
+    system = get_system_quartz()
+    ff = ForceField.generate(system, 'input/parameters_bks.txt')
+    assert np.isfinite(ff.part_pair_dampdisp.pair_pot.c6_cross).all()
+    assert np.isfinite(ff.part_pair_dampdisp.pair_pot.b_cross).all()
+    ff.compute()
+    assert np.isfinite(ff.part_pair_exprep.energy)
+    assert np.isfinite(ff.part_pair_ei.energy)
+    assert np.isfinite(ff.part_ewald_reci.energy)
+    assert np.isfinite(ff.part_ewald_cor.energy)
+    assert np.isfinite(ff.part_ewald_neut.energy)
+    assert np.isfinite(ff.part_pair_dampdisp.energy)
+    assert np.isfinite(ff.energy)
