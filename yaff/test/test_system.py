@@ -23,9 +23,9 @@
 
 import tempfile, shutil, numpy as np
 
-from yaff import System
+from yaff import System, unravel_triangular
 
-from common import get_system_water32
+from common import get_system_water32, get_system_glycine, get_system_quartz
 
 
 def test_chk():
@@ -77,6 +77,7 @@ def test_ffatypes():
     assert (system.ffatype_ids[system.numbers==8] == 0).all()
     assert (system.ffatype_ids[system.numbers==1] == 1).all()
 
+
 def test_scopes1():
     system = System(
         numbers=np.array([8, 1, 1, 6, 1, 1, 1, 8, 1]),
@@ -88,6 +89,7 @@ def test_scopes1():
     assert (system.scope_ids == np.array([0, 0, 0, 1, 1, 1, 1, 1, 1])).all()
     assert system.ffatypes == ['O', 'H', 'C', 'H_C', 'O', 'H_O']
     assert (system.ffatype_ids == np.array([0, 1, 1, 2, 3, 3, 3, 4, 5])).all()
+
 
 def test_scopes2():
     system = System(
@@ -102,6 +104,7 @@ def test_scopes2():
     assert (system.scope_ids == np.array([0, 0, 0, 1, 1, 1, 1, 1, 1])).all()
     assert system.ffatypes == ['O', 'H', 'C', 'H_C', 'O', 'H_O']
     assert (system.ffatype_ids == np.array([0, 1, 1, 2, 3, 3, 3, 4, 5])).all()
+
 
 def test_scopes3():
     system = System(
@@ -121,3 +124,34 @@ def test_scopes3():
     assert system.get_ffatype(0) == 'O'
     assert system.get_ffatype(7) == 'O'
     assert system.get_ffatype(8) == 'H_O'
+
+
+def test_unravel_triangular():
+    counter = 0
+    for i0 in xrange(100):
+        for i1 in xrange(i0):
+            print counter, (i0, i1), unravel_triangular(counter)
+            assert unravel_triangular(counter) == (i0, i1)
+            counter += 1
+
+
+def check_bonds(system):
+    old_bonds = set([frozenset(pair) for pair in system.bonds])
+    system.detect_bonds()
+    new_bonds = set([frozenset(pair) for pair in system.bonds])
+    assert old_bonds == new_bonds
+
+
+def test_detect_bonds_glycine():
+    system = get_system_glycine()
+    check_bonds(system)
+
+
+def test_detect_bonds_water32():
+    system = get_system_water32()
+    check_bonds(system)
+
+
+def test_detect_bonds_quartz():
+    system = get_system_quartz()
+    check_bonds(system)

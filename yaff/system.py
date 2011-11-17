@@ -28,13 +28,16 @@ from yaff.atselect import check_name, atsel_compile
 from yaff.pes.ext import Cell
 
 
-__all__ = ['System']
+__all__ = ['unravel_triangular', 'System']
 
 
 def unravel_triangular(i):
-    """Transform a flattened triangular matrix index to a row and column"""
-    # TODO: test this routine
-    i0 = int(np.floor(0.5*(np.sqrt(1+8*i)-1)))
+    """Transform a flattened triangular matrix index to a row and column
+
+       It is assumed that the diagonal elements are not included in the compact
+       matrix.
+    """
+    i0 = int(np.floor(0.5*(np.sqrt(1+8*i)-1)))+1
     i1 = i - (i0*(i0-1))/2
     return i0, i1
 
@@ -365,21 +368,20 @@ class System(object):
                     yield i0, i1, i2, i3
 
     def detect_bonds(self):
-        # TODO: test this routine
         with log.section('SYS'):
             from molmod.bonds import bonds
             if self.bonds is not None:
                 if log.do_warning:
                     log.warn('Overwriting existing bonds.')
-            work = np.array((self.natom*(self.natom-1))/2)
-            self.cell.compute_distances(self, work, self.pos)
+            work = np.zeros((self.natom*(self.natom-1))/2, float)
+            self.cell.compute_distances(work, self.pos)
             ishort = (work < bonds.max_length*1.01).nonzero()[0]
-            bonds = []
+            new_bonds = []
             for i in ishort:
                 i0, i1 = unravel_triangular(i)
                 if bonds.bonded(self.numbers[i0], self.numbers[i1], work[i]):
-                    bonds.append((i0, i1))
-            self.bonds = np.array(bonds)
+                    new_bonds.append((i0, i1))
+            self.bonds = np.array(new_bonds)
 
     def set_standard_masses(self):
         with log.section('SYS'):
