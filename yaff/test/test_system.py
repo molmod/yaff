@@ -135,7 +135,7 @@ def test_unravel_triangular():
             counter += 1
 
 
-def check_bonds(system):
+def check_detect_bonds(system):
     old_bonds = set([frozenset(pair) for pair in system.bonds])
     system.detect_bonds()
     new_bonds = set([frozenset(pair) for pair in system.bonds])
@@ -144,14 +144,31 @@ def check_bonds(system):
 
 def test_detect_bonds_glycine():
     system = get_system_glycine()
-    check_bonds(system)
+    check_detect_bonds(system)
 
 
 def test_detect_bonds_water32():
     system = get_system_water32()
-    check_bonds(system)
+    check_detect_bonds(system)
 
 
 def test_detect_bonds_quartz():
     system = get_system_quartz()
-    check_bonds(system)
+    check_detect_bonds(system)
+
+
+def check_detect_ffatypes(system, rules):
+    old_ffatypes = system.ffatypes
+    old_ffatype_ids = system.ffatype_ids
+    system.detect_ffatypes(rules)
+    assert system.ffatypes == old_ffatypes
+    assert (system.ffatype_ids == old_ffatype_ids).all()
+
+
+def test_detect_ffatypes():
+    system = get_system_quartz()
+    rules = [
+        ('Si', '14'),
+        ('O', '8'),
+    ]
+    check_detect_ffatypes(system, rules)

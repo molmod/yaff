@@ -334,18 +334,18 @@ class System(object):
         """Return the of the ffatype (string) of atom with given index"""
         return self.ffatypes[self.ffatype_ids[index]]
 
-    def get_indexes(self, fn):
-        """Return the atom indexes that match the filter ``fn``
+    def get_indexes(self, rule):
+        """Return the atom indexes that match the filter ``rule``
 
-           On the one hand, ``fn`` can be a function that accepts two
-           arguments: system and an atom index. On the other hand ``fn``
+           On the one hand, ``rule`` can be a function that accepts two
+           arguments: system and an atom index. On the other hand ``rule``
            can be an ATSELECT string that defines the atoms of interest.
 
            A list of atom indexes is returned.
         """
-        if isinstance(fn, basestring):
-            fn = atsel_compile(fn)
-        return np.array([i for i in xrange(self.natom) if fn(self, i)])
+        if isinstance(rule, basestring):
+            rule = atsel_compile(rule)
+        return np.array([i for i in xrange(self.natom) if rule(self, i)])
 
     def iter_bonds(self):
         for i1, i2 in self.bonds:
@@ -382,6 +382,40 @@ class System(object):
                 if bonds.bonded(self.numbers[i0], self.numbers[i1], work[i]):
                     new_bonds.append((i0, i1))
             self.bonds = np.array(new_bonds)
+
+    def detect_ffatypes(self, rules):
+        with log.section('SYS'):
+            # Give warning if needed
+            if self.ffatypes is not None:
+                if log.do_warning:
+                    log.warn('Overwriting existing FF atom types.')
+            # Compile all the rules
+            my_rules = []
+            for ffatype, rule in rules:
+                check_name(ffatype)
+                if isinstance(rule, basestring):
+                    rule = atsel_compile(rule)
+                my_rules.append((ffatype, rule))
+            # Use the rules to detect the atom types
+            lookup = {}
+            self.ffatypes = []
+            self.ffatype_ids = np.zeros(self.natom, int)
+            for i in xrange(self.natom):
+                my_ffatype = None
+                for ffatype, rule in my_rules:
+                    if rule(self, i):
+                        my_ffatype = ffatype
+                        break
+                if my_ffatype is None:
+                    raise ValueError('Could not detect FF atom type of atom %i.' % i)
+                ffatype_id = lookup.get(my_ffatype)
+                if ffatype_id is None:
+                    ffatype_id = len(lookup)
+                    self.ffatypes.append(my_ffatype)
+                    lookup[my_ffatype] = ffatype_id
+                self.ffatype_ids[i] = ffatype_id
+            # Make sure all is done well ...
+            self._init_derived_ffatypes
 
     def set_standard_masses(self):
         with log.section('SYS'):
