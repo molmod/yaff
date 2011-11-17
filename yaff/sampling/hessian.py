@@ -70,14 +70,14 @@ def estimate_hessian(ff, eps=1e-4, select=None):
                 ff.update_pos(pos1)
                 epot = ff.compute(gpos)
                 if log.do_medium:
-                    log('% 7i %4i neg %s' % (i, j, epot))
+                    log('% 7i %4i neg %s' % (i, j, log.energy(epot)))
                 gpos *= -1
                 pos1[:] = pos0
                 pos1[i,j] += eps
                 ff.update_pos(pos1)
                 epot = ff.compute(gpos)
                 if log.do_medium:
-                    log('% 7i %4i pos %s' % (i, j, epot))
+                    log('% 7i %4i pos %s' % (i, j, log.energy(epot)))
                 rows.append(gpos/(2*eps))
         if log.do_medium:
             log.hline()
