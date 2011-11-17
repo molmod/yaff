@@ -218,7 +218,7 @@ class IsoCell(object):
 
 class CellDOF(DOF):
     """Fractional coordinates and cell parameters"""
-    def __init__(self, cell_spec, gpos_rms=1e-5, dpos_rms=1e-3, gcell_rms=1e-5, dcell_rms=1e-3):
+    def __init__(self, cell_spec, gpos_rms=1e-5, dpos_rms=1e-3, gcell_rms=1e-5, dcell_rms=1e-3, frozen_atoms=False):
         """
            **Arguments:**
 
@@ -237,6 +237,10 @@ class CellDOF(DOF):
                 included automatically. The maximum of the absolute value of a
                 component should be smaller than 3/sqrt(N) times the rms
                 threshold, where N is the number of degrees of freedom.
+
+           frozen_atoms
+                When True, the fractional coordinates of the atoms are kept
+                fixed.
 
            **Convergence conditions:**
 
@@ -260,6 +264,7 @@ class CellDOF(DOF):
         self.th_dpos_rms = dpos_rms
         self.th_gcell_rms = gcell_rms
         self.th_dcell_rms = dcell_rms
+        self.frozen_atoms = frozen_atoms
         DOF.__init__(self)
         self._pos = None
         self._last_pos = None
@@ -271,7 +276,11 @@ class CellDOF(DOF):
         """Return the initial value of the unknowns"""
         cell_vars = self.cell_spec.get_initial(system)
         frac = np.dot(system.pos, system.cell.gvecs.T)
-        x = np.concatenate([cell_vars, frac.ravel()])
+        if self.frozen_atoms:
+            x = cell_vars
+            self.frac0 = frac
+        else:
+            x = np.concatenate([cell_vars, frac.ravel()])
         self._init_gx(len(x))
         self._pos = system.pos.copy()
         self._dpos = np.zeros(system.pos.shape, float)
@@ -294,7 +303,10 @@ class CellDOF(DOF):
                 The system object in which these
         """
         self._cell, index = self.cell_spec.x_to_rvecs(x)
-        frac = x[index:].reshape(-1,3)
+        if self.frozen_atoms:
+            frac = self.frac0
+        else:
+            frac = x[index:].reshape(-1,3)
         self._pos[:] = np.dot(frac, self._cell)
         ff.update_pos(self._pos[:])
         ff.update_rvecs(self._cell[:])
@@ -304,13 +316,14 @@ class CellDOF(DOF):
             v = ff.compute(self._gpos, self._vtens)
             self._gcell[:] = np.dot(ff.system.cell.gvecs, self._vtens)
             self._gx[:index] = self.cell_spec.grvecs_to_gx(self._gcell)
-            self._gx[index:] = np.dot(self._gpos, self._cell.T).ravel()
+            if not self.frozen_atoms:
+                self._gx[index:] = np.dot(self._gpos, self._cell.T).ravel()
             return v, self._gx
         else:
             return ff.compute()
 
     def check_convergence(self):
-        # When called for the first time, initialize _last_pos
+        # When called for the first time, initialize _last_pos and _last_cell
         if self._last_pos is None:
             self._last_pos = self._pos.copy()
             self._last_cell = self._cell.copy()
@@ -320,11 +333,12 @@ class CellDOF(DOF):
             self.conv_count = -1
             return
         # Compute the values that have to be compared to the thresholds
-        gpossq = (self._gpos**2).sum(axis=1)
-        self.gpos_max = np.sqrt(gpossq.max())
-        self.gpos_rms = np.sqrt(gpossq.mean())
-        self._dpos[:] = self._pos
-        self._dpos -= self._last_pos
+        if not self.frozen_atoms:
+            gpossq = (self._gpos**2).sum(axis=1)
+            self.gpos_max = np.sqrt(gpossq.max())
+            self.gpos_rms = np.sqrt(gpossq.mean())
+            self._dpos[:] = self._pos
+            self._dpos -= self._last_pos
         #
         dpossq = (self._dpos**2).sum(axis=1)
         self.dpos_max = np.sqrt(dpossq.max())
@@ -341,7 +355,7 @@ class CellDOF(DOF):
         self.dcell_rms = np.sqrt(dcellsq.mean())
         # Compute a general value that has to go below 1.0 to have convergence.
         conv_vals = []
-        if self.th_gpos_rms is not None:
+        if not self.frozen_atoms and self.th_gpos_rms is not None:
             conv_vals.append((self.gpos_rms/self.th_gpos_rms, 'gpos_rms'))
             conv_vals.append((self.gpos_max/(self.th_gpos_rms*3/np.sqrt(gpossq.size)), 'gpos_max'))
         if self.th_dpos_rms is not None:
