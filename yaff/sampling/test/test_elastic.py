@@ -21,9 +21,19 @@
 # --
 
 
-from yaff.sampling.elastic import *
-from yaff.sampling.hessian import *
-from yaff.sampling.io import *
-from yaff.sampling.iterative import *
-from yaff.sampling.nve import *
-from yaff.sampling.opt import *
+import numpy as np
+
+from yaff import *
+from yaff.sampling.test.common import get_ff_water32, get_ff_water
+
+
+def test_elastic_water32():
+    ff = get_ff_water32()
+    elastic = estimate_elastic(ff)
+    assert elastic.shape == (6, 6)
+
+
+def test_elastic_water():
+    ff = get_ff_water()
+    elastic = estimate_elastic(ff)
+    assert elastic.shape == (6, 6)
