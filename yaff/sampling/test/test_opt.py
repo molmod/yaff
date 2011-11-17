@@ -24,7 +24,9 @@
 import h5py, numpy as np
 
 from yaff import *
-from yaff.sampling.test.common import get_ff_water32
+from yaff.sampling.test.common import get_ff_water32, get_ff_bks
+from yaff.pes.test.common import check_gpos_part, check_vtens_part, \
+    check_gpos_ff, check_vtens_ff
 
 
 def test_cg_5steps():
@@ -118,4 +120,22 @@ def test_bfgs_5steps():
     epot1 = opt.epot
     assert opt.counter == 5
     assert epot1 < epot0
+    opt.check_delta()
+
+
+def test_check_delta_cell_dof_full_cell():
+    ff = get_ff_bks()
+    opt = BFGSOptimizer(ff, CellDOF(FullCell()))
+    opt.check_delta()
+
+
+def test_check_delta_cell_dof_iso_cell():
+    ff = get_ff_bks()
+    opt = BFGSOptimizer(ff, CellDOF(IsoCell()))
+    opt.check_delta()
+
+
+def test_check_delta_cell_dof_aniso_cell():
+    ff = get_ff_bks()
+    opt = BFGSOptimizer(ff, CellDOF(AnisoCell()))
     opt.check_delta()

@@ -22,18 +22,25 @@
 
 
 from yaff import *
-from yaff.test.common import get_system_water32, get_system_water
+from yaff.test.common import get_system_water32, get_system_water, \
+    get_system_quartz
 
 
-__all__ = ['get_ff_water32', 'get_ff_water']
+__all__ = ['get_ff_water32', 'get_ff_water', 'get_ff_bks']
 
 
 def get_ff_water32():
     system = get_system_water32()
-    ff = ForceField.generate(system, 'input/parameters_water.txt')
+    return ForceField.generate(system, 'input/parameters_water.txt')
     return ff
+
 
 def get_ff_water():
     system = get_system_water()
-    ff = ForceField.generate(system, 'input/parameters_water.txt')
+    return ForceField.generate(system, 'input/parameters_water.txt')
     return ff
+
+
+def get_ff_bks():
+    system = get_system_quartz()
+    return ForceField.generate(system, 'input/parameters_bks.txt')
