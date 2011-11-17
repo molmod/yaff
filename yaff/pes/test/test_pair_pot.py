@@ -673,3 +673,11 @@ def test_bks_isfinite():
     assert np.isfinite(ff.part_ewald_neut.energy)
     assert np.isfinite(ff.part_pair_dampdisp.energy)
     assert np.isfinite(ff.energy)
+
+
+def test_bks_vtens_gpos_parts():
+    system = get_system_quartz()
+    ff = ForceField.generate(system, 'input/parameters_bks.txt', smooth_ei=True, reci_ei='ignore')
+    for part in ff.parts:
+        check_vtens_part(system, part, ff.nlist)
+        check_gpos_part(system, part, ff.nlist)
