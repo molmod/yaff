@@ -27,13 +27,15 @@ from molmod import angstrom
 
 from yaff.test.common import get_system_water32, get_system_graphene8, \
     get_system_polyethylene4, get_system_quartz, get_system_glycine
+from yaff import Cell
 
 
 def test_cell_water32():
     cell = get_system_water32().cell
     assert (cell.rspacings == 9.865*angstrom).all()
     assert (cell.gspacings == 1/(9.865*angstrom)).all()
-    assert abs(cell.volume - np.linalg.det(cell.rvecs)) < 1e-10
+    assert abs(cell.volume - abs(np.linalg.det(cell.rvecs))) < 1e-10
+
     assert abs(np.dot(cell.gvecs, cell.rvecs.transpose()) - np.identity(3)).max() < 1e-5
     vec1 = np.array([10.0, 0.0, 5.0])*angstrom
     cell.mic(vec1)
@@ -43,6 +45,9 @@ def test_cell_water32():
     assert abs(vec1 - vec2).max() < 1e-10
     cell.add_vec(vec1, np.array([1,2,3]))
     assert abs(vec1 - np.array([10.0, 19.73, 24.73])*angstrom).max() < 1e-10
+
+    cell2 = Cell(-cell.rvecs)
+    assert abs(cell2.volume - abs(np.linalg.det(cell.rvecs))) < 1e-10
 
 
 
@@ -80,7 +85,7 @@ def test_cell_quartz():
     cell = get_system_quartz().cell
     assert cell.rvecs.shape == (3, 3)
     assert cell.gvecs.shape == (3, 3)
-    assert abs(cell.volume - np.linalg.det(cell.rvecs)) < 1e-10
+    assert abs(cell.volume - abs(np.linalg.det(cell.rvecs))) < 1e-10
     assert abs(np.dot(cell.gvecs, cell.rvecs.transpose()) - np.identity(3)).max() < 1e-5
 
 

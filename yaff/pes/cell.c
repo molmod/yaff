@@ -68,7 +68,7 @@ void cell_update(cell_type* cell, double *rvecs, double *gvecs, int nvec) {
       }
       break;
     case 3:
-      (*cell).volume = (
+      (*cell).volume = fabs(
         rvecs[0]*(rvecs[4]*rvecs[8]-rvecs[5]*rvecs[7])+
         rvecs[1]*(rvecs[5]*rvecs[6]-rvecs[3]*rvecs[8])+
         rvecs[2]*(rvecs[3]*rvecs[7]-rvecs[4]*rvecs[6])
