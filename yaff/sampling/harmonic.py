@@ -56,7 +56,7 @@ def estimate_hessian(dof, eps=1e-4):
             x1[i] = dof.x0[i] + eps
             epot, gradient_p = dof.fun(x1, do_gradient=True)
             if log.do_medium:
-                log('% 7i neg %s' % (i, log.energy(epot)))
+                log('% 7i pos %s' % (i, log.energy(epot)))
             x1[i] = dof.x0[i] - eps
             epot, gradient_m = dof.fun(x1, do_gradient=True)
             if log.do_medium:
