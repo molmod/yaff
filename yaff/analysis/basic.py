@@ -339,7 +339,7 @@ def plot_cell_pars(f, fn_png='cell_pars.png', **kwargs):
     nvec = lengths.shape[1]
 
     def get_angle(i0, i1):
-        return np.arccos(np.clip((cell[:,i0]*cell[:,i1]).sum(axis=1)**2/lengths[:,i0]/lengths[:,i1], -1,1))/log.angle.conversion
+        return np.arccos(np.clip((cell[:,i0]*cell[:,i1]).sum(axis=1)/lengths[:,i0]/lengths[:,i1], -1,1))/log.angle.conversion
 
     pt.clf()
 
