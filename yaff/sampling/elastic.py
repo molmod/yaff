@@ -26,8 +26,11 @@ import numpy as np
 from yaff.log import log, timer
 
 
-__all__ = ['estimate_elastic']
+__all__ = ['estimate_elastic', 'estimate_bulk_modulus']
 
+
+# TODO: this is all wrong because the coordinates are not optimized for each
+# cell deformation! There are some other mistakes too.
 
 def estimate_elastic(ff, eps=1e-4):
     """Estimate the elastic constants using the symmetric finite difference
@@ -128,15 +131,18 @@ def estimate_elastic(ff, eps=1e-4):
                 deform[i,j] += eps
                 epot, cauchy_p = get_cauchy(vol0, pos0, rvecs0, deform)
                 if log.do_medium:
-                    log('%i %i neg %s' % (i, j, log.energy(epot)))
+                    log('%i %i pos %s' % (i, j, log.energy(epot)))
                 # negative displacement
                 deform = np.identity(3, float)
                 deform[i,j] -= eps
                 energy, cauchy_m = get_cauchy(vol0, pos0, rvecs0, deform)
                 if log.do_medium:
-                    log('%i %i pos %s' % (i, j, log.energy(epot)))
+                    log('%i %i neg %s' % (i, j, log.energy(epot)))
                 # assign
                 elastic[i,j] = (cauchy_p - cauchy_m)/(2*eps)
+        # reset system to original state
+        ff.update_pos(pos0)
+        ff.update_rvecs(rvecs0)
         if log.do_medium:
             log.hline()
 
@@ -160,3 +166,57 @@ def estimate_elastic(ff, eps=1e-4):
             for m, k, l in voight:
                 result[n,m] = elastic[i,j,k,l]
         return result
+
+
+def estimate_bulk_modulus(ff, eps=1e-4):
+    """Estimate the bulk modulus with symmetric finite difference
+
+       **Arguments:**
+
+       ff
+            A force field object
+
+       **Optional arguments:**
+
+       eps
+            The magnitude of the Cartesian displacements
+    """
+    if ff.system.cell.nvec != 3:
+        raise ValueError('The system must be 3D periodic.')
+
+    # This auxiliary routine is used to compute the pressure for a given
+    # isotropic deformation
+    def get_pressure(vol0, pos0, rvecs0, deform):
+        pos = pos0*deform
+        rvecs = rvecs0*deform
+        ff.update_pos(pos)
+        ff.update_rvecs(rvecs)
+        vtens = np.zeros((3, 3), float)
+        epot = ff.compute(vtens=vtens)
+        return epot, np.trace(vtens)/vol0
+
+    with log.section('BULK'), timer.section('Estimate bulk mod.'):
+        # Keep some reference values
+        vol0 = ff.system.cell.volume
+        if vol0 == 0.0:
+            # In case this function is used on an isolated system, it makes no
+            # sense to try to compute derivatives of an energy density. It is
+            # in general a weird idea to use this function for anything else
+            # than 3D periodic systems.
+            vol0 = 1
+        pos0 = ff.system.pos.copy()
+        rvecs0 = ff.system.cell.rvecs.copy()
+
+        # Compute the derivative of the pressure
+        # positive displacement
+        epot, pressure_p = get_pressure(vol0, pos0, rvecs0, (1+eps))
+        if log.do_medium:
+            log('pos %s' % log.energy(epot))
+        # negative displacement
+        energy, pressure_m = get_pressure(vol0, pos0, rvecs0, (1-eps))
+        if log.do_medium:
+            log('new %s' % log.energy(epot))
+        # reset system to original state
+        ff.update_pos(pos0)
+        ff.update_rvecs(rvecs0)
+        return (pressure_p - pressure_m)/(2*eps)

@@ -24,7 +24,7 @@
 import numpy as np
 
 from yaff import *
-from yaff.sampling.test.common import get_ff_water32, get_ff_water
+from yaff.sampling.test.common import get_ff_water32, get_ff_water, get_ff_bks
 
 
 def test_elastic_water32():
@@ -37,3 +37,15 @@ def test_elastic_water():
     ff = get_ff_water()
     elastic = estimate_elastic(ff)
     assert elastic.shape == (6, 6)
+
+
+def test_bulk_modulus_water32():
+    ff = get_ff_water32()
+    bulk_modulus = estimate_bulk_modulus(ff)
+    assert bulk_modulus > 0
+
+
+def test_bulk_modulus_bks():
+    ff = get_ff_bks()
+    bulk_modulus = estimate_bulk_modulus(ff)
+    assert bulk_modulus > 0
