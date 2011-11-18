@@ -24,7 +24,7 @@
 import numpy as np
 
 from yaff import *
-from yaff.sampling.test.common import get_ff_water32, get_ff_water
+from yaff.sampling.test.common import get_ff_water32, get_ff_water, get_ff_bks
 
 
 def test_hessian_partial_water32():
@@ -41,3 +41,15 @@ def test_hessian_full_water():
     evals = np.linalg.eigvalsh(hessian)
     print evals
     assert sum(abs(evals) < 1e-8) == 3
+
+
+def test_elastic_water32():
+    ff = get_ff_water32()
+    elastic = estimate_elastic(ff, do_frozen=True)
+    assert elastic.shape == (6, 6)
+
+
+def test_bulk_elastic_bks():
+    ff = get_ff_bks()
+    elastic = estimate_elastic(ff)
+    assert elastic.shape == (6, 6)
