@@ -446,9 +446,11 @@ class BaseOptimizer(Iterative):
         if log.do_medium:
             log.hline()
 
-    def check_delta(self, x, eps=1e-4):
+    def check_delta(self, x, eps=1e-4, zero=None):
         """Test the analytical derivatives"""
         dxs = np.random.uniform(-eps, eps, (100, len(x)))
+        if zero is not None:
+            dxs[:,zero] = 0.0
         check_delta(self.fun, x, dxs)
 
 
@@ -474,10 +476,10 @@ class CGOptimizer(BaseOptimizer):
             return True
         return BaseOptimizer.propagate(self)
 
-    def check_delta(self, x=None, eps=1e-4):
+    def check_delta(self, x=None, eps=1e-4, zero=None):
         if x is None:
             x = self.minimizer.x
-        BaseOptimizer.check_delta(self, x, eps=1e-4)
+        BaseOptimizer.check_delta(self, x, eps, zero)
 
 
 class BFGSHessianModel(object):
@@ -616,7 +618,7 @@ class BFGSOptimizer(BaseOptimizer):
             f, g = self.fun(x, True)
             return x, f, g
 
-    def check_delta(self, x=None, eps=1e-4):
+    def check_delta(self, x=None, eps=1e-4, zero=None):
         if x is None:
             x = self.x
-        BaseOptimizer.check_delta(self, x, eps=1e-4)
+        BaseOptimizer.check_delta(self, x, eps, zero)

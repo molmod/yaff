@@ -126,15 +126,23 @@ def test_bfgs_5steps():
 def test_check_delta_cell_dof_full_cell():
     ff = get_ff_bks()
     opt = BFGSOptimizer(ff, CellDOF(FullCell()))
-    #opt.check_delta()
+    opt.check_delta()
+    zero = np.zeros(len(opt.x_old), dtype=bool)
+    zero[:9] = True
+    opt.check_delta(zero=zero)
+    opt.check_delta(zero=~zero)
     opt = BFGSOptimizer(ff, CellDOF(FullCell(), frozen_atoms=True))
-    #opt.check_delta()
+    opt.check_delta()
 
 
 def test_check_delta_cell_dof_iso_cell():
     ff = get_ff_bks()
     opt = BFGSOptimizer(ff, CellDOF(IsoCell()))
     opt.check_delta()
+    zero = np.zeros(len(opt.x_old), dtype=bool)
+    zero[:1] = True
+    opt.check_delta(zero=zero)
+    opt.check_delta(zero=~zero)
     opt = BFGSOptimizer(ff, CellDOF(IsoCell(), frozen_atoms=True))
     opt.check_delta()
 
@@ -143,5 +151,9 @@ def test_check_delta_cell_dof_aniso_cell():
     ff = get_ff_bks()
     opt = BFGSOptimizer(ff, CellDOF(AnisoCell()))
     opt.check_delta()
+    zero = np.zeros(len(opt.x_old), dtype=bool)
+    zero[:3] = True
+    opt.check_delta(zero=zero)
+    opt.check_delta(zero=~zero)
     opt = BFGSOptimizer(ff, CellDOF(AnisoCell(), frozen_atoms=True))
     opt.check_delta()
