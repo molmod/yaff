@@ -172,7 +172,7 @@ class FullCell(object):
         self.nvec = system.cell.nvec
         if self.nvec == 0:
             raise ValueError('A cell optimization requires a system that is periodic.')
-        self._cell_scale = system.cell.volume**(1.0/self.nvec)*10
+        self._cell_scale = system.cell.volume**(1.0/self.nvec)
         if log.do_debug:
             log('Cell scale set to %s.' % log.length(self._cell_scale))
         return system.cell.rvecs.ravel()/self._cell_scale
@@ -318,7 +318,7 @@ class CellDOF(DOF):
             self._gx[:index] = self.cell_spec.grvecs_to_gx(self._gcell)
             if not self.frozen_atoms:
                 self._gx[index:] = np.dot(self._gpos, self._cell.T).ravel()
-            return v, self._gx
+            return v, self._gx.copy()
         else:
             return ff.compute()
 
@@ -492,9 +492,13 @@ class BFGSHessianModel(object):
         # Only compute updates if the denominators do not blow up
         denom1 = np.dot(dx, tmp)
         if hmax*denom1 <= 1e-5*abs(tmp).max():
+            if log.do_high:
+                log('Skipping BFGS update because denom1=%10.3e is not positive enough.' % denom1)
             return
         denom2 = np.dot(dg, dx)
         if hmax*denom2 <= 1e-5*abs(dg).max():
+            if log.do_high:
+                log('Skipping BFGS update because denom2=%10.3e is not positive enough.' % denom2)
             return
         if log.do_debug:
             log('Updating BFGS Hessian.    denom1=%10.3e   denom2=%10.3e' % (denom1, denom2))
@@ -556,6 +560,8 @@ class BFGSOptimizer(BaseOptimizer):
 
     def propagate(self):
         # Update the Hessian
+        assert not self.g is self.g_old
+        assert not self.x is self.x_old
         self.hessian.update(self.x - self.x_old, self.g - self.g_old)
         # Move new to old
         self.x_old = self.x
@@ -571,6 +577,8 @@ class BFGSOptimizer(BaseOptimizer):
 
         # Initial ridge parameter
         if evals[0] <= 0:
+            # Make the ridge large enough to step in a direction opposite to the
+            # gradient.
             ridge = abs(evals[0]) + 1e-3*abs(evals).max()
         else:
             ridge = 0.0
@@ -585,7 +593,7 @@ class BFGSOptimizer(BaseOptimizer):
             while True:
                 # MARKER FOR CONSTRAINT CODE: instead of the following line, a
                 # constrained harmonic solver should be added to find the step
-                # that minimes the local quadratic problem under a set of linear
+                # that minimizes the local quadratic problem under a set of linear
                 # equality/inequality constraints. This can be implemented using
                 # the active set algorithm.
                 tmp2 = tmp1*evals/(evals**2 + ridge**2)
@@ -601,21 +609,35 @@ class BFGSOptimizer(BaseOptimizer):
             # Check if the step is trust worthy
             delta_x = np.dot(evecs, tmp2)
             # MARKER FOR CONSTRAINT CODE: the following line should be replaced
-            # by something of the sort: x = self.shaker.fix(self.x_old + delta_x)
+            # by something of the sort:
+            # x = self.shaker.fix(self.x_old + delta_x)
             x = self.x_old + delta_x
-            f = self.fun(x, False)
+            f, g = self.fun(x, True)
+            # MARKER FOR CONSTRAINT CODE: project the gradient.
             delta_f = f - self.f_old
             if delta_f > 0:
-                # The function must decrease, if not the trust radius is too big
+                # The function must decrease, if not the trust radius is too big.
+                # This is similar to the first Wolfe condition
                 if log.do_high:
-                    log('Function incraeses.')
+                    log('Function increases.')
+                self.trust_radius *= 0.5
+                continue
+            # MARKER FOR CONSTRAINT CODE: the following should be ignored if
+            # the number of active constraints changes. In case of any
+            # constraints, delta_x should be updated.
+            if np.dot(delta_x, g) > 0:
+                # This means that we ended up too far at the other end of the
+                # minimum. Note that this is intentionally very different from
+                # the second Wolfe condition. Keep in mind that this optimizer
+                # does not use line searches.
+                if log.do_high:
+                    log('dot(new gradient, step) > 0.')
                 self.trust_radius *= 0.5
                 continue
             # If we get here, we are done.
             if log.do_high:
                 log.hline()
             self.trust_radius *= 1.2
-            f, g = self.fun(x, True)
             return x, f, g
 
     def check_delta(self, x=None, eps=1e-4, zero=None):

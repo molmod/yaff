@@ -126,7 +126,7 @@ class FFArgs(object):
            alpha_scale
                 Determines the alpha parameter in the Ewald summation based on
                 the real-space cutoff: alpha = alpha_scale / rcut. The higher
-                this parameter, the better the truncation will be.
+                this parameter, the better the real-space convergence.
 
            gcut_scale
                 Determines the reciprocale space cutoff based on the alpha
