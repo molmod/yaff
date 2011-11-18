@@ -23,7 +23,7 @@
 
 import tempfile, shutil, numpy as np
 
-from yaff import System, unravel_triangular
+from yaff import System, unravel_triangular, Cell
 
 from common import get_system_water32, get_system_glycine, get_system_quartz
 
@@ -172,3 +172,25 @@ def test_detect_ffatypes():
         ('O', '8'),
     ]
     check_detect_ffatypes(system, rules)
+
+
+def test_align_cell_quartz():
+    system = get_system_quartz()
+    system.cell = Cell(system.cell.rvecs[::-1].copy())
+    lcs = np.array([
+        [1, 1, 0],
+        [0, 0, 1],
+    ])
+    system.align_cell(lcs)
+    # c should be aligned with z axis
+    rvecs = system.cell.rvecs
+    assert abs(rvecs[2][0]) < 1e-10
+    assert abs(rvecs[2][1]) < 1e-10
+    # sum of a and b should be aligned with x axis
+    assert abs(rvecs[0][1] + rvecs[1][1]) < 1e-10
+    assert abs(rvecs[0][2] + rvecs[1][2]) < 1e-10
+    # difference of a and b should be aligned with y axis
+    assert abs(rvecs[0][0] - rvecs[1][0]) < 1e-4
+    assert abs(rvecs[0][2] - rvecs[1][2]) < 1e-10
+    # check if the bonds are the same in the rotated structure
+    check_detect_bonds(system)

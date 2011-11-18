@@ -425,6 +425,88 @@ class System(object):
                     log.warn('Overwriting existing masses with default masses.')
             self.masses = np.array([periodic[n].mass for n in self.numbers])
 
+    def align_cell(self, lcs=None, swap=True):
+        """Align the unit cell with respect to the Cartesian Axes frame
+
+           **Optional Arguments:**
+
+           lcs
+                The linear combinations of the unit cell that must get aligned.
+                This is a 2x3 array, where each row represents a linear
+                combination of cell vectors. The first row is for alignment with
+                the x-axis, second for the z-axis. The default value is:
+
+                np.array([
+                    [1, 0, 0],
+                    [0, 0, 1],
+                ])
+
+           swap
+                By default, the first alginment is done with the z-axis, then
+                with the x-axis. The order is reversed when swap is set to
+                False.
+
+           The alignment of the first linear combination is always perfect. The
+           alignment of the second linear combination is restricted to a plane.
+           The cell is always made right-handed. The coordinates are also
+           rotatated with respect to the origin, but never inverted.
+        """
+        from molmod import Rotation, deg
+        # define the target
+        target = np.array([
+            [1, 0, 0],
+            [0, 0, 1],
+        ])
+
+        # default value for linear combination
+        if lcs is None:
+            lcs = target.copy()
+
+        # The starting values
+        pos = self.pos
+        rvecs = self.cell.rvecs.copy()
+
+        # Optionally swap a cell vector if the cell is not right-handed.
+        if np.linalg.det(rvecs) < 0:
+            # Find a reasonable vector to swap...
+            index = rvecs.sum(axis=1).argmin()
+            rvecs[index] *= -1
+
+        # Define the source
+        source = np.dot(lcs, rvecs)
+
+        # Do the swapping
+        if swap:
+            target = target[::-1]
+            source = source[::-1]
+
+        # auxiliary function
+        def get_angle_axis(t, s):
+            cos = np.dot(s, t)/np.linalg.norm(s)/np.linalg.norm(t)
+            angle = np.arccos(np.clip(cos, -1, 1))
+            axis = np.cross(s, t)
+            return angle, axis
+
+        # first alignment
+        angle, axis = get_angle_axis(target[0], source[0])
+        if np.linalg.norm(axis) > 0:
+            r1 = Rotation.from_properties(angle, axis, False)
+            pos = r1*pos
+            rvecs = r1*rvecs
+            source = r1*source
+
+        # second alignment
+        # Make sure the source is orthogonal to target[0]
+        s1p = source[1] - target[0]*np.dot(target[0], source[1])
+        angle, axis = get_angle_axis(target[1], s1p)
+        r2 = Rotation.from_properties(angle, axis, False)
+        pos = r2*pos
+        rvecs = r2*rvecs
+
+        # assign
+        self.pos = pos
+        self.cell = Cell(rvecs)
+
     def to_file(self, fn_chk):
         """Write the system in the internal checkpoint format.
 
