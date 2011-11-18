@@ -49,7 +49,7 @@ def get_opt_water32():
     # Run a test simulation
     f = h5py.File('%s/output.h5' % dn_tmp)
     hdf5 = HDF5Writer(f)
-    opt = CGOptimizer(ff, CellDOF(FullCell()), hooks=hdf5)
+    opt = CGOptimizer(FullCellDOF(ff), hooks=hdf5)
     opt.run(5)
     assert opt.counter == 5
     return dn_tmp, opt, hdf5.f
