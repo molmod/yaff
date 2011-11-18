@@ -172,17 +172,55 @@ class FullCell(object):
         self.nvec = system.cell.nvec
         if self.nvec == 0:
             raise ValueError('A cell optimization requires a system that is periodic.')
-        self._cell_scale = system.cell.volume**(1.0/self.nvec)
-        if log.do_debug:
-            log('Cell scale set to %s.' % log.length(self._cell_scale))
-        return system.cell.rvecs.ravel()/self._cell_scale
+        self.rvecs0 = system.cell.rvecs.copy()
+        if system.cell.nvec == 3:
+            return np.array([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        elif system.cell.nvec == 2:
+            return np.array([1.0, 1.0, 0.0])
+        elif system.cell.nvec == 1:
+            return np.array([1.0])
+        else:
+            raise NotImplementedError
 
     def x_to_rvecs(self, x):
-        index = self.nvec*3
-        return x[:index].reshape(-1,3)*self._cell_scale, index
+        index = (self.nvec*(self.nvec+1))/2
+        scales = x[:index]
+        if self.nvec == 3:
+            deform = np.array([
+                [    scales[0], 0.5*scales[5], 0.5*scales[4]],
+                [0.5*scales[5],     scales[1], 0.5*scales[3]],
+                [0.5*scales[4], 0.5*scales[3],     scales[2]],
+            ])
+        elif self.nvec == 2:
+            deform = np.array([
+                [    scales[0], 0.5*scales[2]],
+                [0.5*scales[2],     scales[1]],
+            ])
+        elif self.nvec == 1:
+            deform = np.array([[scales[0]]])
+        else:
+            raise NotImplementedError
+        return np.dot(deform, self.rvecs0), index
 
     def grvecs_to_gx(self, grvecs):
-        return grvecs.ravel()*self._cell_scale
+        gmat = np.dot(grvecs, self.rvecs0.T)
+        if self.nvec == 3:
+            gscales = np.array([
+                gmat[0, 0], gmat[1, 1], gmat[2, 2],
+                0.5*(gmat[1,2] + gmat[2,1]),
+                0.5*(gmat[2,0] + gmat[0,2]),
+                0.5*(gmat[0,1] + gmat[1,0]),
+            ])
+        elif self.nvec == 2:
+            gscales = np.array([
+                gmat[0, 0], gmat[1, 1],
+                0.5*(gmat[0,1] + gmat[1,0]),
+            ])
+        elif self.nvec == 1:
+            gscales = np.array([gmat[0, 0]])
+        else:
+            raise NotImplementedError
+        return gscales
 
 
 class AnisoCell(object):
