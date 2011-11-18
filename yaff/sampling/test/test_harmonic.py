@@ -27,16 +27,17 @@ from yaff import *
 from yaff.sampling.test.common import get_ff_water32, get_ff_water
 
 
-def test_hessian_parial_water32():
+def test_hessian_partial_water32():
     ff = get_ff_water32()
     select = [1, 2, 3, 14, 15, 16]
-    hessian = estimate_hessian(ff, select=select)
+    hessian = estimate_cart_hessian(ff, select=select)
     assert hessian.shape == (18, 18)
 
 
 def test_hessian_full_water():
     ff = get_ff_water()
-    hessian = estimate_hessian(ff)
+    hessian = estimate_cart_hessian(ff)
     assert hessian.shape == (9, 9)
     evals = np.linalg.eigvalsh(hessian)
-    assert sum(abs(evals) < 1e-10) == 3
+    print evals
+    assert sum(abs(evals) < 1e-8) == 3

@@ -24,7 +24,7 @@
 import numpy as np, time
 
 from molmod.minimizer import ConjugateGradient, QuasiNewton, NewtonLineSearch, \
-    Minimizer, check_delta
+    Minimizer
 
 from yaff.log import log
 from yaff.sampling.iterative import Iterative, AttributeStateItem, \
@@ -33,8 +33,7 @@ from yaff.sampling.iterative import Iterative, AttributeStateItem, \
 
 
 __all__ = [
-    'OptScreenLog', 'CartesianDOF', 'FullCell', 'AnisoCell', 'IsoCell',
-    'CellDOF', 'BaseOptimizer', 'CGOptimizer', 'BFGSHessianModel',
+    'OptScreenLog', 'BaseOptimizer', 'CGOptimizer', 'BFGSHessianModel',
     'BFGSOptimizer',
 ]
 
@@ -64,356 +63,6 @@ class OptScreenLog(Hook):
             ))
 
 
-class DOF(object):
-    def __init__(self):
-        self._gx = None
-
-    def _init_gx(self, length):
-        self._gx = np.zeros(length, float)
-
-
-class CartesianDOF(DOF):
-    """Cartesian degrees of freedom for the optimizers"""
-    def __init__(self, gpos_rms=1e-5, dpos_rms=1e-3):
-        """
-           **Optional arguments:**
-
-           gpos_rms, dpos_rms
-                Thresholds that define the convergence. If all of the actual
-                values drop below these thresholds, the minimizer stops.
-
-                For each rms threshold, a corresponding max threshold is
-                included automatically. The maximum of the absolute value of a
-                component should be smaller than 3/sqrt(N) times the rms
-                threshold, where N is the number of degrees of freedom.
-
-           **Convergence conditions:**
-
-           gpos_rms
-                The root-mean-square of the norm of the gradients of the atoms.
-
-           dpos_rms
-                The root-mean-square of the norm of the displacements of the
-                atoms.
-        """
-        self.th_gpos_rms = gpos_rms
-        self.th_dpos_rms = dpos_rms
-        DOF.__init__(self)
-        self._pos = None
-        self._last_pos = None
-
-    def get_initial(self, system):
-        """Return the initial value of the unknowns"""
-        x = system.pos.ravel()
-        self._init_gx(len(x))
-        self._pos = system.pos.copy()
-        self._dpos = np.zeros(system.pos.shape, float)
-        self._gpos = np.zeros(system.pos.shape, float)
-        return x.copy()
-
-    def fun(self, x, ff, do_gradient=False):
-        """computes the energy i.f.o x, and optionally the gradient.
-
-           **Arguments:**
-
-           x
-                The degrees of freedom
-
-           system
-                The system object in which these
-        """
-        self._pos[:] = x.reshape(-1,3)
-        ff.update_pos(self._pos[:])
-        if do_gradient:
-            self._gpos[:] = 0.0
-            v = ff.compute(self._gpos)
-            self._gx[:] = self._gpos.ravel()
-            return v, self._gx.copy()
-        else:
-            return ff.compute()
-
-    def check_convergence(self):
-        # When called for the first time, initialize _last_pos
-        if self._last_pos is None:
-            self._last_pos = self._pos.copy()
-            self.converged = False
-            self.conv_val = 2
-            self.conv_worst = 'first_step'
-            self.conv_count = -1
-            return
-        # Compute the values that have to be compared to the thresholds
-        gpossq = (self._gpos**2).sum(axis=1)
-        self.gpos_max = np.sqrt(gpossq.max())
-        self.gpos_rms = np.sqrt(gpossq.mean())
-        self._dpos[:] = self._pos
-        self._dpos -= self._last_pos
-        #
-        dpossq = (self._dpos**2).sum(axis=1)
-        self.dpos_max = np.sqrt(dpossq.max())
-        self.dpos_rms = np.sqrt(dpossq.mean())
-        # Compute a general value that has to go below 1.0 to have convergence.
-        conv_vals = []
-        if self.th_gpos_rms is not None:
-            conv_vals.append((self.gpos_rms/self.th_gpos_rms, 'gpos_rms'))
-            conv_vals.append((self.gpos_max/(self.th_gpos_rms*3/np.sqrt(gpossq.size)), 'gpos_max'))
-        if self.th_dpos_rms is not None:
-            conv_vals.append((self.dpos_rms/self.th_dpos_rms, 'dpos_rms'))
-            conv_vals.append((self.dpos_max/(self.th_dpos_rms*3/np.sqrt(dpossq.size)), 'dpos_max'))
-        if len(conv_vals) == 0:
-            raise RuntimeError('At least one convergence criterion must be present.')
-        self.conv_val, self.conv_worst = max(conv_vals)
-        self.conv_count = sum(int(v>=1) for v, n in conv_vals)
-        self.converged = (self.conv_count == 0)
-        self._last_pos[:] = self._pos[:]
-
-
-class FullCell(object):
-    def get_initial(self, system):
-        self.nvec = system.cell.nvec
-        if self.nvec == 0:
-            raise ValueError('A cell optimization requires a system that is periodic.')
-        self.rvecs0 = system.cell.rvecs.copy()
-        if system.cell.nvec == 3:
-            return np.array([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        elif system.cell.nvec == 2:
-            return np.array([1.0, 1.0, 0.0])
-        elif system.cell.nvec == 1:
-            return np.array([1.0])
-        else:
-            raise NotImplementedError
-
-    def x_to_rvecs(self, x):
-        index = (self.nvec*(self.nvec+1))/2
-        scales = x[:index]
-        if self.nvec == 3:
-            deform = np.array([
-                [    scales[0], 0.5*scales[5], 0.5*scales[4]],
-                [0.5*scales[5],     scales[1], 0.5*scales[3]],
-                [0.5*scales[4], 0.5*scales[3],     scales[2]],
-            ])
-        elif self.nvec == 2:
-            deform = np.array([
-                [    scales[0], 0.5*scales[2]],
-                [0.5*scales[2],     scales[1]],
-            ])
-        elif self.nvec == 1:
-            deform = np.array([[scales[0]]])
-        else:
-            raise NotImplementedError
-        return np.dot(deform, self.rvecs0), index
-
-    def grvecs_to_gx(self, grvecs):
-        gmat = np.dot(grvecs, self.rvecs0.T)
-        if self.nvec == 3:
-            gscales = np.array([
-                gmat[0, 0], gmat[1, 1], gmat[2, 2],
-                0.5*(gmat[1,2] + gmat[2,1]),
-                0.5*(gmat[2,0] + gmat[0,2]),
-                0.5*(gmat[0,1] + gmat[1,0]),
-            ])
-        elif self.nvec == 2:
-            gscales = np.array([
-                gmat[0, 0], gmat[1, 1],
-                0.5*(gmat[0,1] + gmat[1,0]),
-            ])
-        elif self.nvec == 1:
-            gscales = np.array([gmat[0, 0]])
-        else:
-            raise NotImplementedError
-        return gscales
-
-
-class AnisoCell(object):
-    def get_initial(self, system):
-        self.nvec = system.cell.nvec
-        if self.nvec == 0:
-            raise ValueError('A cell optimization requires a system that is periodic.')
-        self.rvecs0 = system.cell.rvecs.copy()
-        return np.ones(self.nvec, float)
-
-    def x_to_rvecs(self, x):
-        index = self.nvec
-        return self.rvecs0*x[:index].reshape(-1,1), index
-
-    def grvecs_to_gx(self, grvecs):
-        return (grvecs*self.rvecs0).sum(axis=1)
-
-
-class IsoCell(object):
-    def get_initial(self, system):
-        self.nvec = system.cell.nvec
-        if self.nvec == 0:
-            raise ValueError('A cell optimization requires a system that is periodic.')
-        self.rvecs0 = system.cell.rvecs.copy()
-        return np.ones(1, float)
-
-    def x_to_rvecs(self, x):
-        return self.rvecs0*x[0], 1
-
-    def grvecs_to_gx(self, grvecs):
-        return (grvecs*self.rvecs0).sum()
-
-
-class CellDOF(DOF):
-    """Fractional coordinates and cell parameters"""
-    def __init__(self, cell_spec, gpos_rms=1e-5, dpos_rms=1e-3, gcell_rms=1e-5, dcell_rms=1e-3, frozen_atoms=False):
-        """
-           **Arguments:**
-
-           cell_spec
-                A cell specification. This object defines which parts of the
-                cell parameters are fixed/free. Some examples: FullCell(),
-                AnisoCell(), IsoCell().
-
-           **Optional arguments:**
-
-           gpos_rms, dpos_rms, gcell_rms, dcell_rms
-                Thresholds that define the convergence. If all of the actual
-                values drop below these thresholds, the minimizer stops.
-
-                For each rms threshold, a corresponding max threshold is
-                included automatically. The maximum of the absolute value of a
-                component should be smaller than 3/sqrt(N) times the rms
-                threshold, where N is the number of degrees of freedom.
-
-           frozen_atoms
-                When True, the fractional coordinates of the atoms are kept
-                fixed.
-
-           **Convergence conditions:**
-
-           gpos_rms
-                The root-mean-square of the norm of the gradients of the atoms.
-
-           dpos_rms
-                The root-mean-square of the norm of the displacements of the
-                atoms.
-
-           gcell_rms
-                The root-mean-square of the norm of the gradients of the cell
-                vectors.
-
-           dcell_rms
-                The root-mean-square of the norm of the displacements of the
-                cell vectors.
-        """
-        self.cell_spec = cell_spec
-        self.th_gpos_rms = gpos_rms
-        self.th_dpos_rms = dpos_rms
-        self.th_gcell_rms = gcell_rms
-        self.th_dcell_rms = dcell_rms
-        self.frozen_atoms = frozen_atoms
-        DOF.__init__(self)
-        self._pos = None
-        self._last_pos = None
-        self._cell = None
-        self._last_cell = None
-        self._cell_scale = 1.0
-
-    def get_initial(self, system):
-        """Return the initial value of the unknowns"""
-        cell_vars = self.cell_spec.get_initial(system)
-        frac = np.dot(system.pos, system.cell.gvecs.T)
-        if self.frozen_atoms:
-            x = cell_vars
-            self.frac0 = frac
-        else:
-            x = np.concatenate([cell_vars, frac.ravel()])
-        self._init_gx(len(x))
-        self._pos = system.pos.copy()
-        self._dpos = np.zeros(system.pos.shape, float)
-        self._gpos = np.zeros(system.pos.shape, float)
-        self._cell = system.cell.rvecs.copy()
-        self._dcell = np.zeros(self._cell.shape, float)
-        self._vtens = np.zeros(self._cell.shape, float)
-        self._gcell = np.zeros(self._cell.shape, float)
-        return x
-
-    def fun(self, x, ff, do_gradient=False):
-        """computes the energy i.f.o x, and optionally the gradient.
-
-           **Arguments:**
-
-           x
-                The degrees of freedom
-
-           system
-                The system object in which these
-        """
-        self._cell, index = self.cell_spec.x_to_rvecs(x)
-        if self.frozen_atoms:
-            frac = self.frac0
-        else:
-            frac = x[index:].reshape(-1,3)
-        self._pos[:] = np.dot(frac, self._cell)
-        ff.update_pos(self._pos[:])
-        ff.update_rvecs(self._cell[:])
-        if do_gradient:
-            self._gpos[:] = 0.0
-            self._vtens[:] = 0.0
-            v = ff.compute(self._gpos, self._vtens)
-            self._gcell[:] = np.dot(ff.system.cell.gvecs, self._vtens)
-            self._gx[:index] = self.cell_spec.grvecs_to_gx(self._gcell)
-            if not self.frozen_atoms:
-                self._gx[index:] = np.dot(self._gpos, self._cell.T).ravel()
-            return v, self._gx.copy()
-        else:
-            return ff.compute()
-
-    def check_convergence(self):
-        # When called for the first time, initialize _last_pos and _last_cell
-        if self._last_pos is None:
-            self._last_pos = self._pos.copy()
-            self._last_cell = self._cell.copy()
-            self.converged = False
-            self.conv_val = 2
-            self.conv_worst = 'first_step'
-            self.conv_count = -1
-            return
-        # Compute the values that have to be compared to the thresholds
-        if not self.frozen_atoms:
-            gpossq = (self._gpos**2).sum(axis=1)
-            self.gpos_max = np.sqrt(gpossq.max())
-            self.gpos_rms = np.sqrt(gpossq.mean())
-            self._dpos[:] = self._pos
-            self._dpos -= self._last_pos
-        #
-        dpossq = (self._dpos**2).sum(axis=1)
-        self.dpos_max = np.sqrt(dpossq.max())
-        self.dpos_rms = np.sqrt(dpossq.mean())
-        #
-        gcellsq = (self._gcell**2).sum(axis=1)
-        self.gcell_max = np.sqrt(gcellsq.max())
-        self.gcell_rms = np.sqrt(gcellsq.mean())
-        self._dcell[:] = self._cell
-        self._dcell -= self._last_cell
-        #
-        dcellsq = (self._dcell**2).sum(axis=1)
-        self.dcell_max = np.sqrt(dcellsq.max())
-        self.dcell_rms = np.sqrt(dcellsq.mean())
-        # Compute a general value that has to go below 1.0 to have convergence.
-        conv_vals = []
-        if not self.frozen_atoms and self.th_gpos_rms is not None:
-            conv_vals.append((self.gpos_rms/self.th_gpos_rms, 'gpos_rms'))
-            conv_vals.append((self.gpos_max/(self.th_gpos_rms*3/np.sqrt(gpossq.size)), 'gpos_max'))
-        if self.th_dpos_rms is not None:
-            conv_vals.append((self.dpos_rms/self.th_dpos_rms, 'dpos_rms'))
-            conv_vals.append((self.dpos_max/(self.th_dpos_rms*3/np.sqrt(dpossq.size)), 'dpos_max'))
-        if self.th_gcell_rms is not None:
-            conv_vals.append((self.gcell_rms/self.th_gcell_rms, 'gcell_rms'))
-            conv_vals.append((self.gcell_max/(self.th_gcell_rms*3/np.sqrt(gcellsq.size)), 'gcell_max'))
-        if self.th_dcell_rms is not None:
-            conv_vals.append((self.dcell_rms/self.th_dcell_rms, 'dcell_rms'))
-            conv_vals.append((self.dcell_max/(self.th_dcell_rms*3/np.sqrt(dcellsq.size)), 'dcell_max'))
-        if len(conv_vals) == 0:
-            raise RuntimeError('At least one convergence criterion must be present.')
-        self.conv_val, self.conv_worst = max(conv_vals)
-        self.conv_count = sum(int(v>=1) for v, n in conv_vals)
-        self.converged = (self.conv_count == 0)
-        self._last_pos[:] = self._pos[:]
-        self._last_cell[:] = self._cell[:]
-
-
 class BaseOptimizer(Iterative):
     # TODO: This should be copied upon initialization. As it is now, two
     # consecutive simulations with a different number of atoms will raise an
@@ -429,16 +78,14 @@ class BaseOptimizer(Iterative):
     ]
     log_name = 'XXOPT'
 
-    def __init__(self, ff, dof, state=None, hooks=None, counter0=0):
+    def __init__(self, dof, state=None, hooks=None, counter0=0):
         """
            **Arguments:**
 
-           ff
-                A ForceField instance
-
            dof
                 A specification of the degrees of freedom. The convergence
-                criteria are also part of this argument.
+                criteria are also part of this argument. This must be a DOF
+                instance.
 
            **Optional arguments:**
 
@@ -455,7 +102,7 @@ class BaseOptimizer(Iterative):
                 The counter value associated with the initial state.
         """
         self.dof = dof
-        Iterative.__init__(self, ff, state, hooks, counter0)
+        Iterative.__init__(self, dof.ff, state, hooks, counter0)
 
     def _add_default_hooks(self):
         if not any(isinstance(hook, OptScreenLog) for hook in self.hooks):
@@ -463,10 +110,10 @@ class BaseOptimizer(Iterative):
 
     def fun(self, x, do_gradient=False):
         if do_gradient:
-            self.epot, gx = self.dof.fun(x, self.ff, True)
+            self.epot, gx = self.dof.fun(x, True)
             return self.epot, gx
         else:
-            self.epot = self.dof.fun(x, self.ff, False)
+            self.epot = self.dof.fun(x, False)
             return self.epot
 
     def initialize(self):
@@ -484,23 +131,16 @@ class BaseOptimizer(Iterative):
         if log.do_medium:
             log.hline()
 
-    def check_delta(self, x, eps=1e-4, zero=None):
-        """Test the analytical derivatives"""
-        dxs = np.random.uniform(-eps, eps, (100, len(x)))
-        if zero is not None:
-            dxs[:,zero] = 0.0
-        check_delta(self.fun, x, dxs)
-
 
 class CGOptimizer(BaseOptimizer):
     log_name = 'CGOPT'
 
-    def __init__(self, ff, dof, state=None, hooks=None, counter0=0):
+    def __init__(self, dof, state=None, hooks=None, counter0=0):
         self.minimizer = Minimizer(
-            dof.get_initial(ff.system), self.fun, ConjugateGradient(),
-            NewtonLineSearch(), None, None, anagrad=True, verbose=False,
+            dof.x0, self.fun, ConjugateGradient(), NewtonLineSearch(), None,
+            None, anagrad=True, verbose=False,
         )
-        BaseOptimizer.__init__(self, ff, dof, state, hooks, counter0)
+        BaseOptimizer.__init__(self, dof, state, hooks, counter0)
 
     def initialize(self):
         self.minimizer.initialize()
@@ -508,16 +148,12 @@ class CGOptimizer(BaseOptimizer):
 
     def propagate(self):
         success = self.minimizer.propagate()
+        self.x = self.minimizer.x
         if success == False:
             if log.do_warning:
                 log.warn('Line search failed in optimizer. Aborting optimization. This is probably due to a dicontinuity in the energy or the forces. Check the truncation of the non-bonding interactions and the Ewald summation parameters.')
             return True
         return BaseOptimizer.propagate(self)
-
-    def check_delta(self, x=None, eps=1e-4, zero=None):
-        if x is None:
-            x = self.minimizer.x
-        BaseOptimizer.check_delta(self, x, eps, zero)
 
 
 class BFGSHessianModel(object):
@@ -585,14 +221,14 @@ class BFGSOptimizer(BaseOptimizer):
     """
     log_name = 'BFGSOPT'
 
-    def __init__(self, ff, dof, state=None, hooks=None, counter0=0):
-        self.x_old = dof.get_initial(ff.system)
-        self.hessian = BFGSHessianModel(len(self.x_old))
+    def __init__(self, dof, state=None, hooks=None, counter0=0):
+        self.x_old = dof.x0
+        self.hessian = BFGSHessianModel(len(dof.x0))
         self.trust_radius = 1.0
-        BaseOptimizer.__init__(self, ff, dof, state, hooks, counter0)
+        BaseOptimizer.__init__(self, dof, state, hooks, counter0)
 
     def initialize(self):
-        self.f_old, self.g_old = self.fun(self.x_old, True)
+        self.f_old, self.g_old = self.fun(self.dof.x0, True)
         self.x, self.f, self.g = self.make_step()
         BaseOptimizer.initialize(self)
 
@@ -677,8 +313,3 @@ class BFGSOptimizer(BaseOptimizer):
                 log.hline()
             self.trust_radius *= 1.2
             return x, f, g
-
-    def check_delta(self, x=None, eps=1e-4, zero=None):
-        if x is None:
-            x = self.x
-        BaseOptimizer.check_delta(self, x, eps, zero)

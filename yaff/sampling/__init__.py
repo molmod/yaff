@@ -21,8 +21,9 @@
 # --
 
 
+from yaff.sampling.dof import *
 from yaff.sampling.elastic import *
-from yaff.sampling.hessian import *
+from yaff.sampling.harmonic import *
 from yaff.sampling.io import *
 from yaff.sampling.iterative import *
 from yaff.sampling.nve import *

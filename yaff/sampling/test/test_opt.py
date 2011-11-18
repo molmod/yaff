@@ -24,53 +24,68 @@
 import h5py, numpy as np
 
 from yaff import *
-from yaff.sampling.test.common import get_ff_water32, get_ff_bks
+from yaff.sampling.test.common import get_ff_water32
 from yaff.pes.test.common import check_gpos_part, check_vtens_part, \
     check_gpos_ff, check_vtens_ff
 
 
 def test_cg_5steps():
-    opt = CGOptimizer(get_ff_water32(), CartesianDOF())
+    dof = CartesianDOF(get_ff_water32())
+    dof.check_delta()
+    opt = CGOptimizer(dof)
     epot0 = opt.epot
     opt.run(5)
     epot1 = opt.epot
     assert opt.counter == 5
     assert epot1 < epot0
-    opt.check_delta()
+
+
+def test_cg_5steps_partial():
+    dof = CartesianDOF(get_ff_water32(), select=[0, 1, 2, 3, 4, 5])
+    dof.check_delta()
+    opt = CGOptimizer(dof)
+    epot0 = opt.epot
+    opt.run(5)
+    epot1 = opt.epot
+    assert opt.counter == 5
+    assert epot1 < epot0
 
 
 def test_cg_full_cell_5steps():
-    opt = CGOptimizer(get_ff_water32(), CellDOF(FullCell()))
+    dof = FullCellDOF(get_ff_water32())
+    dof.check_delta()
+    opt = CGOptimizer(dof)
     epot0 = opt.epot
     opt.run(5)
     epot1 = opt.epot
     assert opt.counter == 5
     assert epot1 < epot0
-    opt.check_delta()
 
 
 def test_cg_aniso_cell_5steps():
-    opt = CGOptimizer(get_ff_water32(), CellDOF(AnisoCell()))
+    dof = AnisoCellDOF(get_ff_water32())
+    dof.check_delta()
+    opt = CGOptimizer(dof)
     epot0 = opt.epot
     opt.run(5)
     epot1 = opt.epot
     assert opt.counter == 5
     assert epot1 < epot0
-    opt.check_delta()
 
 
 def test_cg_iso_cell_5steps():
-    opt = CGOptimizer(get_ff_water32(), CellDOF(IsoCell()))
+    dof = IsoCellDOF(get_ff_water32())
+    dof.check_delta
+    opt = CGOptimizer(dof)
     epot0 = opt.epot
     opt.run(5)
     epot1 = opt.epot
     assert opt.counter == 5
     assert epot1 < epot0
-    opt.check_delta()
 
 
 def test_cg_until_converged():
-    opt = CGOptimizer(get_ff_water32(), CartesianDOF(gpos_rms=1e-1, dpos_rms=None))
+    opt = CGOptimizer(CartesianDOF(get_ff_water32(), gpos_rms=1e-1, dpos_rms=None))
     assert opt.dof.th_gpos_rms == 1e-1
     assert opt.dof.th_dpos_rms is None
     opt.run()
@@ -103,7 +118,7 @@ def test_cg_hdf5():
     f = h5py.File('tmp.h5', driver='core', backing_store=False)
     try:
         hdf5 = HDF5Writer(f)
-        opt = CGOptimizer(get_ff_water32(), CartesianDOF(), hooks=hdf5)
+        opt = CGOptimizer(CartesianDOF(get_ff_water32()), hooks=hdf5)
         opt.run(15)
         assert opt.counter == 15
         check_hdf5_common(hdf5.f)
@@ -114,46 +129,9 @@ def test_cg_hdf5():
 
 
 def test_bfgs_5steps():
-    opt = BFGSOptimizer(get_ff_water32(), CartesianDOF())
+    opt = BFGSOptimizer(CartesianDOF(get_ff_water32()))
     epot0 = opt.epot
     opt.run(5)
     epot1 = opt.epot
     assert opt.counter == 5
     assert epot1 < epot0
-    opt.check_delta()
-
-
-def test_check_delta_cell_dof_full_cell():
-    ff = get_ff_bks()
-    opt = BFGSOptimizer(ff, CellDOF(FullCell()))
-    opt.check_delta()
-    zero = np.zeros(len(opt.x_old), dtype=bool)
-    zero[:9] = True
-    opt.check_delta(zero=zero)
-    opt.check_delta(zero=~zero)
-    opt = BFGSOptimizer(ff, CellDOF(FullCell(), frozen_atoms=True))
-    opt.check_delta()
-
-
-def test_check_delta_cell_dof_iso_cell():
-    ff = get_ff_bks()
-    opt = BFGSOptimizer(ff, CellDOF(IsoCell()))
-    opt.check_delta()
-    zero = np.zeros(len(opt.x_old), dtype=bool)
-    zero[:1] = True
-    opt.check_delta(zero=zero)
-    opt.check_delta(zero=~zero)
-    opt = BFGSOptimizer(ff, CellDOF(IsoCell(), frozen_atoms=True))
-    opt.check_delta()
-
-
-def test_check_delta_cell_dof_aniso_cell():
-    ff = get_ff_bks()
-    opt = BFGSOptimizer(ff, CellDOF(AnisoCell()))
-    opt.check_delta()
-    zero = np.zeros(len(opt.x_old), dtype=bool)
-    zero[:3] = True
-    opt.check_delta(zero=zero)
-    opt.check_delta(zero=~zero)
-    opt = BFGSOptimizer(ff, CellDOF(AnisoCell(), frozen_atoms=True))
-    opt.check_delta()
