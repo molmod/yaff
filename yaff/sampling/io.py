@@ -62,6 +62,8 @@ class HDF5Writer(Hook):
         for key, item in iterative.state.iteritems():
             if len(item.shape) > 0 and min(item.shape) == 0:
                 continue
+            if item.dtype is type(None):
+                continue
             ds = tgrp[key]
             if ds.shape[0] <= row:
                 # do not over-allocate. hdf5 works with chunks internally.
@@ -92,6 +94,8 @@ class HDF5Writer(Hook):
         tgrp = self.f.create_group('trajectory')
         for key, item in iterative.state.iteritems():
             if len(item.shape) > 0 and min(item.shape) == 0:
+                continue
+            if item.dtype is type(None):
                 continue
             maxshape = (None,) + item.shape
             shape = (0,) + item.shape
