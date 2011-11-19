@@ -51,7 +51,7 @@ class System(object):
                 A numpy array with atomic numbers
 
            pos
-                A numpy array (N,3) with atomic coordinates in bohr.
+                A numpy array (N,3) with atomic coordinates in Bohr.
 
            **Optional arguments:**
 
@@ -85,7 +85,7 @@ class System(object):
 
            rvecs
                 An array whose rows are the unit cell vectors. At most three
-                rows are allowed, each containg three Cartesian coordinates.
+                rows are allowed, each containing three Cartesian coordinates.
 
            charges
                 An array of atomic charges
@@ -108,7 +108,7 @@ class System(object):
         if len(numbers.shape) != 1:
             raise ValueError('Argument numbers must be a one-dimensional array.')
         if pos.shape != (len(numbers), 3):
-            raise ValueError('The pos array must have Nx3 rows. Mismatch with numbers argument, which myst have shape (N,).')
+            raise ValueError('The pos array must have Nx3 rows. Mismatch with numbers argument with shape (N,).')
         self.numbers = numbers
         self.pos = pos
         self.ffatypes = ffatypes
@@ -283,8 +283,7 @@ class System(object):
 
            **Optional arguments:**
 
-           Any argument from the constructure. These must be given with
-           keywords.
+           Any argument from the constructor. These must be given with keywords.
 
            **Supported file formats**
 
@@ -442,14 +441,14 @@ class System(object):
                 ])
 
            swap
-                By default, the first alginment is done with the z-axis, then
+                By default, the first alignment is done with the z-axis, then
                 with the x-axis. The order is reversed when swap is set to
                 False.
 
            The alignment of the first linear combination is always perfect. The
            alignment of the second linear combination is restricted to a plane.
            The cell is always made right-handed. The coordinates are also
-           rotatated with respect to the origin, but never inverted.
+           rotated with respect to the origin, but never inverted.
         """
         from molmod import Rotation, deg
         # define the target
