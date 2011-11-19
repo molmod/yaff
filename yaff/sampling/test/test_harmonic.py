@@ -40,7 +40,7 @@ def test_hessian_full_water():
     assert hessian.shape == (9, 9)
     evals = np.linalg.eigvalsh(hessian)
     print evals
-    assert sum(abs(evals) < 1e-8) == 3
+    assert sum(abs(evals) < 1e-10) == 3
 
 
 def test_elastic_water32():

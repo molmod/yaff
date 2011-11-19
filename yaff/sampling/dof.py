@@ -113,9 +113,9 @@ class CartesianDOF(DOF):
     def _init_initial(self):
         """Return the initial value of the unknowns"""
         if self.select is None:
-            self.x0 = self.ff.system.pos.ravel()
+            self.x0 = self.ff.system.pos.ravel().copy()
         else:
-            self.x0 = self.ff.system.pos[self.select].ravel()
+            self.x0 = self.ff.system.pos[self.select].ravel().copy()
         self._pos = self.ff.system.pos.copy()
         self._dpos = np.zeros(self.ff.system.pos.shape, float)
         self._gpos = np.zeros(self.ff.system.pos.shape, float)
