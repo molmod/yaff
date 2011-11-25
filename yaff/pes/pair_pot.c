@@ -176,7 +176,7 @@ void pair_data_lj_init(pair_pot_type *pair_pot, double *sigma, double *epsilon) 
 
 double pair_fn_lj(void *pair_data, long center_index, long other_index, double d, double *g) {
   double sigma, epsilon, x;
-  sigma = 0.5*(
+  sigma = (
     (*(pair_data_lj_type*)pair_data).sigma[center_index]+
     (*(pair_data_lj_type*)pair_data).sigma[other_index]
   );

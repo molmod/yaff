@@ -181,10 +181,10 @@ class CartesianDOF(DOF):
         conv_vals = []
         if self.th_gpos_rms is not None:
             conv_vals.append((self.gpos_rms/self.th_gpos_rms, 'gpos_rms'))
-            conv_vals.append((self.gpos_max/(self.th_gpos_rms*3/np.sqrt(gpossq.size)), 'gpos_max'))
+            conv_vals.append((self.gpos_max/(self.th_gpos_rms*3), 'gpos_max'))
         if self.th_dpos_rms is not None:
             conv_vals.append((self.dpos_rms/self.th_dpos_rms, 'dpos_rms'))
-            conv_vals.append((self.dpos_max/(self.th_dpos_rms*3/np.sqrt(dpossq.size)), 'dpos_max'))
+            conv_vals.append((self.dpos_max/(self.th_dpos_rms*3), 'dpos_max'))
         if len(conv_vals) == 0:
             raise RuntimeError('At least one convergence criterion must be present.')
         self.conv_val, self.conv_worst = max(conv_vals)
@@ -332,16 +332,16 @@ class BaseCellDOF(DOF):
         conv_vals = []
         if not self.do_frozen and self.th_gpos_rms is not None:
             conv_vals.append((self.gpos_rms/self.th_gpos_rms, 'gpos_rms'))
-            conv_vals.append((self.gpos_max/(self.th_gpos_rms*3/np.sqrt(gpossq.size)), 'gpos_max'))
+            conv_vals.append((self.gpos_max/(self.th_gpos_rms*3), 'gpos_max'))
         if self.th_dpos_rms is not None:
             conv_vals.append((self.dpos_rms/self.th_dpos_rms, 'dpos_rms'))
-            conv_vals.append((self.dpos_max/(self.th_dpos_rms*3/np.sqrt(dpossq.size)), 'dpos_max'))
+            conv_vals.append((self.dpos_max/(self.th_dpos_rms*3), 'dpos_max'))
         if self.th_gcell_rms is not None:
             conv_vals.append((self.gcell_rms/self.th_gcell_rms, 'gcell_rms'))
-            conv_vals.append((self.gcell_max/(self.th_gcell_rms*3/np.sqrt(gcellsq.size)), 'gcell_max'))
+            conv_vals.append((self.gcell_max/(self.th_gcell_rms*3), 'gcell_max'))
         if self.th_dcell_rms is not None:
             conv_vals.append((self.dcell_rms/self.th_dcell_rms, 'dcell_rms'))
-            conv_vals.append((self.dcell_max/(self.th_dcell_rms*3/np.sqrt(dcellsq.size)), 'dcell_max'))
+            conv_vals.append((self.dcell_max/(self.th_dcell_rms*3), 'dcell_max'))
         if len(conv_vals) == 0:
             raise RuntimeError('At least one convergence criterion must be present.')
         self.conv_val, self.conv_worst = max(conv_vals)
