@@ -394,11 +394,11 @@ class FullCellDOF(BaseCellDOF):
             deform = np.array([[scales[0]]])
         else:
             raise NotImplementedError
-        return np.dot(deform, self.rvecs0), index
+        return np.dot(self.rvecs0, deform), index
 
     def grvecs_to_gx(self, grvecs):
         nvec = self.ff.system.cell.nvec
-        gmat = np.dot(grvecs, self.rvecs0.T)
+        gmat = np.dot(self.rvecs0.T, grvecs)
         if nvec == 3:
             gscales = np.array([
                 gmat[0, 0], gmat[1, 1], gmat[2, 2],

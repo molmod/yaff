@@ -50,6 +50,57 @@ def test_elastic_water32():
 
 
 def test_bulk_elastic_bks():
-    ff = get_ff_bks()
+    ff = get_ff_bks(smooth_ei=True, reci_ei='ignore')
+    system = ff.system
+    lcs = np.array([
+        [1, 1, 0],
+        [0, 0, 1],
+    ])
+    system.align_cell(lcs)
+    ff.update_rvecs(system.cell.rvecs)
+    opt = BFGSOptimizer(FullCellDOF(ff))
+    opt.run()
+    rvecs0 = system.cell.rvecs.copy()
+    vol0 = system.cell.volume
+    pos0 = system.pos.copy()
+    e0 = ff.compute()
     elastic = estimate_elastic(ff)
+    assert abs(pos0 - system.pos).max() < 1e-10
+    assert abs(rvecs0 - system.cell.rvecs).max() < 1e-10
+    assert abs(vol0 - system.cell.volume) < 1e-10
     assert elastic.shape == (6, 6)
+    # Make estimates of the same matrix elements with a simplistic approach
+    eps = 1e-3
+    # A) stretch in the Z direction
+    deform = np.array([1, 1, 1-eps])
+    rvecs1 = rvecs0*deform
+    pos1 = pos0*deform
+    ff.update_rvecs(rvecs1)
+    opt = BFGSOptimizer(CartesianDOF(ff))
+    opt.run()
+    e1 = ff.compute()
+    deform = np.array([1, 1, 1+eps])
+    rvecs2 = rvecs0*deform
+    pos2 = pos0*deform
+    ff.update_rvecs(rvecs2)
+    opt = BFGSOptimizer(CartesianDOF(ff))
+    opt.run()
+    e2 = ff.compute()
+    C = (e1 + e2 - 2*e0)/(eps**2)/vol0
+    # B) stretch in the X direction
+    deform = np.array([1-eps, 1, 1])
+    rvecs1 = rvecs0*deform
+    pos1 = pos0*deform
+    ff.update_rvecs(rvecs1)
+    opt = BFGSOptimizer(CartesianDOF(ff))
+    opt.run()
+    e1 = ff.compute()
+    deform = np.array([1+eps, 1, 1])
+    rvecs2 = rvecs0*deform
+    pos2 = pos0*deform
+    ff.update_rvecs(rvecs2)
+    opt = BFGSOptimizer(CartesianDOF(ff))
+    opt.run()
+    e2 = ff.compute()
+    C = (e1 + e2 - 2*e0)/(eps**2)/vol0
+    assert abs(C - elastic[0,0]) < C*0.01

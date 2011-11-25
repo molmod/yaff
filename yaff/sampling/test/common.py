@@ -41,6 +41,6 @@ def get_ff_water():
     return ff
 
 
-def get_ff_bks():
+def get_ff_bks(**kwargs):
     system = get_system_quartz()
-    return ForceField.generate(system, 'input/parameters_bks.txt')
+    return ForceField.generate(system, 'input/parameters_bks.txt', **kwargs)
