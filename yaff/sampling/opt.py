@@ -221,10 +221,38 @@ class BFGSOptimizer(BaseOptimizer):
     """
     log_name = 'BFGSOPT'
 
-    def __init__(self, dof, state=None, hooks=None, counter0=0):
+    def __init__(self, dof, state=None, hooks=None, counter0=0, small_radius=1e-5):
+        """
+           **Arguments:**
+
+           dof
+                A specification of the degrees of freedom. The convergence
+                criteria are also part of this argument. This must be a DOF
+                instance.
+
+           **Optional arguments:**
+
+           state
+                A list with state items. State items are simple objects
+                that take or derive a property from the current state of the
+                iterative algorithm.
+
+           hooks
+                A function (or a list of functions) that is called after every
+                iterative.
+
+           counter0
+                The counter value associated with the initial state.
+           
+           small_radius
+                If the trust radius goes below this limit, the decrease in
+                energy is no longer essential. Instead a decrease in the norm
+                of the gradient is used to accept/reject a step.
+        """
         self.x_old = dof.x0
         self.hessian = BFGSHessianModel(len(dof.x0))
         self.trust_radius = 1.0
+        self.small_radius = small_radius
         BaseOptimizer.__init__(self, dof, state, hooks, counter0)
 
     def initialize(self):
@@ -289,11 +317,15 @@ class BFGSOptimizer(BaseOptimizer):
             f, g = self.fun(x, True)
             # MARKER FOR CONSTRAINT CODE: project the gradient.
             delta_f = f - self.f_old
-            if delta_f > 0:
+            delta_norm_g = np.linalg.norm(g) - np.linalg.norm(self.g_old)
+            if delta_f > 0 or (self.trust_radius < self.small_radius and delta_norm_g < 0):
                 # The function must decrease, if not the trust radius is too big.
-                # This is similar to the first Wolfe condition
+                # This is similar to the first Wolfe condition. When the trust
+                # radius becomes small, the numerical noise on the energy may
+                # be too large to detect a decrease in energy. In that case,
+                # the norm of the gradient must decrease.
                 if log.do_high:
-                    log('Function increases.')
+                    log('Function (or grad norm) increases.')
                 self.trust_radius *= 0.5
                 continue
             # MARKER FOR CONSTRAINT CODE: the following should be ignored if

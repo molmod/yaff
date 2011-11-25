@@ -92,7 +92,7 @@ def test_cg_until_converged():
     assert opt.dof.conv_count == 0
     assert opt.dof.conv_val < 1
     assert opt.dof.conv_worst.startswith('gpos_')
-    assert opt.dof.gpos_max < 1e-1*3/np.sqrt(96)
+    assert opt.dof.gpos_max < 1e-1*3
     assert opt.dof.gpos_rms < 1e-1
 
 
