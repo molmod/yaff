@@ -108,44 +108,7 @@ def test_nlist_graphene8_9A():
     rcut = 9*angstrom
     nlist.request_rcut(rcut)
     nlist.update()
-    nneigh = nlist.nneigh
-    assert (nlist.neighs['r2'][:nneigh] == 0).all()
-    assert (
-        (nlist.neighs['a'][:nneigh] > nlist.neighs['b'][:nneigh]) |
-        (nlist.neighs['r0'][:nneigh] != 0) |
-        (nlist.neighs['r1'][:nneigh] != 0)
-    ).all()
-    for i in xrange(system.natom):
-        # compute the distances in the neighborlist manually and check.
-        check = {}
-        for j in xrange(system.natom):
-            delta = system.pos[j] - system.pos[i]
-            system.cell.mic(delta)
-            for r1 in xrange(0, 4):
-                for r0 in xrange((r1!=0)*-3, 4):
-                    my_delta = delta + r0*system.cell.rvecs[0] + r1*system.cell.rvecs[1]
-                    d = np.linalg.norm(my_delta)
-                    if d <= rcut:
-                        if (r0!=0) or (r1!=0) or (i>j):
-                            check[(j, r0, r1)] = (d, my_delta)
-        # compare
-        counter = 0
-        for row in nlist.neighs[:nneigh]:
-            if row['a'] == i:
-                assert row['r2'] == 0
-                assert row['d'] <= rcut
-                assert row['d'] >= 0
-                key = row['b'], row['r0'], row['r1']
-                print i, key
-                assert key in check
-                assert check[key][0] <= rcut
-                assert check[key][0] >= 0
-                assert abs(check[key][0] - row['d']) < 1e-8
-                assert abs(check[key][1][0] - row['dx']) < 1e-8
-                assert abs(check[key][1][1] - row['dy']) < 1e-8
-                assert abs(check[key][1][2] - row['dz']) < 1e-8
-                counter += 1
-        assert counter == len(check)
+    nlist.check()
 
 
 def test_nlist_polyethylene4_9A():
@@ -154,43 +117,7 @@ def test_nlist_polyethylene4_9A():
     rcut = 9*angstrom
     nlist.request_rcut(rcut)
     nlist.update()
-    nneigh = nlist.nneigh
-    assert (nlist.neighs['r1'][:nneigh] == 0).all()
-    assert (nlist.neighs['r2'][:nneigh] == 0).all()
-    assert (
-        (nlist.neighs['a'][:nneigh] > nlist.neighs['b'][:nneigh]) |
-        (nlist.neighs['r0'][:nneigh] != 0)
-    ).all()
-    for i in random.sample(xrange(system.natom), 5):
-        # compute the distances in the neighborlist manually and check.
-        check = {}
-        for j in xrange(system.natom):
-            delta = system.pos[j] - system.pos[i]
-            system.cell.mic(delta)
-            for r0 in xrange(0, 3):
-                my_delta = delta + r0*system.cell.rvecs[0]
-                d = np.linalg.norm(my_delta)
-                if d <= rcut:
-                    if (r0!=0) or (i>j):
-                        check[(j, r0)] = (d, my_delta)
-        # compare
-        counter = 0
-        for row in nlist.neighs[:nneigh]:
-            if row['a'] == i:
-                assert row['r1'] == 0
-                assert row['r2'] == 0
-                assert row['d'] <= rcut
-                assert row['d'] >= 0
-                key = row['b'], row['r0']
-                assert key in check
-                assert check[key][0] <= rcut
-                assert check[key][0] >= 0
-                assert abs(check[key][0] - row['d']) < 1e-8
-                assert abs(check[key][1][0] - row['dx']) < 1e-8
-                assert abs(check[key][1][1] - row['dy']) < 1e-8
-                assert abs(check[key][1][2] - row['dz']) < 1e-8
-                counter += 1
-        assert counter == len(check)
+    nlist.check()
 
 
 def test_nlist_quartz_4A_shortest():
@@ -232,44 +159,7 @@ def test_nlist_quartz_9A():
     rcut = 9*angstrom
     nlist.request_rcut(rcut)
     nlist.update()
-    nneigh = nlist.nneigh
-    assert (
-        (nlist.neighs['a'][:nneigh] > nlist.neighs['b'][:nneigh]) |
-        (nlist.neighs['r0'][:nneigh] != 0) |
-        (nlist.neighs['r1'][:nneigh] != 0) |
-        (nlist.neighs['r2'][:nneigh] != 0)
-    ).all()
-    rvecs = system.cell.rvecs
-    for i in random.sample(xrange(system.natom), 5):
-        # compute the distances in the neighborlist manually and check.
-        check = {}
-        for j in xrange(system.natom):
-            delta = system.pos[j] - system.pos[i]
-            system.cell.mic(delta)
-            for r2 in xrange(0, 3):
-                for r1 in xrange((r2!=0)*-2, 3):
-                    for r0 in xrange((r2!=0 or r1!=0)*-2, 3):
-                        my_delta = delta + r0*rvecs[0] + r1*rvecs[1] + r2*rvecs[2]
-                        d = np.linalg.norm(my_delta)
-                        if d <= rcut:
-                            if (r0!=0) or (r1!=0) or (r2!=0) or (i>j):
-                                check[(j, r0, r1, r2)] = (d, my_delta)
-        # compare
-        counter = 0
-        for row in nlist.neighs[:nneigh]:
-            if row['a'] == i:
-                assert row['d'] <= rcut
-                assert row['d'] >= 0
-                key = row['b'], row['r0'], row['r1'], row['r2']
-                assert key in check
-                assert check[key][0] <= rcut
-                assert check[key][0] >= 0
-                assert abs(check[key][0] - row['d']) < 1e-8
-                assert abs(check[key][1][0] - row['dx']) < 1e-8
-                assert abs(check[key][1][1] - row['dy']) < 1e-8
-                assert abs(check[key][1][2] - row['dz']) < 1e-8
-                counter += 1
-        assert counter == len(check)
+    nlist.check()
 
 
 def test_nlist_quartz_20A():
@@ -278,45 +168,7 @@ def test_nlist_quartz_20A():
     rcut = 20*angstrom
     nlist.request_rcut(rcut)
     nlist.update()
-    nneigh = nlist.nneigh
-    assert (
-        (nlist.neighs['a'][:nneigh] > nlist.neighs['b'][:nneigh]) |
-        (nlist.neighs['r0'][:nneigh] != 0) |
-        (nlist.neighs['r1'][:nneigh] != 0) |
-        (nlist.neighs['r2'][:nneigh] != 0)
-    ).all()
-    rvecs = system.cell.rvecs
-    for i in random.sample(xrange(system.natom), 5):
-        # compute the distances in the neighborlist manually and check.
-        check = {}
-        for j in xrange(system.natom):
-            delta = system.pos[j] - system.pos[i]
-            system.cell.mic(delta)
-            for r2 in xrange(0, 6):
-                for r1 in xrange((r2!=0)*-5, 6):
-                    for r0 in xrange((r2!=0 or r1!=0)*-5, 6):
-                        my_delta = delta + r0*rvecs[0] + r1*rvecs[1] + r2*rvecs[2]
-                        d = np.linalg.norm(my_delta)
-                        if d <= rcut:
-                            if (r0!=0) or (r1!=0) or (r2!=0) or (i>j):
-                                check[(j, r0, r1, r2)] = (d, my_delta)
-        # compare
-        counter = 0
-        for row in nlist.neighs[:nneigh]:
-            if row['a'] == i:
-                assert row['d'] <= rcut
-                assert row['d'] >= 0
-                key = row['b'], row['r0'], row['r1'], row['r2']
-                assert key in check
-                assert check[key][0] <= rcut
-                assert check[key][0] >= 0
-                assert abs(check[key][0] - row['d']) < 1e-8
-                assert abs(check[key][1][0] - row['dx']) < 1e-8
-                assert abs(check[key][1][1] - row['dy']) < 1e-8
-                assert abs(check[key][1][2] - row['dz']) < 1e-8
-                counter += 1
-        assert counter == len(check)
-
+    nlist.check()
 
 
 def test_nlist_quartz_110A():
@@ -339,20 +191,7 @@ def test_nlist_glycine_9A():
     rcut = 9*angstrom
     nlist.request_rcut(rcut)
     nlist.update()
-    nneigh = nlist.nneigh
-    assert nneigh == (system.natom*(system.natom-1))/2
-    assert (nlist.neighs['r0'][:nneigh] == 0).all()
-    assert (nlist.neighs['r1'][:nneigh] == 0).all()
-    assert (nlist.neighs['r2'][:nneigh] == 0).all()
-    for i in xrange(nneigh):
-        row = nlist.neighs[i]
-        row['d'] <= rcut
-        delta = system.pos[row['b']] - system.pos[row['a']]
-        d = np.linalg.norm(delta)
-        assert abs(d - row['d']) < 1e-8
-        assert abs(delta[0] - row['dx']) < 1e-8
-        assert abs(delta[1] - row['dy']) < 1e-8
-        assert abs(delta[2] - row['dz']) < 1e-8
+    nlist.check()
 
 
 def test_nlist_inc_r3():

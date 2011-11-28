@@ -145,6 +145,7 @@ cdef class Cell:
     gspacings = property(get_gspacings)
 
     def mic(self, np.ndarray[double, ndim=1] delta):
+        """Apply the minimum image convention to delta in-place"""
         assert delta.size == 3
         cell.cell_mic(<double*> delta.data, self._c_cell)
 
@@ -156,6 +157,7 @@ cdef class Cell:
         return result
 
     def add_vec(self, np.ndarray[double, ndim=1] delta, np.ndarray[long, ndim=1] r):
+        """Add a linear combination of cell vectors in-place"""
         assert delta.size == 3
         assert r.size == self.nvec
         cell.cell_add_vec(<double*> delta.data, self._c_cell, <long*> r.data)
