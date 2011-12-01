@@ -193,7 +193,7 @@ def nlist_status_init(rmax):
     # * a
     # * b
     # * number of rows consumed
-    result = np.array([0, 0, 0, 0, 0, 0], int)
+    result = np.array([0, 0, 0, 1, 0, 0], int)
     return result
 
 
