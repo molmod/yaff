@@ -30,6 +30,11 @@ __all__ = ['Scalings']
 scaling_dtype = [('a', int), ('b', int), ('scale', float)]
 
 
+# TODO: include check on periodicity of the topology. In the case of small
+# periodic systems, the minimum image convention may not be suitable to decide
+# which non-bonding interactions are excluded. To avoid troubles, one can detect
+# such cases prior to running the simulation.
+
 class Scalings(object):
     def __init__(self, system, scale1=0.0, scale2=0.0, scale3=1.0):
         self.items = []
