@@ -121,9 +121,9 @@ class NeighborList(object):
                     )
                     if done:
                         break
-                    last_start = len(self.neighs)
+                    last_start = status[-1]
                     new_neighs = np.empty((len(self.neighs)*3)/2, dtype=neigh_dtype)
-                    new_neighs[:last_start] = self.neighs
+                    new_neighs[:last_start] = self.neighs[:last_start]
                     self.neighs = new_neighs
                     del new_neighs
                 # 3) get the number of neighbors in the list.
@@ -162,6 +162,22 @@ class NeighborList(object):
             return disp >= self.skin
 
 
+    def to_dictionary(self):
+        """Tranformcurrent nlist into a dictionary"""
+        dictionary = {}
+        for i in xrange(self.nneigh):
+            key = (
+                self.neighs[i]['a'], self.neighs[i]['b'], self.neighs[i]['r0'],
+                self.neighs[i]['r1'], self.neighs[i]['r2']
+            )
+            value = np.array([
+                self.neighs[i]['d'], self.neighs[i]['dx'],
+                self.neighs[i]['dy'], self.neighs[i]['dz']
+            ])
+            dictionary[key] = value
+        return dictionary
+
+
     def check(self):
         """Perform a slow internal consistency test.
 
@@ -175,17 +191,7 @@ class NeighborList(object):
             (self.neighs['r2'][:self.nneigh] != 0)
         ).all()
         # A) transform the current nlist into a set
-        actual = {}
-        for i in xrange(self.nneigh):
-            key = (
-                self.neighs[i]['a'], self.neighs[i]['b'], self.neighs[i]['r0'],
-                self.neighs[i]['r1'], self.neighs[i]['r2']
-            )
-            value = np.array([
-                self.neighs[i]['d'], self.neighs[i]['dx'],
-                self.neighs[i]['dy'], self.neighs[i]['dz']
-            ])
-            actual[key] = value
+        actual = self.to_dictionary()
         # B) slow loops to double check the neighborlist
         validation = {}
         if self.system.cell.nvec == 3:

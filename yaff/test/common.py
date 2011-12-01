@@ -32,7 +32,7 @@ __all__ = [
     'get_system_water32', 'get_system_water', 'get_system_graphene8',
     'get_system_polyethylene4', 'get_system_quartz', 'get_system_glycine',
     'get_system_cyclopropene', 'get_system_caffeine', 'get_system_butanol',
-    'get_system_2T',
+    'get_system_2T', 'get_system_2atoms'
 ]
 
 
@@ -422,3 +422,33 @@ def get_system_2atoms():
         bonds=np.array([[0, 1]]),
         rvecs=np.diag([200.0, 200.0, 200.0])*angstrom,
     )
+
+
+def get_2systems_2oxygens():
+    sys1= System(
+        numbers=np.array([8, 8]),
+        pos=np.array([
+            [-0.01759211, 9.45053452, 25.07298388],
+            [30.37068628, 3.14903370,  1.67501988]
+        ]),
+        ffatypes=['O', 'O'],
+        rvecs=np.array([
+            [30.371, -0.001, -0.016],
+            [ 0.000, 12.601,  0.000],
+            [-0.021,  0.000, 26.730],
+        ]),
+    )
+    sys2= System(
+        numbers=np.array([8, 8]),
+        pos=np.array([
+            [-0.01759242, 9.45053331, 25.07298331],
+            [30.37068699, 3.14903366,  1.67501905]
+        ]),
+        ffatypes=['O', 'O'],
+        rvecs=np.array([
+            [30.371, -0.001, -0.016],
+            [ 0.000, 12.601,  0.000],
+            [-0.021,  0.000, 26.730],
+        ]),
+    )
+    return sys1, sys2

@@ -24,6 +24,9 @@
 #include "nlist.h"
 #include "cell.h"
 
+// TODO: flatten sign-loop in nlist_build_low by including sign in the status 
+//       and change sign in the part where the counters of the quintuple loop 
+//       are updated.
 
 int nlist_build_low(double *pos, double rcut, long *rmax,
                     cell_type *unitcell, long *status,
@@ -42,7 +45,7 @@ int nlist_build_low(double *pos, double rcut, long *rmax,
   image = (r[0] != 0) || (r[1] != 0) || (r[2] != 0);
   row = 0;
 
-  while (row < nneigh) {
+  while (row < nneigh-1) {
     if (a >= natom) {
       // Completely done.
       status[5] += row;

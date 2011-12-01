@@ -243,7 +243,7 @@ class BFGSOptimizer(BaseOptimizer):
 
            counter0
                 The counter value associated with the initial state.
-           
+
            small_radius
                 If the trust radius goes below this limit, the decrease in
                 energy is no longer essential. Instead a decrease in the norm
