@@ -24,8 +24,8 @@
 #include "nlist.h"
 #include "cell.h"
 
-// TODO: flatten sign-loop in nlist_build_low by including sign in the status 
-//       and change sign in the part where the counters of the quintuple loop 
+// TODO: flatten sign-loop in nlist_build_low by including sign in the status
+//       and change sign in the part where the counters of the quintuple loop
 //       are updated.
 
 int nlist_build_low(double *pos, double rcut, long *rmax,
