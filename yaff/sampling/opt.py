@@ -278,10 +278,10 @@ class BFGSOptimizer(BaseOptimizer):
         tmp1 = -np.dot(evecs.T, self.g_old)
 
         # Initial ridge parameter
-        if evals[0] <= 0:
+        if evals.min() <= 0:
             # Make the ridge large enough to step in a direction opposite to the
             # gradient.
-            ridge = abs(evals[0]) + 1e-3*abs(evals).max()
+            ridge = abs(evals.min())*1.1
         else:
             ridge = 0.0
 
