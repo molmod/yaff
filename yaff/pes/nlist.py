@@ -163,7 +163,10 @@ class NeighborList(object):
 
 
     def to_dictionary(self):
-        """Tranformcurrent nlist into a dictionary"""
+        """Tranform current nlist into a dictionary.
+
+           This is use for debugging only!
+        """
         dictionary = {}
         for i in xrange(self.nneigh):
             key = (
@@ -192,79 +195,68 @@ class NeighborList(object):
         ).all()
         # A) transform the current nlist into a set
         actual = self.to_dictionary()
-        # B) slow loops to double check the neighborlist
-        validation = {}
+        # B) Define loops of cell vectors
         if self.system.cell.nvec == 3:
-            for r2 in xrange(0, self.rmax[2]+1):
-                if r2 == 0:
-                    r1_start = 0
-                else:
-                    r1_start = -self.rmax[1]
-                for r1 in xrange(r1_start, self.rmax[1]+1):
-                    if r2 == 0 and r1 == 0:
+            def rloops():
+                for r2 in xrange(0, self.rmax[2]+1):
+                    if r2 == 0:
+                        r1_start = 0
+                    else:
+                        r1_start = -self.rmax[1]
+                    for r1 in xrange(r1_start, self.rmax[1]+1):
+                        if r2 == 0 and r1 == 0:
+                            r0_start = 0
+                        else:
+                            r0_start = -self.rmax[0]
+                        for r0 in xrange(r0_start, self.rmax[0]+1):
+                            yield r0, r1, r2
+        elif self.system.cell.nvec == 2:
+            def rloops():
+                for r1 in xrange(0, self.rmax[1]+1):
+                    if r1 == 0:
                         r0_start = 0
                     else:
                         r0_start = -self.rmax[0]
                     for r0 in xrange(r0_start, self.rmax[0]+1):
-                        for a in xrange(self.system.natom):
-                            for b in xrange(self.system.natom):
-                                if r0!=0 or r1!=0 or r2!=0 or a>b:
-                                    delta = self.system.pos[b] - self.system.pos[a]
-                                    self.system.cell.mic(delta)
-                                    self.system.cell.add_vec(delta, np.array([r0, r1, r2]))
-                                    d = np.linalg.norm(delta)
-                                    if d < self.rcut + self.skin:
-                                        key = a, b, r0, r1, r2
-                                        value = np.array([d, delta[0], delta[1], delta[2]])
-                                        validation[key] = value
-        elif self.system.cell.nvec == 2:
-            r2 = 0
-            for r1 in xrange(0, self.rmax[1]+1):
-                if r1 == 0:
-                    r0_start = 0
-                else:
-                    r0_start = -self.rmax[0]
-                for r0 in xrange(r0_start, self.rmax[0]+1):
-                    for a in xrange(self.system.natom):
-                        for b in xrange(self.system.natom):
-                            if r0!=0 or r1!=0 or r2!=0 or a>b:
-                                delta = self.system.pos[b] - self.system.pos[a]
-                                self.system.cell.mic(delta)
-                                self.system.cell.add_vec(delta, np.array([r0, r1]))
-                                d = np.linalg.norm(delta)
-                                if d < self.rcut + self.skin:
-                                    key = a, b, r0, r1, r2
-                                    value = np.array([d, delta[0], delta[1], delta[2]])
-                                    validation[key] = value
+                        yield r0, r1, 0
+
         elif self.system.cell.nvec == 1:
-            r2 = 0
-            r1 = 0
-            for r0 in xrange(0, self.rmax[0]+1):
-                for a in xrange(self.system.natom):
-                    for b in xrange(self.system.natom):
-                        if r0!=0 or r1!=0 or r2!=0 or a>b:
-                            delta = self.system.pos[b] - self.system.pos[a]
-                            self.system.cell.mic(delta)
-                            self.system.cell.add_vec(delta, np.array([r0]))
-                            d = np.linalg.norm(delta)
-                            if d < self.rcut + self.skin:
-                                key = a, b, r0, r1, r2
-                                value = np.array([d, delta[0], delta[1], delta[2]])
-                                validation[key] = value
+            def rloops():
+                for r0 in xrange(0, self.rmax[0]+1):
+                    yield r0, 0, 0
         else:
-            r2 = 0
-            r1 = 0
-            r0 = 0
+            def rloops():
+                yield 0, 0, 0
+
+        # C) Compute the nlists the slow way
+        validation = {}
+        nvec = self.system.cell.nvec
+        for r0, r1, r2 in rloops():
             for a in xrange(self.system.natom):
-                for b in xrange(self.system.natom):
-                    if r0!=0 or r1!=0 or r2!=0 or a>b:
+                for b in xrange(a):
+                    if r0!=0 or r1!=0 or r2!=0:
+                        signs = [1, -1]
+                    else:
+                        signs = [1]
+                    for sign in signs:
                         delta = self.system.pos[b] - self.system.pos[a]
+                        self.system.cell.mic(delta)
+                        delta *= sign
+                        if nvec > 0:
+                            self.system.cell.add_vec(delta, np.array([r0, r1, r2])[:nvec])
                         d = np.linalg.norm(delta)
                         if d < self.rcut + self.skin:
-                            key = a, b, r0, r1, r2
+                            if sign == 1:
+                                key = a, b, r0, r1, r2
+                            else:
+                                key = b, a, r0, r1, r2
                             value = np.array([d, delta[0], delta[1], delta[2]])
                             validation[key] = value
-        # C) Compare
+
+        # D) Compare
+        # TODO: Comparison of both nlists should be based on distances and atom
+        # indexes. It is not a real problem when the integer r-vector is
+        # different. (Not urgent.)
         wrong = False
         with log.section('NLIST'):
             for key0, value0 in validation.iteritems():
