@@ -248,6 +248,11 @@ class System(object):
                     # Apply the new fid
                     self.ffatype_ids[i] = new_fid
                     self.ffatype_id_to_scope_id[new_fid] = sid
+        # Turn the ffatypes in the scopes into array
+        if self.ffatypes is not None:
+            self.ffatypes = np.array(self.ffatypes, copy=False)
+        if self.scopes is not None:
+            self.scopes = np.array(self.scopes, copy=False)
         # check the range of the ids
         if self.ffatype_ids.min() != 0 or self.ffatype_ids.max() != len(self.ffatypes)-1:
             raise ValueError('The ffatype_ids have incorrect bounds.')
@@ -505,6 +510,95 @@ class System(object):
         # assign
         self.pos = pos
         self.cell = Cell(rvecs)
+
+    def supercell(self, reps):
+        """Return a supercell of the system.
+
+           **Arguments:**
+
+           reps
+                An array with repetitions, which must have the same number of
+                elements as the number of cell vectors.
+
+           If this method is called with a non-periodic system, a TypeError is
+           raised.
+        """
+        if self.cell.nvec == 0:
+            raise TypeError('Can not create a supercell of a non-periodic system.')
+        if self.cell.nvec != len(reps):
+            raise TypeError('The number of repetitions must match the number of cell vectors.')
+        if not isinstance(reps, tuple):
+            raise TypeError('The reps argument must be a tuple')
+        # A dictionary with new arguments for the construction of the supercell
+        new_args = {}
+
+        # A) No repetitions
+        if self.ffatypes is not None:
+            new_args['ffatypes'] = self.ffatypes.copy()
+        if self.scopes is not None:
+            new_args['scopes'] = self.scopes.copy()
+
+        # B) Simple repetitions
+        rep_all = np.product(reps)
+        for attrname in 'numbers', 'ffatype_ids', 'scope_ids', 'charges', 'masses':
+            value = getattr(self, attrname)
+            if value is not None:
+                new_args[attrname] = np.tile(value, rep_all)
+
+        # C) Cell vectors
+        new_args['rvecs'] = self.cell.rvecs*np.reshape(reps, (3,1))
+
+        # D) Atom positions
+        new_pos = np.zeros((self.natom*rep_all, 3), float)
+        start = 0
+        for iimage in np.ndindex(reps):
+            stop = start+self.natom
+            new_pos[start:stop] = self.pos + np.dot(self.cell.rvecs, iimage)
+            start = stop
+        new_args['pos'] = new_pos
+
+        # E) Bonds
+        # E.1) A function that translates a set of image indexes and an old atom
+        # index into a new atom index
+        offsets = {}
+        start = 0
+        for iimage in np.ndindex(reps):
+            offsets[iimage] = start
+            start += self.natom
+        def to_new_atom_index(iimage, i):
+            return offsets[iimage] + i
+
+        # E.2) Construct extended bond information: for each bond, also keep
+        # track of periodic image it connects to. Note that this information
+        # is implicit in yaff, and derived using the minimum image convention.
+        rel_iimage = {}
+        for ibond in xrange(len(self.bonds)):
+            i0, i1 = self.bonds[ibond]
+            delta = self.pos[i0] - self.pos[i1]
+            frac = np.dot(self.cell.gvecs, delta)
+            rel_iimage[ibond] = np.ceil(frac-0.5)
+
+        # E.3) Create the new bonds
+        new_bonds = np.zeros((len(self.bonds)*rep_all,2), float)
+        counter = 0
+        for iimage0 in np.ndindex(reps):
+            for ibond in xrange(len(self.bonds)):
+                i0, i1 = self.bonds[ibond]
+                # Translate i0 to the new index.
+                j0 = to_new_atom_index(iimage0, i0)
+                # Also translate i1 to the new index. This is a bit more tricky.
+                # The difficult case occurs when the bond between i0 and i1
+                # connects different periodic images. In that case, the change
+                # in periodic image must be taken into account.
+                iimage1 = tuple((iimage0[c] + rel_iimage[ibond][c]) % reps[c] for c in xrange(len(reps)))
+                j1 = to_new_atom_index(iimage1, i1)
+                new_bonds[counter,0] = j0
+                new_bonds[counter,1] = j1
+                counter += 1
+        new_args['bonds'] = new_bonds
+
+        # Done
+        return System(**new_args)
 
     def to_file(self, fn_chk):
         """Write the system in the internal checkpoint format.

@@ -40,7 +40,7 @@ def test_chk():
         assert system1.scopes is None
         assert system0.scope_ids is None
         assert system1.scope_ids is None
-        assert system0.ffatypes == list(system1.ffatypes)
+        assert (system0.ffatypes == system1.ffatypes).all()
         assert (system0.ffatype_ids == system1.ffatype_ids).all()
         assert (system0.bonds == system1.bonds).all()
         assert abs(system0.cell.rvecs - system1.cell.rvecs).max() < 1e-10
@@ -63,7 +63,7 @@ def test_xyz():
         assert system1.scopes is None
         assert system0.scope_ids is None
         assert system1.scope_ids is None
-        assert system0.ffatypes == system1.ffatypes
+        assert (system0.ffatypes == system1.ffatypes).all()
         assert (system0.ffatype_ids == system1.ffatype_ids).all()
         assert abs(system0.cell.rvecs - system1.cell.rvecs).max() < 1e-10
         assert system1.charges is None
@@ -73,7 +73,7 @@ def test_xyz():
 
 def test_ffatypes():
     system = get_system_water32()
-    assert system.ffatypes == ['O', 'H']
+    assert (system.ffatypes == ['O', 'H']).all()
     assert (system.ffatype_ids[system.numbers==8] == 0).all()
     assert (system.ffatype_ids[system.numbers==1] == 1).all()
 
@@ -85,9 +85,9 @@ def test_scopes1():
         scopes=['WAT', 'WAT', 'WAT', 'METH', 'METH', 'METH', 'METH', 'METH', 'METH'],
         ffatypes=['O', 'H', 'H', 'C', 'H_C', 'H_C', 'H_C', 'O', 'H_O'],
     )
-    assert system.scopes == ['WAT', 'METH']
+    assert (system.scopes == ['WAT', 'METH']).all()
     assert (system.scope_ids == np.array([0, 0, 0, 1, 1, 1, 1, 1, 1])).all()
-    assert system.ffatypes == ['O', 'H', 'C', 'H_C', 'O', 'H_O']
+    assert (system.ffatypes == ['O', 'H', 'C', 'H_C', 'O', 'H_O']).all()
     assert (system.ffatype_ids == np.array([0, 1, 1, 2, 3, 3, 3, 4, 5])).all()
 
 
@@ -100,9 +100,9 @@ def test_scopes2():
         ffatypes=['O', 'H', 'C', 'H_C', 'O', 'H_O'],
         ffatype_ids=np.array([0, 1, 1, 2, 3, 3, 3, 4, 5])
     )
-    assert system.scopes == ['WAT', 'METH']
+    assert (system.scopes == ['WAT', 'METH']).all()
     assert (system.scope_ids == np.array([0, 0, 0, 1, 1, 1, 1, 1, 1])).all()
-    assert system.ffatypes == ['O', 'H', 'C', 'H_C', 'O', 'H_O']
+    assert (system.ffatypes == ['O', 'H', 'C', 'H_C', 'O', 'H_O']).all()
     assert (system.ffatype_ids == np.array([0, 1, 1, 2, 3, 3, 3, 4, 5])).all()
 
 
@@ -115,9 +115,9 @@ def test_scopes3():
         ffatypes=['O', 'H', 'C', 'H_C', 'H_O'],
         ffatype_ids=np.array([0, 1, 1, 2, 3, 3, 3, 0, 4])
     )
-    assert system.scopes == ['WAT', 'METH']
+    assert (system.scopes == ['WAT', 'METH']).all()
     assert (system.scope_ids == np.array([0, 0, 0, 1, 1, 1, 1, 1, 1])).all()
-    assert system.ffatypes == ['O', 'H', 'C', 'H_C', 'H_O', 'O']
+    assert (system.ffatypes == ['O', 'H', 'C', 'H_C', 'H_O', 'O']).all()
     assert (system.ffatype_ids == np.array([0, 1, 1, 2, 3, 3, 3, 5, 4])).all()
     assert system.get_scope(0) == 'WAT'
     assert system.get_scope(3) == 'METH'
@@ -130,7 +130,6 @@ def test_unravel_triangular():
     counter = 0
     for i0 in xrange(100):
         for i1 in xrange(i0):
-            print counter, (i0, i1), unravel_triangular(counter)
             assert unravel_triangular(counter) == (i0, i1)
             counter += 1
 
@@ -161,7 +160,7 @@ def check_detect_ffatypes(system, rules):
     old_ffatypes = system.ffatypes
     old_ffatype_ids = system.ffatype_ids
     system.detect_ffatypes(rules)
-    assert system.ffatypes == old_ffatypes
+    assert (system.ffatypes == old_ffatypes).all()
     assert (system.ffatype_ids == old_ffatype_ids).all()
 
 
@@ -194,3 +193,9 @@ def test_align_cell_quartz():
     assert abs(rvecs[0][2] - rvecs[1][2]) < 1e-10
     # check if the bonds are the same in the rotated structure
     check_detect_bonds(system)
+
+
+def test_supercell():
+    # TODO: do some real testing here.
+    system111 = get_system_quartz()
+    system222 = system111.supercell((2, 2, 2))
