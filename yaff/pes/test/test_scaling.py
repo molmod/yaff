@@ -60,7 +60,7 @@ def test_scaling_glycine():
 
 
 def test_scaling_quartz():
-    system = get_system_quartz()
+    system = get_system_quartz().supercell(2, 2, 2)
     stab = Scalings(system).stab
     assert (stab['a'] > stab['b']).all()
     assert len(stab) == sum(len(system.neighs1[i]) + len(system.neighs2[i]) for i in xrange(system.natom))/2
@@ -96,6 +96,9 @@ def test_iter_paths3():
 
 def test_scaling_mil53():
     system = get_system_mil53()
-    from molmod import angstrom
-    print np.linalg.norm(system.pos[0] - system.pos[5])/angstrom
-    scalings = Scalings(system)
+    try:
+        scalings = Scalings(system)
+        success = False
+    except AssertionError:
+        success = True
+    assert success
