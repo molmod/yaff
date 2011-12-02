@@ -32,8 +32,8 @@ from molmod.minimizer import check_delta
 
 
 __all__ = [
-    'DOF', 'CartesianDOF', 'BaseCellDOF', 'FullCellDOF', 'IsoCellDOF',
-    'AnisoCellDOF'
+    'DOF', 'CartesianDOF', 'BaseCellDOF', 'FullCellDOF', 'StrainCellDOF',
+    'IsoCellDOF', 'AnisoCellDOF'
 ]
 
 
@@ -361,6 +361,24 @@ class BaseCellDOF(DOF):
 
 
 class FullCellDOF(BaseCellDOF):
+    def get_initial_cellvars(self):
+        cell = self.ff.system.cell
+        if cell.nvec == 0:
+            raise ValueError('A cell optimization requires a system that is periodic.')
+        self._cell_scale = cell.volume**(1.0/cell.nvec)
+        print ""
+        print "  FCDOF cell_scale = ", self._cell_scale
+        return cell.rvecs.ravel()/self._cell_scale
+
+    def x_to_rvecs(self, x):
+        index = self.ff.system.cell.nvec*3
+        return x[:index].reshape(-1,3)*self._cell_scale, index
+
+    def grvecs_to_gx(self, grvecs):
+        return grvecs.ravel()*self._cell_scale
+
+
+class StrainCellDOF(BaseCellDOF):
     def get_initial_cellvars(self):
         cell = self.ff.system.cell
         if cell.nvec == 0:
