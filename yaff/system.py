@@ -511,7 +511,7 @@ class System(object):
         self.pos = pos
         self.cell = Cell(rvecs)
 
-    def supercell(self, reps):
+    def supercell(self, *reps):
         """Return a supercell of the system.
 
            **Arguments:**
@@ -553,7 +553,7 @@ class System(object):
         start = 0
         for iimage in np.ndindex(reps):
             stop = start+self.natom
-            new_pos[start:stop] = self.pos + np.dot(self.cell.rvecs, iimage)
+            new_pos[start:stop] = self.pos + np.dot(iimage, self.cell.rvecs)
             start = stop
         new_args['pos'] = new_pos
 

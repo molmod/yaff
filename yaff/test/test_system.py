@@ -138,6 +138,7 @@ def check_detect_bonds(system):
     old_bonds = set([frozenset(pair) for pair in system.bonds])
     system.detect_bonds()
     new_bonds = set([frozenset(pair) for pair in system.bonds])
+    assert len(old_bonds) == len(new_bonds)
     assert old_bonds == new_bonds
 
 
@@ -196,6 +197,17 @@ def test_align_cell_quartz():
 
 
 def test_supercell():
-    # TODO: do some real testing here.
     system111 = get_system_quartz()
-    system222 = system111.supercell((2, 2, 2))
+    system222 = system111.supercell(2, 2, 2)
+    assert abs(system222.cell.volume - system111.cell.volume*8) < 1e-10
+    assert abs(system222.cell.rvecs - system111.cell.rvecs*2).max() < 1e-10
+    assert system222.natom == system111.natom*8
+    assert len(system222.bonds) == len(system111.bonds)*8
+    assert abs(system222.pos[9:18] - system111.pos - system111.cell.rvecs[2]).max() < 1e-10
+    assert abs(system222.pos[-9:] - system111.pos - system111.cell.rvecs.sum(axis=0)).max() < 1e-10
+    rules = [
+        ('Si', '14'),
+        ('O', '8'),
+    ]
+    check_detect_ffatypes(system222, rules)
+    check_detect_bonds(system222)
