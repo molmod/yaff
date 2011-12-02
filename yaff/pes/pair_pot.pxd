@@ -29,6 +29,7 @@ cdef extern from "pair_pot.h":
     ctypedef struct scaling_row_type:
         np.long_t a, b
         np.float64_t scale
+        np.long_t nbond
 
     ctypedef struct pair_pot_type:
         pass

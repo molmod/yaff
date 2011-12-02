@@ -127,7 +127,7 @@ def test_ewald_corr_quartz():
         # self-interaction corrections
         energy2 = -alpha/np.sqrt(np.pi)*(system.charges**2).sum()
         # corrections from scaled interactions
-        for i0, i1, scale in scalings.stab:
+        for i0, i1, scale, nbond in scalings.stab:
             delta = system.pos[i0] - system.pos[i1]
             system.cell.mic(delta)
             d = np.linalg.norm(delta)

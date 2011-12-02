@@ -40,6 +40,7 @@ typedef struct {
 typedef struct {
   long a, b;
   double scale;
+  long nbond;
 } scaling_row_type;
 
 

@@ -32,7 +32,8 @@ __all__ = [
     'get_system_water32', 'get_system_water', 'get_system_graphene8',
     'get_system_polyethylene4', 'get_system_quartz', 'get_system_glycine',
     'get_system_cyclopropene', 'get_system_caffeine', 'get_system_butanol',
-    'get_system_2T', 'get_system_2atoms'
+    'get_system_2T', 'get_system_peroxide', 'get_system_mil53',
+    'get_system_2atoms', 'get_2systems_2oxygens',
 ]
 
 
