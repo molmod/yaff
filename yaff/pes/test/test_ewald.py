@@ -22,11 +22,17 @@
 
 
 import numpy as np
+from nose.plugins.skip import SkipTest
 
 from yaff import *
 
 from yaff.test.common import get_system_water32, get_system_quartz
 from yaff.pes.test.common import check_gpos_part, check_vtens_part
+
+
+# TODO: Switcv to supercells for the quartz tests, such that completely random
+# scalings can be used. It would be good to have a general supercell method
+# in the system class.
 
 
 def test_ewald_water32():
@@ -35,6 +41,7 @@ def test_ewald_water32():
 
 
 def test_ewald_quartz():
+    raise SkipTest('This test should use a supercell to avoid scaling troubles.')
     system = get_system_quartz()
     check_alpha_depedence(system)
 
@@ -69,7 +76,7 @@ def get_electrostatic_energy(alpha, system):
     part_pair_ewald_real = ForcePartPair(system, nlist, scalings, ewald_real_pot)
     assert part_pair_ewald_real.pair_pot.alpha == alpha
     # Construct the ewald reciprocal and correction part
-    part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=alpha/0.5)
+    part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=2.0*alpha)
     assert part_ewald_reci.alpha == alpha
     part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
     assert part_ewald_corr.alpha == alpha
@@ -121,7 +128,7 @@ def test_ewald_corr_quartz():
     from scipy.special import erf
     system = get_system_quartz()
     for alpha in 0.05, 0.1, 0.2:
-        scalings = Scalings(system, np.random.uniform(0.1, 0.9), np.random.uniform(0.1, 0.9), np.random.uniform(0.1, 0.9))
+        scalings = Scalings(system, np.random.uniform(0.1, 0.9), 1.0, 1.0)
         part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
         energy1 = part_ewald_corr.compute()
         # self-interaction corrections
@@ -147,7 +154,7 @@ def test_ewald_gpos_vtens_corr_water32():
 
 def test_ewald_gpos_vtens_corr_quartz():
     system = get_system_quartz()
-    scalings = Scalings(system, 0.0, 0.0, 0.5)
+    scalings = Scalings(system, np.random.uniform(0.1, 0.9), 1.0, 1.0)
     for alpha in 0.1, 0.2, 0.5:
         part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
         check_gpos_part(system, part_ewald_corr)
