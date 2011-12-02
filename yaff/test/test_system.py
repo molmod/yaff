@@ -196,7 +196,7 @@ def test_align_cell_quartz():
     check_detect_bonds(system)
 
 
-def test_supercell():
+def test_supercell_quartz_222():
     system111 = get_system_quartz()
     system222 = system111.supercell(2, 2, 2)
     assert abs(system222.cell.volume - system111.cell.volume*8) < 1e-10
@@ -211,3 +211,22 @@ def test_supercell():
     ]
     check_detect_ffatypes(system222, rules)
     check_detect_bonds(system222)
+
+
+def test_supercell_mil53_121():
+    system111 = get_system_quartz()
+    system121 = system111.supercell(1, 2, 1)
+    assert abs(system121.cell.volume - system111.cell.volume*2) < 1e-10
+    assert abs(system121.cell.rvecs[0] - system111.cell.rvecs[0]).max() < 1e-10
+    assert abs(system121.cell.rvecs[1] - system111.cell.rvecs[1]*2).max() < 1e-10
+    assert abs(system121.cell.rvecs[2] - system111.cell.rvecs[2]).max() < 1e-10
+    assert system121.natom == system111.natom*2
+    assert len(system121.bonds) == len(system111.bonds)*2
+    assert abs(system121.pos[:system111.natom] - system111.pos).max() < 1e-10
+    assert abs(system121.pos[system111.natom:] - system111.pos - system111.cell.rvecs[1]).max() < 1e-10
+    assert (system121.numbers[:system111.natom] == system111.numbers).all()
+    assert (system121.numbers[system111.natom:] == system111.numbers).all()
+    assert (system121.ffatype_ids[:system111.natom] == system111.ffatype_ids).all()
+    assert (system121.ffatype_ids[system111.natom:] == system111.ffatype_ids).all()
+    assert (system121.ffatypes == system111.ffatypes).all()
+    check_detect_bonds(system121)
