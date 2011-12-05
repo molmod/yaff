@@ -31,11 +31,25 @@ from yaff.pes.test.common import check_gpos_part, check_vtens_part
 
 
 def test_ewald_water32():
+    # These are the energy contributions that one should get:
+    # alpha           REAL            RECI            CORR
+    # 0.05  -7.2121617e-01   2.4919194e-08  -1.4028899e-03
+    # 0.10  -7.1142179e-01   1.5853109e-04  -1.1355778e-02
+    # 0.20  -6.3429485e-01   6.1021373e-03  -9.4426328e-02
+    # 0.50  -7.7158542e-02   9.3260624e-01  -1.5780667e+00
+    # 1.00  -1.9121203e-05   8.2930717e+00  -9.0156717e+00
     system = get_system_water32()
     check_alpha_depedence(system)
 
 
 def test_ewald_quartz():
+    # These are the energy contributions that one should get:
+    # alpha           REAL            RECI            CORR
+    # 0.05  -3.5696637e-02   6.8222205e-29  -2.5814534e-01
+    # 0.10   1.3948043e-01   2.2254505e-08  -4.3332242e-01
+    # 0.20   1.7482393e-01   2.9254105e-03  -4.7159132e-01
+    # 0.50   5.6286111e-04   7.7869316e-01  -1.0730980e+00
+    # 1.00   2.6807119e-12   4.6913539e+00  -4.9851959e+00
     system = get_system_quartz().supercell(2, 2, 2)
     check_alpha_depedence(system)
 
@@ -79,7 +93,9 @@ def get_electrostatic_energy(alpha, system):
     ff.update_pos(system.pos)
     gpos = np.zeros(system.pos.shape, float)
     vtens = np.zeros((3, 3), float)
-    return ff.compute(gpos, vtens), gpos, vtens
+    energy = ff.compute(gpos, vtens)
+    print '    # %4.2f' % alpha, ' '.join('%15.7e' % part.energy for part in ff.parts)
+    return energy, gpos, vtens
 
 
 def test_ewald_gpos_vtens_reci_water32():
