@@ -91,6 +91,7 @@ def get_electrostatic_energy(alpha, system):
     # Construct the force field
     ff = ForceField(system, [part_pair_ewald_real, part_ewald_reci, part_ewald_corr], nlist)
     ff.update_pos(system.pos)
+    ff.update_rvecs(system.cell.rvecs)
     gpos = np.zeros(system.pos.shape, float)
     vtens = np.zeros((3, 3), float)
     energy = ff.compute(gpos, vtens)

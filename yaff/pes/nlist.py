@@ -233,11 +233,13 @@ class NeighborList(object):
         nvec = self.system.cell.nvec
         for r0, r1, r2 in rloops():
             for a in xrange(self.system.natom):
-                for b in xrange(a):
+                for b in xrange(a+1):
                     if r0!=0 or r1!=0 or r2!=0:
                         signs = [1, -1]
-                    else:
+                    elif a > b:
                         signs = [1]
+                    else:
+                        continue
                     for sign in signs:
                         delta = self.system.pos[b] - self.system.pos[a]
                         self.system.cell.mic(delta)

@@ -61,7 +61,7 @@ def get_scaling(scalings, srow, a, b):
 #
 
 
-def check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, eps):
+def check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, eps, rmax=1):
     # Update the neighborlists, once the rcuts are known.
     nlist.update()
     # Compute the energy using yaff.
@@ -77,15 +77,14 @@ def check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, eps):
             delta = system.pos[b] - system.pos[a]
             delta -= np.floor(delta/(9.865*angstrom)+0.5)*(9.865*angstrom)
             assert abs(delta).max() < 0.5*9.865*angstrom
-            for r2 in xrange(0, 2):
-                for r1 in xrange((r2!=0)*-1, 2):
-                    for r0 in xrange((r2!=0 or r1!=0)*-1, 2):
+            for r2 in xrange(0, rmax+1):
+                for r1 in xrange((r2!=0)*(-rmax), rmax+1):
+                    for r0 in xrange((r2!=0 or r1!=0)*-(rmax), rmax+1):
                         if r0==0 and r1==0 and r2==0:
                             if a<=b:
                                 continue
                             # find the scaling
                             srow, fac = get_scaling(scalings, srow, a, b)
-                            assert a > b
                             # continue if scaled to zero
                             if fac == 0.0:
                                 continue
@@ -94,7 +93,9 @@ def check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, eps):
                         my_delta = delta + np.array([r0,r1,r2])*9.865*angstrom
                         d = np.linalg.norm(my_delta)
                         if d <= nlist.rcut:
-                            check_energy += fac*pair_fn(a, b, d)
+                            my_energy = fac*pair_fn(a, b, d)
+                            #print 'P %3i %3i (% 3i % 3i % 3i) %10.7f %3.1f %10.3e' % (a, b, r0, r1, r2, d, fac, my_energy)
+                            check_energy += my_energy
     print "energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy)
     print "energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy)
     assert abs(energy1 - check_energy) < eps
@@ -262,6 +263,26 @@ def test_pair_pot_exprep_water32_4A_case2():
     system, nlist, scalings, part_pair, pair_fn = get_part_water32_4A_exprep(1, 2.385e-2, 1, 7.897e-3)
     check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, 1e-12)
 
+
+def get_part_water32_14A_ei():
+    # Initialize system, nlist and scaling
+    system = get_system_water32()
+    nlist = NeighborList(system)
+    scalings = Scalings(system, 0.0, 0.5, 1.0)
+    # Create the pair_pot and part_pair
+    rcut = 14*angstrom
+    alpha = 5.5/rcut
+    pair_pot = PairPotEI(system.charges, alpha, rcut)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    # The pair function
+    def pair_fn(i, j, d):
+        return system.charges[i]*system.charges[j]*erfc(alpha*d)/d
+    return system, nlist, scalings, part_pair, pair_fn
+
+
+def test_pair_pot_ei_water32_14A():
+    system, nlist, scalings, part_pair, pair_fn = get_part_water32_14A_ei()
+    check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, 1e-12, rmax=1)
 
 
 #

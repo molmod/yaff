@@ -62,40 +62,45 @@ int nlist_build_low(double *pos, double rcut, long *rmax,
       // Done updating delta0.
       update_delta0 = 0;
     }
-    // Construct delta by adding the appropriate cell vector to delta0
-    delta[0] = sign*delta0[0];
-    delta[1] = sign*delta0[1];
-    delta[2] = sign*delta0[2];
-    cell_add_vec(delta, unitcell, r);
-    // Compute the distance and store the record if distance is below the rcut.
-    d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
-    if (d < rcut) {
-      if (sign > 0) {
-        (*neighs).a = a;
-        (*neighs).b = b;
-      } else {
-        (*neighs).a = b;
-        (*neighs).b = a;
+    // Only add self-interactions with atoms in periodic images.
+    if ((b<a) || image) {
+      // Construct delta by adding the appropriate cell vector to delta0
+      delta[0] = sign*delta0[0];
+      delta[1] = sign*delta0[1];
+      delta[2] = sign*delta0[2];
+      cell_add_vec(delta, unitcell, r);
+      // Compute the distance and store the record if distance is below the rcut.
+      d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
+      if (d < rcut) {
+        if (sign > 0) {
+          (*neighs).a = a;
+          (*neighs).b = b;
+        } else {
+          (*neighs).a = b;
+          (*neighs).b = a;
+        }
+        (*neighs).d = d;
+        (*neighs).dx = delta[0];
+        (*neighs).dy = delta[1];
+        (*neighs).dz = delta[2];
+        (*neighs).r0 = r[0];
+        (*neighs).r1 = r[1];
+        (*neighs).r2 = r[2];
+        neighs++;
+        row++;
       }
-      (*neighs).d = d;
-      (*neighs).dx = delta[0];
-      (*neighs).dy = delta[1];
-      (*neighs).dz = delta[2];
-      (*neighs).r0 = r[0];
-      (*neighs).r1 = r[1];
-      (*neighs).r2 = r[2];
-      neighs++;
-      row++;
     }
     // Increase the appropriate counters in the sextuple loop.
-    if ((sign > 0) && (image)) {
+    if ((sign > 0) && (image) && (a!=b)) {
+      // Change sign of the relative vector for non-self interactions with
+      // periodic images.
       sign = -1;
     } else if (!nlist_inc_r(unitcell, r, rmax)) {
       sign = 1;
       update_delta0 = 1;
       image = 0;
       b++;
-      if (b >= a) {
+      if (b > a) {
         b = 0;
         a++;
       }

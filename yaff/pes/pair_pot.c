@@ -120,6 +120,7 @@ double pair_pot_compute(neigh_row_type *neighs,
             vg = vg*h + v*hg/neighs[i].d;
             v *= h;
           }
+          //printf("C %3i %3i (% 3i % 3i % 3i) %10.7f %3.1f %10.3e\n", center_index, other_index, neighs[i].r0, neighs[i].r1, neighs[i].r2, neighs[i].d, s, s*v);
           vg *= s;
           if (gpos!=NULL) {
             h = neighs[i].dx*vg;
