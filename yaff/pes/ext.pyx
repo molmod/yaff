@@ -186,14 +186,15 @@ cdef class Cell:
 
 
 def nlist_status_init(rmax):
-    # six integer status fields:
+    # seven integer status fields:
     # * r0
     # * r1
     # * r2
     # * a
     # * b
+    # * sign
     # * number of rows consumed
-    result = np.array([0, 0, 0, 1, 0, 0], int)
+    result = np.array([0, 0, 0, 1, 0, 1, 0], int)
     return result
 
 
@@ -206,7 +207,7 @@ def nlist_build(np.ndarray[double, ndim=2] pos, double rcut,
     assert rcut > 0
     assert rmax.shape[0] <= 3
     assert rmax.flags['C_CONTIGUOUS']
-    assert status.shape[0] == 6
+    assert status.shape[0] == 7
     assert status.flags['C_CONTIGUOUS']
     assert neighs.flags['C_CONTIGUOUS']
     assert rmax.shape[0] == unitcell.nvec
@@ -218,7 +219,7 @@ def nlist_build(np.ndarray[double, ndim=2] pos, double rcut,
 
 
 def nlist_status_finish(status):
-    return status[5]
+    return status[-1]
 
 
 def nlist_recompute(np.ndarray[double, ndim=2] pos,

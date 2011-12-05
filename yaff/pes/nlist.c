@@ -24,9 +24,6 @@
 #include "nlist.h"
 #include "cell.h"
 
-// TODO: flatten sign-loop in nlist_build_low by including sign in the status
-//       and change sign in the part where the counters of the quintuple loop
-//       are updated.
 
 int nlist_build_low(double *pos, double rcut, long *rmax,
                     cell_type *unitcell, long *status,
@@ -40,15 +37,16 @@ int nlist_build_low(double *pos, double rcut, long *rmax,
   r = status;
   a = status[3];
   b = status[4];
+  sign = status[5];
 
   update_delta0 = 1;
   image = (r[0] != 0) || (r[1] != 0) || (r[2] != 0);
   row = 0;
 
-  while (row < nneigh-1) {
+  while (row < nneigh) {
     if (a >= natom) {
       // Completely done.
-      status[5] += row;
+      status[6] += row;
       return 1;
     }
     // Avoid adding pairs for which a > b and that match the minimum image
@@ -65,34 +63,35 @@ int nlist_build_low(double *pos, double rcut, long *rmax,
       update_delta0 = 0;
     }
     // Construct delta by adding the appropriate cell vector to delta0
-    for (sign=1; sign >= -image; sign -= 2) {
-      delta[0] = sign*delta0[0];
-      delta[1] = sign*delta0[1];
-      delta[2] = sign*delta0[2];
-      cell_add_vec(delta, unitcell, r);
-      // Compute the distance and store the record if distance is below the rcut.
-      d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
-      if (d < rcut) {
-        if (sign > 0) {
-          (*neighs).a = a;
-          (*neighs).b = b;
-        } else {
-          (*neighs).a = b;
-          (*neighs).b = a;
-        }
-        (*neighs).d = d;
-        (*neighs).dx = delta[0];
-        (*neighs).dy = delta[1];
-        (*neighs).dz = delta[2];
-        (*neighs).r0 = r[0];
-        (*neighs).r1 = r[1];
-        (*neighs).r2 = r[2];
-        neighs++;
-        row++;
+    delta[0] = sign*delta0[0];
+    delta[1] = sign*delta0[1];
+    delta[2] = sign*delta0[2];
+    cell_add_vec(delta, unitcell, r);
+    // Compute the distance and store the record if distance is below the rcut.
+    d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
+    if (d < rcut) {
+      if (sign > 0) {
+        (*neighs).a = a;
+        (*neighs).b = b;
+      } else {
+        (*neighs).a = b;
+        (*neighs).b = a;
       }
+      (*neighs).d = d;
+      (*neighs).dx = delta[0];
+      (*neighs).dy = delta[1];
+      (*neighs).dz = delta[2];
+      (*neighs).r0 = r[0];
+      (*neighs).r1 = r[1];
+      (*neighs).r2 = r[2];
+      neighs++;
+      row++;
     }
-    // Increase the appropriate counters in the quintuple loop.
-    if (!nlist_inc_r(unitcell, r, rmax)) {
+    // Increase the appropriate counters in the sextuple loop.
+    if ((sign > 0) && (image)) {
+      sign = -1;
+    } else if (!nlist_inc_r(unitcell, r, rmax)) {
+      sign = 1;
       update_delta0 = 1;
       image = 0;
       b++;
@@ -102,6 +101,7 @@ int nlist_build_low(double *pos, double rcut, long *rmax,
       }
     } else {
       image = 1;
+      sign = 1;
     }
   }
   // Exit before the job is done. Keep track of the status. Work will be resumed
@@ -111,14 +111,15 @@ int nlist_build_low(double *pos, double rcut, long *rmax,
   status[2] = r[2];
   status[3] = a;
   status[4] = b;
-  status[5] += row;
+  status[5] = sign;
+  status[6] += row;
   return 0;
 }
 
 
 int nlist_inc_r(cell_type *unitcell, long *r, long *rmax) {
   // increment the counters for the periodic images.
-  // returns 1 when the counters were incremented succesfully.
+  // returns 1 when the counters were incremented successfully.
   // returns 0 and resets all the counters when the iteration over all cells
   // is complete.
 

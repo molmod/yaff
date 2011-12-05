@@ -121,9 +121,9 @@ class NeighborList(object):
                     )
                     if done:
                         break
-                    last_start = status[-1]
+                    last_start = len(self.neighs)
                     new_neighs = np.empty((len(self.neighs)*3)/2, dtype=neigh_dtype)
-                    new_neighs[:last_start] = self.neighs[:last_start]
+                    new_neighs[:last_start] = self.neighs
                     self.neighs = new_neighs
                     del new_neighs
                 # 3) get the number of neighbors in the list.
