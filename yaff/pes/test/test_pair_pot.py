@@ -95,8 +95,8 @@ def check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, eps):
                         d = np.linalg.norm(my_delta)
                         if d <= nlist.rcut:
                             check_energy += fac*pair_fn(a, b, d)
-    #print "energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy)
-    #print "energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy)
+    print "energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy)
+    print "energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy)
     assert abs(energy1 - check_energy) < eps
     assert abs(energy2 - check_energy) < eps
 
@@ -155,7 +155,7 @@ def get_part_water32_9A_mm3():
     part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
     # Create a pair function:
     def pair_fn(i, j, d):
-        sigma = 0.5*(sigmas[i]+sigmas[j])
+        sigma = sigmas[i]+sigmas[j]
         epsilon = np.sqrt(epsilons[i]*epsilons[j])
         x = (sigma/d)
         if d<rcut:
@@ -167,7 +167,7 @@ def get_part_water32_9A_mm3():
 
 def test_pair_pot_mm3_water32_9A():
     system, nlist, scalings, part_pair, pair_fn = get_part_water32_9A_mm3()
-    check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, 1e-15)
+    check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, 1e-12)
 
 
 def get_part_water32_9A_grimme():
@@ -290,7 +290,6 @@ def check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, eps):
             d = np.linalg.norm(delta)
             if d < nlist.rcut:
                 energy = fac*pair_fn(a, b, d)
-                #print 'P', a, b, d/angstrom, fac, energy
                 check_energy += energy
     print "energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy)
     print "energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy)
@@ -367,7 +366,7 @@ def get_part_caffeine_mm3_15A():
     part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
-        sigma = 0.5*(sigmas[i]+sigmas[j])
+        sigma = sigmas[i]+sigmas[j]
         epsilon = np.sqrt(epsilons[i]*epsilons[j])
         x = (sigma/d)
         return epsilon*(1.84e5*np.exp(-12.0/x)-2.25*x**6)
@@ -376,7 +375,7 @@ def get_part_caffeine_mm3_15A():
 
 def test_pair_pot_mm3_caffeine_15A():
     system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_mm3_15A()
-    check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, 1e-15)
+    check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, 1e-12)
 
 
 def get_part_caffeine_grimme_15A():

@@ -108,7 +108,6 @@ double pair_pot_compute(neigh_row_type *neighs,
           if (((*pair_pot).trunc_scheme!=NULL) && (v!=0.0)) {
             v *= (*(*pair_pot).trunc_scheme).trunc_fn(neighs[i].d, (*pair_pot).rcut, (*(*pair_pot).trunc_scheme).par, NULL);
           }
-          //printf("C %i %i %i %i %i %e\n", center_index, other_index, neighs[i].r0, neighs[i].r1, neighs[i].r2, s*v);
         } else {
           // Call the potential function with vg argument.
           // vg is the derivative of the pair potential divided by the distance.
