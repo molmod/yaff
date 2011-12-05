@@ -25,7 +25,7 @@ import numpy as np
 
 from yaff.log import log
 from yaff.log import timer
-from yaff.sampling.dof import CartesianDOF, FullCellDOF
+from yaff.sampling.dof import CartesianDOF, StrainCellDOF
 
 
 __all__ = ['estimate_hessian', 'estimate_cart_hessian', 'estimate_elastic']
@@ -164,7 +164,7 @@ def estimate_elastic(ff, eps=1e-4, do_frozen=False, ridge=1e-4):
     cell = ff.system.cell
     if cell.nvec == 0:
         raise VelueError('The elastic constants can only be computed if the system is periodic.')
-    dof = FullCellDOF(ff, do_frozen=do_frozen)
+    dof = StrainCellDOF(ff, do_frozen=do_frozen)
     vol0 = cell.volume
     if do_frozen:
         return estimate_hessian(dof, eps)/vol0
