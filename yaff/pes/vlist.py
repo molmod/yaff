@@ -29,7 +29,7 @@ from yaff.pes.ext import vlist_forward, vlist_back
 
 __all__ = [
     'ValenceList', 'ValenceTerm', 'Harmonic', 'PolyFour', 'Fues', 'Cross',
-    'Cosine'
+    'Cosine', 'Chebychev1', 'Chebychev2'
 ]
 
 
@@ -154,4 +154,28 @@ class Cosine(ValenceTerm):
             int(self.pars[0]),
             self.pars[1]/log.energy.conversion,
             self.pars[2]/c
+        )
+
+
+class Chebychev1(ValenceTerm):
+    kind = 5
+    def __init__(self, A, ic):
+        ValenceTerm.__init__(self, [A], [ic])
+
+    def get_log(self):
+        return '%s(A=%.5e)' % (
+            self.__class__.__name__,
+            self.pars[0]/log.energy.conversion,
+        )
+
+
+class Chebychev2(ValenceTerm):
+    kind = 6
+    def __init__(self, A, ic):
+        ValenceTerm.__init__(self, [A], [ic])
+
+    def get_log(self):
+        return '%s(A=%.5e)' % (
+            self.__class__.__name__,
+            self.pars[0]/log.energy.conversion,
         )

@@ -168,6 +168,56 @@ def test_vlist_peroxide_dihed_cos():
         assert abs(energy - check_energy) < 1e-8
 
 
+def test_vlist_peroxide_dihed_cos_chebychev1():
+    number_of_tests=50
+    for i in xrange(number_of_tests):
+        system = get_system_peroxide()
+        dlist = DeltaList(system)
+        iclist = InternalCoordinateList(dlist)
+        vlist = ValenceList(iclist)
+        bonds=[]
+        while len(bonds)<3:
+            i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
+            if i0==i1 or (i0,i1) in bonds or (i1,i0) in bonds: continue
+            if (i0,i1) in system.bonds or (i1,i0) in system.bonds:
+                iclist.add_ic(Bond(i0,i1))
+                bonds.append((i0,i1))
+        amp = np.random.normal(0, 1)
+        vlist.add_term(Chebychev1(amp, DihedCos(0,1,2,3)))
+        dlist.forward()
+        iclist.forward()
+        energy = vlist.forward()
+        # calculate energy manually
+        psi = dihed_angle(system.pos)[0]
+        check_energy = 0.5*amp*(1.0-np.cos(psi))
+        assert abs(energy - check_energy) < 1e-8
+
+
+def test_vlist_peroxide_dihed_cos_chebychev2():
+    number_of_tests=50
+    for i in xrange(number_of_tests):
+        system = get_system_peroxide()
+        dlist = DeltaList(system)
+        iclist = InternalCoordinateList(dlist)
+        vlist = ValenceList(iclist)
+        bonds=[]
+        while len(bonds)<3:
+            i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
+            if i0==i1 or (i0,i1) in bonds or (i1,i0) in bonds: continue
+            if (i0,i1) in system.bonds or (i1,i0) in system.bonds:
+                iclist.add_ic(Bond(i0,i1))
+                bonds.append((i0,i1))
+        amp = np.random.normal(0, 1)
+        vlist.add_term(Chebychev2(amp, DihedCos(0,1,2,3)))
+        dlist.forward()
+        iclist.forward()
+        energy = vlist.forward()
+        # calculate energy manually
+        psi = dihed_angle(system.pos)[0]
+        check_energy = 0.5*amp*(1.0-np.cos(2*psi))
+        assert abs(energy - check_energy) < 1e-8
+
+
 def test_vlist_peroxide_dihed_angle():
     number_of_tests=50
     for i in xrange(number_of_tests):
@@ -338,6 +388,22 @@ def test_gpos_vtens_dihed_cos_peroxide():
     system = get_system_peroxide()
     part = ForcePartValence(system)
     part.add_term(Harmonic(1.1, -0.2, DihedCos(0,1,2,3)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
+
+
+def test_gpos_vtens_dihed_cos_chebychev1_peroxide():
+    system = get_system_peroxide()
+    part = ForcePartValence(system)
+    part.add_term(Chebychev1(1.5, DihedCos(0,1,2,3)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
+
+
+def test_gpos_vtens_dihed_cos_chebychev2_peroxide():
+    system = get_system_peroxide()
+    part = ForcePartValence(system)
+    part.add_term(Chebychev2(1.5, DihedCos(0,1,2,3)))
     check_gpos_part(system, part)
     check_vtens_part(system, part)
 

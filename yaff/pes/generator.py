@@ -31,10 +31,12 @@ from yaff.pes.ext import PairPotEI, PairPotLJ, PairPotMM3, PairPotExpRep, \
 from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
     ForcePartEwaldNeutralizing
-from yaff.pes.iclist import Bond, BendAngle, BendCos, UreyBradley, DihedAngle
+from yaff.pes.iclist import Bond, BendAngle, BendCos, \
+    UreyBradley, DihedAngle, DihedCos
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
-from yaff.pes.vlist import Harmonic, Fues, Cross, Cosine
+from yaff.pes.vlist import Harmonic, Fues, Cross, Cosine, \
+    Chebychev1, Chebychev2
 
 
 __all__ = [
@@ -328,8 +330,13 @@ class ValenceGenerator(Generator):
                 log.warn('No valence %s parameters found for atoms %s with key %s' % (self.prefix, indexes, key))
                 continue
             for pars in par_list:
-                args = pars + (self.ICClass(*indexes),)
-                part_valence.add_term(self.VClass(*args))
+                vterm = self.get_vterm(pars, indexes)
+                part_valence.add_term(vterm)
+
+    def get_vterm(self, pars, indexes):
+        args = pars + (self.ICClass(*indexes),)
+        return self.VClass(*args)
+
 
 
 class BondGenerator(ValenceGenerator):
@@ -401,6 +408,17 @@ class TorsionGenerator(ValenceGenerator):
 
     def iter_indexes(self, system):
         return system.iter_dihedrals()
+
+    def get_vterm(self, pars, indexes):
+        if pars[2] == 0.0 and pars[0] == 1:
+            ic = DihedCos(*indexes)
+            return Chebychev1(pars[1], ic)
+        elif pars[2] == 0.0 and pars[0] == 2:
+            ic = DihedCos(*indexes)
+            return Chebychev2(pars[1], ic)
+        else:
+            return ValenceGenerator.get_vterm(self, pars, indexes)
+
 
 
 class ValenceCrossGenerator(Generator):

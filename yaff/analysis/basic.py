@@ -411,10 +411,13 @@ def plot_epot_contribs(f, fn_png='epot_contribs.png', **kwargs):
     import matplotlib.pyplot as pt
     start, end, step = get_slice(f, **kwargs)
 
-    epot = f['trajectory/epot'][start:end:step]/log.energy.conversion
+    epot = f['trajectory/epot'][start:end:step].copy()/log.energy.conversion
+    epot -= epot[0]
     epot_contribs = []
     for i, name in enumerate(f['trajectory'].attrs['epot_contrib_names']):
-        epot_contribs.append((name, f['trajectory']['epot_contribs'][start:end:step,i]/log.energy.conversion))
+        contrib = f['trajectory']['epot_contribs'][start:end:step,i].copy()/log.energy.conversion
+        contrib -= contrib[0]
+        epot_contribs.append((name, contrib))
     time, tlabel = get_time(f, start, end, step)
 
     pt.clf()
