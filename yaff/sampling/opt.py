@@ -52,9 +52,9 @@ class OptScreenLog(Hook):
                     log('Conv.val. =&the highest ratio of a convergence criterion over its threshold.')
                     log('N         =&the number of convergence criteria that is not met.')
                     log('Worst     =&the name of the convergence criterion that is worst.')
-                    log('counter  Conv.val.  N        Worst   Walltime')
+                    log('counter  Conv.val.  N           Worst   Walltime')
                     log.hline()
-            log('%7i % 10.3e %2i %12s %10.1f' % (
+            log('%7i % 10.3e %2i %15s %10.1f' % (
                 iterative.counter,
                 iterative.dof.conv_val,
                 iterative.dof.conv_count,

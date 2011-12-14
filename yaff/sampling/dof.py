@@ -314,6 +314,7 @@ class BaseCellDOF(DOF):
             self.gpos_rms = np.sqrt(gpossq.mean())
             self._dpos[:] = self._pos
             self._dpos -= self._last_pos
+            self.gpos_indmax = gpossq.argmax()
         #
         dpossq = (self._dpos**2).sum(axis=1)
         self.dpos_max = np.sqrt(dpossq.max())
@@ -332,7 +333,7 @@ class BaseCellDOF(DOF):
         conv_vals = []
         if not self.do_frozen and self.th_gpos_rms is not None:
             conv_vals.append((self.gpos_rms/self.th_gpos_rms, 'gpos_rms'))
-            conv_vals.append((self.gpos_max/(self.th_gpos_rms*3), 'gpos_max'))
+            conv_vals.append((self.gpos_max/(self.th_gpos_rms*3), 'gpos_max(%i)' %self.gpos_indmax))
         if self.th_dpos_rms is not None:
             conv_vals.append((self.dpos_rms/self.th_dpos_rms, 'dpos_rms'))
             conv_vals.append((self.dpos_max/(self.th_dpos_rms*3), 'dpos_max'))
