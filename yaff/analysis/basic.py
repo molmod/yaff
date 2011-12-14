@@ -428,4 +428,7 @@ def plot_epot_contribs(f, fn_png='epot_contribs.png', **kwargs):
     pt.xlabel(tlabel)
     pt.ylabel('Energy [%s]' % log.energy.notation)
     pt.legend(loc=0)
+    F=pt.gcf()
+    DefaultSize = F.get_size_inches()
+    F.set_size_inches(DefaultSize[0]*2.0, DefaultSize[1]*2.0)
     pt.savefig(fn_png)

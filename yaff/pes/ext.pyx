@@ -400,29 +400,34 @@ cdef class PairPotLJ(PairPot):
 cdef class PairPotMM3(PairPot):
     cdef np.ndarray _c_sigmas
     cdef np.ndarray _c_epsilons
+    cdef np.ndarray _c_onlypaulis
     name = 'mm3'
 
     def __cinit__(self, np.ndarray[double, ndim=1] sigmas,
-                  np.ndarray[double, ndim=1] epsilons, double rcut,
+                  np.ndarray[double, ndim=1] epsilons,
+                  np.ndarray[int, ndim=1] onlypaulis, double rcut,
                   Truncation tr=None):
         assert sigmas.flags['C_CONTIGUOUS']
         assert epsilons.flags['C_CONTIGUOUS']
+        assert onlypaulis.flags['C_CONTIGUOUS']
         assert sigmas.shape[0] == epsilons.shape[0]
+        assert sigmas.shape[0] == onlypaulis.shape[0]
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
         self.set_truncation(tr)
-        pair_pot.pair_data_mm3_init(self._c_pair_pot, <double*>sigmas.data, <double*>epsilons.data)
+        pair_pot.pair_data_mm3_init(self._c_pair_pot, <double*>sigmas.data, <double*>epsilons.data, <int*>onlypaulis.data)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
         self._c_sigmas = sigmas
         self._c_epsilons = epsilons
+        self._c_onlypaulis = onlypaulis
 
     def log(self):
         if log.do_high:
             log.hline()
-            log('   Atom      Sigma    Epsilon')
+            log('   Atom      Sigma    Epsilon    OnlyPauli')
             log.hline()
             for i in xrange(self._c_sigmas.shape[0]):
-                log('%7i %s %s' % (i, log.length(self._c_sigmas[i]), log.energy(self._c_epsilons[i])))
+                log('%7i %s %s            %i' % (i, log.length(self._c_sigmas[i]), log.energy(self._c_epsilons[i]), self._c_onlypaulis[i]))
 
     def get_sigmas(self):
         return self._c_sigmas.view()
@@ -433,6 +438,11 @@ cdef class PairPotMM3(PairPot):
         return self._c_epsilons.view()
 
     epsilons = property(get_epsilons)
+
+    def get_onlypaulis(self):
+        return self._c_onlypaulis.view()
+
+    onlypaulis = property(get_onlypaulis)
 
 
 cdef class PairPotGrimme(PairPot):

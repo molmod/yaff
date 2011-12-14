@@ -145,12 +145,13 @@ def get_part_water32_9A_mm3():
     epsilon_table = {1: 0.020*kcalmol, 8: 0.059*kcalmol}
     sigmas = np.zeros(96, float)
     epsilons = np.zeros(96, float)
+    onlypaulis = np.zeros(96, np.int32)
     for i in xrange(system.natom):
         sigmas[i] = sigma_table[system.numbers[i]]
         epsilons[i] = epsilon_table[system.numbers[i]]
     # Create the pair_pot and part_pair
     rcut = 9*angstrom
-    pair_pot = PairPotMM3(sigmas, epsilons, rcut, Hammer(1.0))
+    pair_pot = PairPotMM3(sigmas, epsilons, onlypaulis, rcut, Hammer(1.0))
     assert abs(pair_pot.sigmas - sigmas).max() == 0.0
     assert abs(pair_pot.epsilons - epsilons).max() == 0.0
     part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
@@ -379,11 +380,12 @@ def get_part_caffeine_mm3_15A():
     }
     sigmas = np.zeros(24, float)
     epsilons = np.zeros(24, float)
+    onlypaulis = np.zeros(24, np.int32)
     for i in xrange(system.natom):
         sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
         epsilons[i] = epsilon_table[system.numbers[i]]
     # Construct the pair potential and part
-    pair_pot = PairPotMM3(sigmas, epsilons, 15*angstrom)
+    pair_pot = PairPotMM3(sigmas, epsilons, onlypaulis, 15*angstrom)
     part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):

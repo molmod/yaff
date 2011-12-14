@@ -572,7 +572,7 @@ class LJGenerator(NonbondedGenerator):
 class MM3Generator(NonbondedGenerator):
     prefix = 'MM3'
     commands = ['UNIT', 'SCALE', 'PARS']
-    par_info = [('SIGMA', float), ('EPSILON', float)]
+    par_info = [('SIGMA', float), ('EPSILON', float), ('ONLYPAULI', int)]
 
     def __call__(self, system, parsed_pars, ff_args):
         self.check_commands(parsed_pars)
@@ -585,6 +585,7 @@ class MM3Generator(NonbondedGenerator):
         # Prepare the atomic parameters
         sigmas = np.zeros(system.natom)
         epsilons = np.zeros(system.natom)
+        onlypaulis = np.zeros(system.natom, np.int32)
         for i in xrange(system.natom):
             key = (system.get_ffatype(i),)
             par_list = par_table.get(key, [])
@@ -592,7 +593,7 @@ class MM3Generator(NonbondedGenerator):
                 if log.do_warning:
                     log.warn('No MM3 parameters found for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
             else:
-                sigmas[i], epsilons[i] = par_list[0]
+                sigmas[i], epsilons[i], onlypaulis[i] = par_list[0]
 
         # Prepare the global parameters
         scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
@@ -602,7 +603,7 @@ class MM3Generator(NonbondedGenerator):
         if part_pair is not None:
             raise RuntimeError('Internal inconsistency: the MM3 part should not be present yet.')
 
-        pair_pot = PairPotMM3(sigmas, epsilons, ff_args.rcut, ff_args.tr)
+        pair_pot = PairPotMM3(sigmas, epsilons, onlypaulis, ff_args.rcut, ff_args.tr)
         nlist = ff_args.get_nlist(system)
         part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
         ff_args.parts.append(part_pair)

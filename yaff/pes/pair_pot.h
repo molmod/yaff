@@ -70,9 +70,10 @@ double pair_fn_lj(void *pair_data, long center_index, long other_index, double d
 typedef struct {
   double *sigma;
   double *epsilon;
+  int *onlypauli;
 } pair_data_mm3_type;
 
-void pair_data_mm3_init(pair_pot_type *pair_pot, double *sigma, double *epsilon);
+void pair_data_mm3_init(pair_pot_type *pair_pot, double *sigma, double *epsilon, int *onlypauli);
 double pair_fn_mm3(void *pair_data, long center_index, long other_index, double d, double *g);
 
 
