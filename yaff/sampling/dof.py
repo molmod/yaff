@@ -364,7 +364,7 @@ class BaseCellDOF(DOF):
 
     def output(self):
         rvecs = self.ff.system.cell.rvecs
-        lengths, angles = UnitCell(rvecs).parameters
+        lengths, angles = UnitCell(rvecs.transpose()).parameters
         log(" ")
         log("Final Unit Cell:")
         log("----------------")
@@ -587,7 +587,7 @@ class ACRatioCellDOF(BaseCellDOF):
         self._last_cell[:] = self._cell[:]
 
     def output(self):
-        lengths, angles = UnitCell(self.ff.system.cell.rvecs).parameters
+        lengths, angles = UnitCell(self.ff.system.cell.rvecs.transpose()).parameters
         diag = np.sqrt(lengths[0]**2 + lengths[2]**2)
         BaseCellDOF.output(self)
         log(" ")
