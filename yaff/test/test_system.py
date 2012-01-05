@@ -145,6 +145,11 @@ def check_detect_bonds(system):
 def test_detect_bonds_glycine():
     system = get_system_glycine()
     check_detect_bonds(system)
+    system = System(system.numbers, system.pos)
+    system.detect_bonds()
+    assert hasattr(system, 'neighs1')
+    assert hasattr(system, 'neighs2')
+    assert hasattr(system, 'neighs3')
 
 
 def test_detect_bonds_water32():

@@ -386,6 +386,7 @@ class System(object):
                 if bonds.bonded(self.numbers[i0], self.numbers[i1], work[i]):
                     new_bonds.append((i0, i1))
             self.bonds = np.array(new_bonds)
+            self._init_derived_bonds()
 
     def detect_ffatypes(self, rules):
         with log.section('SYS'):
@@ -419,7 +420,7 @@ class System(object):
                     lookup[my_ffatype] = ffatype_id
                 self.ffatype_ids[i] = ffatype_id
             # Make sure all is done well ...
-            self._init_derived_ffatypes
+            self._init_derived_ffatypes()
 
     def set_standard_masses(self):
         with log.section('SYS'):
