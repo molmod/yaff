@@ -191,7 +191,6 @@ def test_generator_water32_exprep1():
     assert len(ff.parts) == 1
     part_pair_exprep = ff.part_pair_exprep
     # check parameters
-    assert (part_pair_exprep.pair_pot.ffatype_ids == system.ffatype_ids).all()
     amp_cross = part_pair_exprep.pair_pot.amp_cross
     assert (amp_cross > 0).all()
     assert (amp_cross == amp_cross.T).all()
@@ -210,7 +209,6 @@ def test_generator_water32_exprep2():
     assert len(ff.parts) == 1
     part_pair_exprep = ff.part_pair_exprep
     # check parameters
-    assert (part_pair_exprep.pair_pot.ffatype_ids == system.ffatype_ids).all()
     amp_cross = part_pair_exprep.pair_pot.amp_cross
     assert (amp_cross > 0).all()
     assert (amp_cross == amp_cross.T).all()
@@ -229,7 +227,6 @@ def test_generator_water32_exprep3():
     assert len(ff.parts) == 1
     part_pair_exprep = ff.part_pair_exprep
     # check parameters
-    assert (part_pair_exprep.pair_pot.ffatype_ids == system.ffatype_ids).all()
     amp_cross = part_pair_exprep.pair_pot.amp_cross
     assert (amp_cross > 0).all()
     assert (amp_cross == amp_cross.T).all()
@@ -337,7 +334,6 @@ def test_generator_water32():
     assert (b_cross == b_cross.T).all()
     assert (b_cross > 0).all()
     # check exprep parameters
-    assert (part_pair_exprep.pair_pot.ffatype_ids == system.ffatype_ids).all()
     amp_cross = part_pair_exprep.pair_pot.amp_cross
     assert (amp_cross > 0).all()
     assert (amp_cross == amp_cross.T).all()

@@ -525,7 +525,7 @@ cdef class PairPotExpRep(PairPot):
         )
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
-        self._c_ffatype_ids = ffatype_ids
+        self._c_nffatype = nffatype
         self._c_amp_cross = amp_cross
         self._c_b_cross = b_cross
 
@@ -565,11 +565,6 @@ cdef class PairPotExpRep(PairPot):
             for i0 in xrange(self._c_nffatype):
                 for i1 in xrange(i0+1):
                     log('%11i %11i %s %s' % (i0, i1, log.energy(self._c_amp_cross[i0, i1]), log.length(self._c_b_cross[i0,i1])))
-
-    def get_ffatype_ids(self):
-        return self._c_ffatype_ids.view()
-
-    ffatype_ids = property(get_ffatype_ids)
 
     def get_amp_cross(self):
         return self._c_amp_cross.view()
