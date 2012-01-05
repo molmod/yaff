@@ -564,7 +564,7 @@ cdef class PairPotExpRep(PairPot):
             log.hline()
             for i0 in xrange(self._c_nffatype):
                 for i1 in xrange(i0+1):
-                    log('%11i %11i %s %s' % (i0, i1, log.energy(self._c_amp_cross[i0, i1]), log.length(self._c_b_cross[i0,i1])))
+                    log('%11i %11i %s %s' % (i0, i1, log.energy(self._c_amp_cross[i0, i1]), log.invlength(self._c_b_cross[i0,i1])))
 
     def get_amp_cross(self):
         return self._c_amp_cross.view()
@@ -644,7 +644,7 @@ cdef class PairPotDampDisp(PairPot):
             log.hline()
             for i0 in xrange(self._c_nffatype):
                 for i1 in xrange(i0+1):
-                    log('%11i %11i %s %s' % (i0, i1, log.c6(self._c_c6_cross[i0,i1]), log.length(self._c_b_cross[i0,i1])))
+                    log('%11i %11i %s %s' % (i0, i1, log.c6(self._c_c6_cross[i0,i1]), log.invlength(self._c_b_cross[i0,i1])))
 
     def get_c6_cross(self):
         return self._c_c6_cross.view()
