@@ -37,7 +37,7 @@ four steps given above::
     # 3) Integrate Newton's equation of motion and write the trajectory in HDF5 format.
     f = h5py.File('output.h5', mode='w')
     hdf5_writer = HDF5Writer(f)
-    nve = NVEIntegrateor(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
+    nve = NVEIntegrator(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
     nve.run(5000)
     # 4) perform an analysis, e.g. RDF computation for O_W O_W centers.
     indexes = ssytem.get_indexes('O_W')
@@ -269,7 +269,7 @@ Running an FF simulation
 The equations of motion in the NVE ensemble can be integrated as follows::
 
     hdf5_writer = HDF5Writer(h5py.File('output.h5', mode='w'))
-    nve = NVEIntegrateor(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
+    nve = NVEIntegrator(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
     nve.run(5000)
 
 The parameters of the integrator can be tuned with several optional arguments of
@@ -287,11 +287,11 @@ steps, after the first 1000 iterations are carried out::
     hdf5_writer = HDF5Writer(h5py.File('output.h5', mode='w'), start=1000, step=100)
 
 The hooks argument may also be a list of hook objects, e.g. to reset the
-velocities every 200 steps, one may include the ``AndersonThermostat``::
+velocities every 200 steps, one may include the ``AndersenThermostat``::
 
     hooks=[
         HDF5Writer(h5py.File('output.h5', mode='w'))
-        AndersonThermostat(temp=300, step=200)
+        AndersenThermostat(temp=300, step=200)
     ]
 
 By default a screen logging hook is added (if not yet present) to write one
