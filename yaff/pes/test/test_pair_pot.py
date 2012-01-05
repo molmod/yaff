@@ -527,7 +527,7 @@ def get_part_caffeine_dampdisp_9A():
         vol0 = vols[system.ffatype_ids[i0]]
         vol1 = vols[system.ffatype_ids[i1]]
         ratio = (vol0/vol1)**2
-        c6 = 2*c60*c61/(c60*ratio+c61/ratio)
+        c6 = 2*c60*c61/(c60/ratio+c61*ratio)
         if b0 != 0 and b1 != 0:
             b = 0.5*(b0+b1)
             damp = 0
