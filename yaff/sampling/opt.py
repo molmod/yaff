@@ -129,7 +129,7 @@ class BaseOptimizer(Iterative):
 
     def finalize(self):
         if log.do_medium:
-            self.dof.output()
+            self.dof.log()
             log.hline()
 
 

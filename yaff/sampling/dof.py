@@ -72,6 +72,9 @@ class DOF(object):
             dxs[:,zero] = 0.0
         check_delta(self.fun, x, dxs)
 
+    def log(self):
+        pass
+
 
 class CartesianDOF(DOF):
     """Cartesian degrees of freedom for the optimizers"""
@@ -362,7 +365,7 @@ class BaseCellDOF(DOF):
     def grvecs_to_gx(self, grvecs):
         raise NotImplementedError
 
-    def output(self):
+    def log(self):
         rvecs = self.ff.system.cell.rvecs
         lengths, angles = UnitCell(rvecs.transpose()).parameters
         log(" ")
@@ -586,10 +589,10 @@ class ACRatioCellDOF(BaseCellDOF):
         self._last_pos[:] = self._pos[:]
         self._last_cell[:] = self._cell[:]
 
-    def output(self):
+    def log(self):
         lengths, angles = UnitCell(self.ff.system.cell.rvecs.transpose()).parameters
         diag = np.sqrt(lengths[0]**2 + lengths[2]**2)
-        BaseCellDOF.output(self)
+        BaseCellDOF.log(self)
         log(" ")
         log("- AC plane properties:")
         log("    AC diagonal length     = %s" % log.length(diag) )
