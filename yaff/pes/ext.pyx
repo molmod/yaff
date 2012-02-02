@@ -144,6 +144,23 @@ cdef class Cell:
 
     gspacings = property(get_gspacings)
 
+    def get_parameters(self):
+        rvecs = self.get_rvecs()
+        tmp = np.dot(rvecs, rvecs.T)
+        lengths = np.sqrt(np.diag(tmp))
+        tmp /= lengths
+        tmp /= lengths.reshape((-1,1))
+        if len(rvecs) < 2:
+            cosines = np.arrays([])
+        elif len(rvecs) == 2:
+            cosines = np.array([tmp[0,1]])
+        else:
+            cosines = np.array([tmp[1,2], tmp[2,0], tmp[0,1]])
+        angles = np.arccos(np.clip(cosines, -1, 1))
+        return lengths, angles
+
+    parameters = property(get_parameters)
+
     def mic(self, np.ndarray[double, ndim=1] delta):
         """Apply the minimum image convention to delta in-place"""
         assert delta.size == 3

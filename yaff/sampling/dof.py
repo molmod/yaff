@@ -29,7 +29,6 @@
 import numpy as np
 
 from molmod.minimizer import check_delta
-from molmod.unit_cells import UnitCell
 from yaff.log import log
 
 
@@ -367,23 +366,22 @@ class BaseCellDOF(DOF):
 
     def log(self):
         rvecs = self.ff.system.cell.rvecs
-        lengths, angles = UnitCell(rvecs.transpose()).parameters
+        lengths, angles = self.ff.system.cell.parameters
+        rvec_names = 'abc'
+        angle_names = ['alpha', 'beta', 'gamma']
         log(" ")
         log("Final Unit Cell:")
         log("----------------")
         log("- cell vectors:")
-        log("    a = %s %s %s" %( log.length(rvecs[0,0]), log.length(rvecs[0,1]), log.length(rvecs[0,2]) ))
-        log("    b = %s %s %s" %( log.length(rvecs[1,0]), log.length(rvecs[1,1]), log.length(rvecs[1,2]) ))
-        log("    c = %s %s %s" %( log.length(rvecs[2,0]), log.length(rvecs[2,1]), log.length(rvecs[2,2]) ))
+        for i in xrange(len(rvecs)):
+            log("    %s = %s %s %s" %(rvec_names[i], log.length(rvecs[i,0]), log.length(rvecs[i,1]), log.length(rvecs[i,2]) ))
         log(" ")
         log("- lengths, angles and volume:")
-        log("    |a| = %s" % log.length(lengths[0]) )
-        log("    |b| = %s" % log.length(lengths[1]) )
-        log("    |c| = %s" % log.length(lengths[2]) )
-        log("    alpha = %s" % log.angle(angles[0]) )
-        log("    beta  = %s" % log.angle(angles[1]) )
-        log("    gamma = %s" % log.angle(angles[2]) )
-        log("    Volume = %s" % log.volume(self.ff.system.cell.volume) )
+        for i in xrange(len(rvecs)):
+            log("    |%s|  = %s" % (rvec_names[i], log.length(lengths[i])))
+        for i in xrange(len(angles)):
+            log("    %5s = %s" % (angle_names[i], log.angle(angles[i])))
+        log("    volume = %s" % log.volume(self.ff.system.cell.volume) )
 
 
 class FullCellDOF(BaseCellDOF):
@@ -590,7 +588,7 @@ class ACRatioCellDOF(BaseCellDOF):
         self._last_cell[:] = self._cell[:]
 
     def log(self):
-        lengths, angles = UnitCell(self.ff.system.cell.rvecs.transpose()).parameters
+        lengths, angles = self.ff.system.cell.parameters
         diag = np.sqrt(lengths[0]**2 + lengths[2]**2)
         BaseCellDOF.log(self)
         log(" ")
