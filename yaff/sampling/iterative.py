@@ -60,7 +60,7 @@ class Iterative(object):
         """
         self.ff = ff
         if state is None:
-            self.state_list = list(self.default_state)
+            self.state_list = [state_item.copy() for state_item in self.default_state]
         else:
             self.state_list = state
         self.state = dict((item.key, item) for item in self.state_list)
@@ -134,10 +134,16 @@ class StateItem(object):
     def iter_attrs(self, iterative):
         return []
 
+    def copy(self):
+        return self.__class__()
+
 
 class AttributeStateItem(StateItem):
     def get_value(self, iterative):
         return getattr(iterative, self.key)
+
+    def copy(self):
+        return self.__class__(self.key)
 
 
 class PosStateItem(StateItem):
