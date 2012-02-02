@@ -188,6 +188,8 @@ def test_generator_water32_mm3():
     assert abs(part_pair_mm3.pair_pot.sigmas[1] - 0.2*angstrom) < 1e-10
     assert abs(part_pair_mm3.pair_pot.epsilons[0] - 0.12*kcalmol) < 1e-10
     assert abs(part_pair_mm3.pair_pot.epsilons[1] - 0.04*kcalmol) < 1e-10
+    assert part_pair_mm3.pair_pot.onlypaulis[0] == 1
+    assert part_pair_mm3.pair_pot.onlypaulis[1] == 0
 
 
 def test_generator_water32_exprep1():
