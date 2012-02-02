@@ -133,7 +133,12 @@ def test_generator_glycine_torsion():
     assert part_valence.dlist.ndelta == 9
     m_counts = {}
     for row in part_valence.vlist.vtab[:11]:
-        key = int(row['par0'])
+        if row['kind'] == 4:
+            key = int(row['par0'])
+        elif row['kind'] == 6:
+            key = 2
+        else:
+            raise AssertionError
         m_counts[key] = m_counts.get(key, 0) + 1
     assert len(m_counts) == 3
     assert m_counts[1] == 5
