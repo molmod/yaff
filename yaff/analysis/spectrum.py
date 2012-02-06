@@ -188,7 +188,7 @@ class Spectrum(AnalysisHook):
             self.outg['amps'][:] = self.amps
             self.outg['ac'][:] = self.ac
 
-    def plot(self, fn_png='spectrum.png', do_wavenum=True):
+    def plot(self, fn_png='spectrum.png', do_wavenum=True, xlim=None):
         import matplotlib.pyplot as pt
         if do_wavenum:
             xunit = lightspeed/centimeter
@@ -198,7 +198,10 @@ class Spectrum(AnalysisHook):
             xlabel = 'Frequency [1/%s]' % log.time.notation
         pt.clf()
         pt.plot(self.freqs/xunit, self.amps)
-        pt.xlim(0, self.freqs[-1]/xunit)
+        if xlim is not None:
+            pt.xlim(xlim[0]/xunit, xlim[1]/xunit)
+        else:
+            pt.xlim(0, self.freqs[-1]/xunit)
         pt.xlabel(xlabel)
         pt.ylabel('Amplitude')
         pt.savefig(fn_png)
