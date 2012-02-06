@@ -62,7 +62,7 @@ class RDF(AnalysisHook):
 
            select0
                 A list of atom indexes that are considered for the computation
-                of the ref data. If not given, all atoms are used.
+                of the rdf. If not given, all atoms are used.
 
            select1
                 A list of atom indexes that are needed to compute an RDF between

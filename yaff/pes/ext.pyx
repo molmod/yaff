@@ -181,20 +181,83 @@ cdef class Cell:
 
     def compute_distances(self, np.ndarray[double, ndim=1] output,
                           np.ndarray[double, ndim=2] pos0,
-                          np.ndarray[double, ndim=2] pos1=None):
+                          np.ndarray[double, ndim=2] pos1=None,
+                          np.ndarray[long, ndim=2] exclude=None):
+        """Computes all distances between the given coordinates
+
+           **Arguments:**
+
+           output
+                An numpy vector of the proper length that will be used to store
+                all the distances.
+
+           pos0
+                An array with Cartesian coordinates
+
+           **Optional arguments:**
+
+           pos1
+                A second array with Cartesian coordinates
+
+           exclude
+                A sorted array of atom pairs that will be excluded from the
+                fitting procedure. The indexes in this array refer to rows of
+                pos0 or pos1. If pos1 is not given, both columns refer to rows
+                of pos0. If pos1 is given, the first column refers to rows of
+                pos0 and the second column refers to rows of pos1. The rows in
+                the exclude array should be sorted lexicographically, first
+                along the first column, then along the second column.
+
+           This routine can operate in two different ways, depending on the
+           presence/absence of the argument ``pos1``. If not given, all
+           distances between points in ``pos0`` are computed and the length of
+           the output array is ``len(pos0)*(len(pos0)-1)/2``. If ``pos1`` is
+           given, all distances are computed between a point in ``pos0`` and a
+           point in ``pos1`` and the length of the output array is
+           ``len(pos0)*len(pos1)``. In both cases, some pairs of atoms may be
+           excluded from the output with the ``exclude`` argument. In typical
+           cases, this list of excluded pairs is relatively short.
+        """
+        cdef long* exclude_pointer
+
         assert pos0.shape[1] == 3
+        assert pos0.flags['C_CONTIGUOUS']
         natom0 = pos0.shape[0]
+
+        if exclude is not None:
+            assert exclude.shape[1] == 2
+            assert exclude.flags['C_CONTIGUOUS']
+            exclude_pointer = <long*> exclude.data
+            nexclude = exclude.shape[0]
+        else:
+            exclude_pointer = NULL
+            nexclude = 0
+
         if pos1 is None:
-            assert (natom0*(natom0-1))/2 == output.shape[0]
+            if exclude is None:
+                assert (natom0*(natom0-1))/2 == output.shape[0]
+            else:
+                assert (natom0*(natom0-1))/2 - len(exclude) == output.shape[0]
+            if cell.is_invalid_exclude(<long*> exclude.data, natom0, natom0, nexclude, True):
+                raise ValueError('The exclude array must countain index within proper bounds ans must be lexicographically sorted.')
             cell.cell_compute_distances1(self._c_cell, <double*> pos0.data,
-                                         <double*> output.data, natom0)
+                                         <double*> output.data, natom0,
+                                         <long*> exclude_pointer, nexclude)
         else:
             assert pos1.shape[1] == 3
+            assert pos1.flags['C_CONTIGUOUS']
             natom1 = pos1.shape[0]
-            assert natom0*natom1 == output.shape[0]
+
+            if exclude is None:
+                assert natom0*natom1 == output.shape[0]
+            else:
+                assert natom0*natom1 - len(exclude) == output.shape[0]
+            if cell.is_invalid_exclude(<long*> exclude.data, natom0, natom1, nexclude, False):
+                raise ValueError('The exclude array must countain index within proper bounds ans must be lexicographically sorted.')
             cell.cell_compute_distances2(self._c_cell, <double*> pos0.data,
                                          <double*> pos1.data,
-                                         <double*> output.data, natom0, natom1)
+                                         <double*> output.data, natom0, natom1,
+                                         <long*> exclude_pointer, nexclude)
 
 
 #

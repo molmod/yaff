@@ -135,3 +135,143 @@ def test_compute_distances2():
             cell.mic(delta)
             assert abs(output[counter] - np.linalg.norm(delta)) < 1e-10
             counter += 1
+
+
+def test_cell_distances1_exclude_a():
+    cell = Cell(np.zeros((0,3),float))
+    pos0 = np.array([
+        [1.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0],
+    ])
+
+    # First
+    output = np.zeros(1, float)
+    exclude = np.zeros((0,2),int)
+    cell.compute_distances(output, pos0, exclude=exclude)
+    assert output[0] == 1
+
+    # Second
+    output = np.zeros(0, float)
+    exclude = np.array([[1,0]])
+    cell.compute_distances(output, pos0, exclude=exclude)
+
+    # Third
+    output = np.zeros(0, float)
+    exclude = np.array([[0,1]])
+    try:
+        cell.compute_distances(output, pos0, exclude=exclude)
+        assert False
+    except ValueError:
+        pass
+
+
+def test_cell_distances1_exclude_b():
+    cell = Cell(np.zeros((0,3),float))
+    pos0 = np.array([
+        [1.0, 0.0, 0.0],
+        [0.0, 0.0, 0.0],
+        [2.0, 0.0, 0.0],
+    ])
+
+    # Zeroth
+    output = np.zeros(3, float)
+    cell.compute_distances(output, pos0)
+    assert output[0] == 1
+    assert output[1] == 1
+    assert output[2] == 2
+
+    # First
+    output = np.zeros(2, float)
+    exclude = np.array([[1,0]])
+    cell.compute_distances(output, pos0, exclude=exclude)
+    assert output[0] == 1
+    assert output[1] == 2
+
+    # Second
+    output = np.zeros(1, float)
+    exclude = np.array([[1,0],[2,1]])
+    cell.compute_distances(output, pos0, exclude=exclude)
+    assert output[0] == 1
+
+    # Third
+    output = np.zeros(1, float)
+    exclude = np.array([[2,1],[1,0]])
+    try:
+        cell.compute_distances(output, pos0, exclude=exclude)
+        assert False
+    except ValueError:
+        pass
+
+
+def test_cell_distances2_exclude_a():
+    cell = Cell(np.zeros((0,3),float))
+    pos0 = np.array([
+        [0.0, 0.0, 0.0],
+    ])
+    pos1 = np.array([
+        [0.0, 0.0, 1.0],
+    ])
+
+    # Zeroth
+    output = np.zeros(1, float)
+    cell.compute_distances(output, pos0, pos1)
+    assert output[0] == 1
+
+    # First
+    output = np.zeros(0, float)
+    exclude = np.array([[0,0]])
+    cell.compute_distances(output, pos0, pos1, exclude=exclude)
+
+    # Second
+    output = np.zeros(0, float)
+    for exclude in np.array([[-1,0]]), np.array([[0,-1]]), np.array([[0,5]]), np.array([[1,0]]):
+        print exclude
+        try:
+            cell.compute_distances(output, pos0, pos1, exclude=exclude)
+            assert False
+        except ValueError:
+            pass
+
+
+def test_cell_distances2_exclude_b():
+    cell = Cell(np.zeros((0,3),float))
+    pos0 = np.array([
+        [0.0, 0.0, 0.0],
+        [0.0, 0.0, 1.0],
+    ])
+    pos1 = np.array([
+        [0.0, 0.0, 1.0],
+        [0.0, 0.0, 2.0],
+    ])
+
+    # Zeroth
+    output = np.zeros(4, float)
+    cell.compute_distances(output, pos0, pos1)
+    assert output[0] == 1
+    assert output[1] == 2
+    assert output[2] == 0
+    assert output[3] == 1
+
+    # First
+    output = np.zeros(3, float)
+    exclude = np.array([[0,0]])
+    cell.compute_distances(output, pos0, pos1, exclude=exclude)
+    assert output[0] == 2
+    assert output[1] == 0
+    assert output[2] == 1
+
+    # Second
+    output = np.zeros(2, float)
+    exclude = np.array([[0,0],[1,1]])
+    cell.compute_distances(output, pos0, pos1, exclude=exclude)
+    assert output[0] == 2
+    assert output[1] == 0
+
+    # Third
+    output = np.zeros(2, float)
+    for exclude in np.array([[1,0],[0,1]]), np.array([[1,0],[0,0]]):
+        try:
+            cell.compute_distances(output, pos0, pos1, exclude=exclude)
+            assert False
+        except ValueError:
+            pass

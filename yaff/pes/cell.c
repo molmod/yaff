@@ -142,11 +142,48 @@ void cell_add_vec(double *delta, cell_type* cell, long* r) {
 }
 
 
-void cell_compute_distances1(cell_type* cell, double* pos, double* output, long natom) {
+int is_invalid_exclude(long* exclude, long natom0, long natom1, long nexclude, int intra) {
+  long iex;
+  for (iex = 0; iex < nexclude; iex++) {
+    if (exclude[2*iex] < 0) return 1;
+    if (exclude[2*iex] >= natom0) return 1;
+    if (exclude[2*iex+1] < 0) return 1;
+    if (exclude[2*iex+1] >= natom1) return 1;
+    if (intra) {
+      if (exclude[2*iex+1] >= exclude[2*iex]) return 1;
+    }
+    if (iex > 0) {
+      if (exclude[2*iex] < exclude[2*iex-2]) return 1;
+      if (exclude[2*iex] == exclude[2*iex-2]) {
+        if (exclude[2*iex+1] <= exclude[2*iex-1]) return 1;
+      }
+    }
+  }
+  return 0;
+}
+
+int is_excluded(long* exclude, long i0, long i1, long* iex, long nexclude) {
+  if (*iex >= nexclude) return 0;
+  while (exclude[2*(*iex)] < i0) {
+    (*iex)++;
+    if (*iex >= nexclude) return 0;
+  }
+  if (exclude[2*(*iex)] != i0) return 0;
+  while (exclude[2*(*iex)+1] < i1) {
+    (*iex)++;
+    if (*iex >= nexclude) return 0;
+    if (exclude[2*(*iex)] != i0) return 0;
+  }
+  return ((exclude[2*(*iex)+1] == i1) && (exclude[2*(*iex)] == i0));
+}
+
+void cell_compute_distances1(cell_type* cell, double* pos, double* output, long natom, long* exclude, long nexclude) {
   double delta[3];
-  long i0, i1;
+  long i0, i1, iex;
+  iex = 0;
   for (i0=0; i0<natom; i0++) {
     for (i1=0; i1<i0; i1++) {
+      if (is_excluded(exclude, i0, i1, &iex, nexclude)) continue;
       delta[0] = pos[3*i0  ] - pos[3*i1  ];
       delta[1] = pos[3*i0+1] - pos[3*i1+1];
       delta[2] = pos[3*i0+2] - pos[3*i1+2];
@@ -157,11 +194,13 @@ void cell_compute_distances1(cell_type* cell, double* pos, double* output, long 
   }
 }
 
-void cell_compute_distances2(cell_type* cell, double* pos0, double* pos1, double* output, long natom0, long natom1) {
+void cell_compute_distances2(cell_type* cell, double* pos0, double* pos1, double* output, long natom0, long natom1, long* exclude, long nexclude) {
   double delta[3];
-  long i0, i1;
+  long i0, i1, iex;
+  iex = 0;
   for (i0=0; i0<natom0; i0++) {
     for (i1=0; i1<natom1; i1++) {
+      if (is_excluded(exclude, i0, i1, &iex, nexclude)) continue;
       delta[0] = pos0[3*i0  ] - pos1[3*i1  ];
       delta[1] = pos0[3*i0+1] - pos1[3*i1+1];
       delta[2] = pos0[3*i0+2] - pos1[3*i1+2];
@@ -171,6 +210,7 @@ void cell_compute_distances2(cell_type* cell, double* pos0, double* pos1, double
     }
   }
 }
+
 
 int cell_get_nvec(cell_type* cell) {
   return (*cell).nvec;
