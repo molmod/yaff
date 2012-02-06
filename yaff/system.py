@@ -627,3 +627,31 @@ class System(object):
         if log.do_high:
             with log.section('SYS'):
                 log('Wrote system to %s.' % fn_chk)
+
+    def to_hdf5(self, f):
+        """Write the system to a HDF5 file.
+
+           **Arguments:**
+
+           f
+                A Writable h5py.File object.
+        """
+        if 'system' in f:
+            raise ValueError('The HDF5 file already contains a system description.')
+        sgrp = f.create_group('system')
+        sgrp.create_dataset('numbers', data=self.numbers)
+        sgrp.create_dataset('pos', data=self.pos)
+        if self.scopes is not None:
+            sgrp.create_dataset('scopes', data=self.scopes, dtype='a22')
+            sgrp.create_dataset('scope_ids', data=self.scope_ids)
+        if self.ffatypes is not None:
+            sgrp.create_dataset('ffatypes', data=self.ffatypes, dtype='a22')
+            sgrp.create_dataset('ffatype_ids', data=self.ffatype_ids)
+        if self.bonds is not None:
+            sgrp.create_dataset('bonds', data=self.bonds)
+        if self.cell.nvec > 0:
+            sgrp.create_dataset('rvecs', data=self.cell.rvecs)
+        if self.charges is not None:
+            sgrp.create_dataset('charges', data=self.charges)
+        if self.masses is not None:
+            sgrp.create_dataset('masses', data=self.masses)

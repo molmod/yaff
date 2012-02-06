@@ -72,23 +72,7 @@ class HDF5Writer(Hook):
         tgrp.attrs['row'] += 1
 
     def dump_system(self, system):
-        sgrp = self.f.create_group('system')
-        sgrp.create_dataset('numbers', data=system.numbers)
-        sgrp.create_dataset('pos', data=system.pos)
-        if system.scopes is not None:
-            sgrp.create_dataset('scopes', data=system.scopes, dtype='a22')
-            sgrp.create_dataset('scope_ids', data=system.scope_ids)
-        if system.ffatypes is not None:
-            sgrp.create_dataset('ffatypes', data=system.ffatypes, dtype='a22')
-            sgrp.create_dataset('ffatype_ids', data=system.ffatype_ids)
-        if system.bonds is not None:
-            sgrp.create_dataset('bonds', data=system.bonds)
-        if system.cell.nvec > 0:
-            sgrp.create_dataset('rvecs', data=system.cell.rvecs)
-        if system.charges is not None:
-            sgrp.create_dataset('charges', data=system.charges)
-        if system.masses is not None:
-            sgrp.create_dataset('masses', data=system.masses)
+        system.to_hdf5(self.f)
 
     def init_trajectory(self, iterative):
         tgrp = self.f.create_group('trajectory')
