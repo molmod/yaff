@@ -389,7 +389,7 @@ def plot_cell_pars(f, fn_png='cell_pars.png', **kwargs):
     pt.savefig(fn_png)
 
 
-def plot_epot_contribs(f, fn_png='epot_contribs.png', **kwargs):
+def plot_epot_contribs(f, fn_png='epot_contribs.png', size=1.0, **kwargs):
     """Make a plot of the contributions to the potential energy as f. of time
 
        **Arguments:**
@@ -430,5 +430,5 @@ def plot_epot_contribs(f, fn_png='epot_contribs.png', **kwargs):
     pt.legend(loc=0)
     F=pt.gcf()
     DefaultSize = F.get_size_inches()
-    F.set_size_inches(DefaultSize[0]*2.0, DefaultSize[1]*2.0)
+    F.set_size_inches(DefaultSize[0]*size, DefaultSize[1]*size)
     pt.savefig(fn_png)
