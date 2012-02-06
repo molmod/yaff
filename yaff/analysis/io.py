@@ -24,6 +24,8 @@
 from molmod import angstrom
 from molmod.io import XYZReader
 
+from yaff.log import log
+
 
 __all__ = ['xyz_to_hdf5']
 
@@ -55,39 +57,57 @@ def xyz_to_hdf5(f, fn_xyz, sub=slice(None), file_unit=angstrom, name='pos'):
 
        This routine will also test the consistency of the row attribute of the
        trajectory group. If some trajectory data is already present, it will be
-       replaced by the new data.
+       replaced by the new data. It is highly recommended to first initialize
+       the HDF5 file with the ``to_hdf5`` method of the System class.
     """
-    xyz_reader = XYZReader(fn_xyz, sub=sub)
+    with log.section('XYZH5'):
+        if log.do_medium:
+            log('Loading XYZ file \'%s\' into \'trajectory/%s\' of HDF5 file \'%s\'' % (
+                fn_xyz, name, f.name
+            ))
 
-    # Take care of the data group
-    if 'trajectory' not in f:
-        tgrp = f.create_group('trajectory')
-        existing_row = None
-    else:
-        tgrp = f['trajectory']
-        existing_row = tgrp.attrs['row']
+        # First make sure the HDF5 file has a system description that is consistent
+        # with the XYZ file.
+        if 'system' not in f:
+            raise ValueError('The HDF5 file must contain a system group.')
+        if 'numbers' not in f['system']:
+            raise ValueError('The HDF5 file must have a system group with atomic numbers.')
 
-    # Take care of the dataset
-    if name in tgrp:
-        del tgrp[name]
+        xyz_reader = XYZReader(fn_xyz, sub=sub)
+        if len(xyz_reader.numbers) != len(f['system/numbers']):
+            raise ValueError('The number of atoms in the HDF5 and the XYZ files does not match.')
+        if (xyz_reader.numbers != f['system/numbers']).any():
+            log.warn('The atomic numbers of the HDF5 and XYZ file do not match.')
 
-    # Create a new dataset
-    shape = (0, len(xyz_reader.numbers), 3)
-    maxshape = (None, len(xyz_reader.numbers), 3)
-    ds = tgrp.create_dataset(name, shape, maxshape=maxshape, dtype=float)
+        # Take care of the data group
+        if 'trajectory' not in f:
+            tgrp = f.create_group('trajectory')
+            existing_row = None
+        else:
+            tgrp = f['trajectory']
+            existing_row = tgrp.attrs['row']
 
-    # Fill the dataset with data.
-    row = 0
-    for title, coordinates in xyz_reader:
-        if ds.shape[0] <= row:
-            # do not over-allocate. hdf5 works with chunks internally.
-            ds.resize(row+1, axis=0)
-        ds[row] = coordinates
-        row += 1
+        # Take care of the dataset
+        if name in tgrp:
+            del tgrp[name]
 
-    # Check number of rows
-    if existing_row is None:
-        tgrp.attrs['row'] = row
-    else:
-        if existing_row != row:
-            raise ValueError('The amount of data loaded into the HDF5 file is not consistent with number of rows already present in the trajectory.')
+        # Create a new dataset
+        shape = (0, len(xyz_reader.numbers), 3)
+        maxshape = (None, len(xyz_reader.numbers), 3)
+        ds = tgrp.create_dataset(name, shape, maxshape=maxshape, dtype=float)
+
+        # Fill the dataset with data.
+        row = 0
+        for title, coordinates in xyz_reader:
+            if ds.shape[0] <= row:
+                # do not over-allocate. hdf5 works with chunks internally.
+                ds.resize(row+1, axis=0)
+            ds[row] = coordinates
+            row += 1
+
+        # Check number of rows
+        if existing_row is None:
+            tgrp.attrs['row'] = row
+        else:
+            if existing_row != row:
+                raise ValueError('The amount of data loaded into the HDF5 file is not consistent with number of rows already present in the trajectory.')

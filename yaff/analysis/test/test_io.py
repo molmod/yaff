@@ -28,6 +28,11 @@ from yaff import *
 
 def test_xyz_to_hdf5():
     f = h5py.File('tmp.h5', driver='core', backing_store=False)
+    # Bad practice. Proper use is to initialize the system object from a
+    # different XYZ (or yet something else) with a single geometry.
+    system = System.from_file('input/water_trajectory.xyz')
+    system.to_hdf5(f)
+    # Actual trajectory conversion
     xyz_to_hdf5(f, 'input/water_trajectory.xyz')
     assert 'trajectory' in f
     assert f['trajectory'].attrs['row'] == 5
