@@ -21,10 +21,17 @@
 # --
 
 
-from yaff.analysis.basic import *
-from yaff.analysis.blav import *
-from yaff.analysis.diffusion import *
-from yaff.analysis.io import *
-from yaff.analysis.rdf import *
-from yaff.analysis.spectrum import *
-from yaff.analysis.utils import *
+import h5py
+
+from yaff import *
+
+
+def test_xyz_to_hdf5():
+    f = h5py.File('tmp.h5', driver='core', backing_store=False)
+    xyz_to_hdf5(f, 'input/water_trajectory.xyz')
+    assert 'trajectory' in f
+    assert f['trajectory'].attrs['row'] == 5
+    assert abs(f['trajectory/pos'][0,0,0] - 3.340669*angstrom) < 1e-5
+    assert abs(f['trajectory/pos'][-1,-1,-1] - -3.335574*angstrom) < 1e-5
+    assert abs(f['trajectory/pos'][3,2,1] - 3.363249*angstrom) < 1e-5
+    f.close()
