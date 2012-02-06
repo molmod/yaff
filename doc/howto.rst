@@ -29,6 +29,7 @@ four steps given above::
     log.set_unitsys(log.joule)
 
     # import the h5py library to write output in the HDF5 format.
+    import h5py
 
     # 1) specify the system
     system = System.from_file('system.chk')
@@ -62,14 +63,14 @@ Setting up a molecular system
 -----------------------------
 
 A ``System`` instance in Yaff contains all the physical properties of a
-molecular system plus some extra information that is usfule to define a force
+molecular system plus some extra information that is useful to define a force
 field. Most properties are optional.
 
 **Basic physical properties:**
 
 #. Atomic numbers
 #. Positions of the atoms
-#. 0, 1, 2, or 3 Cell parameters (optional)
+#. 0, 1, 2, or 3 Cell vectors (optional)
 #. Atomic charges (optional)
 #. Atomic masses (optional)
 
@@ -115,7 +116,7 @@ The ``System`` constructor arguments can be specified with some python code::
 
 where the ``*angstrom`` converts the numbers from angstrom to atomic units. The
 scopes and atom types may be given as ordinary lists with a single string for
-each atom. Such lists are converted automatically to a unique list of strings
+each atom. Such lists are converted automatically to a list of unique strings
 and arrays with scope and atom type indexes for each atom. The following is
 equivalent::
 
@@ -232,10 +233,10 @@ This is a simple example of a Lennard-Jones force field::
    parameter file, but with a few extra features to make the format more
    general:
 
-    a. Introduce sections for different namespaces (see above, low priority)
+    a. Introduce sections for different scopes (see above, low priority)
     b. Include charges based on reference charges and charge-transfers over
        bonds. Dielectric background for fixed charge models.
-    c. prefix each line with a keyword that fixes the interpretation of the
+    c. Prefix each line with a keyword that fixes the interpretation of the
        parameters that follow, e.g. ``EXPREP:PARS O H 100.0 4.4``
     d. Configurable units, e.g. ``EXPREP:UNIT A au``.
     e. Allow comments with #
@@ -281,8 +282,8 @@ data in the HDF5 file is stored in atomic units.
 
 The ``hooks`` argument can be used to specify callback routines that are called
 after every iteration or, using the ``start`` and ``step`` arguments, at
-selected iterations. For example, this HDF5 hook will write data every 100
-steps, after the first 1000 iterations are carried out::
+selected iterations. For example, the following HDF5 hook will write data every
+100 steps, after the first 1000 iterations are carried out::
 
     hdf5_writer = HDF5Writer(h5py.File('output.h5', mode='w'), start=1000, step=100)
 
@@ -297,8 +298,8 @@ velocities every 200 steps, one may include the ``AndersenThermostat``::
 By default a screen logging hook is added (if not yet present) to write one
 line per iteration with some critical integrator parameters.
 
-Other integrators are implemented such as NVTNoseIntegrator,
-NVTLangevinIntegrator, and so on.
+Other integrators are implemented such as ``NVTNoseIntegrator``,
+``NVTLangevinIntegrator``, and so on.
 
 
 **Geometry optimization**
@@ -359,6 +360,8 @@ as follows::
 **TODO:**
 
 #. [LOW PRIORITY] ``RefTraj`` derivative of the Iterative class.
+#. [LOW PRIORITY] ``NVTNoseIntegrator`` and ``NVTLangevinIntegrator``
+   derivatives of the Iterative class.
 
 
 Analyzing the results
@@ -409,7 +412,7 @@ simulation:
   makes a figure ``temp_dist.png``
 
 All these functions accept optional arguments to tune their behavior. See XXX
-for more details.
+for more analysis routines and more details.
 
 
 **Advanced analysis**
@@ -451,7 +454,11 @@ computations that can either be done in a post-processing step, or on-line.
   ``plot`` method makes a figure of the spectrum. The ``plot_ac`` method makes
   a figure of the corresponding autocorrelation function. All the results are
   also available as attributes of the spectrum object. Similar to the RDF
-  analysis, the spectrum can be computed both on-line and off-line.
+  analysis, the spectrum can be computed both on-line and off-line. One can
+  also estimate the IR spectrum as follows::
+
+    spectrum = Spectrum(f, bsize=512, path='trajectory/dipole_vel', key='ir')
+    spectrum.plot()
 
 * The diffusion constant is computed as follows::
 
@@ -461,10 +468,8 @@ computations that can either be done in a post-processing step, or on-line.
 
 **TODO:**
 
-#. Make it easy to compute the IR spectrum in addition to the standard
-   vibrational spectrum.
-
-#. [LOW PRIORITY] Port other things from MD-Tracks, including the conversion stuff.
+#. [LOW PRIORITY] Port more things from MD-Tracks, including the conversion
+   stuff.
 
 
 ATSELECT: Selecting atoms
@@ -541,7 +546,7 @@ not start with a digit. Some examples of atom selectors:
    least one atom with four bonds.
  * ``6&@6`` -- a Carbon atom that is part of a six-membered ring.
 
-There are currently two ways to use the ATSELECT strings in Yaff:
+There are currently three ways to use the ATSELECT strings in Yaff:
 
 1. Compile the string into a function and use it directly::
 
@@ -561,13 +566,22 @@ There are currently two ways to use the ATSELECT strings in Yaff:
     # The array indexes is now contains all indexes of the carbon atoms with
     # four neighbors.
 
+3. Define FF atom types in a system based on ATSELECT strings. For this purpose,
+   one can normally not rely on the presence of FF atom types in the system
+   object. Therefore one can use FF atom types in the ATSELECT strings. ::
+
+    from yaff import *
+    system = System.from_file('test.chk')
+    system.detect_ffatypes([
+        ('H', '1'),
+        ('O', '8'),
+    ])
+
+
 Whenever one uses a compiled expression on a system that does not have
 sufficient attributes, a ``ValueError`` is raised.
 
 **TODO:**
-
-#. [LATER] Add a method to the System class to assign ffatypes based on ATSELECT filters.
-   If an atom does not have a matching filter, raise an error.
 
 #. [LATER2] Add support for atomic numbers in the parameter files.
 
@@ -595,3 +609,35 @@ sufficient attributes, a ``ValueError`` is raised.
 #. [LOW PRIORITY] Add support for ``@N`` feature to ATSELECT.
 
 #. [LOW PRIORITY] Add caching to the ATSELECT compiler.
+
+
+Post-processing external trajectory data
+========================================
+
+One may also use the analysis module of Yaff to process trajectories generated
+with other molecular simulation codes. This typically takes the following three
+steps. These steps may be put in a single script, but in practice it is
+recommended to have a separate script for the actual analysis.
+
+1. Create a Yaff system object of the molecular system of interest. The
+   following example loads the XYZ file of an initial geometry and adds cell
+   vectors corresponding to a cubic cell with edge length 20.3 Å. ::
+
+    from yaff import *
+    import numpy as np
+    system = System.from_file('initial.xyz', rvecs=np.diag([20.3, 20.3, 20.3])*angstrom)
+
+2. Initialize an HDF5 file and load the trajectory in the HDF5 file::
+
+    import h5py
+    f = h5py.File('trajectory.h5', mode='w')
+    system.to_hdf5(f)
+    xyz_to_hdf5(f, 'trajectory.xyz')
+
+3. Perform the actual analysis. In the following example, a radial distribution
+   function is computed between the hydrogen and the oxygen atoms. ::
+
+    select0 = system.get_indexes('1')
+    select1 = system.get_indexes('8')
+    rdf = RDF(f, 10*angstrom, 0.1*angstrom, max_sample=100, select0=select0, select1=select1)
+    rdf.plot()

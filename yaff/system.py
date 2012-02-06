@@ -389,6 +389,16 @@ class System(object):
             self._init_derived_bonds()
 
     def detect_ffatypes(self, rules):
+        """Assign ffatypes based on ATSELECT rules.
+
+           **Argument:**
+
+           rules
+                A list of (ffatype, rule) pairs that will be used to initialize
+                the attributes ``self.ffatypes`` and ``self.ffatype_ids``.
+
+           If the system already has FF atom types, they will be overwritten.
+        """
         with log.section('SYS'):
             # Give warning if needed
             if self.ffatypes is not None:
