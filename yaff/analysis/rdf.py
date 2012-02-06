@@ -36,8 +36,8 @@ class RDF(AnalysisHook):
     label = 'rdf'
 
     def __init__(self, rcut, rspacing, f=None, start=0, end=-1, max_sample=None,
-                 step=None, select0=None, select1=None, path='trajectory/pos',
-                 key='pos', outpath=None):
+                 step=None, select0=None, select1=None, exclude=None,
+                 path='trajectory/pos', key='pos', outpath=None):
         """Computes a radial distribution function (RDF)
 
            **Argument:**
@@ -71,6 +71,10 @@ class RDF(AnalysisHook):
                 an 'internal' RDF will be computed for the atoms specified in
                 select0.
 
+           exclude
+                An array with pairs of atoms (shape K x 2) with pairs of atom
+                indexes to be excluded from the RDF.
+
            path
                 The path of the dataset that contains the time dependent data in
                 the HDF5 file. The first axis of the array must be the time
@@ -103,12 +107,43 @@ class RDF(AnalysisHook):
         self.rspacing = rspacing
         self.select0 = select0
         self.select1 = select1
+        self.exclude_atoms = exclude
         self.nbin = int(self.rcut/self.rspacing)
         self.bins = np.arange(self.nbin+1)*self.rspacing
         self.d = self.bins[:-1] + 0.5*self.rspacing
         self.counts = np.zeros(self.nbin, int)
         self.nsample = 0
+        self._init_exclude()
         AnalysisHook.__init__(self, f, start, end, max_sample, step, path, key, outpath, False)
+
+    def _init_exclude(self):
+        if self.exclude_atoms is None:
+            self.exclude = None
+            return
+        elif self.select1 is None:
+            index0 = dict((atom0, i0) for i0, atom0 in enumerate(self.select0))
+            index1 = index0
+        else:
+            index0 = dict((atom0, i0) for i0, atom0 in enumerate(self.select0))
+            index1 = dict((atom1, i1) for i1, atom1 in enumerate(self.select1))
+        exclude = []
+        for atom0, atom1 in self.exclude_atoms:
+            i0 = index0.get(atom0)
+            i1 = index1.get(atom1)
+            if i0 is None or i1 is None:
+                i0 = index0.get(atom1)
+                i1 = index1.get(atom0)
+            if i0 is None or i1 is None:
+                continue
+            if self.select1 is None and i0 < i1:
+                i0, i1 = i1, i0
+            exclude.append((i0, i1))
+        exclude.sort()
+        if len(exclude) > 0:
+            self.exclude = np.array(exclude)
+        else:
+            self.exclude = None
+        print self.exclude
 
     def configure_online(self, iterative):
         self.cell = iterative.ff.system.cell
@@ -123,7 +158,7 @@ class RDF(AnalysisHook):
         else:
             self.cell = Cell(None)
         if self.cell.nvec != 3:
-            raise ValueError('RDF can onle be computed for 3D periodic systems.')
+            raise ValueError('RDF can only be computed for 3D periodic systems.')
         # get the total number of atoms
         self.natom = self.f['system/numbers'].shape[0]
 
@@ -142,6 +177,8 @@ class RDF(AnalysisHook):
             self.natom1 = len(self.select1)
             self.pos1 = np.zeros((self.natom1, 3), float)
             self.npair = self.natom0*self.natom1
+        if self.exclude is not None:
+            self.npair -= len(self.exclude)
         self.work = np.zeros(self.npair, float)
         # Prepare the output
         AnalysisHook.init_first(self)
@@ -169,7 +206,7 @@ class RDF(AnalysisHook):
             ds.read_direct(self.pos1, (i,self.select1))
 
     def compute_iteration(self):
-        self.cell.compute_distances(self.work, self.pos0, self.pos1)
+        self.cell.compute_distances(self.work, self.pos0, self.pos1, self.exclude)
         self.counts += np.histogram(self.work, bins=self.bins)[0]
         self.nsample += 1
 

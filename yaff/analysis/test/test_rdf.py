@@ -20,7 +20,7 @@
 #
 # --
 
-import shutil, os, h5py
+import shutil, os, h5py, numpy as np
 
 from yaff import *
 from yaff.analysis.test.common import get_nve_water32
@@ -124,3 +124,29 @@ def test_rdf2_online_blind():
     nve.run(5)
     assert nve.counter == 5
     assert rdf.nsample == 6
+
+
+def test_rdf2_offline_exclude():
+    dn_tmp, nve, f = get_nve_water32()
+    try:
+        select0 = nve.ff.system.get_indexes('O')
+        select1 = nve.ff.system.get_indexes('H')
+        exclude = []
+        for i in xrange(32):
+            exclude.append((3*i+1,3*i))
+            exclude.append((3*i+2,3*i))
+        exclude = np.array(exclude)
+        print nve.ff.system.natom
+        print exclude
+        rdf = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select0, select1=select1, exclude=exclude)
+        assert 'trajectory/pos_rdf' in f
+        assert 'trajectory/pos_rdf/d' in f
+        assert 'trajectory/pos_rdf/counts' in f
+        assert 'trajectory/pos_rdf/rdf' in f
+        assert 'trajectory/pos_rdf/crdf' in f
+        fn_png = '%s/rdf.png' % dn_tmp
+        rdf.plot(fn_png)
+        assert os.path.isfile(fn_png)
+    finally:
+        shutil.rmtree(dn_tmp)
+        f.close()

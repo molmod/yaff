@@ -239,7 +239,7 @@ cdef class Cell:
             else:
                 assert (natom0*(natom0-1))/2 - len(exclude) == output.shape[0]
             if cell.is_invalid_exclude(<long*> exclude.data, natom0, natom0, nexclude, True):
-                raise ValueError('The exclude array must countain index within proper bounds ans must be lexicographically sorted.')
+                raise ValueError('The exclude array must countain indices within proper bounds ans must be lexicographically sorted.')
             cell.cell_compute_distances1(self._c_cell, <double*> pos0.data,
                                          <double*> output.data, natom0,
                                          <long*> exclude_pointer, nexclude)
@@ -253,7 +253,7 @@ cdef class Cell:
             else:
                 assert natom0*natom1 - len(exclude) == output.shape[0]
             if cell.is_invalid_exclude(<long*> exclude.data, natom0, natom1, nexclude, False):
-                raise ValueError('The exclude array must countain index within proper bounds ans must be lexicographically sorted.')
+                raise ValueError('The exclude array must countain indices within proper bounds ans must be lexicographically sorted.')
             cell.cell_compute_distances2(self._c_cell, <double*> pos0.data,
                                          <double*> pos1.data,
                                          <double*> output.data, natom0, natom1,
