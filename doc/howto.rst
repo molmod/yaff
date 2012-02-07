@@ -639,5 +639,5 @@ recommended to have a separate script for the actual analysis.
 
     select0 = system.get_indexes('1')
     select1 = system.get_indexes('8')
-    rdf = RDF(f, 10*angstrom, 0.1*angstrom, max_sample=100, select0=select0, select1=select1)
+    rdf = RDF(10*angstrom, 0.1*angstrom, f, max_sample=100, select0=select0, select1=select1)
     rdf.plot()
