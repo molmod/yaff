@@ -143,7 +143,6 @@ class RDF(AnalysisHook):
             self.exclude = np.array(exclude)
         else:
             self.exclude = None
-        print self.exclude
 
     def configure_online(self, iterative):
         self.cell = iterative.ff.system.cell
