@@ -44,6 +44,7 @@ four steps given above::
     indexes = ssytem.get_indexes('O_W')
     rdf = RDFAnalysis(f, indexes)
     rdf.result.plot('rdf.png')
+    f.close()
 
 These steps will be discussed in more detail in the following sections.
 
@@ -398,6 +399,7 @@ simulation:
 
     f = h5py.File('output.h5')
     plot_energies(f)
+    f.close()
 
   makes a figure ``energies.png``.
 
@@ -428,6 +430,7 @@ computations that can either be done in a post-processing step, or on-line.
     rdf = RDF(f, 4.8*angstrom, 0.1*angstrom, max_sample=100, select0=select)
     rdf.plot()
     rdf.plot_crdf()
+    f.close()
 
   In this example, the cutoff for the RDF is 4.8 Å and the spacing of the
   bins 0.1 Å. At most 100 samples are used to compute the RDF. The results are
@@ -633,6 +636,7 @@ recommended to have a separate script for the actual analysis.
     f = h5py.File('trajectory.h5', mode='w')
     system.to_hdf5(f)
     xyz_to_hdf5(f, 'trajectory.xyz')
+    f.close()
 
 3. Perform the actual analysis. In the following example, a radial distribution
    function is computed between the hydrogen and the oxygen atoms. ::
