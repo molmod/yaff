@@ -23,7 +23,7 @@
 
 import tempfile, shutil, numpy as np
 
-from yaff import System, unravel_triangular, Cell
+from yaff import System, unravel_triangular, Cell, angstrom
 
 from common import get_system_water32, get_system_glycine, get_system_quartz
 
@@ -235,3 +235,14 @@ def test_supercell_mil53_121():
     assert (system121.ffatype_ids[system111.natom:] == system111.ffatype_ids).all()
     assert (system121.ffatypes == system111.ffatypes).all()
     check_detect_bonds(system121)
+
+
+def test_supercell_nobonds():
+    cellpar = 2.867*angstrom
+    sys111 = System(
+        numbers=np.array([26, 26]),
+        pos=np.array([[0.0, 0.0, 0.0], [0.5, 0.5, 0.5]])*cellpar,
+        ffatypes=['Fe', 'Fe'],
+        rvecs=np.identity(3)*cellpar,
+    )
+    sys333 = sys111.supercell(3,3,3)

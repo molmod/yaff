@@ -568,45 +568,46 @@ class System(object):
             start = stop
         new_args['pos'] = new_pos
 
-        # E) Bonds
-        # E.1) A function that translates a set of image indexes and an old atom
-        # index into a new atom index
-        offsets = {}
-        start = 0
-        for iimage in np.ndindex(reps):
-            offsets[iimage] = start
-            start += self.natom
-        def to_new_atom_index(iimage, i):
-            return offsets[iimage] + i
+        if self.bonds is not None:
+            # E) Bonds
+            # E.1) A function that translates a set of image indexes and an old atom
+            # index into a new atom index
+            offsets = {}
+            start = 0
+            for iimage in np.ndindex(reps):
+                offsets[iimage] = start
+                start += self.natom
+            def to_new_atom_index(iimage, i):
+                return offsets[iimage] + i
 
-        # E.2) Construct extended bond information: for each bond, also keep
-        # track of periodic image it connects to. Note that this information
-        # is implicit in yaff, and derived using the minimum image convention.
-        rel_iimage = {}
-        for ibond in xrange(len(self.bonds)):
-            i0, i1 = self.bonds[ibond]
-            delta = self.pos[i0] - self.pos[i1]
-            frac = np.dot(self.cell.gvecs, delta)
-            rel_iimage[ibond] = np.ceil(frac-0.5)
-
-        # E.3) Create the new bonds
-        new_bonds = np.zeros((len(self.bonds)*rep_all,2), float)
-        counter = 0
-        for iimage0 in np.ndindex(reps):
+            # E.2) Construct extended bond information: for each bond, also keep
+            # track of periodic image it connects to. Note that this information
+            # is implicit in yaff, and derived using the minimum image convention.
+            rel_iimage = {}
             for ibond in xrange(len(self.bonds)):
                 i0, i1 = self.bonds[ibond]
-                # Translate i0 to the new index.
-                j0 = to_new_atom_index(iimage0, i0)
-                # Also translate i1 to the new index. This is a bit more tricky.
-                # The difficult case occurs when the bond between i0 and i1
-                # connects different periodic images. In that case, the change
-                # in periodic image must be taken into account.
-                iimage1 = tuple((iimage0[c] + rel_iimage[ibond][c]) % reps[c] for c in xrange(len(reps)))
-                j1 = to_new_atom_index(iimage1, i1)
-                new_bonds[counter,0] = j0
-                new_bonds[counter,1] = j1
-                counter += 1
-        new_args['bonds'] = new_bonds
+                delta = self.pos[i0] - self.pos[i1]
+                frac = np.dot(self.cell.gvecs, delta)
+                rel_iimage[ibond] = np.ceil(frac-0.5)
+
+            # E.3) Create the new bonds
+            new_bonds = np.zeros((len(self.bonds)*rep_all,2), float)
+            counter = 0
+            for iimage0 in np.ndindex(reps):
+                for ibond in xrange(len(self.bonds)):
+                    i0, i1 = self.bonds[ibond]
+                    # Translate i0 to the new index.
+                    j0 = to_new_atom_index(iimage0, i0)
+                    # Also translate i1 to the new index. This is a bit more tricky.
+                    # The difficult case occurs when the bond between i0 and i1
+                    # connects different periodic images. In that case, the change
+                    # in periodic image must be taken into account.
+                    iimage1 = tuple((iimage0[c] + rel_iimage[ibond][c]) % reps[c] for c in xrange(len(reps)))
+                    j1 = to_new_atom_index(iimage1, i1)
+                    new_bonds[counter,0] = j0
+                    new_bonds[counter,1] = j1
+                    counter += 1
+            new_args['bonds'] = new_bonds
 
         # Done
         return System(**new_args)
