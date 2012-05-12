@@ -486,10 +486,9 @@ to SMARTS patterns. This language can also be used to define atom types.
 The SMARTS system has the advantage of being very compact, but it has a few
 disadvantages that make it poorly applicable in the Yaff context: e.g. it
 assumes that the hybridization state of first-row atoms and bond orders are
-known. The only real `knowns` in the Yaff context are: ``numbers``, (optionally)
-``ffatypes``, (optionally) ``scopes`` and (optionally) ``bonds``. Therefore
-we introduce a new language, hereafter called `ATSELECT`, to select atoms in a
-system.
+known. The only real `knowns` in the Yaff context are: ``numbers`` and
+optionally ``ffatypes``, ``scopes`` and ``bonds``. Therefore we introduce a new
+language, hereafter called ATSELECT, to select atoms in a system.
 
 The syntax of the ATSELECT language is defined as follows. An ATSELECT
 expression consists of a single line and is case-sensitive. White-space is
@@ -505,10 +504,10 @@ completely ignored. An ATSELECT expression can be any of the following:
     Matches any atom in the given scope.
 
 ``expr1 & expr2 [& ...]``
-    Matches an atom the satisfies all the given expressions.
+    Matches an atom that satisfies all the given expressions.
 
 ``expr1 | expr2 [| ...]``
-    Matches an atom the satisfies any of the given expressions.
+    Matches an atom that satisfies any of the given expressions.
 
 ``!expr``
     Matches an atom that does not satisfy the given expression.
@@ -566,23 +565,24 @@ There are currently three ways to use the ATSELECT strings in Yaff:
     from yaff import *
     system = System.from_file('test.chk')
     indexes = system.get_indexes('C&=4')
-    # The array indexes is now contains all indexes of the carbon atoms with
+    # The array indexes contains all the indexes of the carbon atoms with
     # four neighbors.
 
 3. Define FF atom types in a system based on ATSELECT strings. For this purpose,
    one can normally not rely on the presence of FF atom types in the system
-   object. Therefore one can use FF atom types in the ATSELECT strings. ::
+   object. ::
 
     from yaff import *
     system = System.from_file('test.chk')
     system.detect_ffatypes([
         ('H', '1'),
-        ('O', '8'),
+        ('O_water', '8&=2%1'),
     ])
 
 
 Whenever one uses a compiled expression on a system that does not have
-sufficient attributes, a ``ValueError`` is raised.
+sufficient attributes, a ``ValueError`` is raised. For example, a ValueError
+would be raised when one would refer to atom types in the third use case.
 
 **TODO:**
 
