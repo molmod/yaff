@@ -10,6 +10,7 @@ Contents:
    :maxdepth: 2
    :numbered:
 
+   tut_install.rst
    howto.rst
    whishlist.rst
 
