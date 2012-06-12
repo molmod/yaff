@@ -52,7 +52,7 @@ def test_rdf1_online():
     # Setup a test FF
     ff = get_ff_water32()
     # Run a test simulation
-    f = h5py.File('tmp.h5', driver='core', backing_store=False)
+    f = h5py.File('test_rdf1_online.h5', driver='core', backing_store=False)
     try:
         hdf5 = HDF5Writer(f)
         select = ff.system.get_indexes('O')
@@ -94,7 +94,7 @@ def test_rdf2_online():
     # Setup a test FF
     ff = get_ff_water32()
     # Run a test simulation
-    f = h5py.File('tmp.h5', driver='core', backing_store=False)
+    f = h5py.File('test_rdf2_online.h5', driver='core', backing_store=False)
     try:
         hdf5 = HDF5Writer(f)
         select0 = ff.system.get_indexes('O')

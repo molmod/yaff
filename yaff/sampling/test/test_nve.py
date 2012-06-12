@@ -60,7 +60,7 @@ def check_hdf5_common(f):
 
 
 def test_hdf5():
-    f = h5py.File('tmp.h5', driver='core', backing_store=False)
+    f = h5py.File('test_hdf5.h5', driver='core', backing_store=False)
     try:
         hdf5 = HDF5Writer(f)
         nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
@@ -74,7 +74,7 @@ def test_hdf5():
 
 
 def test_hdf5_start():
-    f = h5py.File('tmp.h5', driver='core', backing_store=False)
+    f = h5py.File('test_hdf5_start.h5', driver='core', backing_store=False)
     try:
         hdf5 = HDF5Writer(f, start=2)
         nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
@@ -88,7 +88,7 @@ def test_hdf5_start():
 
 
 def test_hdf5_step():
-    f = h5py.File('tmp.h5', driver='core', backing_store=False)
+    f = h5py.File('test_hdf5_step.h5', driver='core', backing_store=False)
     try:
         hdf5 = HDF5Writer(f, step=2)
         nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)

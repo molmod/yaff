@@ -50,7 +50,7 @@ def test_diff_online():
     # Setup a test FF
     ff = get_ff_water32()
     # Run a test simulation
-    f = h5py.File('tmp.h5', driver='core', backing_store=False)
+    f = h5py.File('test_diff_online.h5', driver='core', backing_store=False)
     try:
         hdf5 = HDF5Writer(f)
         select = ff.system.get_indexes('O')

@@ -82,7 +82,7 @@ def test_spectrum_online_blind():
 
 
 def test_spectrum_iter_indexes():
-    f = h5py.File('tmp.h5', driver='core', backing_store=False)
+    f = h5py.File('test_spectrum_iter_indexes.h5', driver='core', backing_store=False)
     spectrum = Spectrum(f, bsize=10)
     f.close()
     l = list(spectrum._iter_indexes(np.zeros((10, 5, 3), float)))

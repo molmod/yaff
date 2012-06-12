@@ -24,19 +24,44 @@
 import h5py
 
 from yaff import *
+from molmod import femtosecond
 
 
 def test_xyz_to_hdf5():
-    f = h5py.File('tmp.h5', driver='core', backing_store=False)
+    f = h5py.File('test_xyz_to_hdf5.h5', driver='core', backing_store=False)
     # Bad practice. Proper use is to initialize the system object from a
     # different XYZ (or yet something else) with a single geometry.
     system = System.from_file('input/water_trajectory.xyz')
     system.to_hdf5(f)
-    # Actual trajectory conversion
-    xyz_to_hdf5(f, 'input/water_trajectory.xyz')
-    assert 'trajectory' in f
-    assert f['trajectory'].attrs['row'] == 5
-    assert abs(f['trajectory/pos'][0,0,0] - 3.340669*angstrom) < 1e-5
-    assert abs(f['trajectory/pos'][-1,-1,-1] - -3.335574*angstrom) < 1e-5
-    assert abs(f['trajectory/pos'][3,2,1] - 3.363249*angstrom) < 1e-5
+    # Actual trajectory conversion, twice
+    for i in xrange(2):
+        xyz_to_hdf5(f, 'input/water_trajectory.xyz')
+        assert 'trajectory' in f
+        assert f['trajectory'].attrs['row'] == 5
+        assert abs(f['trajectory/pos'][0,0,0] - 3.340669*angstrom) < 1e-5
+        assert abs(f['trajectory/pos'][-1,-1,-1] - -3.335574*angstrom) < 1e-5
+        assert abs(f['trajectory/pos'][3,2,1] - 3.363249*angstrom) < 1e-5
+    f.close()
+
+
+def test_cp2k_ener_to_hdf5():
+    f = h5py.File('test_xyz_to_hdf5.h5', driver='core', backing_store=False)
+    # Bad practice. The trajectory file has no system directory...
+    # Actual trajectory conversion, twice
+    for i in xrange(2):
+        cp2k_ener_to_hdf5(f, 'input/cp2k-1.ener')
+        assert 'trajectory' in f
+        assert f['trajectory'].attrs['row'] == 9
+        assert 'step' in f['trajectory']
+        assert 'time' in f['trajectory']
+        assert 'ekin' in f['trajectory']
+        assert 'temp' in f['trajectory']
+        assert 'epot' in f['trajectory']
+        assert 'econs' in f['trajectory']
+        assert f['trajectory/step'][1] == 1.0
+        assert abs(f['trajectory/time'][5] - 5.0*femtosecond) < 1e-10
+        assert abs(f['trajectory/ekin'][-1] - 1.069191015) < 1e-5
+        assert abs(f['trajectory/temp'][2] - 303.049958848) < 1e-5
+        assert abs(f['trajectory/epot'][6] - -6.517529834) < 1e-5
+        assert abs(f['trajectory/econs'][7] - -5.405095660) < 1e-5
     f.close()
