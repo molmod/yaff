@@ -50,7 +50,7 @@ def blav(signal, minblock=100, fn_png=None, unit=None):
 
        Returns:
          error  --  the fitted error
-         senif  --  the fitted statistical inefficiency
+         sinef  --  the fitted statistical inefficiency
     """
     x = [] # block sizes
     e = [] # errors on the mean
