@@ -70,11 +70,11 @@ def blav(signal, minblock=100, fn_png=None, unit=None):
     if l == 0:
         raise ValueError("Too few blocks to do a proper estimate of the error.")
     # estimate the limit of the error towards large block sizes
-    error, b = np.linalg.lstsq(
-        np.array([np.ones(l), 1/x[-l:]]).transpose(), e[-l:],
-    )[0]
+    dm = np.array([np.ones(l), 1/x[-l:]]).transpose()
+    ev = e[-l:]
+    error, b = np.linalg.lstsq(dm, ev)[0]
     # improve robustness, in case the fitting went wrong
-    if error < 0 or b < 0:
+    if error < 0 or b > 0:
         error = e.max()
         b = 0.0
     # compute the ratio with the naive error
