@@ -56,6 +56,12 @@ __all__ = [
 
 
 class ParsedPars(object):
+    '''Pythonic representation of a force field parameter file.
+
+       The parameter file is first parsed by this object into a convenient
+       data structure with dictionaries. The actual force field is then
+       generated based on these dictionaries.
+    '''
     def __init__(self, fn, info=None):
         self.fn = fn
         if info is None:
@@ -108,6 +114,11 @@ class ParsedPars(object):
 
 
 class FFArgs(object):
+    '''Data structure that holds all arguments for the ForceField constructor
+
+       The attributes of this object are gradually filled up by the various
+       generators based on the data in the ParsedPars object.
+    '''
     def __init__(self, rcut=18.89726133921252, tr=Switch3(7.558904535685008),
                  alpha_scale=3.0, gcut_scale=1.1, skin=0, smooth_ei=False,
                  reci_ei='ewald'):
@@ -150,7 +161,7 @@ class FFArgs(object):
            The actual value of gcut, which depends on both gcut_scale and
            alpha_scale, determines the computational cost of the reciprocal term
            in the Ewald summation. The default values are just examples. An
-           optimal tradeoff between accuracy and computational cost requires
+           optimal trade-off between accuracy and computational cost requires
            some tuning. Dimensionless scaling parameters are used to make sure
            that the numerical errors do not depend too much on the real space
            cutoff and the system size.
