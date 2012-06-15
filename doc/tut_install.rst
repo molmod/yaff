@@ -19,7 +19,7 @@ MolMod dependency
 Python programs developed at the CMM. It must be installed before YAFF can
 be used or installed. Installation and download instructions can be found in the
 `molmod documentation <http://molmod.github.com/molmod/tutorial/install.html>`_.
-The instructions below only work of the MolMod package is installed.
+The instructions below only work if the MolMod package is installed.
 
 
 External dependencies
