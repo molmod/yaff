@@ -85,9 +85,9 @@ class Parameters(object):
                 complain(counter, 'does not have a definition after the prefix')
             elif pos == -1:
                 complain(counter, 'does not have data after the definition')
-            definition = rest[:pos].upper()
+            suffix = rest[:pos].upper()
             data = rest[pos+1:]
-            return prefix, definition, data
+            return prefix, suffix, data
 
         with file(filename) as f:
             complain = Complain(filename)
@@ -106,7 +106,7 @@ class Parameters(object):
                     # get/make definition
                     definition = section.definitions.get(suffix)
                     if definition is None:
-                        definition = ParameterDefinition(suffix)
+                        definition = ParameterDefinition(suffix, [], complain)
                         section.definitions[suffix] = definition
                     definition.lines.append((counter, data))
                 counter += 1
@@ -128,7 +128,10 @@ class Parameters(object):
                 print >> f
 
     def __getitem__(self, prefix):
-        return self.sections[prefix]
+        result = self.sections.get(prefix.upper())
+        if result is None:
+            result = ParameterSection(prefix, {}, self.complain)
+        return result
 
 
 class ParameterSection(object):
@@ -145,7 +148,10 @@ class ParameterSection(object):
             self.complain = complain
 
     def __getitem__(self, suffix):
-        return self.definitions[suffix]
+        result = self.definitions.get(suffix.upper())
+        if result is None:
+            result = ParameterDefinition(suffix, [], self.complain)
+        return result
 
 
 class ParameterDefinition(object):

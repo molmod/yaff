@@ -40,7 +40,7 @@ from yaff.pes.vlist import Harmonic, Fues, Cross, Cosine, \
 
 
 __all__ = [
-    'ParsedPars', 'FFArgs', 'Generator',
+    'FFArgs', 'Generator',
 
     'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator',
     'BondFuesGenerator', 'BendGenerator', 'BendAngleHarmGenerator',
@@ -51,60 +51,8 @@ __all__ = [
     'NonbondedGenerator', 'LJGenerator', 'MM3Generator', 'ExpRepGenerator',
     'DampDispGenerator', 'FixedChargeGenerator',
 
-    'generators',
+    'apply_generators',
 ]
-
-
-class ParsedPars(object):
-    '''Pythonic representation of a force field parameter file.
-
-       The parameter file is first parsed by this object into a convenient
-       data structure with dictionaries. The actual force field is then
-       generated based on these dictionaries.
-    '''
-    def __init__(self, fn, info=None):
-        self.fn = fn
-        if info is None:
-            f = open(fn)
-            try:
-                self.load(f)
-            finally:
-                f.close()
-        else:
-            self.info = info
-
-    def load(self, f):
-        self.info = {}
-        counter = 1
-        for line in f:
-            line = line[:line.find('#')].strip()
-            if len(line) > 0:
-                pos = line.find(':')
-                if pos == -1:
-                    self.complain(counter, 'does not contain a colon')
-                prefix = line[:pos].upper()
-                rest = line[pos+1:].strip()
-                if len(rest) == 0:
-                    self.complain(counter, 'does not have text after the colon')
-                if len(prefix.split()) > 1:
-                    self.complain(counter, 'has a prefix that contains whitespace')
-                pos = rest.find(' ')
-                if pos == 0:
-                    self.complain(counter, 'does not have a command after the prefix')
-                elif pos == -1:
-                    self.complain(counter, 'does not have data after the command')
-                command = rest[:pos].upper()
-                data = rest[pos+1:].strip()
-                l1 = self.info.setdefault(prefix, {})
-                l2 = l1.setdefault(command, [])
-                l2.append((counter, data))
-            counter += 1
-
-    def get_section(self, key):
-        if key in self.info:
-            return ParsedPars(self.fn, self.info[key])
-        else:
-            return ParsedPars(self.fn, {})
 
 
 class FFArgs(object):
@@ -241,49 +189,110 @@ class Generator(object):
        proceeds, it will modify and extend the current arguments of the FF. They
        should be implemented such that the order of the generators is not
        important.
+
+       **Important class attributes:**
+
+       prefix
+            The prefix string that must match the prefix in the parameter file.
+            If this is None, it is assumed that the Generator class is abstract.
+            In that case it will be ignored by the apply_generators function
+            at the bottom of this module.
+
+       par_info
+            A description of the parameters on a single line (PARS suffix)
+
+       suffixes
+            The supported suffixes
+
+       allow_superpositions
+            Whether multiple PARS lines with the same atom types are allowed.
+            This is rarely the case, except for the TORSIONS and a few other
+            weirdos.
     """
     prefix = None
     par_info = None
-    commands = None
+    suffixes = None
     allow_superposition = False
 
-    def __call__(self, system, parsed_pars, ff_args):
+    def __call__(self, system, parsec, ff_args):
+        '''Add contributions to the force field from this generator
+
+           **Arguments:**
+
+           system
+                The System object for which a force field is being prepared
+
+           parse
+                An instance of the ParameterSection class
+
+           ff_ars
+                An instance of the FFargs class
+        '''
         raise NotImplementedError
 
-    def check_commands(self, parsed_pars):
-        for command in parsed_pars.info:
-            if command not in self.commands:
-                parsed_pars.complain(None, 'contains a command (%s) that is not recognized by generator %s.' % (command, self.prefix))
+    def check_suffixes(self, parsec):
+        for suffix in parsec.definitions:
+            if suffix not in self.suffixes:
+                parsec.complain(None, 'contains a suffix (%s) that is not recognized by generator %s.' % (suffix, self.prefix))
 
-    def process_units(self, parsed_pars):
+    def process_units(self, pardef):
+        '''Load parameter conversion information
+
+           **Arguments:**
+
+           pardef
+                An instance of the ParameterDefinition class.
+
+           Returns a dictionary with (name, converion) pairs.
+        '''
         result = {}
         expected_names = [name for name, dtype in self.par_info if dtype is float]
-        for counter, line in parsed_pars.info:
+        for counter, line in pardef:
             words = line.split()
             if len(words) != 2:
-                parsed_pars.complain(counter, 'must have two arguments in UNIT command.')
+                pardef.complain(counter, 'must have two arguments in UNIT suffix.')
             name = words[0].upper()
             if name not in expected_names:
-                parsed_pars.complain(counter, 'specifies a unit for an unknown parameter. (Must be one of %s, but got %s.)' % (expected_names, name))
+                pardef.complain(counter, 'specifies a unit for an unknown parameter. (Must be one of %s, but got %s.)' % (expected_names, name))
             try:
                 result[name] = parse_unit(words[1])
             except (NameError, ValueError):
-                parsed_pars.complain(counter, 'has a UNIT command with an unknown unit.')
+                pardef.complain(counter, 'has a UNIT suffix with an unknown unit.')
         if len(result) != len(expected_names):
             raise IOError('Not all units are specified for generator %s in file %s. Got %s, should have %s.' % (
-                self.prefix, parsed_pars.fn, result.keys(), expected_names
+                self.prefix, pardef.complain.filename, result.keys(), expected_names
             ))
         return result
 
-    def process_pars(self, parsed_pars, conversions, nffatype, par_info=None):
+    def process_pars(self, pardef, conversions, nffatype, par_info=None):
+        '''Load parameter and apply conversion factors
+
+           **Arguments:**
+
+           pardef
+                An instance of the ParameterDefinition class.
+
+           conversions
+                A dictionary with (name, conversion) items.
+
+           nffatype
+                The number of ffatypes per line of parameters.
+
+           **Optional arguments:**
+
+           par_info
+                A custom description of the parameters. If not present,
+                self.par_info is used. This is convenient when this method
+                is used to parse other definitions than PARS.
+        '''
         if par_info is None:
             par_info = self.par_info
         par_table = {}
-        for counter, line in parsed_pars.info:
+        for counter, line in pardef:
             words = line.split()
             num_args = nffatype + len(par_info)
             if len(words) != num_args:
-                parsed_pars.complain(counter, 'should have %s arguments.' % num_args)
+                pardef.complain(counter, 'should have %s arguments.' % num_args)
             key = tuple(words[:nffatype])
             try:
                 pars = []
@@ -295,16 +304,17 @@ class Generator(object):
                         pars.append(dtype(word))
                 pars = tuple(pars)
             except ValueError:
-                parsed_pars.complain(counter, 'has parameters that can not be converted to numbers.')
+                pardef.complain(counter, 'has parameters that can not be converted to numbers.')
             par_list = par_table.get(key, [])
             if len(par_list) > 0 and not self.allow_superposition:
-                parsed_pars.complain(counter, 'conts duplicate parameters, which is not allowed for generator %s.' % self.prefix)
+                pardef.complain(counter, 'conts duplicate parameters, which is not allowed for generator %s.' % self.prefix)
             par_list.append(pars)
             for key in self.iter_alt_keys(key):
                 par_table[key] = par_list
         return par_table
 
     def iter_alt_keys(self, key):
+        '''Iterates of all equivalent reorderings of a tuple of ffatypes'''
         if len(key) == 1:
             yield key
         else:
@@ -312,19 +322,62 @@ class Generator(object):
 
 
 class ValenceGenerator(Generator):
-    commands = ['UNIT', 'PARS']
+    '''All generators for diagonal valence terms derive from this class.
+
+       **More important attributes:**
+
+       nffatype
+            The number of atoms involved in the internal coordinates. Hence
+            this is also the number ffatypes in a single row in the force field
+            parameter file.
+
+       ICClass
+            The ``InternalCoordinate`` class. See ``yaff.pes.iclist``.
+
+       VClass
+            The ``ValenceTerm`` class. See ``yaff.pes.vlist``.
+    '''
+
+    suffixes = ['UNIT', 'PARS']
     nffatype = None
     ICClass = None
     VClass = None
 
-    def __call__(self, system, parsed_pars, ff_args):
-        self.check_commands(parsed_pars)
-        conversions = self.process_units(parsed_pars.get_section('UNIT'))
-        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions, self.nffatype)
+    def __call__(self, system, parsec, ff_args):
+        '''Add contributions to the force field from a ValenceGenerator
+
+           **Arguments:**
+
+           system
+                The System object for which a force field is being prepared
+
+           parse
+                An instance of the ParameterSection class
+
+           ff_ars
+                An instance of the FFargs class
+        '''
+        self.check_suffixes(parsec)
+        conversions = self.process_units(parsec['UNIT'])
+        par_table = self.process_pars(parsec['PARS'], conversions, self.nffatype)
         if len(par_table) > 0:
             self.apply(par_table, system, ff_args)
 
     def apply(self, par_table, system, ff_args):
+        '''Generate terms for the system based on the par_table
+
+           **Arguments:**
+
+           par_table
+                A dictionary with tuples of ffatypes is keys and lists of
+                parameters as values.
+
+           system
+                The system for which the force field is generated.
+
+           ff_args
+                An instance of the FFArgs class.
+        '''
         if system.bonds is None:
             raise ValueError('The system must have bonds in order to define valence terms.')
         part_valence = ff_args.get_part_valence(system)
@@ -339,9 +392,22 @@ class ValenceGenerator(Generator):
                 part_valence.add_term(vterm)
 
     def get_vterm(self, pars, indexes):
+        '''Return an instane of the ValenceTerm class with the proper InternalCoordinate instance
+
+           **Arguments:**
+
+           pars
+                The parameters for the ValenceTerm class.
+
+           indexes
+                The atom indexes used to define the internal coordinate
+        '''
         args = pars + (self.ICClass(*indexes),)
         return self.VClass(*args)
 
+    def iter_indexes(self, system):
+        '''Iterate over all tuples of indexes for the internal coordinate'''
+        raise NotImplementedError
 
 
 class BondGenerator(ValenceGenerator):
@@ -427,20 +493,65 @@ class TorsionGenerator(ValenceGenerator):
 
 
 class ValenceCrossGenerator(Generator):
-    commands = ['UNIT', 'PARS']
+    '''All generators for cross valence terms derive from this class.
+
+       **More important attributes:**
+
+       nffatype
+            The number of atoms involved in the internal coordinates. Hence
+            this is also the number ffatypes in a single row in the force field
+            parameter file.
+
+       ICClass0
+            The first ``InternalCoordinate`` class. See ``yaff.pes.iclist``.
+
+       ICClass1
+            The second ``InternalCoordinate`` class. See ``yaff.pes.iclist``.
+
+       VClass
+            The ``ValenceTerm`` class. See ``yaff.pes.vlist``.
+    '''
+    suffixes = ['UNIT', 'PARS']
     nffatype = None
     ICClass0 = None
     ICClass1 = None
     VClass = None
 
-    def __call__(self, system, parsed_pars, ff_args):
-        self.check_commands(parsed_pars)
-        conversions = self.process_units(parsed_pars.get_section('UNIT'))
-        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions, self.nffatype)
+    def __call__(self, system, parsec, ff_args):
+        '''Add contributions to the force field from a ValenceCrossGenerator
+
+           **Arguments:**
+
+           system
+                The System object for which a force field is being prepared
+
+           parse
+                An instance of the ParameterSection class
+
+           ff_ars
+                An instance of the FFargs class
+        '''
+        self.check_suffixes(parsec)
+        conversions = self.process_units(parsec['UNIT'])
+        par_table = self.process_pars(parsec['PARS'], conversions, self.nffatype)
         if len(par_table) > 0:
             self.apply(par_table, system, ff_args)
 
     def apply(self, par_table, system, ff_args):
+        '''Generate terms for the system based on the par_table
+
+           **Arguments:**
+
+           par_table
+                A dictionary with tuples of ffatypes is keys and lists of
+                parameters as values.
+
+           system
+                The system for which the force field is generated.
+
+           ff_args
+                An instance of the FFArgs class.
+        '''
         if system.bonds is None:
             raise ValueError('The system must have bonds in order to define valence cross terms.')
         part_valence = ff_args.get_part_valence(system)
@@ -456,10 +567,17 @@ class ValenceCrossGenerator(Generator):
                 args = pars + (self.ICClass0(*indexes0), self.ICClass1(*indexes1))
                 part_valence.add_term(self.VClass(*args))
 
+
+    def iter_indexes(self, system):
+        '''Iterate over all tuples of indexes for the pair of internal coordinates'''
+        raise NotImplementedError
+
     def get_indexes0(self, indexes):
+        '''Get the indexes for the first internal coordinate from the whole'''
         raise NotImplementedError
 
     def get_indexes1(self, indexes):
+        '''Get the indexes for the second internal coordinate from the whole'''
         raise NotImplementedError
 
 
@@ -486,65 +604,90 @@ class BondCrossGeneratorGenerator(ValenceCrossGenerator):
 
 
 class NonbondedGenerator(Generator):
+    '''All generators for the non-bonding interactions derive from this class
+
+       **One more important class attribute:**
+
+       mixing_rules
+            A dictionary with (par_name, rule_name): (narg, rule_id) items
+    '''
     mixing_rules = None
 
-    def process_scales(self, parsed_pars):
+    def process_scales(self, pardef):
+        '''Process the SCALE definitions
+
+           **Arguments:**
+
+           pardef
+                An instance of the ParameterDefinition class.
+
+           Returns a dictionary with (numbonds, scale) items.
+        '''
         result = {}
-        for counter, line in parsed_pars.info:
+        for counter, line in pardef:
             words = line.split()
             if len(words) != 2:
-                parsed_pars.complain(counter, 'must have 2 arguments.')
+                pardef.complain(counter, 'must have 2 arguments.')
             try:
                 num_bonds = int(words[0])
                 scale = float(words[1])
             except ValueError:
-                parsed_pars.complain(counter, 'has parameters that can not be converted. The first argument must be an integer. The second argument must be a float.')
+                pardef.complain(counter, 'has parameters that can not be converted. The first argument must be an integer. The second argument must be a float.')
             if num_bonds in result and result[num_bonds] != scale:
-                parsed_pars.complain(counter, 'contains a duplicate incompatible scale command.')
+                pardef.complain(counter, 'contains a duplicate incompatible scale suffix.')
             if scale < 0 or scale > 1:
-                parsed_pars.complain(counter, 'has a scale that is not in the range [0,1].')
+                pardef.complain(counter, 'has a scale that is not in the range [0,1].')
             result[num_bonds] = scale
         if len(result) != 3:
-            parsed_pars.complain(None, 'must contain three SCALE commands for each non-bonding term.')
+            pardef.complain(None, 'must contain three SCALE suffixes for each non-bonding term.')
         if 1 not in result or 2 not in result or 3 not in result:
-            parsed_pars.complain(None, 'must contain a scale parameter for atoms separated by 1, 2 and 3 bonds, for each non-bonding term.')
+            pardef.complain(None, 'must contain a scale parameter for atoms separated by 1, 2 and 3 bonds, for each non-bonding term.')
         return result
 
-    def process_mix(self, parsed_pars):
+    def process_mix(self, pardef):
+        '''Process mixing rules
+
+           **Arguments:**
+
+           pardef
+                An instance of the ParameterDefinition class.
+
+           Returns a dictionary of (par_name, (rule_id, rule_args)) items.
+        '''
         result = {}
-        for counter, line in parsed_pars.info:
+        for counter, line in pardef:
             words = line.split()
             if len(words) < 2:
-                parsed_pars.complain(counter, 'contains a mixing rule with to few arguments. At least 2 are required.')
+                pardef.complain(counter, 'contains a mixing rule with to few arguments. At least 2 are required.')
             par_name = words[0].upper()
             rule_name = words[1].upper()
             key = par_name, rule_name
             if key not in self.mixing_rules:
-                parsed_pars.complain(counter, 'contains an unknown mixing rule.')
+                pardef.complain(counter, 'contains an unknown mixing rule.')
             narg, rule_id = self.mixing_rules[key]
             if len(words) != narg+2:
-                parsed_pars.complain(counter, 'does not have the correct number of arguments. %i arguments are required.' % (narg+2))
+                pardef.complain(counter, 'does not have the correct number of arguments. %i arguments are required.' % (narg+2))
             try:
                 args = tuple([float(word) for word in words[2:]])
             except ValueError:
-                parsed_pars.complain(counter, 'contains parameters that could not be converted to floating point numbers.')
+                pardef.complain(counter, 'contains parameters that could not be converted to floating point numbers.')
             result[par_name] = rule_id, args
         expected_num_rules = len(set([par_name for par_name, rule_id in self.mixing_rules]))
         if len(result) != expected_num_rules:
-            parsed_pars.complain(None, 'does not contain enough mixing rules for the generator %s.' % self.prefix)
+            pardef.complain(None, 'does not contain enough mixing rules for the generator %s.' % self.prefix)
         return result
 
 
 class LJGenerator(NonbondedGenerator):
     prefix = 'LJ'
-    commands = ['UNIT', 'SCALE', 'PARS']
+    suffixes = ['UNIT', 'SCALE', 'PARS']
     par_info = [('SIGMA', float), ('EPSILON', float)]
 
-    def __call__(self, system, parsed_pars, ff_args):
-        self.check_commands(parsed_pars)
-        conversions = self.process_units(parsed_pars.get_section('UNIT'))
-        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions, 1)
-        scale_table = self.process_scales(parsed_pars.get_section('SCALE'))
+    def __call__(self, system, parsec, ff_args):
+        self.check_suffixes(parsec)
+        conversions = self.process_units(parsec['UNIT'])
+        par_table = self.process_pars(parsec['PARS'], conversions, 1)
+        scale_table = self.process_scales(parsec['SCALE'])
         self.apply(par_table, scale_table, system, ff_args)
 
     def apply(self, par_table, scale_table, system, ff_args):
@@ -576,14 +719,14 @@ class LJGenerator(NonbondedGenerator):
 
 class MM3Generator(NonbondedGenerator):
     prefix = 'MM3'
-    commands = ['UNIT', 'SCALE', 'PARS']
+    suffixes = ['UNIT', 'SCALE', 'PARS']
     par_info = [('SIGMA', float), ('EPSILON', float), ('ONLYPAULI', int)]
 
-    def __call__(self, system, parsed_pars, ff_args):
-        self.check_commands(parsed_pars)
-        conversions = self.process_units(parsed_pars.get_section('UNIT'))
-        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions, 1)
-        scale_table = self.process_scales(parsed_pars.get_section('SCALE'))
+    def __call__(self, system, parsec, ff_args):
+        self.check_suffixes(parsec)
+        conversions = self.process_units(parsec['UNIT'])
+        par_table = self.process_pars(parsec['PARS'], conversions, 1)
+        scale_table = self.process_scales(parsec['SCALE'])
         self.apply(par_table, scale_table, system, ff_args)
 
     def apply(self, par_table, scale_table, system, ff_args):
@@ -616,7 +759,7 @@ class MM3Generator(NonbondedGenerator):
 
 class ExpRepGenerator(NonbondedGenerator):
     prefix = 'EXPREP'
-    commands = ['UNIT', 'SCALE', 'MIX', 'PARS', 'CPARS']
+    suffixes = ['UNIT', 'SCALE', 'MIX', 'PARS', 'CPARS']
     par_info = [('A', float), ('B', float)]
     mixing_rules = {
         ('A', 'GEOMETRIC'): (0, 0),
@@ -625,13 +768,13 @@ class ExpRepGenerator(NonbondedGenerator):
         ('B', 'ARITHMETIC_COR'): (1, 1),
     }
 
-    def __call__(self, system, parsed_pars, ff_args):
-        self.check_commands(parsed_pars)
-        conversions = self.process_units(parsed_pars.get_section('UNIT'))
-        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions, 1)
-        cpar_table = self.process_pars(parsed_pars.get_section('CPARS'), conversions, 2)
-        scale_table = self.process_scales(parsed_pars.get_section('SCALE'))
-        mixing_rules = self.process_mix(parsed_pars.get_section('MIX'))
+    def __call__(self, system, parsec, ff_args):
+        self.check_suffixes(parsec)
+        conversions = self.process_units(parsec['UNIT'])
+        par_table = self.process_pars(parsec['PARS'], conversions, 1)
+        cpar_table = self.process_pars(parsec['CPARS'], conversions, 2)
+        scale_table = self.process_scales(parsec['SCALE'])
+        mixing_rules = self.process_mix(parsec['MIX'])
         self.apply(par_table, cpar_table, scale_table, mixing_rules, system, ff_args)
 
     def iter_alt_keys(self, key):
@@ -696,16 +839,16 @@ class DampDispGenerator(NonbondedGenerator):
     # TODO: it seems that the dispersion interactions are just too strong. check
     # if this is a bug.
     prefix = 'DAMPDISP'
-    commands = ['UNIT', 'SCALE', 'PARS', 'CPARS']
+    suffixes = ['UNIT', 'SCALE', 'PARS', 'CPARS']
     par_info = [('C6', float), ('B', float), ('VOL', float)]
     cpar_info = [('C6', float), ('B', float)]
 
-    def __call__(self, system, parsed_pars, ff_args):
-        self.check_commands(parsed_pars)
-        conversions = self.process_units(parsed_pars.get_section('UNIT'))
-        par_table = self.process_pars(parsed_pars.get_section('PARS'), conversions, 1)
-        cpar_table = self.process_pars(parsed_pars.get_section('CPARS'), conversions, 2, self.cpar_info)
-        scale_table = self.process_scales(parsed_pars.get_section('SCALE'))
+    def __call__(self, system, parsec, ff_args):
+        self.check_suffixes(parsec)
+        conversions = self.process_units(parsec['UNIT'])
+        par_table = self.process_pars(parsec['PARS'], conversions, 1)
+        cpar_table = self.process_pars(parsec['CPARS'], conversions, 2, self.cpar_info)
+        scale_table = self.process_scales(parsec['SCALE'])
         self.apply(par_table, cpar_table, scale_table, system, ff_args)
 
     def iter_alt_keys(self, key):
@@ -756,64 +899,64 @@ class DampDispGenerator(NonbondedGenerator):
 
 class FixedChargeGenerator(NonbondedGenerator):
     prefix = 'FIXQ'
-    commands = ['UNIT', 'SCALE', 'ATOM', 'BOND', 'DIELECTRIC']
+    suffixes = ['UNIT', 'SCALE', 'ATOM', 'BOND', 'DIELECTRIC']
     par_info = [('Q0', float), ('P', float), ('R', float)]
 
-    def __call__(self, system, parsed_pars, ff_args):
-        self.check_commands(parsed_pars)
-        conversions = self.process_units(parsed_pars.get_section('UNIT'))
-        atom_table = self.process_atoms(parsed_pars.get_section('ATOM'), conversions)
-        bond_table = self.process_bonds(parsed_pars.get_section('BOND'), conversions)
-        scale_table = self.process_scales(parsed_pars.get_section('SCALE'))
-        dielectric = self.process_dielectric(parsed_pars.get_section('DIELECTRIC'))
+    def __call__(self, system, parsec, ff_args):
+        self.check_suffixes(parsec)
+        conversions = self.process_units(parsec['UNIT'])
+        atom_table = self.process_atoms(parsec['ATOM'], conversions)
+        bond_table = self.process_bonds(parsec['BOND'], conversions)
+        scale_table = self.process_scales(parsec['SCALE'])
+        dielectric = self.process_dielectric(parsec['DIELECTRIC'])
         self.apply(atom_table, bond_table, scale_table, dielectric, system, ff_args)
 
-    def process_atoms(self, parsed_pars, conversions):
+    def process_atoms(self, pardef, conversions):
         result = {}
-        for counter, line in parsed_pars.info:
+        for counter, line in pardef:
             words = line.split()
             if len(words) != 3:
-                parsed_pars.complain(counter, 'should have 3 arguments.')
+                pardef.complain(counter, 'should have 3 arguments.')
             ffatype = words[0]
             if ffatype in result:
-                parsed_pars.complain(counter, 'has an atom type that was already encountered earlier.')
+                pardef.complain(counter, 'has an atom type that was already encountered earlier.')
             try:
                 charge = float(words[1])*conversions['Q0']
                 radius = float(words[2])*conversions['R']
             except ValueError:
-                parsed_pars.complain(counter, 'contains a parameter that can not be converted to a floating point number.')
+                pardef.complain(counter, 'contains a parameter that can not be converted to a floating point number.')
             result[ffatype] = charge, radius
         return result
 
-    def process_bonds(self, parsed_pars, conversions):
+    def process_bonds(self, pardef, conversions):
         result = {}
-        for counter, line in parsed_pars.info:
+        for counter, line in pardef:
             words = line.split()
             if len(words) != 3:
-                parsed_pars.complain(counter, 'should have 3 arguments.')
+                pardef.complain(counter, 'should have 3 arguments.')
             key = tuple(words[:2])
             if key in result:
-                parsed_pars.complain(counter, 'has a combination of atom types that were already encountered earlier.')
+                pardef.complain(counter, 'has a combination of atom types that were already encountered earlier.')
             try:
                 charge_transfer = float(words[2])*conversions['P']
             except ValueError:
-                parsed_pars.complain(counter, 'contains a parameter that can not be converted to floating point numbers.')
+                pardef.complain(counter, 'contains a parameter that can not be converted to floating point numbers.')
             result[key] = charge_transfer
             result[key[::-1]] = -charge_transfer
         return result
 
-    def process_dielectric(self, parsed_pars):
+    def process_dielectric(self, pardef):
         result = None
-        for counter, line in parsed_pars.info:
+        for counter, line in pardef:
             if result is not None:
-                parsed_pars.complain(counter, 'is redundant. The DIELECTRIC command may only occur once.')
+                pardef.complain(counter, 'is redundant. The DIELECTRIC suffix may only occur once.')
             words = line.split()
             if len(words) != 1:
-                parsed_pars.complain(counter, 'must have one argument.')
+                pardef.complain(counter, 'must have one argument.')
             try:
                 result = float(words[0])
             except ValueError:
-                parsed_pars.complain(counter, 'must have a floating point argument.')
+                pardef.complain(counter, 'must have a floating point argument.')
         return result
 
     def apply(self, atom_table, bond_table, scale_table, dielectric, system, ff_args):
@@ -857,8 +1000,34 @@ class FixedChargeGenerator(NonbondedGenerator):
         ff_args.add_electrostatic_parts(system, scalings)
 
 
-# Collect all the generators that have a prefix.
-generators = {}
-for x in globals().values():
-    if isinstance(x, type) and issubclass(x, Generator) and x.prefix is not None:
-        generators[x.prefix] = x()
+def apply_generators(system, parameters, ff_args):
+    '''Populate the attributes of ff_args, prepares arguments for ForceField
+
+       **Arguments:**
+
+       system
+            A System instance for which the force field object is being made
+
+       ff_args
+            An instance of the FFArgs class.
+
+       parameters
+            An instance of the Parameters, typically made by
+            ``Parmaeters.from_file('parameters.txt')``.
+    '''
+
+    # Collect all the generators that have a prefix.
+    generators = {}
+    for x in globals().values():
+        if isinstance(x, type) and issubclass(x, Generator) and x.prefix is not None:
+            generators[x.prefix] = x()
+
+    # Go through all the sections of the parameter file and apply the
+    # corresponding generator.
+    for prefix, section in parameters.sections.iteritems():
+        generator = generators.get(prefix)
+        if generator is None:
+            if log.do_warning:
+                log.warn('There is no generator named %s.' % prefix)
+        else:
+            generator(system, section, ff_args)

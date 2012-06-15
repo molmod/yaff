@@ -27,27 +27,33 @@ from yaff import *
 
 
 def test_consistency():
-    pf1 = Parameters.from_file('input/parameters_bks.txt')
-    dirname = tempfile.mkdtemp('yaff', 'test_consistency_parameters')
-    try:
-        pf1.write_to_file('%s/parameters_bks.txt' % dirname)
-        pf2 = Parameters.from_file('%s/parameters_bks.txt' % dirname)
-        assert len(pf1.sections) == len(pf2.sections)
-        for prefix1, section1 in pf1.sections.iteritems():
-            section2 = pf2[prefix1]
-            assert section1.prefix == section2.prefix
-            assert len(section1.definitions) == len(section2.definitions)
-            for suffix1, definition1 in section1.definitions.iteritems():
-                definition2 = section2.definitions[suffix1]
-                assert len(definition1.lines) == len(definition2.lines)
-                for (counter1, data1), (counter2, data2) in zip(definition1.lines, definition2.lines):
-                    assert data1 == data2
-    finally:
-        shutil.rmtree(dirname)
+    for fn_parameters in 'input/parameters_bks.txt', 'input/parameters_water.txt':
+        pf1 = Parameters.from_file(fn_parameters)
+        dirname = tempfile.mkdtemp('yaff', 'test_consistency_parameters')
+        try:
+            pf1.write_to_file('%s/parameters_foo.txt' % dirname)
+            pf2 = Parameters.from_file('%s/parameters_foo.txt' % dirname)
+            assert len(pf1.sections) == len(pf2.sections)
+            for prefix1, section1 in pf1.sections.iteritems():
+                section2 = pf2[prefix1]
+                assert section1.prefix == section2.prefix
+                assert len(section1.definitions) == len(section2.definitions)
+                for suffix1, definition1 in section1.definitions.iteritems():
+                    definition2 = section2.definitions[suffix1]
+                    assert len(definition1.lines) == len(definition2.lines)
+                    for (counter1, data1), (counter2, data2) in zip(definition1.lines, definition2.lines):
+                        assert data1 == data2
+        finally:
+            shutil.rmtree(dirname)
 
 
-def test_from_file():
+def test_from_file_bks():
     pf = Parameters.from_file('input/parameters_bks.txt')
+    assert pf.complain.filename == 'input/parameters_bks.txt'
+    assert pf['EXPREP'].complain.filename == 'input/parameters_bks.txt'
+    assert pf['EXPREP']['CPARS'].complain.filename == 'input/parameters_bks.txt'
     assert pf['EXPREP']['CPARS'][0][1] == '       O        O  1.3887730000e+03  2.7600000000e+00'
     assert pf['DAMPDISP']['UNIT'][2][0] == 10
     assert pf['FIXQ']['SCALE'][-1][1] == '3 1.0'
+    assert len(pf['FOO'].definitions) == 0
+    assert len(pf['FOO']['BARR'].lines) == 0

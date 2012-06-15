@@ -176,16 +176,11 @@ class ForceField(ForcePart):
         if system.ffatype_ids is None:
             raise ValueError('The generators needs ffatype_ids in the system object.')
         with log.section('GEN'), timer.section('Generator'):
-            from yaff.pes.generator import ParsedPars, generators, FFArgs
-            parsed_pars = ParsedPars(fn_parameters)
+            from yaff.pes.generator import apply_generators, FFArgs
+            from yaff.pes.parameters import Parameters
+            parameters = Parameters.from_file(fn_parameters)
             ff_args = FFArgs(**kwargs)
-            for prefix in parsed_pars.info:
-                generator = generators.get(prefix)
-                if generator is None:
-                    if log.do_warning:
-                        log.warn('There is no generator named %s.' % prefix)
-                else:
-                    generator(system, parsed_pars.get_section(prefix), ff_args)
+            apply_generators(system, parameters, ff_args)
             return ForceField(system, ff_args.parts, ff_args.nlist)
 
     def update_rvecs(self, rvecs):
