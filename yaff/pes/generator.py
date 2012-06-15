@@ -73,12 +73,6 @@ class ParsedPars(object):
         else:
             self.info = info
 
-    def complain(self, counter, message=None):
-        if counter is None:
-            raise IOError('The parameter file %s %s.' % (self.fn, message))
-        else:
-            raise IOError('Line %i in the parameter file %s %s.' % (counter, self.fn, message))
-
     def load(self, f):
         self.info = {}
         counter = 1
