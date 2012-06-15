@@ -37,10 +37,10 @@ def test_consistency():
             section2 = pf2[prefix1]
             assert section1.prefix == section2.prefix
             assert len(section1.definitions) == len(section2.definitions)
-            for suffix1, lines1 in section1.definitions.iteritems():
-                lines2 = section2.definitions[suffix1]
-                assert len(lines1) == len(lines2)
-                for (counter1, data1), (counter2, data2) in zip(lines1, lines2):
+            for suffix1, definition1 in section1.definitions.iteritems():
+                definition2 = section2.definitions[suffix1]
+                assert len(definition1.lines) == len(definition2.lines)
+                for (counter1, data1), (counter2, data2) in zip(definition1.lines, definition2.lines):
                     assert data1 == data2
     finally:
         shutil.rmtree(dirname)

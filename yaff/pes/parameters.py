@@ -104,11 +104,11 @@ class Parameters(object):
                         section = ParameterSection(prefix, {}, complain)
                         result.sections[prefix] = section
                     # get/make definition
-                    lines = section.definitions.get(suffix)
-                    if lines is None:
-                        lines = []
-                        section.definitions[suffix] = lines
-                    lines.append((counter, data))
+                    definition = section.definitions.get(suffix)
+                    if definition is None:
+                        definition = ParameterDefinition(suffix)
+                        section.definitions[suffix] = definition
+                    definition.lines.append((counter, data))
                 counter += 1
 
         return result
@@ -120,8 +120,8 @@ class Parameters(object):
         '''
         with file(filename, 'w') as f:
             for prefix, section in self.sections.iteritems():
-                for suffix, lines in section.definitions.iteritems():
-                    for counter, data in lines:
+                for suffix, definition in section.definitions.iteritems():
+                    for counter, data in definition.lines:
                         print >> f, '%s:%s %s' % (prefix, suffix, data)
                     print >> f
                 print >> f
@@ -136,7 +136,7 @@ class ParameterSection(object):
     def __init__(self, prefix, definitions=None, complain=None):
         self.prefix = prefix
         if definitions is None:
-            self.definitions = []
+            self.definitions = {}
         else:
             self.definitions = definitions
         if complain is None:
@@ -146,3 +146,23 @@ class ParameterSection(object):
 
     def __getitem__(self, suffix):
         return self.definitions[suffix]
+
+
+class ParameterDefinition(object):
+    '''Object that represents a set of data lines from a parameter file'''
+    def __init__(self, suffix, lines=None, complain=None):
+        self.suffix = suffix
+        if lines is None:
+            self.lines = []
+        else:
+            self.lines = lines
+        if complain is None:
+            self.complain = Complain()
+        else:
+            self.complain = complain
+
+    def __getitem__(self, index):
+        return self.lines[index]
+
+    def __iter__(self):
+        return iter(self.lines)
