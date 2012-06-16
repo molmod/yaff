@@ -314,8 +314,8 @@ class System(object):
                 if fn.endswith('.xyz'):
                     from molmod import Molecule
                     mol = Molecule.from_file(fn)
-                    kwargs['numbers'] = mol.numbers
-                    kwargs['pos'] = mol.coordinates
+                    kwargs['numbers'] = mol.numbers.copy()
+                    kwargs['pos'] = mol.coordinates.copy()
                 elif fn.endswith('.psf'):
                     from molmod.io import PSFFile
                     psf = PSFFile(fn)
