@@ -155,7 +155,7 @@ class ForceField(ForcePart):
 
 
     @classmethod
-    def generate(cls, system, fn_parameters, **kwargs):
+    def generate(cls, system, parameters, **kwargs):
         """Create a force field for the given system with the given parameters.
 
            **Arguments:**
@@ -163,9 +163,10 @@ class ForceField(ForcePart):
            system
                 An instance of the System class
 
-           fn_parameters
-                The filename of the parameter file. This must be a text file
-                that adheres to YAFF parameter format.
+           parameters
+                Two types are accepted: (i) the filename of the parameter file,
+                which is a text file that adheres to YAFF parameter format, or
+                (ii) an instance of the Parameters class.
 
            See the constructor of the FFArgs class for the available optional
            arguments.
@@ -180,7 +181,8 @@ class ForceField(ForcePart):
         with log.section('GEN'), timer.section('Generator'):
             from yaff.pes.generator import apply_generators, FFArgs
             from yaff.pes.parameters import Parameters
-            parameters = Parameters.from_file(fn_parameters)
+            if not isinstance(parameters, Parameters):
+                parameters = Parameters.from_file(parameters)
             ff_args = FFArgs(**kwargs)
             apply_generators(system, parameters, ff_args)
             return ForceField(system, ff_args.parts, ff_args.nlist)
