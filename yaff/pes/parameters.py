@@ -115,6 +115,13 @@ class Parameters(object):
 
         return result
 
+    def copy(self):
+        '''Return an independent copy'''
+        sections = {}
+        for prefix, section in self.sections.iteritems():
+            sections[prefix] = section.copy()
+        return Parameters(sections, self.complain)
+
     def write_to_file(self, filename):
         '''Write the parameters back to a file
 
@@ -155,6 +162,13 @@ class ParameterSection(object):
             result = ParameterDefinition(suffix, [], self.complain)
         return result
 
+    def copy(self):
+        '''Return an independent copy'''
+        definitions = {}
+        for suffix, definition in self.definitions.iteritems():
+            definitions[suffix] = definition.copy()
+        return ParameterSection(self.prefix, definitions, self.complain)
+
 
 class ParameterDefinition(object):
     '''Object that represents a set of data lines from a parameter file'''
@@ -174,3 +188,9 @@ class ParameterDefinition(object):
 
     def __iter__(self):
         return iter(self.lines)
+
+    def copy(self):
+        lines = []
+        for counter, data in self.lines:
+            lines.append((counter, data))
+        return ParameterDefinition(self.suffix, lines, self.complain)

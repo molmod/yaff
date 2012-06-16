@@ -28,25 +28,37 @@ import shutil, tempfile
 from yaff import *
 
 
-def test_consistency():
+
+def check_consistent(pf1, pf2):
+    assert len(pf1.sections) == len(pf2.sections)
+    for prefix1, section1 in pf1.sections.iteritems():
+        section2 = pf2[prefix1]
+        assert section1.prefix == section2.prefix
+        assert len(section1.definitions) == len(section2.definitions)
+        for suffix1, definition1 in section1.definitions.iteritems():
+            definition2 = section2.definitions[suffix1]
+            assert len(definition1.lines) == len(definition2.lines)
+            for (counter1, data1), (counter2, data2) in zip(definition1.lines, definition2.lines):
+                assert data1 == data2
+
+
+def test_consistency_io():
     for fn_parameters in 'input/parameters_bks.txt', 'input/parameters_water.txt':
         pf1 = Parameters.from_file(fn_parameters)
         dirname = tempfile.mkdtemp('yaff', 'test_consistency_parameters')
         try:
             pf1.write_to_file('%s/parameters_foo.txt' % dirname)
             pf2 = Parameters.from_file('%s/parameters_foo.txt' % dirname)
-            assert len(pf1.sections) == len(pf2.sections)
-            for prefix1, section1 in pf1.sections.iteritems():
-                section2 = pf2[prefix1]
-                assert section1.prefix == section2.prefix
-                assert len(section1.definitions) == len(section2.definitions)
-                for suffix1, definition1 in section1.definitions.iteritems():
-                    definition2 = section2.definitions[suffix1]
-                    assert len(definition1.lines) == len(definition2.lines)
-                    for (counter1, data1), (counter2, data2) in zip(definition1.lines, definition2.lines):
-                        assert data1 == data2
+            check_consistent(pf1, pf2)
         finally:
             shutil.rmtree(dirname)
+
+
+def test_consistency_copy():
+    for fn_parameters in 'input/parameters_bks.txt', 'input/parameters_water.txt':
+        pf1 = Parameters.from_file(fn_parameters)
+        pf2 = pf1.copy()
+        check_consistent(pf1, pf2)
 
 
 def test_from_file_bks():
