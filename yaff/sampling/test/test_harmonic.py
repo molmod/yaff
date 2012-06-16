@@ -105,4 +105,4 @@ def test_bulk_elastic_bks():
     opt.run()
     e2 = ff.compute()
     C = (e1 + e2 - 2*e0)/(eps**2)/vol0
-    assert abs(C - elastic[0,0]) < C*0.01
+    assert abs(C - elastic[0,0]) < C*0.02
