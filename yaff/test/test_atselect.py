@@ -62,6 +62,7 @@ def test_lex_split():
 
 
 def test_compile():
+    assert atsel_compile('!0').get_string() == '!0'
     assert atsel_compile('C').get_string() == 'C'
     assert atsel_compile('(C)').get_string() == 'C'
     assert atsel_compile('((C))').get_string() == 'C'
@@ -142,6 +143,7 @@ def test_atselect_caffeine():
     assert (system.get_indexes('N&!=2')==np.array([2, 3, 4])).all()
     assert (system.get_indexes('N|O')==np.array([0, 1, 2, 3, 4, 5])).all()
     assert (system.get_indexes('N|8')==np.array([0, 1, 2, 3, 4, 5])).all()
+    assert (system.get_indexes('!0')==np.arange(system.natom)).all()
 
 
 def test_atselect_scope():

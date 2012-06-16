@@ -310,4 +310,4 @@ def _compile_low(s):
         result = rule._compile(s)
         if result is not None:
             return result
-    raise ValueError('Do not know how to compule: %s' % s)
+    raise ValueError('Do not know how to compile: %s' % s)
