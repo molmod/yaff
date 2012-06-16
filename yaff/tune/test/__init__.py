@@ -21,17 +21,4 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-
-
-__version__ = '0.0'
-
-from molmod.units import *
-from molmod.constants import *
-
-from yaff.analysis import *
-from yaff.atselect import *
-from yaff.log import *
-from yaff.pes import *
-from yaff.sampling import *
-from yaff.system import *
-from yaff.tune import *
+#--

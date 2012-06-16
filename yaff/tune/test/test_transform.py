@@ -23,15 +23,13 @@
 #--
 
 
-__version__ = '0.0'
+from yaff import *
 
-from molmod.units import *
-from molmod.constants import *
 
-from yaff.analysis import *
-from yaff.atselect import *
-from yaff.log import *
-from yaff.pes import *
-from yaff.sampling import *
-from yaff.system import *
-from yaff.tune import *
+def test_simple_transform():
+    pf0 = Parameters.from_file('input/parameters_water.txt')
+    rules = [ScaleRule('BONDFUES', 'PARS', 'O\s*H', 3)]
+    mods = [ParameterModifier(rules)]
+    pt = ParameterTransform(pf0, mods)
+    pf1 = pt([2.0])
+    assert pf1['BONDFUES']['PARS'][0][1] == 'O H 4.0088096730e+03  2.0476480000e+00'
