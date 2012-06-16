@@ -22,4 +22,5 @@
 #
 #--
 
+from yaff.tune.cost import *
 from yaff.tune.transform import *
