@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # YAFF is yet another force-field code
-# Copyright (C) 2008 - 2012 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
-# Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be> Center for Molecular Modeling
+# Copyright (C) 2011 - 2012 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
 #
