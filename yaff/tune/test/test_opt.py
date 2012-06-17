@@ -22,6 +22,29 @@
 #
 #--
 
-from yaff.tune.cost import *
-from yaff.tune.opt import *
-from yaff.tune.transform import *
+
+import numpy as np
+
+from yaff import *
+
+
+def test_random_quadratic1():
+    N = 3
+    x_bot = np.random.uniform(-1,1, N)
+    def fn(x):
+        return ((x - x_bot)**2).sum()
+
+    x0 = np.zeros(3, float)
+    x1 = random_opt(fn, x0)
+    assert abs(x1 - x_bot).max() < 1e-4
+
+
+def test_gaussian_quadratic1():
+    N = 3
+    x_bot = np.random.uniform(-1,1, N)
+    def fn(x):
+        return ((x - x_bot)**2).sum()
+
+    x0 = np.zeros(3, float)
+    x1 = gauss_opt(fn, x0)
+    assert abs(x1 - x_bot).max() < 1e-4

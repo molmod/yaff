@@ -77,7 +77,7 @@ class GeoOptSimulation(Simulation):
         from yaff import CartesianDOF, CGOptimizer
         dof = CartesianDOF(ff)
         opt = CGOptimizer(dof)
-        opt.run(50)
+        opt.run(1000)
         return {'pos': self.system.pos.copy()}
 
 

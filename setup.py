@@ -38,7 +38,8 @@ setup(
     url='http://molmod.ugent.be/code/',
     package_dir = {'yaff': 'yaff'},
     packages=['yaff', 'yaff/test', 'yaff/pes', 'yaff/pes/test', 'yaff/sampling',
-              'yaff/sampling/test', 'yaff/analysis', 'yaff/analysis/test'],
+              'yaff/sampling/test', 'yaff/analysis', 'yaff/analysis/test',
+              'yaff/tune', 'yaff/tune/test'],
     cmdclass = {'build_ext': build_ext},
     ext_modules=[
         Extension("yaff.pes.ext",
