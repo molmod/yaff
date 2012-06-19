@@ -28,7 +28,7 @@ import numpy as np
 from yaff.log import log
 
 
-__all__ = ['random_opt', 'gauss_opt']
+__all__ = ['random_opt', 'gauss_opt', 'rosenbrock_opt']
 
 
 def random_opt(fn, x0, on_lower=None):
@@ -63,71 +63,96 @@ def random_opt(fn, x0, on_lower=None):
         return x
 
 
+class Newton(object):
+    def __init__(self, grad, hess):
+        self.grad = grad
+        self.hess = hess
+        self.evals, self.evecs = np.linalg.eigh(self.hess)
+
+    def __call__(self, ridge):
+        self.evals_inv = 1/abs(ridge + self.evals)
+        self.step = -np.dot(self.evecs, np.dot(self.evecs.T, self.grad)*self.evals_inv)
+        return np.linalg.norm(self.step)
+
+
 class GaussianModel(object):
-    def __init__(self, center, on_lower=None):
+    def __init__(self, center, sigma, on_lower=None):
         self.center = center
         self.on_lower = on_lower
-
         self.npar = len(self.center)
-        self.nrec_min = self.npar*(self.npar+1) + 3*self.npar
-        self.nrec_max = 2*self.nrec_min
+        self.nrec = self.npar*(self.npar+1) + 3*self.npar
+
+        self.sigmas = np.ones(self.npar)*sigma
+        self.evecs = np.identity(self.npar)
+        #self.trust_radius = sigma
+        self.temperature = None
 
         self.history = []
-        self.best = None
         self.counter = 0
-        self.bad_counter = 0
-        self.grad = np.zeros(self.npar, float)
-        self.hess = np.identity(self.npar, float)
-        self.temperature = 1e-2
+
+    full = property(lambda self: len(self.history) >= self.nrec)
+
+    overfull = property(lambda self: len(self.history) > self.nrec*2)
 
     def sample(self):
-        evals, evecs = np.linalg.eigh(self.hess)
-        ridge = 1e-2*abs(evals).max()
-        evals_inv = abs(evals)/(ridge**2 + evals**2)
-
-        center = self.center - np.dot(evecs, np.dot(evecs.T, self.grad)*evals_inv)
-
-        x1 = np.random.normal(0, self.temperature, self.npar)
-        x1 = np.dot(evecs, np.dot(evecs.T, x1)*evals_inv) + center
-
+        x1 = np.random.normal(0, 1, self.npar)
+        x1 = np.dot(self.evecs, np.dot(self.evecs.T, x1)*self.sigmas) + self.center
         if log.do_medium:
-            log('Sample   T = %10.5e   ridge = %10.5e   eval_min = %10.5e' % (self.temperature, ridge, abs(evals).min()))
+            log('Sample:')
+            log('  %s' % (' '.join('%10.5e' % v for v in x1)))
         return x1
 
-    def feed(self, x, f):
+    def feed(self, f, x):
         self.counter += 1
         if log.do_low:
             log('Iteration %i' % self.counter)
-        self.control_temperature(x, f)
-        self.history.append((x, f))
-        self.analyze()
-        self.fit_model()
+            log('History has %i records. %i required for fit.' % (len(self.history), self.nrec))
+        self.add_record(f, x)
+        self.center = self.history[0][1].copy()
+        if self.full:
+            self.fit_model()
+            #self.trust_radius *= 1.01
+
+        if log.do_low:
+            log('Best   f    = %10.5e' % self.history[0][0])
+            log('Newest f    = %10.5e' % f)
+            if self.temperature is not None:
+                log('Temperature = %10.5e' % self.temperature)
         if log.do_medium:
+            log('Center:')
+            log('  %s' % (' '.join('%7.1e' % v for v in self.center)))
+            log('History:')
+            log('  %s' % (' '.join('%7.1e' % f for f, x in self.history)))
             log.hline()
 
-    def control_temperature(self, x, f):
-        if self.best is None or f > self.best[1]:
-            if self.on_lower is not None:
-                self.on_lower(x)
-            self.bad_counter += 1
-        else:
-            self.bad_counter = 0
-        if self.bad_counter > self.nrec_max:
-            self.temperature *= 0.1
-            self.bad_counter = 0
-        if log.do_medium:
-            log('Bad counter = %i/%i' % (self.bad_counter, self.nrec_max))
+    def add_record(self, f, x):
+        if len(self.history) > 0:
+            # Check if this one is the best so far
+            if f < self.history[0][0]:
+                if self.on_lower is not None:
+                    self.on_lower(x)
+        if self.temperature is not None:
+            if f < self.history[0][0]:
+                self.temperature *= 2.0
+            elif f > self.history[-1][0]:
+                self.temperature *= 0.5
+            else:
+                self.temperature *= 0.999
+
+        # Add the record
+        self.history.append((f, x))
+        self.history.sort()
+
+        if self.overfull:
+            del self.history[-1]
+
 
     def fit_model(self):
-        if log.do_low:
-            log('History has %i records. At least %i required for fit' % (len(self.history), self.nrec_min))
-        if len(self.history) < self.nrec_min:
-            return
-        self.center = self.best[0]
+        # Build a model for the hessian and the gradient
 
         dm = []
         ev = []
-        for x, f in self.history:
+        for f, x in self.history:
             row = [1.0]
             row.extend(x-self.center)
             for i0 in xrange(self.npar):
@@ -138,11 +163,11 @@ class GaussianModel(object):
                         factor = 1.0
                     row.append(factor*(x[i0]-self.center[i0])*(x[i1]-self.center[i1]))
             dm.append(row)
-            ev.append(f - self.best[1])
+            ev.append(f - self.history[0][0])
 
         dm = np.array(dm)
         ev = np.array(ev)
-        ridge = ev.max()*0.01
+        #ridge = ev.mean()*0.01
         #if ridge > 0:
         #    ws = 1/(ridge+ev)**2
         #    dm *= ws.reshape(-1,1)
@@ -151,55 +176,157 @@ class GaussianModel(object):
         dm = dm/scales
 
         U, S, Vt = np.linalg.svd(dm, full_matrices=False)
-        ridge = abs(S).max()*1e-6
-        if ridge > 0:
-            S_inv = abs(S)/(ridge**2+S**2)
-            alpha = np.dot(Vt.T, np.dot(U.T, ev)*S_inv)
-            coeffs = alpha/scales
-            self.grad[:] = coeffs[1:self.npar+1]
-            counter = self.npar+1
-            for i0 in xrange(self.npar):
-                for i1 in xrange(i0+1):
-                    self.hess[i0,i1] = coeffs[counter]
-                    self.hess[i1,i0] = coeffs[counter]
-                    counter += 1
+        ridge = abs(S).max()*1e-3
+        S_inv = abs(S)/(ridge**2+S**2)
+        alpha = np.dot(Vt.T, np.dot(U.T, ev)*S_inv)
+        coeffs = alpha/scales
+        grad = coeffs[1:self.npar+1]
+        counter = self.npar+1
+        hess = np.zeros((self.npar, self.npar), float)
+        for i0 in xrange(self.npar):
+            for i1 in xrange(i0+1):
+                hess[i0,i1] = coeffs[counter]
+                hess[i1,i0] = coeffs[counter]
+                counter += 1
 
-        if log.do_low:
+        if log.do_medium:
             mv = np.dot(dm, alpha)
             rmsd = np.sqrt(((mv-ev)**2).mean())
             rms = np.sqrt(ev**2).mean()
             log('Fit RMSD = %10.5e    RMS = %10.5e    RE = %10.2f%%' % (rmsd, rms, rmsd/rms*100))
+
+        evals, evecs = np.linalg.eigh(hess)
+        threshold = evals.max()*0.1
+        tmp = evals.copy()
+        tmp[tmp<threshold] = threshold
+        evals_inv = 1/tmp
+
+        self.evecs = evecs
+        if self.temperature is None:
+            sigmas = np.sqrt(evals_inv)/ev[len(ev)/2]
+            self.temperature = (self.sigmas/sigmas).max()
+
+        self.sigmas = np.sqrt(evals_inv)/ev[len(ev)/2]*self.temperature
+        step = np.dot(evecs, np.dot(evecs.T, -grad)*evals_inv)
+        step *= np.linalg.norm(self.sigmas)/np.linalg.norm(step)
+        self.center += step
+
+
         if log.do_medium:
-            log('Gradient:')
-            log('  %s' % (' '.join('%7.1e' % g for g in self.grad)))
-            evals = np.linalg.eigvalsh(self.hess)
-            log('Hessian eigen values:')
+            log('Evals:')
             log('  %s' % (' '.join('%7.1e' % v for v in evals)))
-            log('Function values in history:')
-            fs = [f for x, f in self.history]
-            fs.sort()
-            log('  %s' % (' '.join('%7.1e' % f for f in fs)))
+            log('Evals inv:')
+            log('  %s' % (' '.join('%7.1e' % v for v in evals_inv)))
+            log('Sigmas:')
+            log('  %s' % (' '.join('%7.1e' % v for v in self.sigmas)))
 
 
-    def analyze(self):
-        fs = np.array([f for x, f in self.history])
-        self.best = self.history[fs.argmin()]
-        if len(self.history) > self.nrec_max:
-            if log.do_medium:
-                log('Pruning worst point from history: f = % 10.5e' % fs.max())
-            del self.history[fs.argmax()]
-
-
-def gauss_opt(fn, x0, on_lower=None):
+def gauss_opt(fn, x0, sigma, on_lower=None):
     with log.section('GAUOPT'):
         if log.do_low:
             log('Number of parameters: %i' % len(x0))
-        gm = GaussianModel(x0, on_lower)
+        gm = GaussianModel(x0, sigma, on_lower)
         x = x0.copy()
         f = fn(x)
-        gm.feed(x, f)
-        while gm.temperature > 1e-6:
+        gm.feed(f, x)
+        while gm.sigmas.max() > 1e-8:
             x1 = gm.sample()
             f1 = fn(x1)
-            gm.feed(x1, f1)
-        return gm.best[0]
+            gm.feed(f1, x1)
+        assert abs(fn(gm.history[0][1]) - gm.history[0][0]) < 1e-10
+        return gm.history[0][1]
+
+
+def rosenbrock_opt(fn, x0, small, xtol, on_lower=None):
+    def my_fn(x):
+        result = fn(x)
+        if log.do_medium:
+            log('    f = %10.5e' % result)
+        return result
+
+    def my_lower(f, x):
+        if on_lower is not None:
+            on_lower(x)
+        if log.do_low:
+            log('    **LOWER** f = %10.5e **LOWER** ' % f)
+            # double check
+            f = fn(x)
+            log('    **CHECK** f = %10.5e **CHECK** ' % f)
+
+    with log.section('ROSOPT'):
+
+        f0 = my_fn(x0)
+        npar = len(x0)
+        basis = np.identity(npar, float)
+        counter = 0
+        while True:
+            counter += 1
+            if log.do_medium:
+                log('iteration %i' % counter)
+            x0_start = x0.copy()
+            nostep = True
+
+            # Try to make moves along the directions of basis
+            for i in xrange(npar):
+                if log.do_medium:
+                    log('  decrease %i' % i)
+                # try by decreasing
+                delta = small
+                nattempt = 0
+                while abs(delta) > xtol:
+                    x1 = x0 + delta*basis[i]
+                    f1 = my_fn(x1)
+                    if f1 < f0:
+                        f0, x0 = f1, x1
+                        my_lower(f0, x0)
+                        nostep = False
+                        break
+                    if delta > 0:
+                        delta *= -1
+                    else:
+                        delta *= -0.5
+                    nattempt += 1
+
+                # if no decrease was needed, try increasing
+                if nattempt < 2:
+                    if log.do_medium:
+                        log('  increase %i' % i)
+                    while True:
+                        x1 = x0 + delta*basis[i]
+                        f1 = my_fn(x1)
+                        if f1 >= f0:
+                            break
+                        f0, x0 = f1, x1
+                        my_lower(f0, x0)
+                        delta *= 2
+                        nostep = False
+
+                # tried enough, new direction in next iteration
+
+            # if the shortest possible step in each direction was tested, bail out
+            if nostep:
+                if log.do_medium:
+                    log('Not a single successful step in this iteration. Giving up.')
+                break
+
+            # compute step.
+            step = x0 - x0_start
+            if log.do_medium:
+                log('step = [%s]' % ' '.join('%10.5e' % v for v in step))
+
+            # project each basis vector on ortho complement
+            for i in xrange(npar):
+                basis[i] -= step*np.dot(step, basis[i])/np.linalg.norm(step)**2
+
+            # use svd to get the basis for the remainder
+            U, S, Vt = np.linalg.svd(basis)
+            basis[0] = step/np.linalg.norm(step)
+            for i in xrange(1, npar):
+                basis[i] = Vt[i-1]
+            for i in xrange(npar):
+                log('basis[%i] = [%s]' % (i, ' '.join('%10.5e' % v for v in basis[i])))
+
+            small = np.linalg.norm(step)*0.01
+
+
+        return x0

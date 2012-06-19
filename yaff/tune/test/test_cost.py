@@ -47,7 +47,7 @@ def test_water_cost_dist():
     pt = ParameterTransform(parameters, mods)
 
     tests = [BondLengthTest(refpos, 0.1*angstrom)]
-    simulations = [GeoOptSimulation(system, tests)]
+    simulations = [GeoOptSimulation(system, system.pos, tests)]
     cost = CostFunction(pt, simulations)
 
     x = np.array([1.0])
@@ -79,7 +79,7 @@ def test_water_cost_angle():
     pt = ParameterTransform(parameters, mods)
 
     tests = [BendAngleTest(refpos, 5*deg)]
-    simulations = [GeoOptSimulation(system, tests)]
+    simulations = [GeoOptSimulation(system, system.pos, tests)]
     cost = CostFunction(pt, simulations)
 
     x = np.array([1.0])

@@ -25,7 +25,7 @@
 
 import numpy as np
 
-from yaff import atsel_compile
+from yaff import atsel_compile, log
 from yaff.pes.ff import ForceField
 
 
@@ -44,6 +44,8 @@ class CostFunction(object):
     def __call__(self, x):
         # Modify the parameters
         parameters = self.parameter_transform(x)
+        #for counter, line in parameters['BENDCHARM']['PARS']:
+        #    log('FOO %s' % line.strip())
         # Run simulations with the new parameters
         cost = 0.0
         for simulation in self.simulations:
@@ -73,11 +75,32 @@ class Simulation(object):
 
 
 class GeoOptSimulation(Simulation):
+    def __init__(self, system, refpos, tests, **kwargs):
+        self.refpos = refpos
+        Simulation.__init__(self, system, tests, **kwargs)
+
     def run(self, ff):
-        from yaff import CartesianDOF, CGOptimizer
-        dof = CartesianDOF(ff)
-        opt = CGOptimizer(dof)
-        opt.run(1000)
+        from yaff import CartesianDOF, CGOptimizer, OptScreenLog
+        #prevpos = ff.system.pos[:].copy()
+        #energy0 = ff.compute()
+        #ff.system.pos[:] = self.refpos
+        #energy1 = ff.compute()
+        #if energy1 > energy0:
+        ff.system.pos[:] *= np.random.uniform(0.99, 1.01, ff.system.pos.shape)
+        dof = CartesianDOF(ff, gpos_rms=1e-8)
+        sl = OptScreenLog(step=10)
+        opt = CGOptimizer(dof, hooks=[sl])
+        opt.run(5000)
+
+        #pos = ff.system.pos
+        #for i0, i1, i2 in ff.system.iter_angles():
+        #    if ff.system.numbers[i1] == 8:
+        #        d01 = pos[i0] - pos[i1]
+        #        d21 = pos[i2] - pos[i1]
+        #        cos = np.dot(d01, d21)/np.linalg.norm(d01)/np.linalg.norm(d21)
+        #        angle = np.arccos(np.clip(cos, -1, 1))
+        #        log('FOO angle %3i %3i %3i %10.4f' % (i0, i1, i2, angle/np.pi*180))
+
         return {'pos': self.system.pos.copy()}
 
 
