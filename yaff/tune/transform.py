@@ -26,7 +26,8 @@
 import re
 
 __all__ = [
-    'ParameterTransform', 'ParameterModifier', 'ModifierRule', 'ScaleRule'
+    'ParameterTransform', 'ParameterModifier', 'ModifierRule', 'ScaleRule',
+    'IncrementRule'
 ]
 
 
@@ -80,3 +81,8 @@ class ModifierRule(object):
 class ScaleRule(ModifierRule):
     def modify_value(self, x, value):
         return x*value
+
+
+class IncrementRule(ModifierRule):
+    def modify_value(self, x, value):
+        return x+value
