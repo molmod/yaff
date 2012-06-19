@@ -788,7 +788,7 @@ class ExpRepGenerator(NonbondedGenerator):
         amps = np.zeros(system.nffatype, float)
         bs = np.zeros(system.nffatype, float)
         for i in xrange(system.nffatype):
-            key = (system.get_ffatype(i),)
+            key = (system.ffatypes[i],)
             par_list = par_table.get(key, [])
             if len(par_list) == 0:
                 if log.do_warning:
@@ -863,7 +863,8 @@ class DampDispGenerator(NonbondedGenerator):
         bs = np.zeros(system.nffatype, float)
         vols = np.zeros(system.nffatype, float)
         for i in xrange(system.nffatype):
-            key = (system.get_ffatype(i),)
+            # TODO: make test and fix other occurences of this bug
+            key = (system.ffatypes[i],)
             par_list = par_table.get(key, [])
             if len(par_list) == 0:
                 if log.do_warning:

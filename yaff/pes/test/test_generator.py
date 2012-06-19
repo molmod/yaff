@@ -180,6 +180,24 @@ def test_generator_water32_lj():
     assert abs(part_pair_lj.pair_pot.epsilons[1] - 0.04*kcalmol) < 1e-10
 
 
+def test_generator_glycine_lj():
+    system = get_system_glycine()
+    ff = ForceField.generate(system, 'input/parameters_fake_lj.txt')
+    assert len(ff.parts) == 1
+    part_pair_lj = ff.part_pair_lj
+    # check parameters
+    assert part_pair_lj.pair_pot.sigmas.shape == (ff.system.natom,)
+    assert part_pair_lj.pair_pot.epsilons.shape == (ff.system.natom,)
+    assert abs(part_pair_lj.pair_pot.sigmas[0] - 1.7*angstrom) < 1e-10
+    assert abs(part_pair_lj.pair_pot.sigmas[1] - 1.8*angstrom) < 1e-10
+    assert abs(part_pair_lj.pair_pot.sigmas[3] - 1.6*angstrom) < 1e-10
+    assert abs(part_pair_lj.pair_pot.sigmas[5] - 0.5*angstrom) < 1e-10
+    assert abs(part_pair_lj.pair_pot.epsilons[0] - 0.18*kcalmol) < 1e-10
+    assert abs(part_pair_lj.pair_pot.epsilons[1] - 0.22*kcalmol) < 1e-10
+    assert abs(part_pair_lj.pair_pot.epsilons[3] - 0.12*kcalmol) < 1e-10
+    assert abs(part_pair_lj.pair_pot.epsilons[5] - 0.05*kcalmol) < 1e-10
+
+
 def test_generator_water32_mm3():
     system = get_system_water32()
     ff = ForceField.generate(system, 'input/parameters_water_mm3.txt')
@@ -192,6 +210,29 @@ def test_generator_water32_mm3():
     assert abs(part_pair_mm3.pair_pot.epsilons[1] - 0.04*kcalmol) < 1e-10
     assert part_pair_mm3.pair_pot.onlypaulis[0] == 1
     assert part_pair_mm3.pair_pot.onlypaulis[1] == 0
+
+
+def test_generator_glycine_mm3():
+    system = get_system_glycine()
+    ff = ForceField.generate(system, 'input/parameters_fake_mm3.txt')
+    assert len(ff.parts) == 1
+    part_pair_mm3 = ff.part_pair_mm3
+    # check parameters
+    assert part_pair_mm3.pair_pot.sigmas.shape == (ff.system.natom,)
+    assert part_pair_mm3.pair_pot.epsilons.shape == (ff.system.natom,)
+    assert part_pair_mm3.pair_pot.onlypaulis.shape == (ff.system.natom,)
+    assert abs(part_pair_mm3.pair_pot.sigmas[0] - 1.7*angstrom) < 1e-10
+    assert abs(part_pair_mm3.pair_pot.sigmas[1] - 1.8*angstrom) < 1e-10
+    assert abs(part_pair_mm3.pair_pot.sigmas[3] - 1.6*angstrom) < 1e-10
+    assert abs(part_pair_mm3.pair_pot.sigmas[5] - 0.5*angstrom) < 1e-10
+    assert abs(part_pair_mm3.pair_pot.epsilons[0] - 0.18*kcalmol) < 1e-10
+    assert abs(part_pair_mm3.pair_pot.epsilons[1] - 0.22*kcalmol) < 1e-10
+    assert abs(part_pair_mm3.pair_pot.epsilons[3] - 0.12*kcalmol) < 1e-10
+    assert abs(part_pair_mm3.pair_pot.epsilons[5] - 0.05*kcalmol) < 1e-10
+    assert part_pair_mm3.pair_pot.onlypaulis[0] == 0
+    assert part_pair_mm3.pair_pot.onlypaulis[1] == 1
+    assert part_pair_mm3.pair_pot.onlypaulis[3] == 1
+    assert part_pair_mm3.pair_pot.onlypaulis[5] == 0
 
 
 def test_generator_water32_exprep1():
@@ -250,6 +291,32 @@ def test_generator_water32_exprep3():
     assert abs(b_cross[1,1] - 4.4107388814e+00/angstrom) < 1e-10
 
 
+def test_generator_glycine_exprep1():
+    system = get_system_glycine()
+    ff = ForceField.generate(system, 'input/parameters_fake_exprep1.txt')
+    assert len(ff.parts) == 1
+    part_pair_exprep = ff.part_pair_exprep
+    # check parameters
+    amp_cross = part_pair_exprep.pair_pot.amp_cross
+    assert amp_cross.shape == (4, 4)
+    assert (amp_cross > 0).all()
+    assert (amp_cross == amp_cross.T).all()
+    assert abs(amp_cross[0,0] - 4.9873214987e+00) < 1e-10
+    assert abs(amp_cross[1,1] - 4.3843216584e+02) < 1e-10
+    assert abs(amp_cross[2,2] - 4.2117588157e+02) < 1e-10
+    assert abs(amp_cross[3,3] - 2.9875648798e+00) < 1e-10
+    assert abs(amp_cross[1,3] - np.sqrt(4.3843216584e+02*2.9875648798e+00)) < 1e-10
+    b_cross = part_pair_exprep.pair_pot.b_cross
+    assert b_cross.shape == (4, 4)
+    assert (b_cross > 0).all()
+    assert (b_cross == b_cross.T).all()
+    assert abs(b_cross[0,0] - 4.4265465464e+00/angstrom) < 1e-10
+    assert abs(b_cross[1,1] - 4.4132795167e+00/angstrom) < 1e-10
+    assert abs(b_cross[2,2] - 4.4654231357e+00/angstrom) < 1e-10
+    assert abs(b_cross[3,3] - 4.4371927495e+00/angstrom) < 1e-10
+    assert abs(b_cross[2,0] - 0.5*(4.4265465464e+00+4.4654231357e+00)/angstrom) < 1e-10
+
+
 def test_generator_water32_dampdisp1():
     system = get_system_water32()
     ff = ForceField.generate(system, 'input/parameters_water_dampdisp1.txt')
@@ -257,11 +324,16 @@ def test_generator_water32_dampdisp1():
     part_pair_dampdisp = ff.part_pair_dampdisp
     # check parameters
     c6_cross = part_pair_dampdisp.pair_pot.c6_cross
+    assert c6_cross.shape == (2,2)
     assert abs(c6_cross[0,0] - 1.9550248340e+01) < 1e-10
     assert abs(c6_cross[1,1] - 2.7982205915e+00) < 1e-10
+    vratio = 3.13071058512e+00/5.13207980365e+00 # v[0]/v[1]
+    tmp = 2*c6_cross[0,0]*c6_cross[1,1]/(c6_cross[0,0]/vratio + c6_cross[1,1]*vratio)
+    assert abs(c6_cross[0,1] - tmp) < 1e-10
     assert (c6_cross == c6_cross.T).all()
     assert (c6_cross > 0).all()
     b_cross = part_pair_dampdisp.pair_pot.b_cross
+    assert b_cross.shape == (2,2)
     assert abs(b_cross[0,0] - 3.2421589363e+00/angstrom) < 1e-10
     assert abs(b_cross[0,1] - 3.3501628381e+00/angstrom) < 1e-10
     assert abs(b_cross[1,1] - 3.4581667399e+00/angstrom) < 1e-10
@@ -285,6 +357,35 @@ def test_generator_water32_dampdisp2():
     assert abs(b_cross[0,0] - 3.2421589363e+00/angstrom) < 1e-10
     assert abs(b_cross[0,1] - 3.3501628381e+00/angstrom) < 1e-10
     assert abs(b_cross[1,1] - 3.4581667399e+00/angstrom) < 1e-10
+    assert (b_cross == b_cross.T).all()
+    assert (b_cross > 0).all()
+
+
+def test_generator_glycine_dampdisp1():
+    system = get_system_glycine()
+    ff = ForceField.generate(system, 'input/parameters_fake_dampdisp1.txt')
+    assert len(ff.parts) == 1
+    part_pair_dampdisp = ff.part_pair_dampdisp
+    # check parameters
+    c6_cross = part_pair_dampdisp.pair_pot.c6_cross
+    assert c6_cross.shape == (4, 4)
+    assert abs(c6_cross[0,0] - 2.0121581791e+01) < 1e-10
+    assert abs(c6_cross[1,1] - 2.5121581791e+01) < 1e-10
+    assert abs(c6_cross[2,2] - 1.4633211522e+01) < 1e-10
+    assert abs(c6_cross[3,3] - 2.4261074778e+00) < 1e-10
+    vratio = 3.6001863542e+00/3.7957349423e+00 # v[0]/v[1]
+    tmp = 2*c6_cross[0,0]*c6_cross[1,1]/(c6_cross[0,0]/vratio + c6_cross[1,1]*vratio)
+    assert abs(c6_cross[0,1] - tmp) < 1e-10
+
+    assert (c6_cross == c6_cross.T).all()
+    assert (c6_cross > 0).all()
+    b_cross = part_pair_dampdisp.pair_pot.b_cross
+    assert b_cross.shape == (4, 4)
+    assert abs(b_cross[0,0] - 5.13207980365e+00/angstrom) < 1e-10
+    assert abs(b_cross[0,1] - 0.5*(5.13207980365e+00+5.01673173654e+00)/angstrom) < 1e-10
+    assert abs(b_cross[1,1] - 5.01673173654e+00/angstrom) < 1e-10
+    assert abs(b_cross[2,2] - 5.74321564987e+00/angstrom) < 1e-10
+    assert abs(b_cross[3,3] - 3.13071058512e+00/angstrom) < 1e-10
     assert (b_cross == b_cross.T).all()
     assert (b_cross > 0).all()
 
@@ -313,8 +414,6 @@ def test_generator_water32_fixq():
     ff2 = ForceField.generate(system, 'input/parameters_water_fixq.txt', rcut=15.0*angstrom)
     energy = ff.compute()
     energy2 = ff2.compute()
-    print energy
-    print energy2
     assert abs(energy - energy2) < 1e-3
 
 
