@@ -327,6 +327,7 @@ class NVEIntegrator(Iterative):
         self.masses = ff.system.masses
         if vel0 is None:
             self.vel = self.get_random_vel(temp0, scalevel0)
+            self.remove_com_vel()
         else:
             if vel.shape != self.pos.shape:
                 raise TypeError('The vel0 argument does not have the right shape.')
@@ -358,6 +359,12 @@ class NVEIntegrator(Iterative):
             scale = np.sqrt(temp0/temp)
             result *= scale
         return result
+
+    def remove_com_vel(self):
+        # compute the center of mass velocity
+        com_vel = np.dot(self.masses, self.vel)/self.masses.sum()
+        # subtract
+        self.vel[:] -= com_vel
 
     def initialize(self):
         self.gpos[:] = 0.0

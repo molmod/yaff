@@ -23,7 +23,7 @@
 #--
 
 
-import h5py
+import h5py, numpy as np
 
 from yaff import *
 from yaff.sampling.test.common import get_ff_water32
@@ -106,7 +106,11 @@ def test_hdf5_step():
 def test_xyz():
     xyz = XYZWriter('/dev/null')
     nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[xyz])
+    com_vel = np.dot(nve.masses, nve.vel)/nve.masses.sum()
+    assert np.linalg.norm(com_vel) < 1e-10
     nve.run(15)
+    com_vel = np.dot(nve.masses, nve.vel)/nve.masses.sum()
+    assert np.linalg.norm(com_vel) < 1e-10
     assert nve.counter == 15
 
 
