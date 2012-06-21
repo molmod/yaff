@@ -45,6 +45,7 @@ def test_spectrum_offline():
             fn_png = '%s/ac%i.png' % (dn_tmp, bsize)
             spectrum.plot_ac(fn_png)
             assert os.path.isfile(fn_png)
+            assert f['trajectory/vel_spectrum'].attrs['nfft'] == 3*3*32*(6/bsize)
             del f['trajectory/vel_spectrum']
     finally:
         shutil.rmtree(dn_tmp)
@@ -70,6 +71,7 @@ def test_spectrum_online():
             assert abs(spectrum0.freqs - spectrum1.freqs).max() < 1e-10
             assert abs(spectrum0.ac - spectrum1.ac).max() < 1e-10
             assert abs(spectrum0.time - spectrum1.time).max() < 1e-10
+            assert f['trajectory/vel_spectrum'].attrs['nfft'] == 3*3*32*(6/bsize)
         finally:
             f.close()
 

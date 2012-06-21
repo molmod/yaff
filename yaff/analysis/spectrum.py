@@ -112,6 +112,7 @@ class Spectrum(AnalysisHook):
         self.select = select
         self.ssize = self.bsize/2+1 # the length of the spectrum array
         self.amps = np.zeros(self.ssize, float)
+        self.nfft = 0 # the number of fft calls, for statistics
         AnalysisHook.__init__(self, f, start, end, None, step, path, key, outpath, True)
 
     def init_online(self):
@@ -165,6 +166,7 @@ class Spectrum(AnalysisHook):
             for indexes in self._iter_indexes(self.work):
                 work = self.work[(slice(0, self.bsize),) + indexes]
                 self.amps += abs(np.fft.rfft(work))**2
+                self.nfft += 1
             # compute some derived stuff
             self.compute_derived()
             # reset some things
@@ -180,6 +182,7 @@ class Spectrum(AnalysisHook):
             for indexes in self._iter_indexes(ds):
                 ds.read_direct(work, (slice(current, current+stride, self.step),) + indexes)
                 self.amps += abs(np.fft.rfft(work))**2
+                self.nfft += 1
             current += stride
         # Compute related arrays
         self.compute_derived()
@@ -189,6 +192,7 @@ class Spectrum(AnalysisHook):
         if self.outg is not None:
             self.outg['amps'][:] = self.amps
             self.outg['ac'][:] = self.ac
+            self.outg.attrs['nfft'] = self.nfft
 
     def plot(self, fn_png='spectrum.png', do_wavenum=True, xlim=None):
         import matplotlib.pyplot as pt
