@@ -39,7 +39,7 @@ class Spectrum(AnalysisHook):
     label = 'spectrum'
 
     def __init__(self, f=None, start=0, end=-1, step=1, bsize=4096, select=None,
-                 path='trajectory/vel', key='vel', outpath=None):
+                 path='trajectory/vel', key='vel', outpath=None, weights=None):
         """
            **Optional arguments:**
 
@@ -82,6 +82,11 @@ class Spectrum(AnalysisHook):
                 If not given, it defaults to '%s_spectrum' % path. If this path
                 already exists, it will be removed first.
 
+           weights
+                If not given, the spectrum is just a simple sum of contributions
+                from different time-dependent functions. If given, a linear
+                combination is made based on these weights.
+
            The max_sample argument from get_slice is not used because the choice
            step value is an important parameter: it is best to choose step*bsize
            such that it coincides with a part of the trajectory in which the
@@ -110,6 +115,7 @@ class Spectrum(AnalysisHook):
         """
         self.bsize = bsize
         self.select = select
+        self.weights = weights
         self.ssize = self.bsize/2+1 # the length of the spectrum array
         self.amps = np.zeros(self.ssize, float)
         self.nfft = 0 # the number of fft calls, for statistics
@@ -127,6 +133,12 @@ class Spectrum(AnalysisHook):
             for i0 in self.select:
                 for irest in np.ndindex(array.shape[2:]):
                     yield (i0,) + irest
+
+    def _get_weight(self, indexes):
+        if self.weights is None:
+            return 1.0
+        else:
+            return self.weights[indexes]
 
     def init_timestep(self):
         self.freqs = np.arange(self.ssize)/(self.timestep*self.ssize)
@@ -165,7 +177,7 @@ class Spectrum(AnalysisHook):
             # collected sufficient data to fill one block, computing FFT
             for indexes in self._iter_indexes(self.work):
                 work = self.work[(slice(0, self.bsize),) + indexes]
-                self.amps += abs(np.fft.rfft(work))**2
+                self.amps += self._get_weight(indexes)*abs(np.fft.rfft(work))**2
                 self.nfft += 1
             # compute some derived stuff
             self.compute_derived()
@@ -181,7 +193,7 @@ class Spectrum(AnalysisHook):
         while current <= self.end - stride:
             for indexes in self._iter_indexes(ds):
                 ds.read_direct(work, (slice(current, current+stride, self.step),) + indexes)
-                self.amps += abs(np.fft.rfft(work))**2
+                self.amps += self._get_weight(indexes)*abs(np.fft.rfft(work))**2
                 self.nfft += 1
             current += stride
         # Compute related arrays
