@@ -183,6 +183,8 @@ class ForceField(ForcePart):
             from yaff.pes.parameters import Parameters
             if not isinstance(parameters, Parameters):
                 parameters = Parameters.from_file(parameters)
+            if log.do_medium:
+                log('Generating force field based on file \'%s\'' % (parameters.complain.filename))
             ff_args = FFArgs(**kwargs)
             apply_generators(system, parameters, ff_args)
             return ForceField(system, ff_args.parts, ff_args.nlist)
