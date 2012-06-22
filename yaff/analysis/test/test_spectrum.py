@@ -89,7 +89,7 @@ def test_spectrum_online_weights():
     # Setup a test FF
     ff = get_ff_water32()
     ff.system.set_standard_masses()
-    weights = mp.array([ff.system.masses]*3).T
+    weights = np.array([ff.system.masses]*3).T
     spectrum = Spectrum(bsize=2, weights=weights)
     nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=spectrum)
     nve.run(5)
