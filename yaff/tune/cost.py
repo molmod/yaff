@@ -31,15 +31,19 @@ from yaff.pes.ff import ForceField
 
 __all__ = [
     'CostFunction',
-    'Simulation', 'GeoOptSimulation',
-    'Test', 'BondLengthTest', 'BendAngleTest',
+    'Simulation', 'GeoOptSimulation', 'GeoOptHessianSimulation',
+    'ICGroup', 'BondGroup', 'BendGroup',
+    'Test', 'ICTest',
 ]
 
 
 class CostFunction(object):
-    def __init__(self, parameter_transform, simulations):
+    def __init__(self, parameter_transform, tests):
         self.parameter_transform = parameter_transform
-        self.simulations = simulations
+        self.tests = tests
+        self.simulations = set([])
+        for test in tests:
+            self.simulations.update(test.simulations)
 
     def __call__(self, x):
         # Modify the parameters
@@ -47,37 +51,33 @@ class CostFunction(object):
         #for counter, line in parameters['BENDCHARM']['PARS']:
         #    log('FOO %s' % line.strip())
         # Run simulations with the new parameters
-        cost = 0.0
         for simulation in self.simulations:
             simulation(parameters)
-            for test in simulation.tests:
-                cost += 0.5*test.error**2
+        cost = 0.0
+        for test in self.tests:
+            cost += 0.5*test()**2
         return cost
 
 
 class Simulation(object):
-    def __init__(self, system, tests, **kwargs):
+    def __init__(self, system, **kwargs):
         self.system = system
-        self.tests = tests
         self.kwargs = kwargs
 
     def __call__(self, parameters):
         # prepare force field
         ff = ForceField.generate(self.system, parameters, **self.kwargs)
         # run actual simulation
-        output = self.run(ff)
-        # run the tests on the output of the simulation
-        for test in self.tests:
-            test(ff, output)
+        self.run(ff)
 
     def run(self, ff):
         raise NotImplementedError
 
 
 class GeoOptSimulation(Simulation):
-    def __init__(self, system, refpos, tests, **kwargs):
-        self.refpos = refpos
-        Simulation.__init__(self, system, tests, **kwargs)
+    def __init__(self, system, **kwargs):
+        self.refpos = system.pos.copy()
+        Simulation.__init__(self, system, **kwargs)
 
     def run(self, ff):
         from yaff import CartesianDOF, CGOptimizer, OptScreenLog
@@ -92,90 +92,110 @@ class GeoOptSimulation(Simulation):
         opt = CGOptimizer(dof, hooks=[sl])
         opt.run(5000)
 
-        #pos = ff.system.pos
-        #for i0, i1, i2 in ff.system.iter_angles():
-        #    if ff.system.numbers[i1] == 8:
-        #        d01 = pos[i0] - pos[i1]
-        #        d21 = pos[i2] - pos[i1]
-        #        cos = np.dot(d01, d21)/np.linalg.norm(d01)/np.linalg.norm(d21)
-        #        angle = np.arccos(np.clip(cos, -1, 1))
-        #        log('FOO angle %3i %3i %3i %10.4f' % (i0, i1, i2, angle/np.pi*180))
 
-        return {'pos': self.system.pos.copy()}
+class GeoOptHessianSimulation(GeoOptSimulation):
+    def run(self, ff):
+        GeoOptSimulation.run(ff)
+        self.hessian = estimate_hessian(ff)
 
 
-class Test(object):
-    def __init__(self, tolerance):
-        self.tolerance = tolerance
-        self.error = None
+class ICGroup(object):
+    natom = None
 
-    def __call__(self, ff, output):
-        self.error = self.compute_error(ff, output)/self.tolerance
+    def __init__(self, rules=None, cases=None):
+        self.cases = cases
+        if cases is None:
+            if rules is None:
+                rules = ['!0'] * self.natom
+            compiled_rules = []
+            for rule in rules:
+                if isinstance(rule, basestring):
+                    rule = atsel_compile(rule)
+                compiled_rules.append(rule)
+            self.rules = compiled_rules
+        elif rules is not None:
+            raise ValueError('Either rules are cases must be provided, not both.')
 
-    def compute_error(self, ff, output):
+    def get_cases(self, system):
+        return list(self._iter_cases(self.rules, system))
+
+    def _iter_cases(self, rules, system):
+        raise NotImplementedError
+
+    def compute_ic(self, pos, indexes):
         raise NotImplementedError
 
 
-class BondLengthTest(Test):
-    def __init__(self, refpos, tolerance, rule0='!0', rule1='!0'):
-        if isinstance(rule0, basestring):
-            rule0 = atsel_compile(rule0)
-        if isinstance(rule1, basestring):
-            rule1 = atsel_compile(rule1)
+class BondGroup(ICGroup):
+    natom = 2
 
+    def _iter_cases(self, rules, system):
+        rule0, rule1 = rules
+        for i0, i1 in system.iter_bonds():
+            if (rule0(system, i0) and rule1(system, i1)) or \
+               (rule0(system, i1) and rule1(system, i0)):
+                yield i0, i1
+
+    def compute_ic(self, pos, indexes):
+        i0, i1 = indexes
+        return np.linalg.norm(pos[i0] - pos[i1])
+
+
+class BendGroup(ICGroup):
+    natom = 3
+
+    def _iter_cases(self, rules, system):
+        rule0, rule1, rule2 = rules
+        for i0, i1, i2 in system.iter_angles():
+            if (rule0(system, i0) and rule1(system, i1) and rule2(system, i2)) or \
+               (rule0(system, i2) and rule1(system, i1) and rule2(system, i0)):
+                yield i0, i1, i2
+
+    def compute_ic(self, pos, indexes):
+        i0, i1, i2 = indexes
+        d01 = pos[i0]-pos[i1]
+        d21 = pos[i2]-pos[i1]
+        cos = np.dot(d01,d21)/np.linalg.norm(d01)/np.linalg.norm(d21)
+        cos = np.clip(cos, -1, 1)
+        return np.arccos(cos)
+
+
+class Test(object):
+    def __init__(self, tolerance, simulations):
+        self.tolerance = tolerance
+        self.simulations = simulations
+
+    def __call__(self):
+        # Compute a dimensionless error
+        return self.compute_error()/self.tolerance
+
+    def compute_error(self):
+        raise NotImplementedError
+
+
+class ICTest(Test):
+    natom = None
+
+    def __init__(self, tolerance, refpos, simulation, icgroup):
+        # assign attributes
         self.refpos = refpos
-        self.rule0 = rule0
-        self.rule1 = rule1
-        Test.__init__(self, tolerance)
+        self.simulation = simulation
+        self.icgroup = icgroup
+        self.cases = icgroup.get_cases(simulation.system)
+        # precompute internal coordinates of reference pos
+        refics = []
+        for indexes in self.cases:
+            refics.append(icgroup.compute_ic(refpos, indexes))
+        self.refics = np.array(refics)
 
-    def compute_error(self, ff, output):
-        pos = output['pos']
-        sys = ff.system
+        Test.__init__(self, tolerance, [simulation])
+
+    def compute_error(self):
         sumsq = 0.0
         count = 0
-        for i0, i1 in sys.iter_bonds():
-            if (self.rule0(sys, i0) and self.rule1(sys, i1)) or \
-               (self.rule0(sys, i1) and self.rule1(sys, i0)):
-                dist = np.linalg.norm(pos[i0] - pos[i1])
-                refdist = np.linalg.norm(self.refpos[i0] - self.refpos[i1])
-                from molmod import angstrom
-                sumsq += (dist - refdist)**2
-                count += 1
-        return np.sqrt(sumsq/count)
-
-
-class BendAngleTest(Test):
-    def __init__(self, refpos, tolerance, rule0='!0', rule1='!0', rule2='!0'):
-        if isinstance(rule0, basestring):
-            rule0 = atsel_compile(rule0)
-        if isinstance(rule1, basestring):
-            rule1 = atsel_compile(rule1)
-        if isinstance(rule2, basestring):
-            rule2 = atsel_compile(rule2)
-
-        self.refpos = refpos
-        self.rule0 = rule0
-        self.rule1 = rule1
-        self.rule2 = rule2
-        Test.__init__(self, tolerance)
-
-    def compute_error(self, ff, output):
-        def compute_angle(p0, p1, p2):
-            d01 = np.linalg.norm(p0-p1)
-            d21 = np.linalg.norm(p2-p1)
-            cos = np.dot(p0-p1,p2-p1)/d01/d21
-            cos = np.clip(cos, -1, 1)
-            return np.arccos(cos)
-
-        pos = output['pos']
-        sys = ff.system
-        sumsq = 0.0
-        count = 0
-        for i0, i1, i2 in sys.iter_angles():
-            if (self.rule0(sys, i0) and self.rule1(sys, i1) and self.rule2(sys, i2)) or \
-               (self.rule0(sys, i2) and self.rule1(sys, i1) and self.rule2(sys, i0)):
-                angle = compute_angle(pos[i0], pos[i1], pos[i2])
-                refangle = compute_angle(self.refpos[i0], self.refpos[i1], self.refpos[i2])
-                sumsq += (angle - refangle)**2
-                count += 1
+        pos = self.simulation.system.pos
+        for i in xrange(len(self.cases)):
+            indexes = self.cases[i]
+            sumsq += (self.refics[i] - self.icgroup.compute_ic(pos, indexes))**2
+            count += 1
         return np.sqrt(sumsq/count)

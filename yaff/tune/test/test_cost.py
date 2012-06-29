@@ -28,7 +28,7 @@ import numpy as np
 from yaff import *
 
 
-def test_water_cost_dist():
+def test_water_cost_dist_ic():
     system = System.from_file('input/water_trajectory.xyz', ffatypes=['O', 'H', 'H'])
     system.detect_bonds()
     parameters = Parameters.from_file('input/parameters_water.txt')
@@ -46,9 +46,9 @@ def test_water_cost_dist():
     mods = [ParameterModifier(rules)]
     pt = ParameterTransform(parameters, mods)
 
-    tests = [BondLengthTest(refpos, 0.1*angstrom)]
-    simulations = [GeoOptSimulation(system, system.pos, tests)]
-    cost = CostFunction(pt, simulations)
+    simulations = [GeoOptSimulation(system)]
+    tests = [ICTest(0.1*angstrom, refpos, simulations[0], BondGroup())]
+    cost = CostFunction(pt, tests)
 
     x = np.array([1.0])
     assert abs(cost(x) - 0.5*((1.0238240000e+00 - 1.1)/0.1)**2) < 1e-5
@@ -60,7 +60,7 @@ def test_water_cost_dist():
     assert abs(cost(x) - 0.5*((0.8*1.0238240000e+00 - 1.1)/0.1)**2) < 1e-5
 
 
-def test_water_cost_angle():
+def test_water_cost_angle_ic():
     system = System.from_file('input/water_trajectory.xyz', ffatypes=['O', 'H', 'H'])
     system.detect_bonds()
     parameters = Parameters.from_file('input/parameters_water.txt')
@@ -78,9 +78,9 @@ def test_water_cost_angle():
     mods = [ParameterModifier(rules)]
     pt = ParameterTransform(parameters, mods)
 
-    tests = [BendAngleTest(refpos, 5*deg)]
-    simulations = [GeoOptSimulation(system, system.pos, tests)]
-    cost = CostFunction(pt, simulations)
+    simulations = [GeoOptSimulation(system)]
+    tests = [ICTest(5*deg, refpos, simulations[0], BendGroup())]
+    cost = CostFunction(pt, tests)
 
     x = np.array([1.0])
     assert abs(cost(x) - 0.5*((np.arccos(2.7892000007e-02) - 1.5707963267948966)/(5*deg))**2) < 1e-4
