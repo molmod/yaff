@@ -24,16 +24,18 @@
 
 
 import numpy as np
+from molmod import kjmol, angstrom
 
 from yaff import atsel_compile, log
 from yaff.pes.ff import ForceField
+from yaff.sampling.harmonic import estimate_cart_hessian
 
 
 __all__ = [
     'CostFunction',
     'Simulation', 'GeoOptSimulation', 'GeoOptHessianSimulation',
     'ICGroup', 'BondGroup', 'BendGroup',
-    'Test', 'ICTest',
+    'Test', 'ICTest', 'VSATest',
 ]
 
 
@@ -95,8 +97,8 @@ class GeoOptSimulation(Simulation):
 
 class GeoOptHessianSimulation(GeoOptSimulation):
     def run(self, ff):
-        GeoOptSimulation.run(ff)
-        self.hessian = estimate_hessian(ff)
+        GeoOptSimulation.run(self, ff)
+        self.hessian = estimate_cart_hessian(ff)
 
 
 class ICGroup(object):
@@ -125,6 +127,9 @@ class ICGroup(object):
     def compute_ic(self, pos, indexes):
         raise NotImplementedError
 
+    def compute_tangent(self, pos, indexes):
+        raise NotImplementedError
+
 
 class BondGroup(ICGroup):
     natom = 2
@@ -139,6 +144,17 @@ class BondGroup(ICGroup):
     def compute_ic(self, pos, indexes):
         i0, i1 = indexes
         return np.linalg.norm(pos[i0] - pos[i1])
+
+    def compute_tangent(self, pos, indexes):
+        # TODO: implement this with the vlist code in yaff.pes
+        result = np.zeros(pos.shape, float)
+        p0 = pos[indexes[0]]
+        p1 = pos[indexes[1]]
+        delta = p0 - p1
+        delta /= np.linalg.norm(delta)
+        result[indexes[0]] = delta/2
+        result[indexes[1]] = -delta/2
+        return result.ravel()
 
 
 class BendGroup(ICGroup):
@@ -174,8 +190,6 @@ class Test(object):
 
 
 class ICTest(Test):
-    natom = None
-
     def __init__(self, tolerance, refpos, simulation, icgroup):
         # assign attributes
         self.refpos = refpos
@@ -187,7 +201,7 @@ class ICTest(Test):
         for indexes in self.cases:
             refics.append(icgroup.compute_ic(refpos, indexes))
         self.refics = np.array(refics)
-
+        # Call super class
         Test.__init__(self, tolerance, [simulation])
 
     def compute_error(self):
@@ -199,3 +213,64 @@ class ICTest(Test):
             sumsq += (self.refics[i] - self.icgroup.compute_ic(pos, indexes))**2
             count += 1
         return np.sqrt(sumsq/count)
+
+
+class VSATest(Test):
+    def __init__(self, tolerance, refpos, refhessian, simulation, icgroup):
+        # assign attributes
+        self.refpos = refpos
+        self.refhessian = refhessian
+        self.simulation = simulation
+        self.icgroup = icgroup
+        self.cases = icgroup.get_cases(simulation.system)
+        # precompute internal coordinates of reference pos
+        reffcs = []
+        for indexes in self.cases:
+            reffcs.append(self.compute_fc(refpos, refhessian, indexes))
+        self.reffcs = np.array(reffcs)
+        # Call super class
+        Test.__init__(self, tolerance, [simulation])
+
+    def compute_error(self):
+        sumsq = 0.0
+        count = 0
+        pos = self.simulation.system.pos
+        hessian = self.simulation.hessian
+        for i in xrange(len(self.cases)):
+            indexes = self.cases[i]
+            sumsq += (self.reffcs[i] - self.compute_fc(pos, hessian, indexes))**2
+            #unit = kjmol/angstrom**2
+            #fc = self.compute_fc(pos, hessian, indexes)
+            #print self.reffcs[i]/unit, fc/unit
+            #print np.linalg.eigvalsh(hessian)/unit
+            count += 1
+        return np.sqrt(sumsq/count)
+
+    def compute_fc(self, pos, hessian, indexes):
+        # the derivative of the internal coordinate toward Cartesian coordinates
+        tangent = self.icgroup.compute_tangent(pos, indexes)
+        # construct an ortho basis, where the first vector corresponds to the
+        # internal coordinate
+        U, S, Vt = np.linalg.svd(tangent.reshape(-1,1))
+        # transform the Hessian to this new basis
+        hessian_t = np.dot(U.T, np.dot(hessian, U))
+        # get the raw force constant
+        fc0 = hessian_t[0,0]
+        # prepare the correction for the second order approximation of the PES
+        # scan along the selected internal coordinate. This is similar to
+        # vibrational subsystem analysis (VSA) with one DOF in the subsystem.
+        # The only difference is that VSA is applied to mass-weighted Hessians,
+        # while we work with the normal Hessian.
+        row = hessian_t[0,1:]
+        evals, evecs = np.linalg.eigh(hessian_t[1:,1:])
+        # prune near-zero and negative eigenvalues from the Hessian of the
+        # environment
+        mask = evals > 1*kjmol/angstrom**2
+        evals = evals[mask]
+        evecs = evecs[:,mask]
+        # compute corrected force constant an fix units
+        rowp = np.dot(evecs.T, row)
+        #unit = kjmol/angstrom**2
+        #print 'raw0', S[0]**2*hessian_t[0,0]/unit
+        #print 'raw1', np.dot(tangent, np.dot(hessian, tangent))/unit
+        return S[0]**2*(hessian_t[0,0] - (rowp**2*evals).sum())

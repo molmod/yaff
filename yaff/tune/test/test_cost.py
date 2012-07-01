@@ -24,8 +24,10 @@
 
 
 import numpy as np
+from nose.plugins.skip import SkipTest
 
 from yaff import *
+from molmod.io import load_chk
 
 
 def test_water_cost_dist_ic():
@@ -58,6 +60,36 @@ def test_water_cost_dist_ic():
 
     x = np.array([0.8])
     assert abs(cost(x) - 0.5*((0.8*1.0238240000e+00 - 1.1)/0.1)**2) < 1e-5
+
+
+def test_water_cost_dist_fc():
+    sample = load_chk('input/water_hessian.chk')
+    system = System(pos=sample['pos'], numbers=sample['numbers'], ffatypes=['O', 'H', 'H'])
+    system.detect_bonds()
+    parameters = Parameters.from_file('input/parameters_water.txt')
+    del parameters.sections['FIXQ']
+    del parameters.sections['DAMPDISP']
+    del parameters.sections['EXPREP']
+
+    rules = [ScaleRule('BONDFUES', 'PARS', 'O\s*H', 2)]
+    mods = [ParameterModifier(rules)]
+    pt = ParameterTransform(parameters, mods)
+
+    simulations = [GeoOptHessianSimulation(system)]
+    tests = [VSATest(kjmol/angstrom**2, sample['pos'], sample['hessian'].reshape(9, 9), simulations[0], BondGroup())]
+    cost = CostFunction(pt, tests)
+
+    # TODO: this test is not quite working yet. Add simple test for eigenvalues
+    # of the Hessian of a diatomic.
+    x = np.array([1.0])
+    raise SkipTest
+    assert abs(cost(x) - 0.5*(5159.64331748 - 4.0088096730e+03)**2) < 1
+
+    x = np.array([1.1])
+    assert abs(cost(x) - 0.5*(5159.64331748 - 1.1*4.0088096730e+03)**2) < 10
+
+    x = np.array([0.8])
+    assert abs(cost(x) - 0.5*(5159.64331748 - 0.8*4.0088096730e+03)**2) < 1
 
 
 def test_water_cost_angle_ic():
