@@ -233,7 +233,6 @@ def gauss_opt(fn, x0, sigma, on_lower=None):
             x1 = gm.sample()
             f1 = fn(x1)
             gm.feed(f1, x1)
-        assert abs(fn(gm.history[0][1]) - gm.history[0][0]) < 1e-10
         return gm.history[0][1]
 
 
