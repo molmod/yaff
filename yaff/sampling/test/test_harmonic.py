@@ -45,6 +45,23 @@ def test_hessian_full_water():
     assert sum(abs(evals) < 1e-10) == 3
 
 
+def test_hessian_full_x2():
+    K, d = np.random.uniform(1.0, 2.0, 2)
+    system = System(
+        numbers=np.array([1, 1]),
+        pos=np.array([[0.0, 0.0, 0.0], [0.0, 0.0, d]]),
+        ffatypes=['H', 'H'],
+        bonds=np.array([[0, 1]]),
+    )
+    part = ForcePartValence(system)
+    part.add_term(Harmonic(K, d, Bond(0, 1)))
+    ff = ForceField(system, [part])
+    hessian = estimate_cart_hessian(ff)
+    evals = np.linalg.eigvalsh(hessian)
+    assert abs(evals[:-1]).max() < 1e-5
+    assert abs(evals[-1] - 2*K) < 1e-5
+
+
 def test_elastic_water32():
     ff = get_ff_water32()
     elastic = estimate_elastic(ff, do_frozen=True)
