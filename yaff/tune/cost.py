@@ -35,7 +35,7 @@ __all__ = [
     'CostFunction',
     'Simulation', 'GeoOptSimulation', 'GeoOptHessianSimulation',
     'ICGroup', 'BondGroup', 'BendGroup',
-    'Test', 'ICTest', 'VSATest',
+    'Test', 'ICTest', 'FCTest',
 ]
 
 
@@ -152,8 +152,8 @@ class BondGroup(ICGroup):
         p1 = pos[indexes[1]]
         delta = p0 - p1
         delta /= np.linalg.norm(delta)
-        result[indexes[0]] = delta/2
-        result[indexes[1]] = -delta/2
+        result[indexes[0]] = delta
+        result[indexes[1]] = -delta
         return result.ravel()
 
 
@@ -215,7 +215,15 @@ class ICTest(Test):
         return np.sqrt(sumsq/count)
 
 
-class VSATest(Test):
+class FCTest(Test):
+    """A test for force constants
+
+       This is special in the sense that the force constants derived from the
+       hessian are not sensitive to either orientation of the molecule or the
+       choice of other internal coordinates. This is realized by comparing the
+       second order derivatives along PES scanes of selected internal
+       coordinates.
+    """
     def __init__(self, tolerance, refpos, refhessian, simulation, icgroup):
         # assign attributes
         self.refpos = refpos
@@ -228,6 +236,7 @@ class VSATest(Test):
         for indexes in self.cases:
             reffcs.append(self.compute_fc(refpos, refhessian, indexes))
         self.reffcs = np.array(reffcs)
+        print self.reffcs/(kjmol/angstrom**2)
         # Call super class
         Test.__init__(self, tolerance, [simulation])
 
@@ -238,39 +247,21 @@ class VSATest(Test):
         hessian = self.simulation.hessian
         for i in xrange(len(self.cases)):
             indexes = self.cases[i]
+            print self.compute_fc(pos, hessian, indexes)/(kjmol/angstrom**2)
             sumsq += (self.reffcs[i] - self.compute_fc(pos, hessian, indexes))**2
-            #unit = kjmol/angstrom**2
-            #fc = self.compute_fc(pos, hessian, indexes)
-            #print self.reffcs[i]/unit, fc/unit
-            #print np.linalg.eigvalsh(hessian)/unit
             count += 1
         return np.sqrt(sumsq/count)
 
     def compute_fc(self, pos, hessian, indexes):
         # the derivative of the internal coordinate toward Cartesian coordinates
         tangent = self.icgroup.compute_tangent(pos, indexes)
-        # construct an ortho basis, where the first vector corresponds to the
-        # internal coordinate
-        U, S, Vt = np.linalg.svd(tangent.reshape(-1,1))
-        # transform the Hessian to this new basis
-        hessian_t = np.dot(U.T, np.dot(hessian, U))
-        # get the raw force constant
-        fc0 = hessian_t[0,0]
-        # prepare the correction for the second order approximation of the PES
-        # scan along the selected internal coordinate. This is similar to
-        # vibrational subsystem analysis (VSA) with one DOF in the subsystem.
-        # The only difference is that VSA is applied to mass-weighted Hessians,
-        # while we work with the normal Hessian.
-        row = hessian_t[0,1:]
-        evals, evecs = np.linalg.eigh(hessian_t[1:,1:])
+        # take a pseudo-inverse of the hessian through the eigen decomposition
+        evals, evecs = np.linalg.eigh(hessian)
         # prune near-zero and negative eigenvalues from the Hessian of the
         # environment
         mask = evals > 1*kjmol/angstrom**2
         evals = evals[mask]
         evecs = evecs[:,mask]
-        # compute corrected force constant an fix units
-        rowp = np.dot(evecs.T, row)
-        #unit = kjmol/angstrom**2
-        #print 'raw0', S[0]**2*hessian_t[0,0]/unit
-        #print 'raw1', np.dot(tangent, np.dot(hessian, tangent))/unit
-        return S[0]**2*(hessian_t[0,0] - (rowp**2*evals).sum())
+        # compute force constant
+        tmp = np.dot(tangent, evecs)
+        return 1.0/(tmp**2/evals).sum()
