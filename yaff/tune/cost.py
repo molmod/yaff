@@ -26,7 +26,9 @@
 import numpy as np
 from molmod import kjmol, angstrom
 
-from yaff import atsel_compile, log
+from yaff import atsel_compile, log, System
+from yaff.pes.dlist import DeltaList
+from yaff.pes.iclist import InternalCoordinateList, Bond, BendAngle
 from yaff.pes.ff import ForceField
 from yaff.sampling.harmonic import estimate_cart_hessian
 
@@ -104,8 +106,11 @@ class GeoOptHessianSimulation(GeoOptSimulation):
 class ICGroup(object):
     natom = None
 
-    def __init__(self, rules=None, cases=None):
+    def __init__(self, system, rules=None, cases=None):
+        self.system = system
         self.cases = cases
+
+        # Compile the rules if they are present
         if cases is None:
             if rules is None:
                 rules = ['!0'] * self.natom
@@ -115,65 +120,72 @@ class ICGroup(object):
                     rule = atsel_compile(rule)
                 compiled_rules.append(rule)
             self.rules = compiled_rules
+            self.cases = list(self._iter_cases())
         elif rules is not None:
             raise ValueError('Either rules are cases must be provided, not both.')
 
-    def get_cases(self, system):
-        return list(self._iter_cases(self.rules, system))
+        # Construct a fake system, a dlist and an iclist for just one ic
+        self.fake_system = System(numbers=np.zeros(self.natom, int), pos=np.zeros((self.natom, 3), float), rvecs=self.system.cell.rvecs)
+        self.dlist = DeltaList(self.fake_system)
+        self.iclist = InternalCoordinateList(self.dlist)
+        self.tangent = np.zeros((self.natom, 3), float)
 
-    def _iter_cases(self, rules, system):
+    def _iter_cases(self):
         raise NotImplementedError
 
     def compute_ic(self, pos, indexes):
-        raise NotImplementedError
+        # Load coordinates in fake system
+        self.fake_system.pos[:] = pos[indexes]
+        # Compute internal coordinate
+        self.dlist.forward()
+        self.iclist.forward()
+        # Pick the return value from the ictab
+        return self.iclist.ictab[0]['value']
 
-    def compute_tangent(self, pos, indexes):
-        raise NotImplementedError
+    def compute_tangent(self, pos, indexes, tangent):
+        # Load coordinates in fake system
+        self.fake_system.pos[:] = pos[indexes]
+        # Compute the internal coordinate
+        self.dlist.forward()
+        self.iclist.forward()
+        # Back propagate 1, to get the partial derivatives
+        self.iclist.ictab[0]['grad'] = 1
+        self.iclist.back()
+        self.tangent[:] = 0
+        self.dlist.back(self.tangent, None)
+        # Assign the derivates to certain values in the 3N vector
+        tangent[:] = 0
+        tangent[indexes] = self.tangent
 
 
 class BondGroup(ICGroup):
     natom = 2
 
-    def _iter_cases(self, rules, system):
-        rule0, rule1 = rules
-        for i0, i1 in system.iter_bonds():
-            if (rule0(system, i0) and rule1(system, i1)) or \
-               (rule0(system, i1) and rule1(system, i0)):
-                yield i0, i1
+    def __init__(self, system, rules=None, cases=None):
+        ICGroup.__init__(self, system, rules, cases)
+        self.iclist.add_ic(Bond(0, 1))
 
-    def compute_ic(self, pos, indexes):
-        i0, i1 = indexes
-        return np.linalg.norm(pos[i0] - pos[i1])
-
-    def compute_tangent(self, pos, indexes):
-        # TODO: implement this with the vlist code in yaff.pes
-        result = np.zeros(pos.shape, float)
-        p0 = pos[indexes[0]]
-        p1 = pos[indexes[1]]
-        delta = p0 - p1
-        delta /= np.linalg.norm(delta)
-        result[indexes[0]] = delta
-        result[indexes[1]] = -delta
-        return result.ravel()
+    def _iter_cases(self):
+        rule0, rule1 = self.rules
+        for i0, i1 in self.system.iter_bonds():
+            if (rule0(self.system, i0) and rule1(self.system, i1)) or \
+               (rule0(self.system, i1) and rule1(self.system, i0)):
+                yield [i0, i1] # must return a list
 
 
 class BendGroup(ICGroup):
     natom = 3
 
-    def _iter_cases(self, rules, system):
-        rule0, rule1, rule2 = rules
-        for i0, i1, i2 in system.iter_angles():
-            if (rule0(system, i0) and rule1(system, i1) and rule2(system, i2)) or \
-               (rule0(system, i2) and rule1(system, i1) and rule2(system, i0)):
-                yield i0, i1, i2
+    def __init__(self, system, rules=None, cases=None):
+        ICGroup.__init__(self, system, rules, cases)
+        self.iclist.add_ic(BendAngle(0, 1, 2))
 
-    def compute_ic(self, pos, indexes):
-        i0, i1, i2 = indexes
-        d01 = pos[i0]-pos[i1]
-        d21 = pos[i2]-pos[i1]
-        cos = np.dot(d01,d21)/np.linalg.norm(d01)/np.linalg.norm(d21)
-        cos = np.clip(cos, -1, 1)
-        return np.arccos(cos)
+    def _iter_cases(self):
+        rule0, rule1, rule2 = self.rules
+        for i0, i1, i2 in self.system.iter_angles():
+            if (rule0(self.system, i0) and rule1(self.system, i1) and rule2(self.system, i2)) or \
+               (rule0(self.system, i2) and rule1(self.system, i1) and rule2(self.system, i0)):
+                yield [i0, i1, i2] # must return a list
 
 
 class Test(object):
@@ -195,11 +207,10 @@ class ICTest(Test):
         self.refpos = refpos
         self.simulation = simulation
         self.icgroup = icgroup
-        self.cases = icgroup.get_cases(simulation.system)
         # precompute internal coordinates of reference pos
         refics = []
-        for indexes in self.cases:
-            refics.append(icgroup.compute_ic(refpos, indexes))
+        for indexes in self.icgroup.cases:
+            refics.append(self.icgroup.compute_ic(refpos, indexes))
         self.refics = np.array(refics)
         # Call super class
         Test.__init__(self, tolerance, [simulation])
@@ -208,8 +219,8 @@ class ICTest(Test):
         sumsq = 0.0
         count = 0
         pos = self.simulation.system.pos
-        for i in xrange(len(self.cases)):
-            indexes = self.cases[i]
+        for i in xrange(len(self.icgroup.cases)):
+            indexes = self.icgroup.cases[i]
             sumsq += (self.refics[i] - self.icgroup.compute_ic(pos, indexes))**2
             count += 1
         return np.sqrt(sumsq/count)
@@ -230,13 +241,11 @@ class FCTest(Test):
         self.refhessian = refhessian
         self.simulation = simulation
         self.icgroup = icgroup
-        self.cases = icgroup.get_cases(simulation.system)
         # precompute internal coordinates of reference pos
         reffcs = []
-        for indexes in self.cases:
+        for indexes in self.icgroup.cases:
             reffcs.append(self.compute_fc(refpos, refhessian, indexes))
         self.reffcs = np.array(reffcs)
-        print self.reffcs/(kjmol/angstrom**2)
         # Call super class
         Test.__init__(self, tolerance, [simulation])
 
@@ -245,16 +254,18 @@ class FCTest(Test):
         count = 0
         pos = self.simulation.system.pos
         hessian = self.simulation.hessian
-        for i in xrange(len(self.cases)):
-            indexes = self.cases[i]
-            print self.compute_fc(pos, hessian, indexes)/(kjmol/angstrom**2)
+        for i in xrange(len(self.icgroup.cases)):
+            indexes = self.icgroup.cases[i]
+            fc = self.compute_fc(pos, hessian, indexes)/(kjmol/angstrom**2)
             sumsq += (self.reffcs[i] - self.compute_fc(pos, hessian, indexes))**2
             count += 1
         return np.sqrt(sumsq/count)
 
     def compute_fc(self, pos, hessian, indexes):
         # the derivative of the internal coordinate toward Cartesian coordinates
-        tangent = self.icgroup.compute_tangent(pos, indexes)
+        tangent = np.zeros(pos.shape, float)
+        self.icgroup.compute_tangent(pos, indexes, tangent)
+        tangent.shape = (-1,)
         # take a pseudo-inverse of the hessian through the eigen decomposition
         evals, evecs = np.linalg.eigh(hessian)
         # prune near-zero and negative eigenvalues from the Hessian of the

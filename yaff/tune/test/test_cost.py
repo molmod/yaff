@@ -48,7 +48,7 @@ def test_water_cost_dist_ic():
     pt = ParameterTransform(parameters, mods)
 
     simulations = [GeoOptSimulation(system)]
-    tests = [ICTest(0.1*angstrom, refpos, simulations[0], BondGroup())]
+    tests = [ICTest(0.1*angstrom, refpos, simulations[0], BondGroup(system))]
     cost = CostFunction(pt, tests)
 
     x = np.array([1.0])
@@ -75,7 +75,7 @@ def test_water_cost_dist_fc():
     pt = ParameterTransform(parameters, mods)
 
     simulations = [GeoOptHessianSimulation(system)]
-    tests = [FCTest(kjmol/angstrom**2, sample['pos'], sample['hessian'].reshape(9, 9), simulations[0], BondGroup())]
+    tests = [FCTest(kjmol/angstrom**2, sample['pos'], sample['hessian'].reshape(9, 9), simulations[0], BondGroup(system))]
     cost = CostFunction(pt, tests)
 
     x = np.array([1.0])
@@ -107,7 +107,7 @@ def test_water_cost_angle_ic():
     pt = ParameterTransform(parameters, mods)
 
     simulations = [GeoOptSimulation(system)]
-    tests = [ICTest(5*deg, refpos, simulations[0], BendGroup())]
+    tests = [ICTest(5*deg, refpos, simulations[0], BendGroup(system))]
     cost = CostFunction(pt, tests)
 
     x = np.array([1.0])
