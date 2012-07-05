@@ -256,7 +256,6 @@ class FCTest(Test):
         hessian = self.simulation.hessian
         for i in xrange(len(self.icgroup.cases)):
             indexes = self.icgroup.cases[i]
-            fc = self.compute_fc(pos, hessian, indexes)/(kjmol/angstrom**2)
             sumsq += (self.reffcs[i] - self.compute_fc(pos, hessian, indexes))**2
             count += 1
         return np.sqrt(sumsq/count)

@@ -26,7 +26,16 @@
 import numpy as np
 
 from yaff import *
+from yaff.test.common import get_system_peroxide
 from molmod.io import load_chk
+
+
+def test_icgroup_cases():
+    sys = get_system_peroxide()
+    assert (BondGroup(sys).cases == sys.bonds).all()
+    assert BondGroup(sys, cases=[[1,2], [1,3]]).cases == [[1,2],[1,3]]
+    assert BendGroup(sys).cases == [[2, 0, 1], [3, 1, 0]]
+    assert BendGroup(sys, cases=[[1,2,0], [0,1,3]]).cases == [[1,2,0],[0,1,3]]
 
 
 def test_water_cost_dist_ic():
@@ -49,6 +58,7 @@ def test_water_cost_dist_ic():
 
     simulations = [GeoOptSimulation(system)]
     tests = [ICTest(0.1*angstrom, refpos, simulations[0], BondGroup(system))]
+    assert tests[0].icgroup.cases == [[1, 0], [2, 0]]
     cost = CostFunction(pt, tests)
 
     x = np.array([1.0])
@@ -76,6 +86,7 @@ def test_water_cost_dist_fc():
 
     simulations = [GeoOptHessianSimulation(system)]
     tests = [FCTest(kjmol/angstrom**2, sample['pos'], sample['hessian'].reshape(9, 9), simulations[0], BondGroup(system))]
+    assert tests[0].icgroup.cases == [[1, 0], [2, 0]]
     cost = CostFunction(pt, tests)
 
     x = np.array([1.0])
@@ -108,6 +119,7 @@ def test_water_cost_angle_ic():
 
     simulations = [GeoOptSimulation(system)]
     tests = [ICTest(5*deg, refpos, simulations[0], BendGroup(system))]
+    assert tests[0].icgroup.cases == [[2, 0, 1]]
     cost = CostFunction(pt, tests)
 
     x = np.array([1.0])
@@ -118,3 +130,31 @@ def test_water_cost_angle_ic():
 
     x = np.array([0.8])
     assert abs(cost(x) - 0.5*((np.arccos(0.8*2.7892000007e-02) - 1.5707963267948966)/(5*deg))**2) < 1e-4
+
+
+def test_water_cost_angle_fc():
+    sample = load_chk('input/water_hessian.chk')
+    system = System(pos=sample['pos'], numbers=sample['numbers'], ffatypes=['O', 'H', 'H'])
+    system.detect_bonds()
+    parameters = Parameters.from_file('input/parameters_water.txt')
+    del parameters.sections['FIXQ']
+    del parameters.sections['DAMPDISP']
+    del parameters.sections['EXPREP']
+
+    rules = [ScaleRule('BENDCHARM', 'PARS', 'O\s*H', 3)]
+    mods = [ParameterModifier(rules)]
+    pt = ParameterTransform(parameters, mods)
+
+    simulations = [GeoOptHessianSimulation(system)]
+    tests = [FCTest(kjmol, sample['pos'], sample['hessian'].reshape(9, 9), simulations[0], BendGroup(system))]
+    assert tests[0].icgroup.cases == [[2, 0, 1]]
+    cost = CostFunction(pt, tests)
+
+    x = np.array([1.0])
+    assert abs(cost(x) - 0.5*(394.59354836 - 302.068346061)**2) < 1
+
+    x = np.array([1.1])
+    assert abs(cost(x) - 0.5*(394.59354836 - 1.1*302.068346061)**2) < 1
+
+    x = np.array([0.8])
+    assert abs(cost(x) - 0.5*(394.59354836 - 0.8*302.068346061)**2) < 1
