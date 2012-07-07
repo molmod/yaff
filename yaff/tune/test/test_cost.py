@@ -34,6 +34,8 @@ def test_icgroup_cases():
     sys = get_system_peroxide()
     assert (BondGroup(sys).cases == sys.bonds).all()
     assert BondGroup(sys, cases=[[1,2], [1,3]]).cases == [[1,2],[1,3]]
+    assert BondGroup(sys, rules=['8', '8']).cases == [[0,1]]
+    assert BondGroup(sys, rules=['1', '8']).cases == [[0,2],[1,3]]
     assert BendGroup(sys).cases == [[2, 0, 1], [3, 1, 0]]
     assert BendGroup(sys, cases=[[1,2,0], [0,1,3]]).cases == [[1,2,0],[0,1,3]]
 
@@ -59,16 +61,16 @@ def test_water_cost_dist_ic():
     simulations = [GeoOptSimulation(system)]
     tests = [ICTest(0.1*angstrom, refpos, simulations[0], BondGroup(system))]
     assert tests[0].icgroup.cases == [[1, 0], [2, 0]]
-    cost = CostFunction(pt, tests)
+    cost = CostFunction(pt, {'all': tests})
 
     x = np.array([1.0])
-    assert abs(cost(x) - 0.5*((1.0238240000e+00 - 1.1)/0.1)**2) < 1e-5
+    assert abs(cost(x) - np.log(0.5*((1.0238240000e+00 - 1.1)/0.1)**2)) < 1e-5
 
     x = np.array([1.1])
-    assert abs(cost(x) - 0.5*((1.1*1.0238240000e+00 - 1.1)/0.1)**2) < 1e-5
+    assert abs(cost(x) - np.log(0.5*((1.1*1.0238240000e+00 - 1.1)/0.1)**2)) < 1e-5
 
     x = np.array([0.8])
-    assert abs(cost(x) - 0.5*((0.8*1.0238240000e+00 - 1.1)/0.1)**2) < 1e-5
+    assert abs(cost(x) - np.log(0.5*((0.8*1.0238240000e+00 - 1.1)/0.1)**2)) < 1e-5
 
 
 def test_water_cost_dist_fc():
@@ -87,16 +89,16 @@ def test_water_cost_dist_fc():
     simulations = [GeoOptHessianSimulation(system)]
     tests = [FCTest(kjmol/angstrom**2, sample['pos'], sample['hessian'].reshape(9, 9), simulations[0], BondGroup(system))]
     assert tests[0].icgroup.cases == [[1, 0], [2, 0]]
-    cost = CostFunction(pt, tests)
+    cost = CostFunction(pt, {'all': tests})
 
     x = np.array([1.0])
-    assert abs(cost(x) - 0.5*(5159.1871966 - 4.0088096730e+03)**2) < 1
+    assert abs(cost(x) - np.log(0.5*(5159.1871966 - 4.0088096730e+03)**2)) < 1
 
     x = np.array([1.1])
-    assert abs(cost(x) - 0.5*(5159.1871966 - 1.1*4.0088096730e+03)**2) < 1
+    assert abs(cost(x) - np.log(0.5*(5159.1871966 - 1.1*4.0088096730e+03)**2)) < 1
 
     x = np.array([0.8])
-    assert abs(cost(x) - 0.5*(5159.1871966 - 0.8*4.0088096730e+03)**2) < 1
+    assert abs(cost(x) - np.log(0.5*(5159.1871966 - 0.8*4.0088096730e+03)**2)) < 1
 
 
 def test_water_cost_angle_ic():
@@ -120,16 +122,16 @@ def test_water_cost_angle_ic():
     simulations = [GeoOptSimulation(system)]
     tests = [ICTest(5*deg, refpos, simulations[0], BendGroup(system))]
     assert tests[0].icgroup.cases == [[2, 0, 1]]
-    cost = CostFunction(pt, tests)
+    cost = CostFunction(pt, {'all': tests})
 
     x = np.array([1.0])
-    assert abs(cost(x) - 0.5*((np.arccos(2.7892000007e-02) - 1.5707963267948966)/(5*deg))**2) < 1e-4
+    assert abs(cost(x) - np.log(0.5*((np.arccos(2.7892000007e-02) - 1.5707963267948966)/(5*deg))**2)) < 1e-4
 
     x = np.array([1.1])
-    assert abs(cost(x) - 0.5*((np.arccos(1.1*2.7892000007e-02) - 1.5707963267948966)/(5*deg))**2) < 1e-4
+    assert abs(cost(x) - np.log(0.5*((np.arccos(1.1*2.7892000007e-02) - 1.5707963267948966)/(5*deg))**2)) < 1e-4
 
     x = np.array([0.8])
-    assert abs(cost(x) - 0.5*((np.arccos(0.8*2.7892000007e-02) - 1.5707963267948966)/(5*deg))**2) < 1e-4
+    assert abs(cost(x) - np.log(0.5*((np.arccos(0.8*2.7892000007e-02) - 1.5707963267948966)/(5*deg))**2)) < 1e-4
 
 
 def test_water_cost_angle_fc():
@@ -148,13 +150,13 @@ def test_water_cost_angle_fc():
     simulations = [GeoOptHessianSimulation(system)]
     tests = [FCTest(kjmol, sample['pos'], sample['hessian'].reshape(9, 9), simulations[0], BendGroup(system))]
     assert tests[0].icgroup.cases == [[2, 0, 1]]
-    cost = CostFunction(pt, tests)
+    cost = CostFunction(pt, {'all': tests})
 
     x = np.array([1.0])
-    assert abs(cost(x) - 0.5*(394.59354836 - 302.068346061)**2) < 1
+    assert abs(cost(x) - np.log(0.5*(394.59354836 - 302.068346061)**2)) < 1
 
     x = np.array([1.1])
-    assert abs(cost(x) - 0.5*(394.59354836 - 1.1*302.068346061)**2) < 1
+    assert abs(cost(x) - np.log(0.5*(394.59354836 - 1.1*302.068346061)**2)) < 1
 
     x = np.array([0.8])
-    assert abs(cost(x) - 0.5*(394.59354836 - 0.8*302.068346061)**2) < 1
+    assert abs(cost(x) - np.log(0.5*(394.59354836 - 0.8*302.068346061)**2)) < 1

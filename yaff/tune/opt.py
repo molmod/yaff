@@ -84,7 +84,6 @@ class GaussianModel(object):
 
         self.sigmas = np.ones(self.npar)*sigma
         self.evecs = np.identity(self.npar)
-        #self.trust_radius = sigma
         self.temperature = None
 
         self.history = []
@@ -111,7 +110,6 @@ class GaussianModel(object):
         self.center = self.history[0][1].copy()
         if self.full:
             self.fit_model()
-            #self.trust_radius *= 1.01
 
         if log.do_low:
             log('Best   f    = %10.5e' % self.history[0][0])
@@ -221,7 +219,7 @@ class GaussianModel(object):
             log('  %s' % (' '.join('%7.1e' % v for v in self.sigmas)))
 
 
-def gauss_opt(fn, x0, sigma, on_lower=None):
+def gauss_opt(fn, x0, sigma, sigma_threshold=1e-8, on_lower=None):
     with log.section('GAUOPT'):
         if log.do_low:
             log('Number of parameters: %i' % len(x0))
@@ -229,7 +227,7 @@ def gauss_opt(fn, x0, sigma, on_lower=None):
         x = x0.copy()
         f = fn(x)
         gm.feed(f, x)
-        while gm.sigmas.max() > 1e-8:
+        while gm.sigmas.max() > sigma_threshold:
             x1 = gm.sample()
             f1 = fn(x1)
             gm.feed(f1, x1)

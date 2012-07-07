@@ -42,24 +42,27 @@ __all__ = [
 
 
 class CostFunction(object):
-    def __init__(self, parameter_transform, tests):
+    def __init__(self, parameter_transform, test_groups):
         self.parameter_transform = parameter_transform
-        self.tests = tests
+        self.test_groups = test_groups
         self.simulations = set([])
-        for test in tests:
-            self.simulations.update(test.simulations)
+        for name, tests in test_groups.iteritems():
+            for test in tests:
+                self.simulations.update(test.simulations)
 
     def __call__(self, x):
         # Modify the parameters
         parameters = self.parameter_transform(x)
-        #for counter, line in parameters['BENDCHARM']['PARS']:
-        #    log('FOO %s' % line.strip())
         # Run simulations with the new parameters
         for simulation in self.simulations:
             simulation(parameters)
+        # compute all the tests in each test group
         cost = 0.0
-        for test in self.tests:
-            cost += 0.5*test()**2
+        for name, tests in self.test_groups.iteritems():
+            group_cost = 0.0
+            for test in tests:
+                group_cost += 0.5*test()**2
+            cost += np.log(group_cost)
         return cost
 
 
