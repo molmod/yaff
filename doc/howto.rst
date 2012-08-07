@@ -108,7 +108,9 @@ The ``System`` constructor arguments can be specified with some python code::
 
     system = System(
         numbers=np.array([8, 1, 1]*2),
-        pos=np.array([[-4.583, 5.333, 1.560], [-3.777, 5.331, 0.943]])*angstrom,
+        pos=np.array([[-4.583, 5.333, 1.560], [-3.777, 5.331, 0.943],
+                      [-5.081, 4.589, 1.176], [-0.083, 4.218, 0.070],
+                      [-0.431, 3.397, 0.609], [0.377, 3.756, -0.688]])*angstrom,
         scopes=['WAT']*6,
         ffatypes=['O', 'H', 'H']*2,
         bonds=np.array([[(i/3)*3,i] for i in xrange(6) if i%3!=0]),

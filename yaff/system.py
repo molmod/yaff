@@ -625,6 +625,8 @@ class System(object):
            All data are stored in atomic units.
         """
         from molmod.io import dump_chk
+        #TODO: Add a few common formats like XYZ, PDB
+        # PDF (Cell parameters, connectivity, atom types (4char), scope -> chains)
         dump_chk(fn_chk, {
             'numbers': self.numbers,
             'pos': self.pos,
