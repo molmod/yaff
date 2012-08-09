@@ -41,7 +41,7 @@ four steps given above::
     nve = NVEIntegrator(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
     nve.run(5000)
     # 4) perform an analysis, e.g. RDF computation for O_W O_W centers.
-    indexes = ssytem.get_indexes('O_W')
+    indexes = system.get_indexes('O_W')
     rdf = RDFAnalysis(f, indexes)
     rdf.result.plot('rdf.png')
     f.close()
@@ -291,11 +291,14 @@ selected iterations. For example, the following HDF5 hook will write data every
     hdf5_writer = HDF5Writer(h5py.File('output.h5', mode='w'), start=1000, step=100)
 
 The hooks argument may also be a list of hook objects, e.g. to reset the
-velocities every 200 steps, one may include the ``AndersenThermostat``::
+velocities every 200 steps, one may include the ``AndersenThermostat`` to
+sample the NVT ensemble and ``XYZWriter`` to write a trajectory of the atomic
+positions in XYZ format::
 
     hooks=[
-        HDF5Writer(h5py.File('output.h5', mode='w'))
-        AndersenThermostat(temp=300, step=200)
+        HDF5Writer(h5py.File('output.h5', mode='w')),
+        AndersenThermostat(temp=300, step=200),
+        XYZWriter('trajectory.xyz'),
     ]
 
 By default a screen logging hook is added (if not yet present) to write one
