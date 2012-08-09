@@ -46,15 +46,29 @@ def test_gaussian_quadratic1():
         return ((x - x_bot)**2).sum()
 
     x0 = np.zeros(3, float)
-    x1 = gauss_opt(fn, x0, 0.01)
+    x1 = gauss_opt(fn, x0, 0.01, sigma_threshold=0.5e-4)
     assert abs(x1 - x_bot).max() < 1e-4
 
-def test_rosenbrock_quadratic1():
+
+def test_gaussian_quadratic2():
     N = 3
     x_bot = np.random.uniform(-1,1, N)
     def fn(x):
-        return ((x - x_bot)**2).sum()
+        tmp = x - x_bot
+        return (tmp**2).sum() - 1e-8*np.cos(tmp*800).prod()
 
     x0 = np.zeros(3, float)
-    x1 = rosenbrock_opt(fn, x0, 1e-2, 1e-8)
+    x1 = gauss_opt(fn, x0, 0.1, sigma_threshold=0.5e-4)
+    assert abs(x1 - x_bot).max() < 1e-4
+
+
+def test_gaussian_quadratic3():
+    N = 3
+    x_bot = np.random.uniform(-1,1, N)
+    def fn(x):
+        tmp = x - x_bot
+        return (tmp**2).sum() + np.random.normal(0, 1e-8)
+
+    x0 = np.zeros(3, float)
+    x1 = gauss_opt(fn, x0, 0.1, sigma_threshold=0.5e-4)
     assert abs(x1 - x_bot).max() < 1e-4

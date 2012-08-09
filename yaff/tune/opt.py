@@ -28,7 +28,7 @@ import numpy as np
 from yaff.log import log
 
 
-__all__ = ['random_opt', 'gauss_opt', 'rosenbrock_opt']
+__all__ = ['random_opt', 'gauss_opt']
 
 
 def random_opt(fn, x0, on_lower=None):
@@ -63,96 +63,173 @@ def random_opt(fn, x0, on_lower=None):
         return x
 
 
-class Newton(object):
-    def __init__(self, grad, hess):
-        self.grad = grad
-        self.hess = hess
-        self.evals, self.evecs = np.linalg.eigh(self.hess)
-
-    def __call__(self, ridge):
-        self.evals_inv = 1/abs(ridge + self.evals)
-        self.step = -np.dot(self.evecs, np.dot(self.evecs.T, self.grad)*self.evals_inv)
-        return np.linalg.norm(self.step)
-
 
 class GaussianModel(object):
-    def __init__(self, center, sigma, on_lower=None):
-        self.center = center
-        self.on_lower = on_lower
-        self.npar = len(self.center)
-        self.nrec = self.npar*(self.npar+1) + 3*self.npar
+    def __init__(self, label, npar, minrec):
+        self.label = label
+        self.npar = npar
+        self.minrec = minrec
+        self.safeminrec = (self.minrec*3)/2
 
-        self.sigmas = np.ones(self.npar)*sigma
-        self.evecs = np.identity(self.npar)
-        self.temperature = None
+    def _fit_model(self, dm, ev):
+        # Take only the best records
+        dm = dm[:self.safeminrec]
+        ev = ev[:self.safeminrec]
 
-        self.history = []
-        self.counter = 0
+        # Find a stable solution
+        scales = np.sqrt((dm**2).sum(axis=0))
+        dm = dm/scales
+        U, S, Vt = np.linalg.svd(dm, full_matrices=False)
+        if abs(S).max() > 1e10*abs(S).min():
+            if log.do_medium:
+                log('  Ill-defined model')
+                log(' '.join('%10.5e' % value for value in S))
+            return False
 
-    full = property(lambda self: len(self.history) >= self.nrec)
+        alpha = np.dot(Vt.T, np.dot(U.T, ev)/S)
 
-    overfull = property(lambda self: len(self.history) > self.nrec*2)
+        # check the rmsd
+        mv = np.dot(dm, alpha)
+        rmsd = np.sqrt(((mv-ev)**2).mean())
+        rms = np.sqrt(ev**2).mean()
+        if log.do_medium:
+            log('Fit RMSD = %10.5e    RMS = %10.5e    RE = %10.2f%%' % (rmsd, rms, rmsd/rms*100))
+        if rmsd>0.5*rms:
+            if log.do_medium:
+                log('  Poor fit')
+            return False
+
+        # return resulr
+        return alpha/scales
+
+    def rebuild(self, parhist, fnhist):
+        valid = len(parhist) >= self.safeminrec
+        if not valid and log.do_medium:
+            log('  Too few records. At least %i are needed.' % self.safeminrec)
+        return valid
 
     def sample(self):
-        x1 = np.random.normal(0, 1, self.npar)
-        x1 = np.dot(self.evecs, np.dot(self.evecs.T, x1)*self.sigmas) + self.center
-        if log.do_medium:
-            log('Sample:')
-            log('  %s' % (' '.join('%10.5e' % v for v in x1)))
-        return x1
+        raise NotImplementedError
 
-    def feed(self, f, x):
-        self.counter += 1
-        if log.do_low:
-            log('Iteration %i' % self.counter)
-            log('History has %i records. %i required for fit.' % (len(self.history), self.nrec))
-        self.add_record(f, x)
-        self.center = self.history[0][1].copy()
-        if self.full:
-            self.fit_model()
 
-        if log.do_low:
-            log('Best   f    = %10.5e' % self.history[0][0])
-            log('Newest f    = %10.5e' % f)
-            if self.temperature is not None:
-                log('Temperature = %10.5e' % self.temperature)
+class FallbackModel(GaussianModel):
+    def __init__(self, label, npar, sigma):
+        self.sigma = sigma
+        self.scaled_sigma = sigma
+        GaussianModel.__init__(self, label, npar, 0)
+
+    def rebuild(self, parhist, fnhist, scale):
+        self.center = parhist[0]
+        self.scaled_sigma = self.sigma*scale
+        return True
+
+    def sample(self):
+        return self.center + np.random.normal(0, self.scaled_sigma, self.npar)
+
+
+class DiagGaussianModel(GaussianModel):
+    def __init__(self, label, npar, do_gradient):
+        self.do_gradient = do_gradient
+        minrec = npar + 1
+        if do_gradient:
+            minrec += npar
+        GaussianModel.__init__(self, label, npar, minrec)
+
+    def rebuild(self, parhist, fnhist, scale):
+        valid = GaussianModel.rebuild(self, parhist, fnhist)
+        if not valid:
+            return False
+
+        # Construct a set of equations to find the Hessian and optionally the
+        # gradient
+        self.center = parhist[0].copy()
+        dm = []
+        ev = []
+        for x, f in zip(parhist, fnhist):
+            row = [1.0]
+            if self.do_gradient:
+                row.extend(x-self.center)
+            row.extend(0.5*(x-self.center)**2)
+            dm.append(row)
+            ev.append(f - fnhist[0])
+        dm = np.array(dm)
+        ev = np.array(ev)
+
+        # solve the equations and determine of the result is valid.
+        coeffs = self._fit_model(dm, ev)
+        if coeffs is False:
+            return False
+
+        # extract gradient and Hessian diagonal from coeffs
+        if self.do_gradient:
+            gradient = coeffs[1:self.npar+1]
+            counter = self.npar+1
+        else:
+            gradient = None
+            counter = 1
+        hdiag = coeffs[counter:counter+self.npar]
+
+        # construct a Gaussian model that yields samples near the estimated
+        # minimum with an expected function value below the mean of the current
+        # set of samples
+        tmp = hdiag.copy()
+        if tmp.min() < 0:
+            tmp -= tmp.min()
+        threshold = 1e3
+        if tmp.max() > threshold*tmp.min():
+            tmp += (tmp.max() - threshold*tmp.min())/(threshold-1)
+        hdiag_inv = 1/tmp
+
+        parhist_sigmas = parhist.std(axis=0)
+        self.sigmas = np.sqrt(hdiag_inv/hdiag_inv.max()*parhist_sigmas.max())*scale
+
+        if self.do_gradient:
+            # Compute the step
+            step = -gradient*hdiag_inv*scale
+            # Only apply the step if it is not ridiculously large.
+            if (abs(step) < 10*self.sigmas).all():
+                self.center += step
+
         if log.do_medium:
             log('Center:')
             log('  %s' % (' '.join('%7.1e' % v for v in self.center)))
-            log('History:')
-            log('  %s' % (' '.join('%7.1e' % f for f, x in self.history)))
-            log.hline()
+            log('HDiag:')
+            log('  %s' % (' '.join('%7.1e' % v for v in hdiag)))
+            log('HDiag inv:')
+            log('  %s' % (' '.join('%7.1e' % v for v in hdiag_inv)))
+            log('Sigmas:')
+            log('  %s' % (' '.join('%7.1e' % v for v in self.sigmas)))
 
-    def add_record(self, f, x):
-        if len(self.history) > 0:
-            # Check if this one is the best so far
-            if f < self.history[0][0]:
-                if self.on_lower is not None:
-                    self.on_lower(x)
-        if self.temperature is not None:
-            if f < self.history[0][0]:
-                self.temperature *= 2.0
-            elif f > self.history[-1][0]:
-                self.temperature *= 0.5
-            else:
-                self.temperature *= 0.999
-
-        # Add the record
-        self.history.append((f, x))
-        self.history.sort()
-
-        if self.overfull:
-            del self.history[-1]
+        return True
 
 
-    def fit_model(self):
-        # Build a model for the hessian and the gradient
+    def sample(self):
+        x = np.random.normal(0, 1, self.npar)*self.sigmas + self.center
+        return x
 
+
+class FullGaussianModel(GaussianModel):
+    def __init__(self, label, npar, do_gradient):
+        self.do_gradient = do_gradient
+        minrec = (npar*(npar-1))/2 + 1
+        if do_gradient:
+            minrec += npar
+        GaussianModel.__init__(self, label, npar, minrec)
+
+    def rebuild(self, parhist, fnhist, scale):
+        valid = GaussianModel.rebuild(self, parhist, fnhist)
+        if not valid:
+            return False
+
+        # Construct a set of equations to find the Hessian and optionally the
+        # gradient
+        self.center = parhist[0].copy()
         dm = []
         ev = []
-        for f, x in self.history:
+        for x, f in zip(parhist, fnhist):
             row = [1.0]
-            row.extend(x-self.center)
+            if self.do_gradient:
+                row.extend(x-self.center)
             for i0 in xrange(self.npar):
                 for i1 in xrange(i0+1):
                     if i0 == i1:
@@ -161,56 +238,56 @@ class GaussianModel(object):
                         factor = 1.0
                     row.append(factor*(x[i0]-self.center[i0])*(x[i1]-self.center[i1]))
             dm.append(row)
-            ev.append(f - self.history[0][0])
-
+            ev.append(f - fnhist[0])
         dm = np.array(dm)
         ev = np.array(ev)
-        #ridge = ev.mean()*0.01
-        #if ridge > 0:
-        #    ws = 1/(ridge+ev)**2
-        #    dm *= ws.reshape(-1,1)
-        #    ev *= ws
-        scales = np.sqrt((dm**2).sum(axis=0))
-        dm = dm/scales
 
-        U, S, Vt = np.linalg.svd(dm, full_matrices=False)
-        ridge = abs(S).max()*1e-3
-        S_inv = abs(S)/(ridge**2+S**2)
-        alpha = np.dot(Vt.T, np.dot(U.T, ev)*S_inv)
-        coeffs = alpha/scales
-        grad = coeffs[1:self.npar+1]
-        counter = self.npar+1
-        hess = np.zeros((self.npar, self.npar), float)
+        # solve the equations and determine of the result is valid.
+        coeffs = self._fit_model(dm, ev)
+        if coeffs is False:
+            return False
+
+        # extract gradient and Hessian from coeffs
+        if self.do_gradient:
+            gradient = coeffs[1:self.npar+1]
+            counter = self.npar+1
+        else:
+            gradient = None
+            counter = 1
+        hessian = np.zeros((self.npar, self.npar), float)
         for i0 in xrange(self.npar):
             for i1 in xrange(i0+1):
-                hess[i0,i1] = coeffs[counter]
-                hess[i1,i0] = coeffs[counter]
+                hessian[i0,i1] = coeffs[counter]
+                hessian[i1,i0] = coeffs[counter]
                 counter += 1
 
-        if log.do_medium:
-            mv = np.dot(dm, alpha)
-            rmsd = np.sqrt(((mv-ev)**2).mean())
-            rms = np.sqrt(ev**2).mean()
-            log('Fit RMSD = %10.5e    RMS = %10.5e    RE = %10.2f%%' % (rmsd, rms, rmsd/rms*100))
-
-        evals, evecs = np.linalg.eigh(hess)
-        threshold = evals.max()*0.1
+        # construct a Gaussian model that yields samples near the estimated
+        # minimum with an expected function value below the mean of the current
+        # set of samples
+        evals, evecs = np.linalg.eigh(hessian)
         tmp = evals.copy()
-        tmp[tmp<threshold] = threshold
+        if tmp.min() < 0:
+            tmp -= tmp.min()
+        threshold = 1e3
+        if tmp.max() > threshold*tmp.min():
+            tmp += (tmp.max() - threshold*tmp.min())/(threshold-1)
         evals_inv = 1/tmp
 
         self.evecs = evecs
-        if self.temperature is None:
-            sigmas = np.sqrt(evals_inv)/ev[len(ev)/2]
-            self.temperature = (self.sigmas/sigmas).max()
+        parhist_t = np.dot(parhist[:self.safeminrec/2] - self.center, evecs)
+        parhist_sigmas = parhist_t.std(axis=0)
+        self.sigmas = np.sqrt(evals_inv/evals_inv.max()*parhist_sigmas.max())*scale
 
-        self.sigmas = np.sqrt(evals_inv)/ev[len(ev)/2]*self.temperature
-        step = np.dot(evecs, np.dot(evecs.T, -grad)*evals_inv)
-        step *= np.linalg.norm(self.sigmas)/np.linalg.norm(step)
-        self.center += step
-
+        if self.do_gradient:
+            # Compute the step
+            step = np.dot(evecs, np.dot(evecs.T, -gradient)*evals_inv)*scale
+            # Only apply the step if it is not ridiculously large.
+            if (abs(step) < 10*self.sigmas).all():
+                self.center += step
 
         if log.do_medium:
+            log('Center:')
+            log('  %s' % (' '.join('%7.1e' % v for v in self.center)))
             log('Evals:')
             log('  %s' % (' '.join('%7.1e' % v for v in evals)))
             log('Evals inv:')
@@ -218,112 +295,108 @@ class GaussianModel(object):
             log('Sigmas:')
             log('  %s' % (' '.join('%7.1e' % v for v in self.sigmas)))
 
+        return True
+
+
+    def sample(self):
+        x = np.random.normal(0, 1, self.npar)
+        x = np.dot(self.evecs, np.dot(self.evecs.T, x)*self.sigmas) + self.center
+        return x
+
+
+class ParameterHistory(object):
+    def __init__(self, npar, sigma, on_lower=None):
+        self.npar = npar
+        self.sigma = sigma
+        self.on_lower = on_lower
+
+        self.history = []
+        self.counter = 0
+        self.models = [
+            FullGaussianModel('FGG', npar, True),
+            FullGaussianModel('FG', npar, False),
+            DiagGaussianModel('DGG', npar, True),
+            DiagGaussianModel('DG', npar, False),
+            FallbackModel('FB', npar, sigma),
+        ]
+        self.scale = 1.0
+        self.maxrec = max(model.safeminrec for model in self.models)
+
+    def sample(self):
+        for model in self.models:
+            if log.do_medium:
+                log('Trying model %s' % model.label)
+            if model.rebuild(self._parhist, self._fnhist, self.scale):
+                x = model.sample()
+                return x
+
+    def feed(self, f, x):
+        self.counter += 1
+        if log.do_low:
+            log.hline()
+            log('Iteration %i' % self.counter)
+        self.add_record(f, x)
+
+        if log.do_low:
+            log('Best   f    = %10.5e' % self.history[0][0])
+            log('Median f    = %10.5e' % self.history[len(self.history)/2][0])
+            log('Worst  f    = %10.5e' % self.history[-1][0])
+            log('Newest f    = %10.5e' % f)
+            log('# records   = %10i' % (len(self.history)))
+
+        if len(self.history) > 1:
+            # Change the size of the steps made by the last model if needed.
+            # The size of the steps is defined with respect to the spread on the
+            # current history of N best parameters times the scale factor
+            # modified below.
+            if f >= self.history[-1][0]:
+                # Way to large function value compared to current results
+                self.scale *= 0.5
+            elif f < self.history[len(self.history)/2][0]:
+                # Rather small function value compared to current results
+                self.scale *= 1.01
+            else:
+                self.scale *= 0.9
+            if log.do_medium:
+                log('Scaling sigmas by %.1e' % self.scale)
+
+
+    def add_record(self, f, x):
+        if len(self.history) > 0:
+            # Check if this one is the best so far
+            if f < self.history[0][0]:
+                if self.on_lower is not None:
+                    self.on_lower(x)
+
+        # Add the record
+        self.history.append((f, x))
+        self.history.sort()
+
+        if len(self.history) > self.maxrec:
+            del self.history[-1]
+
+        # Transform to useful matrices
+        self._fnhist = np.array([row[0] for row in self.history])
+        self._parhist = np.array([row[1] for row in self.history])
+
+    def converged(self, sigma_threshold):
+        return len(self.history) == self.maxrec and (self._parhist.std(axis=0).max() <= sigma_threshold).all()
+        return self._parhist.std(axis=0).max()
+
+    def get_best_pars(self):
+        return self._parhist[0]
+
 
 def gauss_opt(fn, x0, sigma, sigma_threshold=1e-8, on_lower=None):
     with log.section('GAUOPT'):
         if log.do_low:
             log('Number of parameters: %i' % len(x0))
-        gm = GaussianModel(x0, sigma, on_lower)
+        ph = ParameterHistory(len(x0), sigma, on_lower)
         x = x0.copy()
         f = fn(x)
-        gm.feed(f, x)
-        while gm.sigmas.max() > sigma_threshold:
-            x1 = gm.sample()
+        ph.feed(f, x)
+        while not ph.converged(sigma_threshold):
+            x1 = ph.sample()
             f1 = fn(x1)
-            gm.feed(f1, x1)
-        return gm.history[0][1]
-
-
-def rosenbrock_opt(fn, x0, small, xtol, on_lower=None):
-    def my_fn(x):
-        result = fn(x)
-        if log.do_medium:
-            log('    f = %10.5e' % result)
-        return result
-
-    def my_lower(f, x):
-        if on_lower is not None:
-            on_lower(x)
-        if log.do_low:
-            log('    **LOWER** f = %10.5e **LOWER** ' % f)
-            # double check
-            f = fn(x)
-            log('    **CHECK** f = %10.5e **CHECK** ' % f)
-
-    with log.section('ROSOPT'):
-
-        f0 = my_fn(x0)
-        npar = len(x0)
-        basis = np.identity(npar, float)
-        counter = 0
-        while True:
-            counter += 1
-            if log.do_medium:
-                log('iteration %i' % counter)
-            x0_start = x0.copy()
-            nostep = True
-
-            # Try to make moves along the directions of basis
-            for i in xrange(npar):
-                if log.do_medium:
-                    log('  decrease %i' % i)
-                # try by decreasing
-                delta = small
-                nattempt = 0
-                while abs(delta) > xtol:
-                    x1 = x0 + delta*basis[i]
-                    f1 = my_fn(x1)
-                    if f1 < f0:
-                        f0, x0 = f1, x1
-                        my_lower(f0, x0)
-                        nostep = False
-                        break
-                    if delta > 0:
-                        delta *= -1
-                    else:
-                        delta *= -0.5
-                    nattempt += 1
-
-                # if no decrease was needed, try increasing
-                if nattempt < 2:
-                    if log.do_medium:
-                        log('  increase %i' % i)
-                    while True:
-                        x1 = x0 + delta*basis[i]
-                        f1 = my_fn(x1)
-                        if f1 >= f0:
-                            break
-                        f0, x0 = f1, x1
-                        my_lower(f0, x0)
-                        delta *= 2
-                        nostep = False
-
-                # tried enough, new direction in next iteration
-
-            # if the shortest possible step in each direction was tested, bail out
-            if nostep:
-                if log.do_medium:
-                    log('Not a single successful step in this iteration. Giving up.')
-                break
-
-            # compute step.
-            step = x0 - x0_start
-            if log.do_medium:
-                log('step = [%s]' % ' '.join('%10.5e' % v for v in step))
-
-            # project each basis vector on ortho complement
-            for i in xrange(npar):
-                basis[i] -= step*np.dot(step, basis[i])/np.linalg.norm(step)**2
-
-            # use svd to get the basis for the remainder
-            U, S, Vt = np.linalg.svd(basis)
-            basis[0] = step/np.linalg.norm(step)
-            for i in xrange(1, npar):
-                basis[i] = Vt[i-1]
-            for i in xrange(npar):
-                log('basis[%i] = [%s]' % (i, ' '.join('%10.5e' % v for v in basis[i])))
-
-            small = np.linalg.norm(step)*0.01
-
-
-        return x0
+            ph.feed(f1, x1)
+        return ph.get_best_pars()
