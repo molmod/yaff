@@ -34,17 +34,18 @@ The following software must be installed:
 * Python 2.5, 2.6 or 2.7 (including the development files): http://www.python.org/
 * Numpy >= 1.0: http://numpy.scipy.org/
 * Cython >= 0.15.1 : http://www.cython.org/
+* h5py >= 2.0.0: http://code.google.com/p/h5py/
 
 Most Linux distributions can install this software with just a single terminal
 command.
 
 * Ubuntu 12.4::
 
-    sudo apt-get install python-numpy cython
+    sudo apt-get install python-numpy cython python-h5py
 
 * Fedora 17::
 
-    sudo yum install numpy cython
+    sudo yum install numpy cython h5py
 
 
 Installing the latest version of YAFF
@@ -86,19 +87,9 @@ Most Linux distributions can install this software with just a single terminal c
 
     sudo apt-get install python-nose python-sphinx
 
-* Debian 5::
-
-    su -
-    apt-get install python-nose python-sphinx
-    exit
-
 * Fedora 17::
 
     sudo yum install python-nose sphinx
-
-* Suse 11.2::
-
-    sudo zypper install python-nose sphinx
 
 Once these dependencies are installed, execute the following commands to run the
 tests::
