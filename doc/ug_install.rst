@@ -5,9 +5,9 @@ Installation
 Disclaimer
 ==========
 
-YAFF is developed and tested in modern Linux environments. The
+Yaff is developed and tested on modern Linux environments. The
 installation instructions below are given for a Linux system only. If you want
-to use YAFF on other operating systems such as Windows or OSX, you should
+to use Yaff on other operating systems such as Windows or OSX, you should
 have a minimal computer geek status to get it working. We are always interested
 in hearing from your installation adventures.
 
@@ -16,7 +16,7 @@ MolMod dependency
 =================
 
 `MolMod <http://molmod.github.com/molmod/>`_ is a Python library used by most
-Python programs developed at the CMM. It must be installed before YAFF can
+Python programs developed at the CMM. It must be installed before Yaff can
 be used or installed. Installation and download instructions can be found in the
 `molmod documentation <http://molmod.github.com/molmod/tutorial/install.html>`_.
 The instructions below only work if the MolMod package is installed.
@@ -25,7 +25,7 @@ The instructions below only work if the MolMod package is installed.
 External dependencies
 =====================
 
-Some software packages should be installed before YAFF can be installed or
+Some software packages should be installed before Yaff can be installed or
 used. It is recommended to use the software package management of your Linux
 distribution to install these dependencies.
 
@@ -35,38 +35,38 @@ The following software must be installed:
 * Numpy >= 1.0: http://numpy.scipy.org/
 * Cython >= 0.15.1 : http://www.cython.org/
 * h5py >= 2.0.0: http://code.google.com/p/h5py/
+* matplotlib >= 1.0.0: http://matplotlib.sourceforge.net/
 
 Most Linux distributions can install this software with just a single terminal
 command.
 
 * Ubuntu 12.4::
 
-    sudo apt-get install python-numpy cython python-h5py
+    sudo apt-get install python-numpy cython python-h5py python-matplotlib
 
 * Fedora 17::
 
-    sudo yum install numpy cython h5py
+    sudo yum install numpy cython h5py python-matplotlib
 
 
-Installing the latest version of YAFF
+Installing the latest version of Yaff
 =====================================
 
-The following series of commands will download the latest version of YAFF,
+The following series of commands will download the latest version of Yaff,
 and will then install it into your home directory. ::
 
     cd ~/build/
     git clone git://github.com/molmod/yaff.git
     (cd yaff; ./setup.py install --home=~)
 
-You are now ready to start using YAFF!
+You are now ready to start using Yaff!
 
 
-Upgrading to the latest version of MolMod and YAFF
+Upgrading to the latest version of MolMod and Yaff
 ==================================================
 
-In case you want to upgrade YAFF to the latests development version after
-a previous install, then execute the following commands (in the same directory
-that was originally used to install YAFF)::
+In case you want to upgrade Yaff to the latest development version after
+a previous install, then execute the following commands::
 
     cd ~/build/
     (cd molmod; git pull; rm -r ~/lib*/python/molmod*; ./setup.py install --home=~)
@@ -76,7 +76,7 @@ that was originally used to install YAFF)::
 Testing your installation
 =========================
 
-For the development and testing one needs to install additional packages:
+For development and testing one needs to install additional packages:
 
 * Nosetests >= 0.11: http://somethingaboutorange.com/mrl/projects/nose/0.11.2/
 * Sphinx >= 1.0: http://sphinx.pocoo.org/
@@ -99,5 +99,5 @@ tests::
     ./setup.py build_ext -i
     nosetests -v
 
-If some tests fail, post the output of the tests on the `YAFF
+If some tests fail, post the output of the tests on the `Yaff
 mailing list <https://groups.google.com/forum/#!forum/yaff>`_.

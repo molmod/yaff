@@ -40,6 +40,25 @@ def check_name(name):
 
 
 def find_first(s, subs, start=0, end=None):
+    """Find the first occurence of a set of substrings in ``s``
+
+       **Arguments:**
+
+       s
+            The string that must be searched for the patterns in the ``subs``
+            list.
+
+       subs
+            A list of patterns.
+
+       **Optional arguments:**
+
+       start
+            Only start searching at this index in the string ``s``.
+
+       end
+            When given, no subs occuring after end are mathcing.
+    """
     best_pos = -1
     best_sub = None
     for sub in subs:
@@ -296,6 +315,22 @@ rules = [All, Any, Not, CountNeighs, LessNeighs, MoreNeighs, Name]
 
 
 def atsel_compile(s):
+    """Compiles an ATSELECT line into a boolean function
+
+       **Argument:**
+
+       s
+            a string with one ATSELECT line. Before this line is processed, all
+            whitespace (including newline) charachters are removed.
+
+       **Returns:**
+
+       rule
+            A function that takes two arguments: ``system`` and ``i``, where
+            system is a ``System`` instance and ``i`` is an atom index. The
+            function returns ``True`` if the atom matches the ATSELECT line
+            in the string ``s``.
+    """
     # first get rid of the whitespace
     s = s.replace(' ', '')
     s = s.replace('\t', '')

@@ -21,7 +21,9 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-
+"""This module contains all the machinery needed to support the
+   :meth:`yaff.pes.ff.ForceField.generate` method.
+"""
 
 import numpy as np
 
@@ -82,13 +84,14 @@ class FFArgs(object):
 
            alpha_scale
                 Determines the alpha parameter in the Ewald summation based on
-                the real-space cutoff: alpha = alpha_scale / rcut. The higher
-                this parameter, the better the real-space convergence.
+                the real-space cutoff: alpha = alpha_scale / rcut. Higher
+                values for this parameter imply a faster convergence of the
+                reciprocal terms, but a slower convergence in real-space.
 
            gcut_scale
                 Determines the reciprocale space cutoff based on the alpha
-                parameter: gcut = gcut_scale * alpha. The higher this parameter,
-                the more accurate the computation.
+                parameter: gcut = gcut_scale * alpha. Higher values for this
+                parameter imply a better convergence in the reciprocal space.
 
            skin
                 The skin parameter for the neighborlist.
@@ -583,6 +586,7 @@ class ValenceCrossGenerator(Generator):
         raise NotImplementedError
 
 
+# TODO: add test to make sure that R0==R1 in the case of symmetric ffatypes.
 class BondCrossGeneratorGenerator(ValenceCrossGenerator):
     prefix = 'BONDCROSS'
     par_info = [('K', float), ('R0', float), ('R1', float)]
@@ -838,8 +842,6 @@ class ExpRepGenerator(NonbondedGenerator):
 
 
 class DampDispGenerator(NonbondedGenerator):
-    # TODO: it seems that the dispersion interactions are just too strong. check
-    # if this is a bug.
     prefix = 'DAMPDISP'
     suffixes = ['UNIT', 'SCALE', 'PARS', 'CPARS']
     par_info = [('C6', float), ('B', float), ('VOL', float)]

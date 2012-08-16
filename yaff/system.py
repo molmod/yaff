@@ -30,14 +30,14 @@ from yaff.atselect import check_name, atsel_compile
 from yaff.pes.ext import Cell
 
 
-__all__ = ['unravel_triangular', 'System']
+__all__ = ['System']
 
 
-def unravel_triangular(i):
-    """Transform a flattened triangular matrix index to a row and column
+def _unravel_triangular(i):
+    """Transform a flattened triangular matrix index to row and column indexes
 
-       It is assumed that the diagonal elements are not included in the compact
-       matrix.
+       It is assumed that the diagonal elements are not included in the
+       flattened triangular matrix.
     """
     i0 = int(np.floor(0.5*(np.sqrt(1+8*i)-1)))+1
     i1 = i - (i0*(i0-1))/2
@@ -274,9 +274,20 @@ class System(object):
                     log('%22s %22s  %3i       %3i' % (scope, ffatype, ffatype_id, (self.ffatype_ids==ffatype_id).sum()))
             log.hline()
             log.blank()
+        # TODO: Add double check such that the same atom type implies the same
+        # atomic number.
 
-    natom = property(lambda self: len(self.pos))
-    nffatype = property(lambda self: len(self.ffatypes))
+    def get_natom(self):
+        """The number of atoms"""
+        return len(self.pos)
+
+    natom = property(get_natom)
+
+    def get_nffatype(self):
+        """The number of atom types"""
+        return len(self.ffatypes)
+
+    nffatype = property(get_nffatype)
 
     @classmethod
     def from_file(cls, *fns, **user_kwargs):
@@ -343,9 +354,10 @@ class System(object):
     def get_indexes(self, rule):
         """Return the atom indexes that match the filter ``rule``
 
-           On the one hand, ``rule`` can be a function that accepts two
-           arguments: system and an atom index. On the other hand ``rule``
-           can be an ATSELECT string that defines the atoms of interest.
+           ``rule`` can be a function that accepts two arguments: system and an
+           atom index and that returns True of the atom with index i is of a
+           given type. On the other hand ``rule`` can be an ATSELECT string that
+           defines the atoms of interest.
 
            A list of atom indexes is returned.
         """
@@ -354,10 +366,15 @@ class System(object):
         return np.array([i for i in xrange(self.natom) if rule(self, i)])
 
     def iter_bonds(self):
+        """Iterate over all bonds."""
         for i1, i2 in self.bonds:
             yield i1, i2
 
     def iter_angles(self):
+        """Iterative over all possible valence angles.
+
+           This routine is based on the attribute ``bonds``.
+        """
         for i1 in xrange(self.natom):
             for i0 in self.neighs1[i1]:
                 for i2 in self.neighs1[i1]:
@@ -365,6 +382,10 @@ class System(object):
                         yield i0, i1, i2
 
     def iter_dihedrals(self):
+        """Iterative over all possible dihedral angles.
+
+           This routine is based on the attribute ``bonds``.
+        """
         for i1, i2 in self.bonds:
             for i0 in self.neighs1[i1]:
                 if i0==i2: continue
@@ -374,6 +395,13 @@ class System(object):
                     yield i0, i1, i2, i3
 
     def detect_bonds(self):
+        """Initialize the ``bonds`` attribute based on inter-atomic distances
+
+           For each pair of elements, a distance threshold is used to detect
+           bonded atoms. The distance threshold is based on a database of known
+           bond lengths. If the database does not contain a record for the given
+           element pair, the threshold is based on the sum of covalent radii.
+        """
         with log.section('SYS'):
             from molmod.bonds import bonds
             if self.bonds is not None:
@@ -384,14 +412,14 @@ class System(object):
             ishort = (work < bonds.max_length*1.01).nonzero()[0]
             new_bonds = []
             for i in ishort:
-                i0, i1 = unravel_triangular(i)
+                i0, i1 = _unravel_triangular(i)
                 if bonds.bonded(self.numbers[i0], self.numbers[i1], work[i]):
                     new_bonds.append((i0, i1))
             self.bonds = np.array(new_bonds)
             self._init_derived_bonds()
 
     def detect_ffatypes(self, rules):
-        """Assign ffatypes based on ATSELECT rules.
+        """Initialize the ``ffatypes`` attribute based on ATSELECT rules.
 
            **Argument:**
 
@@ -435,6 +463,7 @@ class System(object):
             self._init_derived_ffatypes()
 
     def set_standard_masses(self):
+        """Initialize the ``masses`` attribute based on the atomic numbers."""
         with log.section('SYS'):
             from molmod.periodic import periodic
             if self.masses is not None:
@@ -451,12 +480,12 @@ class System(object):
                 The linear combinations of the unit cell that must get aligned.
                 This is a 2x3 array, where each row represents a linear
                 combination of cell vectors. The first row is for alignment with
-                the x-axis, second for the z-axis. The default value is:
+                the x-axis, second for the z-axis. The default value is::
 
-                np.array([
-                    [1, 0, 0],
-                    [0, 0, 1],
-                ])
+                    np.array([
+                        [1, 0, 0],
+                        [0, 0, 1],
+                    ])
 
            swap
                 By default, the first alignment is done with the z-axis, then
@@ -467,6 +496,9 @@ class System(object):
            alignment of the second linear combination is restricted to a plane.
            The cell is always made right-handed. The coordinates are also
            rotated with respect to the origin, but never inverted.
+
+           The attributes of the system are modified in-place. Note that this
+           method only works on 3D periodic systems.
         """
         from molmod import Rotation, deg
         # define the target
@@ -482,6 +514,8 @@ class System(object):
         # The starting values
         pos = self.pos
         rvecs = self.cell.rvecs.copy()
+        if rvecs.shape != (3,3):
+            raise TypeError('The align_cell method only supports 3D periodic systems.')
 
         # Optionally swap a cell vector if the cell is not right-handed.
         if np.linalg.det(rvecs) < 0:

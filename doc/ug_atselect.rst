@@ -1,17 +1,21 @@
+.. _ug_sec_atselect:
+
 The ATSELECT language
 #####################
 
-In several parts of the introduction, one can provide a list of atom indexes to
-limit an analysis or a hook to a subset of the complete system. To facilitate
-the creation of these lists, yaff introduces an atom-selection language similar
-to SMARTS patterns. This language can also be used to define atom types.
+Several functions (or methods) in Yaff have a selection atoms as one of the
+function arguments. This selection must be provided in the form of a list or
+array of selected atom indexes. The ATSELECT language allows one to define
+rules that generate such lists of atom indexes that match a certain
+specification.
 
+ATSELECT is similar to `SMARTS
+<http://en.wikipedia.org/wiki/Smiles_arbitrary_target_specification>`_.
 The SMARTS system has the advantage of being very compact, but it has a few
-disadvantages that make it poorly applicable in the Yaff context: e.g. it
+disadvantages that make it poorly applicable in the context of Yaff: e.g. it
 assumes that the hybridization state of first-row atoms and bond orders are
-known. The only real `knowns` in the Yaff context are: ``numbers`` and
-optionally ``ffatypes``, ``scopes`` and ``bonds``. Therefore we introduce a new
-language, hereafter called ATSELECT, to select atoms in a system.
+known. The only real `knowns` for ATSELECT are: ``numbers`` and
+optionally ``ffatypes``, ``scopes`` and ``bonds``.
 
 The syntax of the ATSELECT language is defined as follows. An ATSELECT
 expression consists of a single line and is case-sensitive. White-space is
@@ -61,9 +65,9 @@ scope names should not contain the following symbols: ``:``, ``%``, ``=``,
 not start with a digit. Some examples of atom selectors:
 
  * ``6`` -- any carbon atom.
- * ``TPA:6`` -- a carbon atom in the TPA fragment.
+ * ``TPA:6`` -- a carbon atom in the TPA scope.
  * ``C3`` -- any atom with type C3.
- * ``TPA:C3`` -- an atom with type C3 in the TPA fragment.
+ * ``TPA:C3`` -- an atom with type C3 in the TPA scope.
  * ``!1`` -- anything that is not a hydrogen.
  * ``C2|C3`` -- an atom of type C2 or C3.
  * ``6|7&=1%1`` or ``(6|7)&=1%1`` -- a carbon or nitrogen bonded to exactly one

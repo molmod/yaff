@@ -4,14 +4,14 @@ Yaff Documentation
 Yaff stands for "Yet another force field". It is a pythonic force-field code
 used by Toon and Louis to test-drive their new models.
 
-The original motivation to develop Yaff was to have a good reference
+The original motivation to develop Yaff was to provide a good reference
 implementation of the force fields developed at the `Center for Molecular
 Modeling <http://molmod.ugent.be/>`_ at the `Ghent University
 <http://www.ugent.be/>`_. In its current version, Yaff is general and flexible
 enough to handle a large variety of force field models.
 
-Users Guide
-===========
+User Guide
+==========
 
 This guide is a gentle introduction to Yaff with many examples.
 

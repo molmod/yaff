@@ -168,14 +168,16 @@ class ForceField(ForcePart):
                 which is a text file that adheres to YAFF parameter format, or
                 (ii) an instance of the Parameters class.
 
-           See the constructor of the FFArgs class for the available optional
-           arguments.
+           See the constructor of the :class:`yaff.pes.generator.FFArgs` class
+           for the available optional arguments.
 
            This method takes care of setting up the FF object, and configuring
            all the necessary FF parts. This is a lot easier than creating an FF
            with the default constructor. Parameters for atom types that are not
            present in the system, are simply ignored.
         """
+        # TODO: (IDEA) Add option to only generate energy terms that involve
+        # a given list of atom indexes.
         if system.ffatype_ids is None:
             raise ValueError('The generators needs ffatype_ids in the system object.')
         with log.section('GEN'), timer.section('Generator'):
