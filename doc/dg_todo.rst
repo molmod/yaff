@@ -8,6 +8,8 @@ General
 
 * Link with ASE and OpenKIM.
 
+* More strict unit checking in the parameter files. Change 'e' to 'electron'.
+
 * Literature reference system, so users know what papers to cite when they run a
   simulation.
 

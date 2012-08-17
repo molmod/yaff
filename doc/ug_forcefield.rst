@@ -20,8 +20,8 @@ arguments in the ``generate`` method. See
 ``generate`` method.
 
 Once an ``ff`` object is created, it can be used to evaluate the energy (and
-optionally the forces) for a given set of Cartesian coordinates and/or cell
-parameters::
+optionally the forces and/or the virial tensor) for a given set of Cartesian
+coordinates and/or cell parameters::
 
     # change the atomic positions and cell parameters
     ff.update_pos(new_pos)
@@ -43,9 +43,9 @@ the atomic positions and uniform deformations of the system::
     new_energy = ff.compute(gpos, vtens)
 
 This will take a little more CPU time because the presence of the optional
-arguments implies that a lot of partial derivatives must be computed.
+arguments implies that a large number of partial derivatives must be computed.
 
-After the ``compute`` method is called, one can obtain a lot of intermediate
+After the ``compute`` method is called, one can obtain many intermediate
 results by accessing attributes of the ``ff`` object. Some examples::
 
     print ff.part_pair_ei.energy/kjmol
@@ -83,12 +83,12 @@ Force field parameter file format
 =================================
 
 The force field parameter file has a case-insensitive line-based format. The
-order of the lines is not relevant for processing by Yaff. Nevertheless, for the sake of
-human readability, it is best to follow some logical ordering.
+order of the lines is not relevant when Yaff processes the file. Nevertheless,
+for the sake of human readability, it is best to follow some logical ordering.
 Comments start with a pound sign (``#``) and reach until the end of the line.
 These comments and empty lines are ignored when processing the parameter file.
 
-Each line has the following structure::
+Each (non-empty) line has the following format::
 
     PREFIX:COMMAND DATA
 
@@ -130,7 +130,7 @@ Prefix -- BONDHARM
 
 **Commands:**
 
-* ``UNITS`` (may repeat): Specify the units of the parameters ``K`` and ``R0``. See
+* ``UNIT`` (may repeat): Specify the units of the parameters ``K`` and ``R0``. See
   :ref:`sub_sub_sec_general_commands`.
 * ``PARS`` (may repeat): Specify parameters for a given combination of atom types.
   (Bonds are defined in the System instance.) Four
@@ -163,7 +163,7 @@ Prefix -- BONDFUES
 
 **Commands:**
 
-* ``UNITS`` (may repeat): Specify the units of the parameters ``K`` and ``R0``. See
+* ``UNIT`` (may repeat): Specify the units of the parameters ``K`` and ``R0``. See
   :ref:`sub_sub_sec_general_commands`.
 * ``PARS`` (may repeat): Specify parameters for a given combination of atom types.
   (Bonds are defined in the System instance.) Four
@@ -197,7 +197,7 @@ Prefix -- BENDAHARM
 
 **Commands:**
 
-* ``UNITS`` (may repeat): Specify the units of the parameters ``K`` and ``THETA0``. See
+* ``UNIT`` (may repeat): Specify the units of the parameters ``K`` and ``THETA0``. See
   :ref:`sub_sub_sec_general_commands`.
 * ``PARS`` (may repeat): Specify parameters for a given combination of atom types.
   Five data fields must be given: ``ffatype0``,
@@ -231,7 +231,7 @@ Prefix -- BENDCHARM
 
 **Commands:**
 
-* ``UNITS`` (may repeat): Specify the units of the parameters ``K`` and ``COS0``. See
+* ``UNIT`` (may repeat): Specify the units of the parameters ``K`` and ``COS0``. See
   :ref:`sub_sub_sec_general_commands`.
 * ``PARS`` (may repeat): Specify parameters for a given combination of atom types.
   Five data fields must be given: ``ffatype0``,
@@ -264,7 +264,7 @@ Prefix -- UBHARM
 
 **Commands:**
 
-* ``UNITS`` (may repeat): Specify the units of the parameters ``K`` and ``R0``. See
+* ``UNIT`` (may repeat): Specify the units of the parameters ``K`` and ``R0``. See
   :ref:`sub_sub_sec_general_commands`.
 * ``PARS`` (may repeat): Specify parameters for a given combination of atom types.
   Five data fields must be given: ``ffatype0``,
@@ -298,7 +298,7 @@ Prefix -- TORSION
 
 **Commands:**
 
-* ``UNITS`` (may repeat): Specify the units of the parameters ``K``, ``M`` and ``PHI0``. See
+* ``UNIT`` (may repeat): Specify the units of the parameters ``K``, ``M`` and ``PHI0``. See
   :ref:`sub_sub_sec_general_commands`.
 * ``PARS`` (may repeat): Specify parameters for a given combination of atom types.
   Seven data fields must be given: ``ffatype0``,
@@ -333,7 +333,7 @@ Prefix -- BONDCROSS
 
 **Commands:**
 
-* ``UNITS`` (may repeat): Specify the units of the parameters ``K``, ``R0`` and ``R1``. See
+* ``UNIT`` (may repeat): Specify the units of the parameters ``K``, ``R0`` and ``R1``. See
   :ref:`sub_sub_sec_general_commands`.
 * ``PARS`` (may repeat): Specify parameters for a given combination of atom types.
   Six data fields must be given: ``ffatype0``,
@@ -384,13 +384,12 @@ with
 
 **Commands:**
 
-* ``UNITS`` (may repeat): Specify the units of the parameters ``EPSILON`` and ``SIGMA``. See
+* ``UNIT`` (may repeat): Specify the units of the parameters ``EPSILON`` and ``SIGMA``. See
   :ref:`sub_sub_sec_general_commands`.
 * ``SCALE`` (may repeat): Specify the scaling of short-ranged interactions. See
   :ref:`sub_sub_sec_general_commands`.
 * ``PARS`` (may repeat): Specify parameters for a given atom type.
-  Four data fields must be given: ``ffatype0``,
-  ``ffatype1``, ``EPSILON`` and ``SIGMA``.
+  Three data fields must be given: ``ffatype``, ``EPSILON`` and ``SIGMA``.
 
 **Example**:
 
@@ -430,13 +429,14 @@ with
 
 **Commands:**
 
-* ``UNITS`` (may repeat): Specify the units of the parameters ``EPSILON`` and ``SIGMA``. See
+* ``UNIT`` (may repeat): Specify the units of the parameters ``EPSILON`` and ``SIGMA``. See
   :ref:`sub_sub_sec_general_commands`.
 * ``SCALE`` (may repeat): Specify the scaling of short-ranged interactions. See
   :ref:`sub_sub_sec_general_commands`.
 * ``PARS`` (may repeat): Specify parameters for a given atom type.
-  Four data fields must be given: ``ffatype0``,
-  ``ffatype1``, ``EPSILON`` and ``SIGMA``.
+  Four data fields must be given: ``ffatype``, ``EPSILON``, ``SIGMA`` and ``ONLYPAULI``.
+  The last data field corresponds to an undocumented feature. Set it to ``0`` to
+  get the original MM3 form.
 
 **Example**:
 
@@ -448,10 +448,9 @@ Prefix -- EXPREP
 
 **Description:** an exponential repulsion term.
 
-
 **Energy:**
 
-.. math:: E_\text{EXPREP} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} A_{ij} \exp(-B_{ij} r_{ij})
+.. math:: E_\text{EXPREP} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} A_{ij} \exp(-B_{ij} d_{ij})
 
 The pair parameters can be provided explicitly, or can be derived from atomic
 parameters using two possible mixing rules for each parameter:
@@ -466,8 +465,8 @@ parameters using two possible mixing rules for each parameter:
 
 **Parameters:**
 
-* :math:`A_i` or :math:`A_ij` (``A``): the amplitude of the exponential repulsion.
-* :math:`B_i` or :math:`B_ij`(``B``): the decay of the exponential repulsion.
+* :math:`A_i` or :math:`A_{ij}` (``A``): the amplitude of the exponential repulsion.
+* :math:`B_i` or :math:`B_{ij}`(``B``): the decay of the exponential repulsion.
 
 **Constants:**
 
@@ -480,12 +479,12 @@ parameters using two possible mixing rules for each parameter:
 
 **Commands:**
 
-* ``UNITS`` (may repeat): Specify the units of the parameters ``A`` and ``B``. See
+* ``UNIT`` (may repeat): Specify the units of the parameters ``A`` and ``B``. See
   :ref:`sub_sub_sec_general_commands`.
 * ``SCALE`` (may repeat): Specify the scaling of short-ranged interactions. See
   :ref:`sub_sub_sec_general_commands`.
 * ``PARS`` (may repeat): Specify parameters for a given atom type.
-  Three data fields must be given: ``ffatype0``, ``A`` and ``B``.
+  Three data fields must be given: ``ffatype``, ``A`` and ``B``.
 * ``CPARS`` (may repeat): Specify parameters for a given combination of atom types. This
   overrides parameters derived from mixing rules.
   Four data fields must be given: ``ffatype0``, ``ffatype1``, ``A`` and ``B``.
@@ -498,7 +497,53 @@ parameters using two possible mixing rules for each parameter:
 Prefix -- DAMPDISP
 ------------------
 
-**Description:** a dispersion term with optional Tang-Toenies damping.
+**Description:** a dispersion term with optional Tang-Toennies damping.
+
+**Energy:**
+
+.. math:: E_\text{DAMPDISP} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} C_{6,ij} f_\text{damp,6}(d_{ij}) d_{ij}^{-6}
+
+where the damping factor :math:`f_\text{damp}(d_{ij})` is optional. When used
+it has the Tang-Toennies form:
+
+.. math:: f_\text{damp,n}(d_{ij}) = 1 - \exp(-B_{ij}r)\sum_{k=0}^n\frac{(B_{ij}r)^k}{k!}
+
+The pair parameters :math:`C_{6,ij}` and :math:`B_{ij}` are derived from atomic
+parameters using mixing rules, unless they are provided explicitly for a given
+pair of atom types. These are the mixing rules:
+
+.. math:: C_{6,ij} = \frac{2 C_{6,i} C_{6,j}}{\left(\frac{V_j}{V_i}\right)^2 C_{6,i} + \left(\frac{V_i}{V_j}\right)^2 C_{6,j}}
+
+.. math:: B_{ij} = \frac{B_i+B_j}{2}
+
+**Parameters:**
+
+* :math:`C_i` or :math:`C_{ij}` (``C``): the strength of the dispersion interaction.
+* :math:`B_i` or :math:`B_{ij}` (``B``): the decay of the damping function. When
+  this parameter is zero, the damping is not applied.
+* :math:`V_i` (``VOL``): the atomic volume parameter used in the mixing rule for the
+  :math:`C_{ij}`.
+
+**Constants:**
+
+* :math:`N`: the number of atoms.
+* :math:`s_{ij}`: the scaling of the interaction between atoms :math:`i` and :math:`j`.
+
+**Geometry dependent variables:**
+
+* :math:`d_{ij}`: the distance between atoms :math:`i` and :math:`j`.
+
+**Commands:**
+
+* ``UNIT`` (may repeat): Specify the units of the parameters ``C6``, ``B`` and ``VOL``. See
+  :ref:`sub_sub_sec_general_commands`.
+* ``SCALE`` (may repeat): Specify the scaling of short-ranged interactions. See
+  :ref:`sub_sub_sec_general_commands`.
+* ``PARS`` (may repeat): Specify parameters for a given atom type.
+  Four data fields must be given: ``ffatype``, ``C6``, ``B`` and ``VOL``.
+* ``CPARS`` (may repeat): Specify parameters for a given combination of atom types. This
+  overrides parameters derived from mixing rules.
+  Four data fields must be given: ``ffatype0``, ``ffatype1``, ``C6`` and ``B``.
 
 **Example**:
 
@@ -508,20 +553,96 @@ Prefix -- DAMPDISP
 Prefix -- FIXQ
 --------------
 
-**Description:** Electrostatic interactions with fixed atomic partial point charges.
+**Description:** Electrostatic interactions with constant atomic point charges.
+
+**Energy:**
+
+.. math:: E_\text{FIXQ} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} \frac{q_i q_j}{d_{ij}}
+
+where the charges are derived from so-called `pre-charges` (:math:`q_{0,i}`) and
+`bond charge increments` (:math:`p_{i,j}`) as follows:
+
+.. math:: q_i = q_{0,i} + \sum_{j \text{ bonded to } i}p_{ij}
+
+where the summation is limited to atoms :math:`j` that are bonded to atom
+:math:`i`. The parameter :math:`p_{i,j}` represents the amount of charge
+transfered from atom :math:`i` to :math:`j`. Hence
+:math:`p_{i,j}=-p_{j,i}`. The pre-charge is the charge on an atom when
+it is not bonded to any other atom. From a physical perspective, the pre-charge
+should always be integer, which would also impose integer charges on molecules.
+However, one is free to follow other conventions for the sake of convenience.
+
+**Parameters:**
+
+* :math:`q_{0,i}` (``Q0``): the pre-charge
+* :math:`p_{ij}` (``P``): the bond charge increment
+
+**Constants:**
+
+* :math:`N`: the number of atoms.
+* :math:`s_{ij}`: the scaling of the interaction between atoms :math:`i` and :math:`j`.
+
+**Geometry dependent variables:**
+
+* :math:`d_{ij}`: the distance between atoms :math:`i` and :math:`j`.
+
+**Commands:**
+
+* ``UNIT`` (may repeat): Specify the units of the parameters ``Q0``, ``P`` and
+  ``R``. See :ref:`sub_sub_sec_general_commands`.
+* ``SCALE`` (may repeat): Specify the scaling of short-ranged interactions. See
+  :ref:`sub_sub_sec_general_commands`.
+* ``DIELECTRIC``: Must be 1.0.
+* ``ATOM`` (may repeat): Specify the pre-charge for a given atom type.
+  Three data fields must be given: ``ffatype``, ``Q0``, ``R``. The last field
+  must be zero.
+* ``BOND`` (may repeat): Specify a bond charge increment for a given combination of atom types.
+  Three data fields must be given: ``ffatype0``, ``ffatype1`` and ``P``.
 
 **Example**:
 
 .. literalinclude:: ../input/parameters_water_fixq.txt
 
-
 .. _sub_sub_sec_general_commands:
+
 
 General commands
 ----------------
 
+**UNIT**
+
+The ``UNIT`` command is used to specify the units of the parameters given in
+the parameter file. The format is as follows::
+
+    PREFIX:UNIT PARAMETER_NAME UNIT_NAME
+
+where ``PARAMETER_NAME`` refers to one of the parameters discussed above, e.g.
+``K``, ``R0``, etc. The ``UNIT_NAME`` may be any mathematical expression
+involving the following constants: ``coulomb``, ``kilogram``, ``gram``,
+``miligram``, ``unified``, ``meter``, ``centimeter``, ``milimeter``,
+``micrometer``, ``nanometer``, ``angstrom``, ``picometer``, ``liter``,
+``joule``, ``calorie``, ``electronvolt``, ``newton``, ``second``, ``hertz``,
+``nanosecond``, ``femtosecond``, ``picosecond``, ``pascal``, ``e``.
+
+A unit must be specified for each parameter. There are no default units. This
+convention is introduced to make sure that there can be no confusion about the
+units of the parameters.
 
 
+**SCALE**
+
+The ``SCALE`` command is used to determine how pairwise interactions are scaled
+for atoms that are involved in bond, bend or torsion terms. The command adheres
+to the following format::
+
+    PREFIX:SCALE N FACTOR
+
+where ``N`` is ``1``, ``2`` or ``3`` and represents the number bonds between
+two atoms to which the scaling of the pairwise interaction is applied. ``1``
+is for bonded atoms, ``2`` applies to atoms separated by two bonds and ``3``
+is used for atoms separated by three bonds. The ``FACTOR`` determines the amount
+of scaling and must lie in the range [0.0,1.0]. When set to zero, the pairwise
+term is completely disabled.
 
 
 Example force field file
@@ -536,3 +657,51 @@ calibration software. Don't expect it to be a great water model!
 
 Beyond force field parameter files
 ==================================
+
+One does not have to use parameter files to construct force fields. It is also
+possible to construct them with some Python code, which can be useful in some
+corner cases.
+
+The larger part of the force field `parts` in Yaff are not aware
+of the actual atom types. ``EXPREP`` and ``DAMPDISP`` are the only exceptions.
+This means that one may construct a force field in which every bond has
+different parameters, irrespective of the atom types involved. The following
+simple example illustrates this by creating an `unphysical` model for water,
+were the bond lengths of the two O-H bonds differ::
+
+    # A system object for a single water molecule
+    system = System(
+        numbers=np.array([8, 1, 1]),
+        pos=np.array([[-4.583, 5.333, 1.560], [-3.777, 5.331, 0.943],
+                      [-5.081, 4.589, 1.176]])*angstrom,
+        ffatypes=['O', 'H', 'H'],
+        bonds=np.array([[0, 1], [0, 2]]),
+    )
+    # A valence force field with only two harmonic bond terms, which have
+    # different rest value parameters.
+    part = ForcePartValence(system)
+    part.add_term(Harmonic(fc=1.0, rv=1.0*angstrom, Bond(0, 1)))
+    part.add_term(Harmonic(fc=1.0, rv=1.1*angstrom, Bond(0, 2)))
+    ff = ForceField(system, [part])
+
+Modifying or constructing force fields at this level of detail may be useful
+in the following cases:
+
+* When one wants to perform restrained molecular dynamics simulations, this
+  approach allows one to add a restraint term. The following example assumes
+  that a ``valence_part`` is already present after the force field is created
+  with a parameter file::
+
+    ff = ForceField(system, 'parameters.txt')
+    ff.part_valence.add_term(Harmonic(fc=0.3, rv=2.1*angstrom, Bond(15, 23)))
+
+* One may also derive a force field without paying attention to transferability
+  of parameters, e.g. when a force field is designed for one specific molecule.
+  In that case, each bond, bend, etc. may have different parameters (except for
+  symmetry considerations). This is similar to the elastic network models in
+  coarse-grained protein simulations.
+
+* In some cases, one is interested in constructing a molecular system with
+  certain geometric prescriptions. Building such a structure from scratch can
+  be very difficult for complex systems. One may design a non-physical force
+  field such that the optimal geometry satisfies the geometrical criteria.
