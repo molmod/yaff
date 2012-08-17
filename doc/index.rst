@@ -21,6 +21,7 @@ This guide is a gentle introduction to Yaff with many examples.
    ug_features.rst
    ug_install.rst
    ug_troubles.rst
+   ug_cite.rst
    ug_overview.rst
    ug_system.rst
    ug_atselect.rst
