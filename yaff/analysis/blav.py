@@ -32,6 +32,12 @@ __all__ = ['blav']
 def blav(signal, minblock=100, fn_png=None, unit=None):
     """Analyze the signal with the block average method.
 
+       The variance on the block average error as function of block size is
+       fitted using the ``a+b/bsize`` model, where ``a`` is a measure for the
+       error on the average, i.e. when the block size becomes infintely large.
+       If the fit fails, a coarse estimate of the error on the average is
+       returned, i.e. the largest block average error.
+
        **Arguments:**
 
        signal
@@ -50,9 +56,13 @@ def blav(signal, minblock=100, fn_png=None, unit=None):
             This is only relevant when a plot is made. It is used as the unit
             for the y-axis, e.g. ``log.length``.
 
-       Returns:
-         error  --  the fitted error
-         sinef  --  the fitted statistical inefficiency
+       **Returns:**
+
+       error
+            The fitted error.
+
+       sinef
+            The fitted statistical inefficiency.
     """
     x = [] # block sizes
     e = [] # errors on the mean

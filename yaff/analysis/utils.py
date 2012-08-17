@@ -34,7 +34,9 @@ def get_slice(f, start=0, end=-1, max_sample=None, step=None):
        **Argument:**
 
        f
-            A HDF5.File instance, may be None if it is not available.
+            A HDF5.File instance, may be None if it is not available. If it
+            contains a trajectory group, this group will be used to determine
+            the number of time steps in the trajectory.
 
        **Optional arguments:**
 

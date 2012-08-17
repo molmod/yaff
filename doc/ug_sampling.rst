@@ -55,7 +55,7 @@ By default all information from past steps is discarded. If one is interested
 in writing a trajectory file, one must add a hook to do so. The following
 example writes a HDF5 trajectory file::
 
-    hdf5_writer = HDF5Writer(h5py.File('output.h5', mode='w'))
+    hdf5_writer = HDF5Writer(h5.File('output.h5', mode='w'))
     nve = NVEIntegrator(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
     nve.run(5000)
 
@@ -108,7 +108,7 @@ every 200 steps. The :class:`yaff.sampling.io.XYZWriter` can be added to write a
 trajectory of the atomic positions in XYZ format::
 
     hooks=[
-        HDF5Writer(h5py.File('output.h5', mode='w')),
+        HDF5Writer(h5.File('output.h5', mode='w')),
         AndersenThermostat(temp=300, step=200),
         XYZWriter('trajectory.xyz'),
     ]
@@ -141,7 +141,7 @@ the following example::
 
     hooks=[
         NVEScreenLog(step=100)
-        HDF5Writer(h5py.File('output.h5', mode='w'), start=5000, step=10),
+        HDF5Writer(h5.File('output.h5', mode='w'), start=5000, step=10),
         XYZWriter('trajectory.xyz', step=50),
         AndersenThermostat(temp=300, step=1000),
     ]
@@ -176,7 +176,7 @@ Geometry optimization
 A basic geometry optimization (with trajectory output in an HDF5 file) is
 implemented as follows::
 
-    hdf5 = HDF5Writer(h5py.File('output.h5', mode='w'))
+    hdf5 = HDF5Writer(h5.File('output.h5', mode='w'))
     opt = CGOptimizer(ff, CartesianDOF(), hooks=hdf5)
     opt.run(5000)
 
@@ -189,7 +189,7 @@ arguments, the optimization continues until convergence is reached.
 One may also perform an optimization of the nuclei and the cell parameters as
 follows::
 
-    hdf5 = HDF5Writer(h5py.File('output.h5', mode='w'))
+    hdf5 = HDF5Writer(h5.File('output.h5', mode='w'))
     opt = CGOptimizer(ff, FullCellDOF(), hooks=hdf5)
     opt.run(5000)
 
