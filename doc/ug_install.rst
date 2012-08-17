@@ -100,4 +100,4 @@ tests::
     nosetests -v
 
 If some tests fail, post the output of the tests on the `Yaff
-mailing list <https://groups.google.com/forum/#!forum/yaff>`_.
+mailing list <https://groups.google.com/forum/#!forum/ninjaff>`_.
