@@ -1,4 +1,6 @@
-Force field models
+.. _ug_sec_forcefield:
+
+Force-field models
 ##################
 
 

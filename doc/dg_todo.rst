@@ -46,7 +46,7 @@ General
 
 * Parallel force evaluation.
 
-* Convert from C to C++
+* Convert from C to C++.
 
 * Smooth truncation of electrostatic interactions in reciprocal space to obtain
   a perfectly differentiable PES.
@@ -74,7 +74,8 @@ General
 
 * RefTraj derivative of the Iterative class.
 
-* NVTNoseHooverIntegrator, NVTLangevinIntegrator, NpTMartynaTobiasKleinIntegrator
+* NVTNoseHooverIntegrator, NVTLangevinIntegrator (or a Langevin hook in the
+  NVEIntegrator), NpTMartynaTobiasKleinIntegrator
 
 * Parallel sampling methods.
 

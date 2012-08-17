@@ -1,23 +1,71 @@
-Sampling the phase space
-########################
+Exploring the phase space
+#########################
+
+Introduction
+============
+
+This section assumes that one has defined a force-field model as explained in
+the previous section, :ref:`ug_sec_forcefield`. The tools discussed in this
+section allow one to explore the phase space of a system (and derive its
+thermodynamic properties) using a force field model.
+
+All algorithms are implemented such that they assume very little about the
+internals of the force field models. The force field takes atomic positions and
+cell vectors as input, and returns the energy (and optionally forces and a
+virial tensor). All algorithms below are only relying on this basic interface.
+
+Most of the algorithms are extensible through so-called `hooks`. These hooks are
+pieces of code that can be plugged into a basic algorithm (like an NVE
+integrator) to add functionality like writing trajectory files, sampling other
+ensembles or computing statistical properties on the fly.
+
+One important aspect of :mod:`yaff.analysis` is that that trajectory data can
+be written to an HDF5 file. In short, HDF5 is a cross-platform format to store
+efficiently any type of binary array data. A HDF5 file stores arrays
+in a tree sturcture, which is similar to files and directories in a regular file
+system. More details about HDF5 can be found on `wikipedia
+<http://en.wikipedia.org/wiki/Hdf5>`_ and on the `non-profit HDF Group website
+<http://www.hdfgroup.org/>`_. This format is designed to handle huge amounts of
+binary data and it greatly facilitates post-processing analysis of the
+trajectory data. By convention, Yaff stores all data in HDF5 files in atomic
+units.
 
 
+Molecular Dynacmis
+==================
 
-
-**Molecular Dynacmis**
+The NVE (microcanonical) ensemble
+---------------------------------
 
 The equations of motion in the NVE ensemble can be integrated as follows::
+
+    nve = NVEIntegrator(ff, 1*femtosecond, temp0=300)
+    nve.run(5000)
+
+This example just propagates the system with 5000 steps of 1 fs, but does nearly
+nothing else. After calling the ``run`` method, one can inspect atomic positions
+and velocities of the final time step:
+
+    print nve.vel
+    print nve.pos
+    print ff.system.pos  # equivalent to the previous line
+    print nve.ekin/kjmol # the kinetic energy in kJ/mol.
+
+By default all information from past steps is discarded. If one is interested
+in writing a trajectory file, one must add a hook to do so. The following
+example writes a HDF5 trajectory file:
 
     hdf5_writer = HDF5Writer(h5py.File('output.h5', mode='w'))
     nve = NVEIntegrator(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
     nve.run(5000)
 
 The parameters of the integrator can be tuned with several optional arguments of
-the ``NVEIntegrator`` constructor. See XXX for more details. Once the integrator
-is created, the ``run`` method can be used to compute a given number of time
-steps. The trajectory output is written to a HDF5 file. The exact contents of
-the HDF5 file depends on the integrator used and the optional arguments. All
-data in the HDF5 file is stored in atomic units.
+the ``NVEIntegrator`` constructor. See
+:class:``yaff.sampling.nve.NVEIntegrator`` for more details. The exact contents
+of the HDF5 file depends on the integrator used and the optional arguments. The
+typical tree structure of a trajectory HDF5 file is as follows::
+
+    xxx
 
 The ``hooks`` argument can be used to specify callback routines that are called
 after every iteration or, using the ``start`` and ``step`` arguments, at
