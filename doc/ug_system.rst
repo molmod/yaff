@@ -130,6 +130,7 @@ method. In this example, the :meth:`yaff.system.System.detect_bonds` method is
 used::
 
     sys.detect_bonds()
+    print 'The number of bonds:', len(sys.bonds)
     print sys.bonds
 
 For the analysis of some simulations on crystals, it may be useful to align

@@ -25,6 +25,10 @@ General
     - Optional link to openbabel (if installed, not a mandatory dependency).
     - More compact chk file.
 
+* Add topological analysis to System class.
+
+* Make first example work out of the box.
+
 * See TODO comments in code.
 
 

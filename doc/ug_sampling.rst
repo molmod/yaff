@@ -44,7 +44,7 @@ The equations of motion in the NVE ensemble can be integrated as follows::
 
 This example just propagates the system with 5000 steps of 1 fs, but does nearly
 nothing else. After calling the ``run`` method, one can inspect atomic positions
-and velocities of the final time step:
+and velocities of the final time step::
 
     print nve.vel
     print nve.pos
@@ -53,7 +53,7 @@ and velocities of the final time step:
 
 By default all information from past steps is discarded. If one is interested
 in writing a trajectory file, one must add a hook to do so. The following
-example writes a HDF5 trajectory file:
+example writes a HDF5 trajectory file::
 
     hdf5_writer = HDF5Writer(h5py.File('output.h5', mode='w'))
     nve = NVEIntegrator(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
@@ -61,23 +61,51 @@ example writes a HDF5 trajectory file:
 
 The parameters of the integrator can be tuned with several optional arguments of
 the ``NVEIntegrator`` constructor. See
-:class:``yaff.sampling.nve.NVEIntegrator`` for more details. The exact contents
-of the HDF5 file depends on the integrator used and the optional arguments. The
-typical tree structure of a trajectory HDF5 file is as follows::
+:class:`yaff.sampling.nve.NVEIntegrator` for more details. The exact contents
+of the HDF5 file depends on the integrator used and the optional arguments of
+the integrator and the :class:``yaff.sampling.io.HDF5Writer``. The typical tree
+structure of a trajectory HDF5 file is as follows. (Comments were added manually
+to the output of h5dump to describe all the arrays.)::
 
-    xxx
+    $ h5dump -n production.h5
+    HDF5 "production.h5" {
+    FILE_CONTENTS {
+     group      /
+     group      /system                          # The 'system' group contains most attributes of the System class.
+     dataset    /system/bonds
+     dataset    /system/charges
+     dataset    /system/ffatype_ids
+     dataset    /system/ffatypes
+     dataset    /system/masses
+     dataset    /system/numbers
+     dataset    /system/pos
+     dataset    /system/rvecs
+     group      /trajectory                      # The 'trajectory' group contains the time-dependent data.
+     dataset    /trajectory/cell                 # cell vectors
+     dataset    /trajectory/cons_err             # the root of the ratio of the variance on the conserved quantity
+                                                 #     and the variance on the kinetic energy
+     dataset    /trajectory/counter              # an integer counter for the integrator steps
+     dataset    /trajectory/dipole               # the dipole moment
+     dataset    /trajectory/dipole_vel           # the time derivative of the dipole moment
+     dataset    /trajectory/econs                # the conserved quantity
+     dataset    /trajectory/ekin                 # the kinetic energy
+     dataset    /trajectory/epot                 # the potential energy
+     dataset    /trajectory/epot_contribs        # the contributions to the potential energy from the force field parts.
+     dataset    /trajectory/etot                 # the total energy (kinetic + potential)
+     dataset    /trajectory/pos                  # the atomic positions
+     dataset    /trajectory/rmsd_delta           # the RMSD change of the atomic positions
+     dataset    /trajectory/rmsd_gpos            # the RMSD value of the Cartesian energy gradient (forces if you like)
+     dataset    /trajectory/temp                 # the instantaneous temperature
+     dataset    /trajectory/time                 # the time
+     dataset    /trajectory/vel                  # the atomic velocities
+     dataset    /trajectory/volume               # the (generalized) volume of the unit cell
+     }
+    }
 
-The ``hooks`` argument can be used to specify callback routines that are called
-after every iteration or, using the ``start`` and ``step`` arguments, at
-selected iterations. For example, the following HDF5 hook will write data every
-100 steps, after the first 1000 iterations are carried out::
-
-    hdf5_writer = HDF5Writer(h5py.File('output.h5', mode='w'), start=1000, step=100)
-
-The hooks argument may also be a list of hook objects, e.g. to reset the
-velocities every 200 steps, one may include the ``AndersenThermostat`` to
-sample the NVT ensemble and ``XYZWriter`` to write a trajectory of the atomic
-positions in XYZ format::
+The hooks argument may also be a list of hook objects. For example, one may
+include the :class:`yaff.sampling.nve.AndersenThermostat` to reset the velocities
+every 200 steps. The :class:`yaff.sampling.io.XYZWriter` can be added to write a
+trajectory of the atomic positions in XYZ format::
 
     hooks=[
         HDF5Writer(h5py.File('output.h5', mode='w')),
@@ -85,16 +113,68 @@ positions in XYZ format::
         XYZWriter('trajectory.xyz'),
     ]
 
-By default a screen logging hook is added (if not yet present) to write one
-line per iteration with some critical integrator parameters.
+By default a screen logging hook is added (if not yet present) to print one line
+per iteration with some critical integrator parameters. The output of the
+``NVEIntegrator`` is as follows::
 
-Other integrators are implemented such as ``NVTNoseIntegrator``,
-``NVTLangevinIntegrator``, and so on.
+    NVE ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    NVE Cons.Err. = the root of the ratio of the variance on the conserved
+    NVE             quantity and the variance on the kinetic energy.
+    NVE d-rmsd    = the root-mean-square displacement of the atoms.
+    NVE g-rmsd    = the root-mean-square gradient of the energy.
+    NVE counter  Cons.Err.       Temp     d-RMSD     g-RMSD   Walltime
+    NVE ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    NVE       0    0.00000      299.5     0.0000       93.7        0.0
+    NVE       1    0.15231      286.4     0.0133      100.1        0.0
+    NVE       2    0.17392      297.8     0.0132       90.6        0.0
+    NVE       3    0.19803      306.8     0.0137       82.1        0.0
+
+The screen output is geared towards detecting simulation errors. The
+parameters ``Cons.Err.``, ``Temp``, ``d-RMSD``, ``g-RMSD`` should exhibit only
+minor fluctuations in a proper MD run, except when the system only consists of
+just a few atoms. The wall time should increase at a somewhat constant rate.
+
+It is often desirable to control the amount of data processed by the hooks, e.g.
+to limit the size of the trajectory files and the amount of screen output.
+Most hooks have ``start`` and ``step`` arguments for this purpose. Consider
+the following example::
+
+    hooks=[
+        NVEScreenLog(step=100)
+        HDF5Writer(h5py.File('output.h5', mode='w'), start=5000, step=10),
+        XYZWriter('trajectory.xyz', step=50),
+        AndersenThermostat(temp=300, step=1000),
+    ]
+
+In this example, the screen output contains only one line per 100 NVE iterations.
+The HDF5 trajectory only contains trajectory data starting from step 5000 with
+intervals of 10 steps. The ``XYZwriter`` only contains the positions of the atoms
+every 50 steps. The Andersen thermostat only resets the atomic velocities every
+1000 steps.
+
+For a detailed description of all options of the NVEIntegrator and the supported
+hooks, we refer to the reference documentation:
+
+* :class:`yaff.sampling.nve.NVEIntegrator`: Vanilla NVE integrator, whose
+  functionality can be extended through hooks.
+* :class:`yaff.sampling.io.HDF5Writer`: Writes HDF5 trajectory files and is
+  compatible with most other algorithms discussed below.
+* :class:`yaff.sampling.io.XYZWriter`: Writes XYZ trajectory files, which may be
+  useful for visualization purposes.
+* :class:`yaff.sampling.nve.NVEScreenLog`: The NVE screen logger.
+* :class:`yaff.sampling.nve.AndersenThermostat`: Switch from NVE to NVT with the
+  Andersen thermostat.
+* :class:`yaff.sampling.nve.AndersenThermostatMcDonaldBarostat`: experimental
+  support for the NpT ensemble.
+* :class:`yaff.sampling.nve.KineticAnnealing`: simulated annealing based on
+  slow dissipation of the kinetic energy.
 
 
-**Geometry optimization**
+Geometry optimization
+=====================
 
-One may also use a geometry optimizer instead of an integrator::
+A basic geometry optimization (with trajectory output in an HDF5 file) is
+implemented as follows::
 
     hdf5 = HDF5Writer(h5py.File('output.h5', mode='w'))
     opt = CGOptimizer(ff, CartesianDOF(), hooks=hdf5)
@@ -102,26 +182,27 @@ One may also use a geometry optimizer instead of an integrator::
 
 The ``CartesianDOF()`` argument indicates that only the positions of the nuclei
 will be optimized. The convergence criteria are controlled through optional
-arguments of the ``CartesianDOF`` class. The ``run`` method has the maximum
+arguments of the :class:`yaff.sampling.dof.CartesianDOF` class. The ``run`` method has the maximum
 number of iterations as the only optional argument. If ``run`` is called without
 arguments, the optimization continues until convergence is reached.
 
-One may also perform an optimization of the nuclei and the cell parameters is
+One may also perform an optimization of the nuclei and the cell parameters as
 follows::
 
     hdf5 = HDF5Writer(h5py.File('output.h5', mode='w'))
     opt = CGOptimizer(ff, CellDOF(FullCell()), hooks=hdf5)
     opt.run(5000)
 
-This will transform the degrees of freedom (DOF's) of the system (cell vectors
-and cartesian atomic coordinates) into a new set of DOF's (scaled cell vectors
+This will transform the degrees of freedom (DOFs) of the system (cell vectors
+and Cartesian coordinates) into a new set of DOF's (scaled cell vectors
 and reduced coordinates) to allow an efficient optimization of both cell
 parameters atomic positions. One may replace ``FullCell`` by ``AnisoCell`` or
-``IsoCell``. The optional arguments of ``CellDOF`` also include convergence
-criteria for the cell parameters.
+``IsoCell``. The optional arguments of :class:`yaff.sampling.dof.CellDOF` also
+include convergence criteria for the cell parameters.
 
 
-**Vibrational analysis**
+Vibrational analysis
+====================
 
 The Hessian is computed as follows::
 
