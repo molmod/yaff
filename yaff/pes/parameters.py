@@ -33,9 +33,9 @@ class Complain(object):
 
     def __call__(self, counter, message):
         if counter is None:
-            raise IOError('The parameter file %s %s.' % (self.fn, message))
+            raise IOError('The parameter file %s %s.' % (self.filename, message))
         else:
-            raise IOError('Line %i in the parameter file %s %s.' % (counter, self.fn, message))
+            raise IOError('Line %i in the parameter file %s %s.' % (counter, self.filename, message))
 
 
 class Parameters(object):

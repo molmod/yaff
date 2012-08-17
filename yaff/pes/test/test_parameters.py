@@ -71,3 +71,17 @@ def test_from_file_bks():
     assert pf['FIXQ']['SCALE'][-1][1] == '3 1.0'
     assert len(pf['FOO'].definitions) == 0
     assert len(pf['FOO']['BARR'].lines) == 0
+
+
+def test_complain():
+    complain = Complain('foo.bar')
+    try:
+        complain(22, 'Warning! Warning!')
+        assert False
+    except IOError:
+        pass
+    try:
+        complain(None, 'High voltage!')
+        assert False
+    except IOError:
+        pass
