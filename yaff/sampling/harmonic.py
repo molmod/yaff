@@ -109,8 +109,8 @@ def estimate_elastic(ff, eps=1e-4, do_frozen=False, ridge=1e-4):
             The magnitude of the Cartesian displacements
 
        do_frozen
-            By default this is False, which means that the changes in atomic
-            coordinates due to cell deformations are properly taken into
+            By default this is False, which means that the changes in fractional
+            atomic coordinates due to cell deformations are properly taken into
             account. When this is set to True, such displacements (other than
             uniform scaling) are ignored. The latter is much faster, but only
             correct for the simplest materials.

@@ -63,7 +63,7 @@ The parameters of the integrator can be tuned with several optional arguments of
 the ``NVEIntegrator`` constructor. See
 :class:`yaff.sampling.nve.NVEIntegrator` for more details. The exact contents
 of the HDF5 file depends on the integrator used and the optional arguments of
-the integrator and the :class:``yaff.sampling.io.HDF5Writer``. The typical tree
+the integrator and the :class:`yaff.sampling.io.HDF5Writer`. The typical tree
 structure of a trajectory HDF5 file is as follows. (Comments were added manually
 to the output of h5dump to describe all the arrays.)::
 
@@ -190,29 +190,57 @@ One may also perform an optimization of the nuclei and the cell parameters as
 follows::
 
     hdf5 = HDF5Writer(h5py.File('output.h5', mode='w'))
-    opt = CGOptimizer(ff, CellDOF(FullCell()), hooks=hdf5)
+    opt = CGOptimizer(ff, FullCellDOF(), hooks=hdf5)
     opt.run(5000)
 
 This will transform the degrees of freedom (DOFs) of the system (cell vectors
 and Cartesian coordinates) into a new set of DOF's (scaled cell vectors
 and reduced coordinates) to allow an efficient optimization of both cell
-parameters atomic positions. One may replace ``FullCell`` by ``AnisoCell`` or
-``IsoCell``. The optional arguments of :class:`yaff.sampling.dof.CellDOF` also
-include convergence criteria for the cell parameters.
+parameters atomic positions. One may replace :class:`yaff.sampling.dof.FullCellDOF` by any of the following:
+
+* :class:`yaff.sampling.dof.StrainCellDOF`: like ``FullCellDOF``, but constrains
+  cell rotations. This should be equivalent to ``FullCellDOF`` and even more
+  robust in practice.
+* :class:`yaff.sampling.dof.IsoCellDOF`: only allows isotropic scaling of the
+  unit cell.
+* :class:`yaff.sampling.dof.AnisoCellDOF`: like ``FullCellDOF``, but fixes the
+  angles between the cell vectors.
+* :class:`yaff.sampling.dof.ACRatioCellDOF`: special case designed to study the
+  breathing of MIL-53(Al).
+
+The optional arguments of any ``CellDOF`` variant includes convergence criteria
+for the cell parameters and the ``do_frozen`` option to freeze the fractional
+coordinates of the atoms.
+
+
+Harmonic approximations
+=======================
+
+
+Yaff can compute matrices of second order derivatives of the energy based on
+symmetric finite differences of analytic gradients for an arbitrary DOF object.
+This is the most general approach to compute such a generic Hessian::
+
+    hessian = estimate_hessian(dof)
+
+where ``dof`` is a DOF object like CellDOF and others discussed in the previous
+section. The routines discussed in the following subsections are based on this
+generic Hessian routine. See :mod:`yaff.sampling.harmonic` for a
+description of the harmonic approximation routines.
 
 
 Vibrational analysis
-====================
+--------------------
 
-The Hessian is computed as follows::
+The `Cartesian` Hessian is computed as follows::
 
-    hessian = estimate_hessian(ff)
+    hessian = estimate_cart_hessian(ff)
 
 This function uses the symmetric finite difference approximation to estimate the
-Hessian using many gradient computations. Further vibrational analysis based on
-this Hessian can be carried out with TAMkin::
+Hessian using many analytic gradient computations. Further vibrational
+analysis based on this Hessian can be carried out with TAMkin::
 
-    hessian = estimate_hessian(ff)
+    hessian = estimate_cart_hessian(ff)
     gpos = np.zeros(ff.system.pos.shape, float)
     epot = ff.compute(gpos)
 
@@ -225,4 +253,24 @@ this Hessian can be carried out with TAMkin::
 One may also compute the Hessian of a subsystem, e.g. for the first three atoms,
 as follows::
 
-    hessian = estimate_hessian(ff, select=[0, 1, 2])
+    hessian = estimate_cart_hessian(ff, select=[0, 1, 2])
+
+
+Elastic constants
+-----------------
+
+Yaff can estimate the elastic constants of a system at zero Kelvin. Just like the
+computation of the Hessian, the elastic constants are obtained from symmetric
+finite differences of analytic gradient computations. The standard approach
+is::
+
+    elastic = estimate_elastic(ff)
+
+where ``elastic`` is a symmetric 6 by 6 matrix with the elastic constants stored
+in Voight notation. If the system under scrutiny does not change its relative
+coordinates when the cell is deformed, one may use a faster approach:
+
+    elastic = estimate_elastic(ff, do_frozen=True)
+
+A detailed description of this routine can be found here:
+:func:`yaff.sampling.harmonic.estimate_elastic`.

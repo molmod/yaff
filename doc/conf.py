@@ -248,6 +248,7 @@ latex_documents = [
 
 
 pngmath_latex_preamble = r"\usepackage{color}"
+pngmath_use_preview = True
 
 autoclass_content = "both"
 

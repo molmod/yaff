@@ -9,6 +9,14 @@ Module ``yaff.sampling.dof`` -- Abstraction layer for degrees of freedom
    :members:
 
 
+
+Module ``yaff.sampling.harmonic`` -- Harmonic models
+====================================================
+
+.. automodule:: yaff.sampling.harmonic
+   :members:
+
+
 Module ``yaff.sampling.io`` -- Trajectory output
 ================================================
 
