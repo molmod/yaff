@@ -1,6 +1,9 @@
 Package ``yaff.analysis`` -- Trajectory analysis
 ################################################
 
+.. automodule:: yaff.analysis
+   :members:
+
 
 Module ``yaff.analysis.basic`` -- Basic trajectory analysis routines
 ====================================================================

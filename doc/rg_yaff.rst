@@ -2,10 +2,15 @@ Package ``yaff`` -- The Yaff root package
 #########################################
 
 
-This package contains the subpackages that define the main functionalities
-in yaff: force field models, sampling, trajectory analysis and parameter tuning.
-Besides these major subpackages, there are a few modules that are used by all
-major subpackages.
+Th ``yaff`` package contains the subpackages that define the main functionalities
+in yaff: force field models (:mod:`yaff.pes`), sampling (:mod:`yaff.sampling`),
+trajectory analysis (:mod:`yaff.analysis`) and parameter tuning
+(:mod:`yaff.tune`). These major subpackages are discusses in the following
+sections.
+
+Besides the major subpackages, there are a few general Yaff modules that are
+used by all subpackages. These general modules are part of the ``yaff`` root
+package and are discusses below.
 
 
 Module ``yaff.atselect`` -- The ATSELECT language

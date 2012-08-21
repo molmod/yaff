@@ -34,9 +34,9 @@ __all__ = ['NeighborList']
 
 
 neigh_dtype = [
-    ('a', int), ('b', int), ('d', float),
-    ('dx', float), ('dy', float), ('dz', float),
-    ('r0', int), ('r1', int), ('r2', int)
+    ('a', int), ('b', int), ('d', float), # a & b are atom indexes, d is a distance
+    ('dx', float), ('dy', float), ('dz', float), # relative vector (includes cell vectors of image cell)
+    ('r0', int), ('r1', int), ('r2', int) # position of image cell
 ]
 
 

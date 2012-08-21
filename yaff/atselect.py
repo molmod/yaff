@@ -21,7 +21,10 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-
+"""The ATSELECT language is a single-line language that can be used to define
+   atom types in Yaff, or to construct a list of atoms in a system that match an
+   ATSELECT rule.
+"""
 
 __all__ = [
     'check_name', 'find_first', 'lex_find', 'lex_split', 'atsel_compile'
@@ -29,7 +32,22 @@ __all__ = [
 
 
 def check_name(name):
-    """Raise an error if the given name is invalid."""
+    """Raise a ``ValueError`` if the given ffatype or scope name is invalid.
+
+       **Arugments:**
+
+       name
+            The name to be checked.
+
+       A name is invalid ...
+
+       * if it has length zero,
+       * if it contains any of ``:%=<>@()&|!``, or
+       * if it starts with a digit [0-9].
+
+       These rules make sure that the ffatype and scope names do not conflict
+       with the ATSELECT language.
+    """
     if len(name) == 0:
         raise ValueError('A name may not be empty.')
     for symbol in ':%=<>@()&|!':
@@ -106,7 +124,7 @@ def lex_split(s, splitter):
     """Split the string at the given character, ignoring characters in brackets
 
        This routine also checks if the number of opening and closing brackets
-       match, and that there is no character in the string the is preceeded by
+       match, and that there is no character in the string that is preceeded by
        more closing than opening brackets.
     """
     assert len(splitter) == 1

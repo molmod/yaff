@@ -1,6 +1,9 @@
 Package ``yaff.sampling`` -- Phase-space sampling
 #################################################
 
+.. automodule:: yaff.sampling
+   :members:
+
 
 Module ``yaff.sampling.dof`` -- Abstraction layer for degrees of freedom
 ========================================================================

@@ -6,7 +6,7 @@ General
 
 * Never ending: write more documentation.
 
-* Link with ASE and OpenKIM.
+* Link with ASE.
 
 * More strict unit checking in the parameter files. Change 'e' to 'electron'.
 
@@ -27,7 +27,9 @@ General
 
 * Add topological analysis to System class.
 
-* Make first example work out of the box.
+* Make an examples directory and add literal includes from this directory into
+  the documentation. The first example from the documentation has to
+  correspond to ``examples/000_some_name``.
 
 * See TODO comments in code.
 
@@ -62,6 +64,9 @@ General
 * Correctly treat the periodic boundary conditions in very skewed cells.
   The current implementation of the minimum image convention is, just like in
   most MD codes, rather naive.
+
+* Allow one to override the default names of the ForcePart* instances, e.g.
+  to allow two different valence parts.
 
 
 

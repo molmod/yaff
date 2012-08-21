@@ -21,6 +21,11 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+"""This module holds the main screen loging object of Yaff. The ``log`` object
+   is an instance off the ``ScreenLog`` class in the module ``molmod.log``.
+   The logger also comes with a timer infrastructure, which is also implemented
+   in the ``molmod.log`` module.
+"""
 
 
 import atexit
@@ -45,7 +50,7 @@ _________________\ \\\_____\ \\\_______\ \\\__\ \\\_____________\ \\\___________
 __________________\///______\///________\///___\///______________\///___________
 
 
-                 Welcome to YAFF - yet another force field code
+                 Welcome to Yaff - yet another force field code
 
                                    Written by
                   Toon Verstraelen(1)* and Louis Vanduyfhuys(1)
@@ -53,15 +58,15 @@ __________________\///______\///________\///___\///______________\///___________
 (1) Center for Molecular Modeling, Ghent University Belgium.
 * mailto: Toon.Vesrtraelen@UGent.be
 
-In a not-too-distant future, this program will be renamed to NJAFF, which stands
-for 'not just another force field code'. Please, bear with us.
+In a not-too-distant future, this program will be renamed to NINJAFF, which
+stands for 'NINJAFF is not just another force field code'. Please, bear with us.
 """
 
 
 foot_banner = r"""
 __/\\\__________________________________________________________________/\\\____
   \ \\\                                                                 \ \\\
-   \ \\\      End of file. Thanks for using YAFF! Come back soon!!       \ \\\
+   \ \\\      End of file. Thanks for using Yaff! Come back soon!!       \ \\\
 ____\///__________________________________________________________________\///__
 """
 

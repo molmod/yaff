@@ -1,6 +1,9 @@
 Package ``yaff.pes`` -- Force-field potential energy surfaces (PESs)
 ####################################################################
 
+.. automodule:: yaff.pes
+   :members:
+
 
 Module ``yaff.pes.dlist`` -- Delta lists for covalent energy terms
 ==================================================================

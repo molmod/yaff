@@ -21,6 +21,29 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+"""Short-range neighbor lists, called Delta lists, for the covalent energy
+   terms that do not allow for bond breaking.
+
+   The delta list contains all relative vectors that are needed to evaluate
+   the covalent energy terms. The minimum image convention (MIC) is used to make
+   sure that periodic boundary conditions are taken into account. The current
+   implementation of the MIC in Yaff works in principle only for orthorhombic
+   cells. In the general case of a triclinic cell, the Yaff implementation is
+   known to fail in some corner cases, e.g. in small and very skewed unit cells.
+   The derivative of the energy towards the components of the relative vectors
+   is computed if the ForceField.compute routine requires energy derivatives.
+
+   Note that the class :class:`yaff.pes.dlist.DeltaList` is intimately related
+   to classes :class:`yaff.pes.iclist.InternalCoordinateList` and
+   :class:`yaff.pes.vlist.ValenceList`. They work toghether as layers in a
+   neural network and use a similar back propagation algorithm to compute
+   partial derivatives. The order of the layers is as follows::
+
+       DeltaList <--> InternalCoordinateList <--> ValenceList
+
+   More details on the cooperation between these lists is given in the
+   docstrings of the :class:`yaff.pes.ff.ForcePartValence`.
+"""
 
 
 import numpy as np
@@ -32,20 +55,47 @@ __all__ = ['DeltaList']
 
 
 delta_dtype = [
-    ('dx', float), ('dy', float), ('dz', float),
-    ('i', int), ('j', int),
-    ('gx', float), ('gy', float), ('gz', float),
+    ('dx', float), ('dy', float), ('dz', float), # relative vector coordinates.
+    ('i', int), ('j', int),                      # involved atoms. vector points from i to j.
+    ('gx', float), ('gy', float), ('gz', float), # derivative of energy towards relative vector coordinates.
 ]
 
 
 class DeltaList(object):
+    """Class to store, manage and evaluate the delta list."""
+
     def __init__(self, system):
+        """
+            **Arguments:**
+
+            system
+                    A ``System`` instance.
+
+        """
         self.system = system
         self.deltas = np.zeros(10, delta_dtype)
         self.lookup = {}
         self.ndelta = 0
 
     def add_delta(self, i, j):
+        """Register a new relative vector in the delta list
+
+           **Arguments:**
+
+           i, j
+                Indexes of the first and second atom. The vector points from
+                i to j.
+
+           **Returns:**
+
+           row
+                The row index of the newly registered relative vector, for later
+                reference.
+
+           sign
+                Is -1 when i and j were swapped during the registration. Is +1
+                otherwise.
+        """
         assert i != j
         assert i >= 0
         assert j >= 0
@@ -70,7 +120,15 @@ class DeltaList(object):
         return row, sign
 
     def forward(self):
+        """Evaluate the relative vectors for ``self.system.pos``
+
+           The actual computation is carried out by a low-level C routine.
+        """
         dlist_forward(self.system.pos, self.system.cell, self.deltas, self.ndelta)
 
     def back(self, gpos, vtens):
+        """Derive gpos and virial from the derivatives towards the relative vectors
+
+           The actual computation is carried out by a low-level C routine.
+        """
         dlist_back(gpos, vtens, self.deltas, self.ndelta)

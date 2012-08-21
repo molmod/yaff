@@ -291,7 +291,7 @@ class System(object):
 
     @classmethod
     def from_file(cls, *fns, **user_kwargs):
-        """Load a system from one or more files
+        """Construct a new System instance from one or more files
 
            **Arguments:**
 
@@ -301,7 +301,8 @@ class System(object):
 
            **Optional arguments:**
 
-           Any argument from the constructor. These must be given with keywords.
+           Any argument from the default constructor ``__init__``. These must be
+           given with keywords.
 
            **Supported file formats**
 
