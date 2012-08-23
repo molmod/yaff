@@ -56,6 +56,7 @@ Development information
    :numbered:
 
    dg_todo.rst
+   dg_backprop.rst
 
 
 

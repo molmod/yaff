@@ -247,7 +247,7 @@ latex_documents = [
 #epub_tocdepth = 3
 
 
-pngmath_latex_preamble = r"\usepackage{color}"
+pngmath_latex_preamble = r"\usepackage{color,amsmath}"
 pngmath_use_preview = True
 
 autoclass_content = "both"

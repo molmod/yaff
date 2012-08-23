@@ -1,5 +1,5 @@
 #!/bin/bash
-for i in $(find yaff | egrep "\.pyc$|\.py~$|\.pyc~$|\.bak$|\.so$") ; do rm -v ${i}; done
+for i in $(find yaff examples | egrep "\.pyc$|\.py~$|\.pyc~$|\.bak$|\.so$") ; do rm -v ${i}; done
 
 rm -v yaff/pes/ext.c
 rm -rv doc/_build

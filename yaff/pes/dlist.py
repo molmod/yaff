@@ -35,14 +35,15 @@
 
    Note that the class :class:`yaff.pes.dlist.DeltaList` is intimately related
    to classes :class:`yaff.pes.iclist.InternalCoordinateList` and
-   :class:`yaff.pes.vlist.ValenceList`. They work toghether as layers in a
-   neural network and use a similar back propagation algorithm to compute
+   :class:`yaff.pes.vlist.ValenceList`. They work together, just like layers in
+   a neural network, and they use the back-propagation algorithm to compute
    partial derivatives. The order of the layers is as follows::
 
        DeltaList <--> InternalCoordinateList <--> ValenceList
 
-   More details on the cooperation between these lists is given in the
-   docstrings of the :class:`yaff.pes.ff.ForcePartValence`.
+   The class :class:`yaff.pes.ff.ForcePartValence` ties these three lists
+   together. The basic idea of the back-propagation algorithm is explained in
+   the section :ref:`dg_sec_backprop`.
 """
 
 
