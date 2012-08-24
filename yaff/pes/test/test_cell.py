@@ -39,6 +39,7 @@ def test_cell_water32():
     assert abs(cell.volume - abs(np.linalg.det(cell.rvecs))) < 1e-10
 
     assert abs(np.dot(cell.gvecs, cell.rvecs.transpose()) - np.identity(3)).max() < 1e-5
+    assert abs(np.dot(cell.gvecs.transpose(), cell.rvecs) - np.identity(3)).max() < 1e-5
     vec1 = np.array([10.0, 0.0, 5.0])*angstrom
     cell.mic(vec1)
     assert abs(vec1 - np.array([0.135, 0.0, -4.865])*angstrom).max() < 1e-10

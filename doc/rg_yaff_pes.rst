@@ -12,6 +12,13 @@ Module ``yaff.pes.dlist`` -- Delta lists for covalent energy terms
    :members:
 
 
+Module ``yaff.pes.ext`` -- low-level C extensions
+=================================================
+
+.. automodule:: yaff.pes.ext
+   :members:
+
+
 Module ``yaff.pes.ff`` -- Force field models
 ============================================
 

@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
 # YAFF is yet another force-field code
-# Copyright (C) 2008 - 2012 Toon Verstraelen <Toon.Verstraelen@UGent.be>, Center
-# for Molecular Modeling (CMM), Ghent University, Ghent, Belgium; all rights
-# reserved unless otherwise stated.
+# Copyright (C) 2011 - 2012 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
+# (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
+# stated.
 #
 # This file is part of YAFF.
 #
@@ -18,7 +20,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-# --
+#--
+'''Low-level C routines for an efficient implementation of the force field
+   energy and its derivatives.
+
+   This extension module is used by various modules of the ``yaff.pess``
+   package.
+'''
 
 
 import numpy as np
@@ -50,6 +58,11 @@ __all__ = [
 #
 
 cdef class Cell:
+    '''Representation of periodic boundary conditions.
+
+       0, 1, 2 and 3 dimensional systems are supported. The cell vectors need
+       not to be orthogonal.
+    '''
     cdef cell.cell_type* _c_cell
 
     def __cinit__(self, *args, **kwargs):
@@ -62,9 +75,28 @@ cdef class Cell:
             cell.cell_free(self._c_cell)
 
     def __init__(self, np.ndarray[double, ndim=2] rvecs):
+        '''
+           **Arguments:**
+
+           rvecs
+                A numpy array with at most three cell vectors, layed out as
+                rows in a rank-2 matrix. For non-periodic systems, this array
+                must have shape (0,3).
+        '''
         self.update_rvecs(rvecs)
 
+    # TODO: figure out how to format the signature on the first line such that
+    # sphinx can pick it up.
     def update_rvecs(self, np.ndarray[double, ndim=2] rvecs):
+        '''update_rvecs(rvecs)
+
+           Change the cell vectors and recompute the reciprocal cell vectors.
+
+           rvecs
+                A numpy array with at most three cell vectors, layed out as
+                rows in a rank-2 matrix. For non-periodic systems, this array
+                must have shape (0,3).
+        '''
         cdef np.ndarray[double, ndim=2] mod_rvecs
         cdef np.ndarray[double, ndim=2] gvecs
         cdef int nvec
@@ -86,17 +118,20 @@ cdef class Cell:
             gvecs = np.dot(U/S, Vt)
         cell.cell_update(self._c_cell, <double*>mod_rvecs.data, <double*>gvecs.data, nvec)
 
-    def get_nvec(self):
+    def _get_nvec(self):
+        '''The number of cell vectors'''
         return cell.cell_get_nvec(self._c_cell)
 
-    nvec = property(get_nvec)
+    nvec = property(_get_nvec)
 
-    def get_volume(self):
+    def _get_volume(self):
+        '''The generalize volume of the unit cell (length, area or volume)'''
         return cell.cell_get_volume(self._c_cell)
 
-    volume = property(get_volume)
+    volume = property(_get_volume)
 
-    def get_rvecs(self, full=False):
+    def _get_rvecs(self, full=False):
+        '''The real-space cell vectors, layed out as rows.'''
         cdef np.ndarray[double, ndim=2] result
         if full:
             result = np.zeros((3, 3), float)
@@ -106,9 +141,10 @@ cdef class Cell:
         result.setflags(write=False)
         return result
 
-    rvecs = property(get_rvecs)
+    rvecs = property(_get_rvecs)
 
-    def get_gvecs(self, full=False):
+    def _get_gvecs(self, full=False):
+        '''The reciporcal-space cell vectors, layed out as rows.'''
         cdef np.ndarray[double, ndim=2] result
         if full:
             result = np.zeros((3, 3), float)
@@ -118,9 +154,10 @@ cdef class Cell:
         result.setflags(write=False)
         return result
 
-    gvecs = property(get_gvecs)
+    gvecs = property(_get_gvecs)
 
-    def get_rspacings(self, full=False):
+    def _get_rspacings(self, full=False):
+        '''The (orthogonal) spacing between opposite sides of the real-space unit cell.'''
         cdef np.ndarray[double, ndim=1] result
         if full:
             result = np.zeros(3, float)
@@ -130,9 +167,10 @@ cdef class Cell:
         result.setflags(write=False)
         return result
 
-    rspacings = property(get_rspacings)
+    rspacings = property(_get_rspacings)
 
-    def get_gspacings(self, full=False):
+    def _get_gspacings(self, full=False):
+        '''The (orthogonal) spacing between opposite sides of the reciprocal-space unit cell.'''
         cdef np.ndarray[double, ndim=1] result
         if full:
             result = np.zeros(3, float)
@@ -142,10 +180,11 @@ cdef class Cell:
         result.setflags(write=False)
         return result
 
-    gspacings = property(get_gspacings)
+    gspacings = property(_get_gspacings)
 
-    def get_parameters(self):
-        rvecs = self.get_rvecs()
+    def _get_parameters(self):
+        '''The cell parameters (lengths and angles)'''
+        rvecs = self._get_rvecs()
         tmp = np.dot(rvecs, rvecs.T)
         lengths = np.sqrt(np.diag(tmp))
         tmp /= lengths
@@ -159,22 +198,32 @@ cdef class Cell:
         angles = np.arccos(np.clip(cosines, -1, 1))
         return lengths, angles
 
-    parameters = property(get_parameters)
+    parameters = property(_get_parameters)
 
     def mic(self, np.ndarray[double, ndim=1] delta):
-        """Apply the minimum image convention to delta in-place"""
+        """mic(delta)
+
+           Apply the minimum image convention to delta in-place
+        """
         assert delta.size == 3
         cell.cell_mic(<double*> delta.data, self._c_cell)
 
-    def to_center(self, np.ndarray[double, ndim=1] delta):
-        assert delta.size == 3
+    def to_center(self, np.ndarray[double, ndim=1] pos):
+        '''to_center(pos)
+
+           Return the corresponding position in the central cell
+        '''
+        assert pos.size == 3
         cdef np.ndarray[long, ndim=1] result
         result = np.zeros(self.nvec, int)
-        cell.cell_to_center(<double*> delta.data, self._c_cell, <long*> result.data)
+        cell.cell_to_center(<double*> pos.data, self._c_cell, <long*> result.data)
         return result
 
     def add_vec(self, np.ndarray[double, ndim=1] delta, np.ndarray[long, ndim=1] r):
-        """Add a linear combination of cell vectors in-place"""
+        """add_vec(delta, r)
+
+           Add a linear combination of cell vectors, ``r``, to ``delta`` in-place
+        """
         assert delta.size == 3
         assert r.size == self.nvec
         cell.cell_add_vec(<double*> delta.data, self._c_cell, <long*> r.data)
@@ -183,7 +232,9 @@ cdef class Cell:
                           np.ndarray[double, ndim=2] pos0,
                           np.ndarray[double, ndim=2] pos1=None,
                           np.ndarray[long, ndim=2] exclude=None):
-        """Computes all distances between the given coordinates
+        """compute_distances(output, pos0, pos1=None, exclude=None)
+
+           Computes all distances between the given coordinates
 
            **Arguments:**
 
@@ -201,7 +252,7 @@ cdef class Cell:
 
            exclude
                 A sorted array of atom pairs that will be excluded from the
-                fitting procedure. The indexes in this array refer to rows of
+                computation. The indexes in this array refer to rows of
                 pos0 or pos1. If pos1 is not given, both columns refer to rows
                 of pos0. If pos1 is given, the first column refers to rows of
                 pos0 and the second column refers to rows of pos1. The rows in
@@ -214,10 +265,18 @@ cdef class Cell:
            the output array is ``len(pos0)*(len(pos0)-1)/2``. If ``pos1`` is
            given, all distances are computed between a point in ``pos0`` and a
            point in ``pos1`` and the length of the output array is
-           ``len(pos0)*len(pos1)``. In both cases, some pairs of atoms may be
+           ``len(pos0)*len(pos1)``.
+
+           In both cases, some pairs of atoms may be
            excluded from the output with the ``exclude`` argument. In typical
-           cases, this list of excluded pairs is relatively short.
+           cases, this list of excluded pairs is relatively short. In case,
+           the exclude argument is present the number of computed distances
+           is less than explained above, but it is recommended to still use
+           those sizes in case some pairs in the excluded list are not
+           applicable.
         """
+        # TODO: return the number of computed distances and use this number
+        # in the RDF code.
         cdef long* exclude_pointer
 
         assert pos0.shape[1] == 3
@@ -266,14 +325,20 @@ cdef class Cell:
 
 
 def nlist_status_init(rmax):
-    # seven integer status fields:
-    # * r0
-    # * r1
-    # * r2
-    # * a
-    # * b
-    # * sign
-    # * number of rows consumed
+    '''nlist_status_init(rmax)
+
+       Creates a new ``nlists_status`` array
+
+       The array consists of seven integer elements with the following meaning:
+
+       * ``r0``: relative image index along a direction
+       * ``r1``: relative image index along b direction
+       * ``r2``: relative image index along c direction
+       * ``a``: atom index of first atom in pair
+       * ``b``: atom index of second atom in pair
+       * ``sign``: +1 or -1, to swap the relative vector such that a > b
+       * ``nrow``: number of rows consumed
+    '''
     result = np.array([0, 0, 0, 0, 0, 1, 0], int)
     return result
 

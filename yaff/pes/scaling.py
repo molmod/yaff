@@ -21,6 +21,21 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+"""Support for scaling or exclusion of short-range non-bonding pairwise
+   interactions for atom pairs that are involved in covalent energy terms.
+
+   A ``Scaling`` object can be attached to any ``ForcePartPair`` class and,
+   as a special case, also to the ``ForcePartEwaldCorrection``. A ``Scaling``
+   object describes which 1-2 (scale1), 1-3 (scale2) and 1-4 (scale3) pairs
+   should have their interactions scaled down or excluded (scaling=0.0).
+
+   In order to avoid ambiguities, each scaled pair should only correspond to
+   one unique bond path to the periodic image. If this is not the case an
+   ``AssertionError`` is raised to inform the user that he/she should switch to
+   a larger supercell. Yaff can simply not handle such cases correctly. (The
+   same problem may be present in other codes, but we do not know to what extent
+   they handle such cases gracefully.)
+"""
 
 
 import numpy as np
@@ -35,7 +50,19 @@ scaling_dtype = [('a', int), ('b', int), ('scale', float), ('nbond', int)]
 
 
 class Scalings(object):
+    '''Describes the scaling of short-range pairwise interactions for atom pairs
+       involved in covalent energy terms.
+    '''
     def __init__(self, system, scale1=0.0, scale2=0.0, scale3=1.0):
+        '''
+           **Arguments:**
+
+           system
+                The system to which the scaling rules apply.
+
+           scale1, scale2, scale3
+                The scaling of the 1-2. 1-3 and 1-4 pairs, respectively.
+        '''
         self.items = []
         if scale1 < 0 or scale1 > 1:
             raise ValueError('scale1 must be in the range [0,1].')
@@ -65,7 +92,7 @@ class Scalings(object):
         self.check_mic(system)
 
     def check_mic(self, system):
-        '''Check if each scale2 and scale3 is uniquely defined.
+        '''Check if each scale2 and scale3 are uniquely defined.
 
            **Arguments:**
 
@@ -73,12 +100,13 @@ class Scalings(object):
                 An instance of the system class, i.e. the one that is used to
                 create this scaling object.
 
-           This is done by constructing for each scaled pair, all possible bond
-           paths between the two atoms. For each path, the bond vectors (after
-           applying the minimum image convention) are added. If for a give pair,
-           these sums of bond vectors are different, the difference is expanded
-           in cell vectors which can be used to construct a proper supercell in
-           which scale2 and scale3 pairs are all uniquely defined.
+           This check is done by constructing for each scaled pair, all possible
+           bond paths between the two atoms. For each path, the bond vectors
+           (after applying the minimum image convention) are added. If for a
+           given pair, these sums of bond vectors differ between all possible
+           paths, the differences are expanded in cell vectors which can be used
+           to construct a proper supercell in which scale2 and scale3 pairs are
+           all uniquely defined.
         '''
         if system.cell.nvec == 0:
             return
@@ -132,7 +160,20 @@ class Scalings(object):
 
 
 def iter_paths(system, ib, ie, nbond):
-    """Iterates over all paths between ib and ie with the given number of bonds"""
+    """Iterates over all paths between atoms ``ib`` and ``ie`` with the given
+       number of bonds
+
+       **Arguments:**
+
+       system
+            The system that contains the bond graph
+
+       ib, ie
+            The indexes of the beginning and end atoms.
+
+       nbond
+            The length of the path, in number of bonds.
+    """
     if nbond == 1:
         if ie in system.neighs1[ib]:
             yield (ib, ie)

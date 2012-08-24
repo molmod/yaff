@@ -154,7 +154,7 @@ class RDF(AnalysisHook):
         if 'rvecs' in self.f['system']:
             rvecs = self.f['system/rvecs'][:]
             self.cell = Cell(rvecs)
-            if (2*self.rcut > self.cell.get_rspacings()).any():
+            if (2*self.rcut > self.cell.rspacings).any():
                 raise ValueError('The 2*rcut argument should not exceed any of the cell spacings.')
         else:
             self.cell = Cell(None)

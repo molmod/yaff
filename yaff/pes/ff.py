@@ -256,7 +256,36 @@ class ForceField(ForcePart):
 
 
 class ForcePartPair(ForcePart):
+    '''A pairwise (short-range) non-bonding interaction term.
+
+       This part can be used for the short-range electrostatics, Van der Waals
+       terms, etc. Currently, one has to use multiple ``ForcePartPair``
+       objects in a ``ForceField`` in order to combine different types of pairwise
+       energy terms, e.g. to combine an electrostatic term with a Van der
+       Waals term. (This may be changed in future to improve the computational
+       efficiency.)
+    '''
     def __init__(self, system, nlist, scalings, pair_pot):
+        '''
+           **Arguments:**
+
+           system
+                The system to which this pairwise interaction applies.
+
+           nlist
+                A ``NeighborList`` object. This has to be the same as the one
+                passed to the ForceField object that contains this part.
+
+           scalings
+                A ``Scalings`` object. This object contains all the information
+                about the energy scaling of pairwise contributions that are
+                involved in covalent interactions. See
+                :class:`yaff.pes.scalings.Scalings` for more details.
+
+           pair_pot
+                An instance of the ``PairPot`` built-in class from
+                :mod:`yaff.pes.ext`.
+        '''
         ForcePart.__init__(self, 'pair_%s' % pair_pot.name, system)
         self.nlist = nlist
         self.scalings = scalings
@@ -282,7 +311,22 @@ class ForcePartPair(ForcePart):
 
 
 class ForcePartEwaldReciprocal(ForcePart):
+    '''The long-range contribution to the electrostatic interaction in 3D
+       periodic systems.
+    '''
     def __init__(self, system, alpha, gcut=0.35):
+        '''
+           **Arguments:**
+
+           system
+                The system to which this interaction applies.
+
+           alpha
+                The alpha parameter in the Ewald summation method.
+
+           gcut
+                The cutoff in reciprocal space.
+        '''
         ForcePart.__init__(self, 'ewald_reci', system)
         if not system.cell.nvec == 3:
             raise TypeError('The system must have a 3D periodic cell.')
@@ -304,6 +348,9 @@ class ForcePartEwaldReciprocal(ForcePart):
 
 
     def update_gmax(self):
+        '''This routine must be called after the attribute self.gmax is modified.'''
+        # TODO: do this automatically or figure out why that would not be a good
+        # idea and document it here.
         self.gmax = np.ceil(self.gcut/self.system.cell.gspacings-0.5).astype(int)
         if log.do_debug:
             with log.section('EWALD'):
@@ -323,7 +370,27 @@ class ForcePartEwaldReciprocal(ForcePart):
 
 
 class ForcePartEwaldCorrection(ForcePart):
+    '''Correction for the double counting in the long-range term of the Ewald sum.
+
+       This correction is only needed if scaling rules apply to the short-range
+       electrostatics.
+    '''
     def __init__(self, system, alpha, scalings):
+        '''
+           **Arguments:**
+
+           system
+                The system to which this interaction applies.
+
+           alpha
+                The alpha parameter in the Ewald summation method.
+
+           scalings
+                A ``Scalings`` object. This object contains all the information
+                about the energy scaling of pairwise contributions that are
+                involved in covalent interactions. See
+                :class:`yaff.pes.scalings.Scalings` for more details.
+        '''
         ForcePart.__init__(self, 'ewald_cor', system)
         if not system.cell.nvec == 3:
             raise TypeError('The system must have a 3D periodic cell')
@@ -349,7 +416,21 @@ class ForcePartEwaldCorrection(ForcePart):
 
 
 class ForcePartEwaldNeutralizing(ForcePart):
+    '''Neutralizing background correction for 3D periodic systems that are
+       charged.
+
+       This term is only required of the system is not neutral.
+    '''
     def __init__(self, system, alpha):
+        '''
+           **Arguments:**
+
+           system
+                The system to which this interaction applies.
+
+           alpha
+                The alpha parameter in the Ewald summation method.
+        '''
         ForcePart.__init__(self, 'ewald_neut', system)
         if not system.cell.nvec == 3:
             raise TypeError('The system must have a 3D periodic cell')

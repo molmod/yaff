@@ -21,6 +21,25 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''Half neighbor lists with relative vector information and with support for
+   Verlet skin.
+
+   Yaff supports only one neighbor list, which is used to evaluate all
+   non-bonding interactions. The neighbor list is used by the ``ForcePartPair``
+   objects. Each ``ForcePartPair`` object may have a different cutoff, of which
+   the largest one determines the cutoff of the neighbor list. Unlike several
+   other codes, Yaff uses one long neighbor list that contains all relevant atom
+   pairs.
+
+   The ``NeighborList`` object contains algorithms to detect whether a full rebuild
+   of the neighbor list is required, or whether a recomputation of the distances
+   and relative vectors is sufficient.
+'''
+
+
+# TODO. The neighbor lists may also be affected by the weak implementation of
+# the minimum image convention. See what needs to be done. If there is no
+# problem with very skewed cells, document this feature.
 
 
 import numpy as np
@@ -34,16 +53,17 @@ __all__ = ['NeighborList']
 
 
 neigh_dtype = [
-    ('a', int), ('b', int), ('d', float), # a & b are atom indexes, d is a distance
+    ('a', int), ('b', int), ('d', float),        # a & b are atom indexes, d is the distance
     ('dx', float), ('dy', float), ('dz', float), # relative vector (includes cell vectors of image cell)
-    ('r0', int), ('r1', int), ('r2', int) # position of image cell
+    ('r0', int), ('r1', int), ('r2', int)        # position of image cell. TODO: redundant? distinction between central an non-central should be sufficient.
 ]
 
 
 class NeighborList(object):
+    '''Algorithms to keep track of all pair distances below a given rcut
+    '''
     def __init__(self, system, skin=0):
-        """Algorithms to keep track of all distances below a given rcut
-
+        """
            **Arguments:**
 
            system
@@ -53,13 +73,13 @@ class NeighborList(object):
 
            skin
                 A margin added to the rcut parameter. Only when atoms are
-                displaced by half this distance, the neighborlist is rebuilt
+                displaced by half this distance, the neighbor list is rebuilt
                 from scratch. In the other case, the distances of the known
                 pairs are just recomputed. If set to zero, the default, the
-                neighborlist is rebuilt at each update.
+                neighbor list is rebuilt at each update.
 
                 A reasonable skin setting can drastically improve the
-                performance of the neighborlist updates. For example, when
+                performance of the neighbor list updates. For example, when
                 ``rcut`` is ``10*angstrom``, a ``skin`` of ``2*angstrom`` is
                 reasonable. If the skin is set too large, the updates will
                 become very inefficient. Some tuning of ``rcut`` and ``skin``
@@ -73,9 +93,6 @@ class NeighborList(object):
         # the neighborlist:
         self.neighs = np.empty(10, dtype=neigh_dtype)
         self.nneigh = 0
-        # rmax determines the number of periodic images that are considered.
-        # Along the a direction, images are taken from -rmax[0] to rmax[0]
-        # (inclusive), etc.
         self.rmax = None
         # for skin algorithm:
         self._pos_old = None
@@ -87,10 +104,16 @@ class NeighborList(object):
         self.update_rmax()
 
     def update_rmax(self):
-        """Update the rmax attribute.
+        """Recompute the ``rmax`` attribute.
 
-           This may be necessary for two reasons: (i) the cutoff has changed,
-           and (ii) the cell vectors have changed.
+           ``rmax`` determines the number of periodic images that are
+           considered. when building the neighbor list. Along the a direction,
+           images are taken from ``-rmax[0]`` to ``rmax[0]`` (inclusive). The
+           range of images along the b and c direction are controlled by
+           ``rmax[1]`` and ``rmax[2]``, respectively.
+
+           Updating ``rmax`` may be necessary for two reasons: (i) the cutoff
+           has changed, and (ii) the cell vectors have changed.
         """
         # determine the number of periodic images
         self.rmax = np.ceil((self.rcut+self.skin)/self.system.cell.rspacings-0.5).astype(int)
@@ -107,6 +130,16 @@ class NeighborList(object):
         self.rebuild_next = True
 
     def update(self):
+        '''Rebuild or recompute the neighbor lists
+
+           Based on the changes of the atomic positions or due to calls to
+           ``update_rcut`` and ``update_rmax``, the neighbor lists will be
+           rebuilt from scratch.
+
+           The heavy computational work is done in low-level C routines. The
+           neighbor lists array is reallocated if needed. The memory allocation
+           is done in Python for convenience.
+        '''
         with log.section('NLIST'), timer.section('Nlists'):
             assert self.rcut > 0
 
@@ -144,6 +177,7 @@ class NeighborList(object):
                     log('Recomputed')
 
     def _checkpoint(self):
+        '''Internal method called after a neighborlist rebuild.'''
         if self.skin > 0:
             # Only use the skin algorithm if this parameter is larger than zero.
             if self._pos_old is None:
@@ -152,6 +186,7 @@ class NeighborList(object):
                 self._pos_old[:] = self.system.pos
 
     def _need_rebuild(self):
+        '''Internal method that determines if a rebuild is needed.'''
         if self.skin <= 0 or self._pos_old is None or self.rebuild_next:
             return True
         else:
@@ -165,9 +200,9 @@ class NeighborList(object):
 
 
     def to_dictionary(self):
-        """Tranform current nlist into a dictionary.
+        """Transform current neighbor list into a dictionary.
 
-           This is use for debugging only!
+           This is slow. Use this method for debugging only!
         """
         dictionary = {}
         for i in xrange(self.nneigh):
@@ -186,7 +221,7 @@ class NeighborList(object):
     def check(self):
         """Perform a slow internal consistency test.
 
-           It is assumed that self.rmax is set correctly.
+           Use this for debugging only. It is assumed that self.rmax is set correctly.
         """
         # 0) Some initial tests
         assert (

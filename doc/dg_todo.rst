@@ -65,7 +65,7 @@ General
 
 * Correctly treat the periodic boundary conditions in very skewed cells.
   The current implementation of the minimum image convention is, just like in
-  most MD codes, rather naive.
+  most MD codes, rather naive. Check the answers on the scicomp faq.
 
 * Allow one to override the default names of the ForcePart* instances, e.g.
   to allow two different valence parts.
