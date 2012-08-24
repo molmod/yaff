@@ -32,7 +32,7 @@ Abstract example
 
 Consider the following function of a vector :math:`\mathbf{x}`:
 
-.. math:: e(\mathbf{g}(\mathbf{f}(\mathbf{x})), \mathbf{h}(x))
+.. math:: e(\mathbf{g}(\mathbf{f}(\mathbf{x})), \mathbf{h}(\mathbf{x}))
 
 The functions :math:`\mathbf{f}`, :math:`\mathbf{g}` and
 :math:`\mathbf{h}` take vectors as input and produce vectors as output. The
@@ -148,7 +148,7 @@ derived class of the ``Bead`` class:
                                           # function towards the outputs
 
         def forward(self, ars_in):
-            '''Sub classes implement a mathematical function here.
+            '''Subclasses implement a mathematical function here.
 
                **Arguments:**
 
@@ -160,7 +160,7 @@ derived class of the ``Bead`` class:
                 assert len(ars_in[i]) == self.nins[i]
 
         def back(self, ars_gin):
-            '''Sub classes implement the chain rule for the mathematical function here.
+            '''Subclasses implement the chain rule for the mathematical function here.
 
                **Arguments:**
 
@@ -248,8 +248,8 @@ code snappier. This is avoided to make this chapter more accessible to readers
 with a limited Python background.
 
 
-Simple examples of ``Bead`` sub classes
-=======================================
+Simple examples of ``Bead`` subclasses
+======================================
 
 The following two examples are kept as simple as possible. There is nothing
 exciting about them, yet they completely show how useful the back-propagation

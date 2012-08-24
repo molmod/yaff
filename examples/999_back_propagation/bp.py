@@ -49,7 +49,7 @@ class Bead(object):
                                       # function towards the outputs
 
     def forward(self, ars_in):
-        '''Sub classes implement a mathematical function here.
+        '''Subclasses implement a mathematical function here.
 
            **Arguments:**
 
@@ -61,7 +61,7 @@ class Bead(object):
             assert len(ars_in[i]) == self.nins[i]
 
     def back(self, ars_gin):
-        '''Sub classes implement the chain rule for the mathematical function here.
+        '''Subclasses implement the chain rule for the mathematical function here.
 
            **Arguments:**
 

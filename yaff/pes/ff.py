@@ -21,6 +21,19 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''This module contains the force field computation interface that is used by
+   the :mod:`yaff.sampling` package.
+
+   The ``ForceField`` class is the main item in this module. It acts as
+   container for instances of subclasses of ``ForcePart``. Each ``ForcePart``
+   subclass implements a typical contribution to the force field energy, e.g.
+   ``ForcePartValence`` computes covalent interactions, ``ForcePartPair``
+   computes pairwise (non-bonding) interactions, and so on. The ``ForceField``
+   object also contains one neighborlist object, which is used by all
+   ``ForcePartPair`` objects. Actual computations are done through the
+   ``compute`` method of the ``ForceField`` object, which calls the ``compute``
+   method of all the ``ForceParts`` and adds up the results.
+'''
 
 
 import numpy as np
@@ -40,6 +53,9 @@ __all__ = [
 
 
 class ForcePart(object):
+    '''Base class for anything that can compute energies (and optionally gradient
+       and virial) for a ``System`` object.
+    '''
     def __init__(self, name, system):
         """
            **Arguments:**
@@ -51,7 +67,7 @@ class ForcePart(object):
                 ForceField class, where * is the name.
 
            system
-                The system where this part of the FF is applied to.
+                The system to which this part of the FF applies.
         """
         self.name = name
         # backup copies of last call to compute:
@@ -61,19 +77,42 @@ class ForcePart(object):
         self.clear()
 
     def clear(self):
-        """Fill in bogus values that make things crash and burn"""
+        """Fill in nan values in the cached results to indicate that they have
+           become invalid.
+        """
         self.energy = np.nan
         self.gpos[:] = np.nan
         self.vtens[:] = np.nan
 
     def update_rvecs(self, rvecs):
+        '''Let the ``ForcePart`` object know that the cell vectors have changed.
+
+           **Arguments:**
+
+           rvecs
+                The new cell vectors.
+        '''
         self.clear()
 
     def update_pos(self, pos):
+        '''Let the ``ForcePart`` object know that the atomic positions have changed.
+
+           **Arguments:**
+
+           pos
+                The new atomic coordinates.
+        '''
         self.clear()
 
     def compute(self, gpos=None, vtens=None):
         """Compute the energy and optionally some derivatives for this FF (part)
+
+           The only variable inputs for the compute routine are the atomic
+           positions and the cell vectors, which can be changed through the
+           ``update_rvecs`` and ``update_pos`` methods. All other aspects of
+           a force field are considered to be fixed between subsequent compute
+           calls. If changes other than positions or cell vectors are needed,
+           one must construct new ``ForceField`` and/or ``ForcePart`` objects.
 
            **Optional arguments:**
 
@@ -113,27 +152,29 @@ class ForcePart(object):
         return self.energy
 
     def _internal_compute(self, gpos, vtens):
+        '''Subclasses implement their compute code here.'''
         raise NotImplementedError
 
 
 class ForceField(ForcePart):
+    '''A complete force field model.'''
     def __init__(self, system, parts, nlist=None):
         """
            **Arguments:**
 
            system
-                An instance of the System class.
+                An instance of the ``System`` class.
 
            parts
-                A list of instances of sublcasses of ForcePart. These are
+                A list of instances of sublcasses of ``ForcePart``. These are
                 the different types of contributions to the force field, e.g.
                 valence interactions, real-space electrostatics, and so on.
 
            **Optional arguments:**
 
            nlist
-                A NeighborList instance. This is only required if some parts
-                use this.
+                A ``NeighborList`` instance. This is required if some items in the
+                parts list use this nlist object.
         """
         ForcePart.__init__(self, 'all', system)
         self.system = system
@@ -192,6 +233,7 @@ class ForceField(ForcePart):
             return ForceField(system, ff_args.parts, ff_args.nlist)
 
     def update_rvecs(self, rvecs):
+        '''See :meth:`yaff.pes.ff.ForcePart.update_rvecs`'''
         ForcePart.update_rvecs(self, rvecs)
         self.system.cell.update_rvecs(rvecs)
         if self.nlist is not None:
@@ -199,6 +241,7 @@ class ForceField(ForcePart):
             self.needs_nlist_update = True
 
     def update_pos(self, pos):
+        '''See :meth:`yaff.pes.ff.ForcePart.update_pos`'''
         ForcePart.update_pos(self, pos)
         self.system.pos[:] = pos
         if self.nlist is not None:
@@ -267,6 +310,7 @@ class ForcePartEwaldReciprocal(ForcePart):
                 log('gmax a,b,c   = %i,%i,%i' % tuple(self.gmax))
 
     def update_rvecs(self, rvecs):
+        '''See :meth:`yaff.pes.ff.ForcePart.update_rvecs`'''
         ForcePart.update_rvecs(self, rvecs)
         self.update_gmax()
 
@@ -329,7 +373,47 @@ class ForcePartEwaldNeutralizing(ForcePart):
 
 
 class ForcePartValence(ForcePart):
+    '''The covalent part of a force-field model.
+
+       The covalent force field is implemented in a three-layer approach,
+       similar to the implementation of a neural network:
+
+       1. The first layer consists of a :class:`yaff.pes.dlist.DeltaList` object
+          that computes all the relative vectors needed for the internal
+          coordinates in the covalent energy terms. This list is automatically
+          built up as energy terms are added with the ``add_term`` method. This
+          list also takes care of transforming `derivatives of the energy
+          towards relative vectors` into `derivatives of the energy towards
+          Cartesian coordinates and the virial tensor`.
+
+       2. The second layer consist of a
+          :class:`yaff.pes.iclist.InternalCoordinateList` object that computes
+          the internal coordinates, based on the ``DeltaList``. This list is
+          also automatically built up as energy terms are added. The same list
+          is also responsible for transforming `derivatives of the energy
+          towards internal coordinates` into `derivatives of the energy towards
+          relative vectors`.
+
+       3. The third layers consists of a :class:`yaff.pes.vlist.ValenceList`
+          object. This list computes the covalent energy terms, based on the
+          result in the ``InternalCoordinateList``. This list also computes the
+          derivatives of the energy terms towards the internal coordinates.
+
+       The computation of the covalent energy is the so-called `forward code
+       path`, which consists of running through steps 1, 2 and 3, in that order.
+       The derivatives of the energy are computed in the so-called `backward
+       code path`, which consists of taking steps 1, 2 and 3 in reverse order.
+       This basic idea of back-propagation for the computation of derivatives
+       comes from the field of neural networks. More details can be found in the
+       chapter, :ref:`dg_sec_backprop`.
+    '''
     def __init__(self, system):
+        '''
+           **Arguments:**
+
+           system
+                An instance of the ``System`` class.
+        '''
         ForcePart.__init__(self, 'valence', system)
         self.dlist = DeltaList(system)
         self.iclist = InternalCoordinateList(self.dlist)
@@ -340,6 +424,17 @@ class ForcePartValence(ForcePart):
                 log.hline()
 
     def add_term(self, term):
+        '''Add a new term to the covalent force field.
+
+           **Arguments:**
+
+           term
+                An instance of the class :class:`yaff.pes.ff.vlist.ValenceTerm`.
+
+           In principle, one should add all energy terms before calling the
+           ``compute`` method, but with the current implementation of Yaff,
+           energy terms can be added at any time. (This may change in future.)
+        '''
         if log.do_high:
             with log.section('VTERM'):
                 log('%7i&%s %s' % (self.vlist.nv, term.get_log(), ' '.join(ic.get_log() for ic in term.ics)))

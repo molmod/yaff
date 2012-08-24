@@ -33,7 +33,7 @@
    The derivative of the energy towards the components of the relative vectors
    is computed if the ForceField.compute routine requires energy derivatives.
 
-   Note that the class :class:`yaff.pes.dlist.DeltaList` is intimately related
+   The class :class:`yaff.pes.dlist.DeltaList` is intimately related
    to classes :class:`yaff.pes.iclist.InternalCoordinateList` and
    :class:`yaff.pes.vlist.ValenceList`. They work together, just like layers in
    a neural network, and they use the back-propagation algorithm to compute

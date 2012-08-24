@@ -33,7 +33,7 @@ Module ``yaff.pes.iclist`` -- Internal-coordinate lists for covalent energy term
    :members:
 
 
-Module ``yaff.pes.nlist`` -- Neighbor lists for pair-wise (non-bonding) interactions
+Module ``yaff.pes.nlist`` -- Neighbor lists for pairwise (non-bonding) interactions
 =====================================================================================
 
 .. automodule:: yaff.pes.nlist
@@ -47,7 +47,7 @@ Module ``yaff.pes.parameters`` -- Datastructures to represent parameter files
    :members:
 
 
-Module ``yaff.pes.scaling`` -- Short-range scaling of pair-wise interactions
+Module ``yaff.pes.scaling`` -- Short-range scaling of pairwise interactions
 ============================================================================
 
 .. automodule:: yaff.pes.scaling

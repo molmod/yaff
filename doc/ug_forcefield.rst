@@ -707,3 +707,8 @@ in the following cases:
   certain geometric prescriptions. Building such a structure from scratch can
   be very difficult for complex systems. One may design a non-physical force
   field such that the optimal geometry satisfies the geometrical criteria.
+
+* Several combinations of internal coordinates and valence energy terms are not
+  supported through the parameter file, simply because they are uncommon. The
+  above example shows how one can program any combination of internal coordinate
+  and valence energy term in the force field.

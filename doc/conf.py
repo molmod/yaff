@@ -251,6 +251,8 @@ pngmath_latex_preamble = r"\usepackage{color,amsmath}"
 pngmath_use_preview = True
 
 autoclass_content = "both"
+autodoc_member_order = "bysource"
+autodoc_default_flags = ['members', 'undoc-members', 'show-inheritance']
 
 inheritance_graph_attrs = {"rankdir": "TB", "ratio": "compress", "fontzise": 14}
 

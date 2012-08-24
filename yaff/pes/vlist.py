@@ -21,6 +21,38 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''Module for the complete list of covalent energy terms.
+
+   A ``ValenceList`` object contains a table with all the energy terms that
+   contribute (additively) to the total energy. The values of the internal
+   coordinates, needed to compute the energy, are taken from an
+   :class:`yaff.pes.iclist.InternalCoordinateList` class.
+
+   Each row in the table contains all the information to evaluate one energy
+   term, which is done by the ``forward`` method. The ``back`` method **adds**
+   the derivative of the energy towards the internal coordinate to the right
+   entry in the ``InternalCoordinateList`` object.
+
+   A series of ``ValenceTerm`` classes is defined. These are used to register
+   new energy terms in a ``ValenceList`` object. Each subclass of ``ValenceList``
+   represents a kind of energy term, e.g. harmonic, Fues, class-2 cross term,
+   etc. Instances of these classes are passed to the ``add_term`` method,
+   which will append a new row to the table and register the required
+   internal coordinates in the ``InternalCoordinateList`` object. (That will
+   in turn register the requires relative vectors in a ``DeltaList`` object.)
+
+   The class :class:`yaff.pes.vlist.ValenceList` is intimately related to
+   classes :class:`yaff.pes.dlist.DeltaList` and
+   :class:`yaff.pes.iclist.InternalCoordinateList`. They work together, just
+   like layers in a neural network, and they use the back-propagation algorithm
+   to compute partial derivatives. The order of the layers is as follows::
+
+       DeltaList <--> InternalCoordinateList <--> ValenceList
+
+   The class :class:`yaff.pes.ff.ForcePartValence` ties these three lists
+   together. The basic idea of the back-propagation algorithm is explained in
+   the section :ref:`dg_sec_backprop`.
+'''
 
 
 import numpy as np
@@ -36,54 +68,123 @@ __all__ = [
 
 
 vlist_dtype = [
-    ('kind', int),
-    ('par0', float), ('par1', float), ('par2', float), ('par3', float),
-    ('ic0', int), ('ic1', int),
-    ('energy', float),
+    ('kind', int),                      # The kind of energy term, e.g. harmonic, fues, ...
+    ('par0', float), ('par1', float),   # The parameters for the energy term. Meaning of par0, par1, ... depends on kind.
+    ('par2', float), ('par3', float),
+    ('ic0', int), ('ic1', int),         # Indexes of rows in the table of internal coordinates. (See InternalCoordinatList class.)
+    ('energy', float),                  # The computed value of the energy, output of forward method.
 ]
 
 
 class ValenceList(object):
+    '''Contains a complete list of all valence energy terms. Computations are
+       carried out in coordination with an ``InternalCoordinateList`` object.
+    '''
     def __init__(self, iclist):
+        '''
+           **Arguments:**
+
+           iclist
+                An instance of the ``InternalCoordinateList`` object.
+        '''
         self.iclist = iclist
         self.vtab = np.zeros(10, vlist_dtype)
         self.nv = 0
 
     def add_term(self, term):
+        '''Register a new covalent energy term
+
+           **Arguments:**
+
+           term
+                An instance of a subclass of the ``ValenceTerm`` class.
+        '''
+        # extend the table if needed.
         if self.nv >= len(self.vtab):
             self.vtab = np.resize(self.vtab, int(len(self.vtab)*1.5))
+        # fill in the new term
         row = self.nv
         self.vtab[row]['kind'] = term.kind
         for i in xrange(len(term.pars)):
             self.vtab[row]['par%i'%i] = term.pars[i]
-        ic_indexes = term.get_ic_indexes(self.iclist)
+        ic_indexes = term.get_ic_indexes(self.iclist) # registers ics in InternalCoordinateList.
         for i in xrange(len(ic_indexes)):
             self.vtab[row]['ic%i'%i] = ic_indexes[i]
         self.nv += 1
 
     def forward(self):
+        """Compute the values of the energy terms, based on the values of the
+           internal coordinates list, and store the result in the ``self.vtab``
+           table.
+
+           The actual computation is carried out by a low-level C routine.
+        """
         return vlist_forward(self.iclist.ictab, self.vtab, self.nv)
 
     def back(self):
+        """Compute the derivatives of the energy terms towards the internal
+           coordinates and store the results in the ``self.iclist.ictab`` table.
+
+           The actual computation is carried out by a low-level C routine.
+        """
         vlist_back(self.iclist.ictab, self.vtab, self.nv)
 
 
 class ValenceTerm(object):
+    '''Base class for valence energy terms 'descriptors'.
+
+       The subclasses are merely used to request a new covalent energy terms in
+       the ``ValenceList`` class. These classes do not carry out any
+       computations.
+
+       The ``kind`` class attribute refers to an integer ID that identifies the
+       valence term kind (harmonic, fues, ...) in the low-level C code.
+    '''
     kind = None
     def __init__(self, pars, ics):
+        '''
+           **Arguments:**
+
+           pars
+                A list of parameters to be stored for this energy term. This list
+                may at most contain four elements.
+
+           ics
+                A list of row indexes in the table of internal coordinates. This
+                list may contain either one or two elements.
+        '''
         self.pars = pars
         self.ics = ics
 
     def get_ic_indexes(self, iclist):
+        '''Request row indexes for the internal coordinates from the given
+           ``InternalCoordinateList`` object.
+        '''
         return [iclist.add_ic(ic) for ic in self.ics]
 
     def get_log(self):
+        '''Describe the covalent energy term in a format that is suitable for
+           screen logging.
+        '''
         raise NotImplementedError
 
 
 class Harmonic(ValenceTerm):
+    '''The harmonic energy term: 0.5*K*(q-q0)^2'''
     kind = 0
     def __init__(self, fc, rv, ic):
+        '''
+           **Arguments:**
+
+           fc
+                The force constant (in atomic units).
+
+           rv
+                The rest value (in atomic units).
+
+           ic
+                An ``InternalCoordinate`` object.
+        '''
         ValenceTerm.__init__(self, [fc, rv], [ic])
 
     def get_log(self):
@@ -96,8 +197,20 @@ class Harmonic(ValenceTerm):
 
 
 class PolyFour(ValenceTerm):
+    '''Fourth-order polynomical term: par0*q + par1*q^2 + par2*q^3 + par3*q^4'''
     kind = 1
     def __init__(self, pars, ic):
+        '''
+           **Arguments:**
+
+           pars
+                The constant linear coefficients of the polynomial, in atomic
+                units, starting from first order. This list may at most contain
+                four coefficients.
+
+           ic
+                An ``InternalCoordinate`` object.
+        '''
         if len(pars)>4:
             raise ValueError("PolyFour term can have maximum 4 parameters, received %i" %len(pars))
         while len(pars)<4:
@@ -115,8 +228,21 @@ class PolyFour(ValenceTerm):
         )
 
 class Fues(ValenceTerm):
+    '''The Fues energy term: 0.5*K*q0^2*(1-q/q0)^2'''
     kind = 2
     def __init__(self, fc, rv, ic):
+        '''
+           **Arguments:**
+
+           fc
+                The force constant (in atomic units).
+
+           rv
+                The rest value (in atomic units).
+
+           ic
+                An ``InternalCoordinate`` object.
+        '''
         ValenceTerm.__init__(self, [fc, rv], [ic])
 
     def get_log(self):
@@ -129,8 +255,22 @@ class Fues(ValenceTerm):
 
 
 class Cross(ValenceTerm):
+    '''A traditional class-2 cross term: K*(x-x0)*(y-y0)'''
     kind = 3
     def __init__(self, fc, rv0, rv1, ic0, ic1):
+        '''
+           **Arguments:**
+
+           fc
+                The force constant (in atomic units).
+
+           rv0, rv1
+                The rest values (in atomic units).
+
+           ic0, ic1
+                The ``InternalCoordinate`` objects. ic0 corresponds to rv0, and
+                ic1 corresponds to rv1.
+        '''
         ValenceTerm.__init__(self,[fc,rv0,rv1],[ic0,ic1])
 
     def get_log(self):
@@ -145,8 +285,26 @@ class Cross(ValenceTerm):
 
 
 class Cosine(ValenceTerm):
+    '''A cosine energy term: 0.5*a*(1-cos(m*(phi-phi0)))'''
     kind = 4
     def __init__(self, m, a, phi0, ic):
+        '''
+           **Arguments:**
+
+           m
+                The multiplicity of the cosine function, which may be useful
+                for torsional barriers.
+
+           a
+                The amplitude of the cosine function (in atomic units).
+
+           phi0
+                The rest angle of cosine term (in radians).
+
+           ic
+                An ``InternalCoordinate`` object. This must be an internal
+                coordinate that computes some angle in radians.
+        '''
         ValenceTerm.__init__(self, [m, a, phi0], [ic])
 
     def get_log(self):
@@ -160,24 +318,62 @@ class Cosine(ValenceTerm):
 
 
 class Chebychev1(ValenceTerm):
+    '''A first order Chebychev polynomial: 0.5*A*(1-x)
+
+       This is used for a computationally efficient implementation of torsional
+       energy terms, because the only computation of the cosine of the dihedral
+       angle is needed, not the angle itself.
+
+       This term corresponds to multiplicity 1, and has its rest value fixed to
+       0 degrees. (With a negative A, the rest value becomes 180 degrees.)
+    '''
     kind = 5
     def __init__(self, A, ic):
+        '''
+           **Arguments:**
+
+           A
+                The energy scale of the function (in atomic units).
+
+           ic
+                An ``InternalCoordinate`` object.
+        '''
         ValenceTerm.__init__(self, [A], [ic])
 
     def get_log(self):
+        c = self.ics[0].get_conversion()
         return '%s(A=%.5e)' % (
             self.__class__.__name__,
-            self.pars[0]/log.energy.conversion,
+            self.pars[0]/(log.energy.conversion/c),
         )
 
 
 class Chebychev2(ValenceTerm):
+    '''A second order Chebychev polynomial: A*(1-x^2)
+
+       This is used for a computationally efficient implementation of torsional
+       energy terms, because the only computation of the cosine of the dihedral
+       angle is needed, not the angle itself.
+
+       This term corresponds to multiplicity 2, and has its rest value fixed to
+       0 degrees. (With a negative A, the rest value becomes 90 degrees.)
+    '''
     kind = 6
     def __init__(self, A, ic):
+        '''
+           **Arguments:**
+
+           A
+                The energy scale of the function (in atomic units).
+
+           ic
+                An ``InternalCoordinate`` object.
+        '''
         ValenceTerm.__init__(self, [A], [ic])
 
     def get_log(self):
+        c = self.ics[0].get_conversion()
         return '%s(A=%.5e)' % (
             self.__class__.__name__,
-            self.pars[0]/log.energy.conversion,
+            self.pars[0]/(log.energy.conversion/c**2),
         )
