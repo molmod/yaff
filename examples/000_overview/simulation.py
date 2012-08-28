@@ -22,7 +22,6 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-#!/usr/bin/env python
 
 # import the yaff library
 from yaff import *

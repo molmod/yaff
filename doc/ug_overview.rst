@@ -10,14 +10,15 @@ force-field simulations. A useful simulation typically consists of four steps:
    Carlo simulation, a geometry optimization, or yet something else.
 4. Analysis of the output to extract meaningful numbers from the simulation.
 
+Each step will be discussed in more detail in the following sections.
+
 In Yaff, the conventional input file is replaced by an input script. This means
-that you must write one or more small `main` programs that specify what type of
-simulation is carried out. A minimalistic example is given in the file
-``examples/000_overview/simulation.py``:
+that one must write one or more small `main` programs that specify what type of
+simulation is carried out. A minimalistic example, which covers all four steps,
+is given in the file ``examples/000_overview/simulation.py``:
 
 .. literalinclude:: ../examples/000_overview/simulation.py
-
-These steps will be discussed in more detail in the following sections.
+    :lines: 26-
 
 Yaff internally works with atomic units, although other unit systems can be used
 in input and (some) output files. The units used for the screen output are
