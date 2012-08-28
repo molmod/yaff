@@ -47,8 +47,7 @@ with h5.File('output.h5', mode='w') as f:
     nve = NVEIntegrator(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
     nve.run(100)
 
-    # 4) perform an analysis, e.g. RDF computation for O_W O_W centers.
+    # 4) perform an analysis, in this case an RDF computation for O-O pairs.
     indexes = system.get_indexes('O')
     rdf = RDF(4.5*angstrom, 0.1*angstrom, f, select0=indexes)
     rdf.plot('rdf.png')
-    f.close()
