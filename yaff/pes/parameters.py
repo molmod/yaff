@@ -21,9 +21,11 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''Object-oriented representation of parameter files.
+'''
 
 
-__all__ = ['Complain', 'Parameters', 'ParameterSection']
+__all__ = ['Complain', 'Parameters', 'ParameterSection', 'ParameterDefinition']
 
 
 class Complain(object):
@@ -50,7 +52,7 @@ class Parameters(object):
        end of a line. If the line is empty after stripping the comments, it is
        ignored. Every non-empty line should have the following format:
 
-       PREFIX:SUFFIX DATA WHICH MAY BE MULTIPLE WORDS AND/OR NUMBERS
+       PREFIX:SUFFIX DATA
 
        The prefix is used for sections, the suffix for definitions and the
        remainder of the line contains arguments for the definition. Definitions
