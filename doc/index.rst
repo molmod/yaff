@@ -51,6 +51,8 @@ source code.
 Development information
 =======================
 
+The git repository is hosted at `Github <https://github.com/molmod/yaff>`_.
+
 .. toctree::
    :maxdepth: 1
    :numbered:
