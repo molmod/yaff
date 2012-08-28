@@ -1,0 +1,129 @@
+# BEGIN SCOPE WATER
+
+
+# Bond stretch
+# ============
+
+# Mathematical form depends on the kind selected below. Few kinds are supported:
+# - BONDHARM: 0.5*K*(r-R0)**2
+# - BONDFUES: 0.5*K*R0**2*(1+(R0/r)*((R0/r)-2.0))
+# The actual parameters and their units may depend on the kind.
+BONDFUES:UNIT K kjmol/angstrom**2
+BONDFUES:UNIT R0 angstrom
+# -----------------------------------------------------------------
+# KEY           label0   label1  K                 R0
+# -----------------------------------------------------------------
+BONDFUES:PARS        O        H  4.0088096730e+03  1.0238240000e+00
+
+
+# Angle bending
+# =============
+
+# Mathematical form depends on the kind selected below. Few kinds are supported:
+# - BENDAHARM: 0.5*K*(theta-THETA0)**2
+# - BENDCHARM: 0.5*K*(cos(theta)-cos(COS0))**2
+# The actual parameters and their units may depend on the kind.
+BENDCHARM:UNIT K kjmol
+BENDCHARM:UNIT COS0 1
+# ---------------------------------------------------------------------------
+# KEY            label0   label1   label2  K                 THETA0/COS0
+# ---------------------------------------------------------------------------
+BENDCHARM:PARS        H        O        H  3.0230353700e+02  2.7892000007e-02
+
+
+# Fixed charges
+# =============
+
+# Mathematical form: q_A = q_0A + sum'_B p_BA
+# where q0_A is the reference charge of atom A. It is mostly zero, sometimes a
+# non-zero integer. The total charge of a fragment is the sum of all reference
+# charges. The parameter p_BA is the charge transfered from B to A. Such charge
+# transfers are only carried out over bonds in the FF topology.
+# The charge on an atom is modeled as a Gaussian distribution. The spread on the
+# Gaussian is called the radius R. When the radius is set to zero, point charges
+# will be used instead of smeared charges.
+FIXQ:UNIT Q0 e
+FIXQ:UNIT P e
+FIXQ:UNIT R angstrom
+FIXQ:SCALE 1 1.0
+FIXQ:SCALE 2 1.0
+FIXQ:SCALE 3 1.0
+FIXQ:DIELECTRIC 1.0
+# ----------------------------------------------------
+# KEY        label  Q_0A              R_A
+# ----------------------------------------------------
+FIXQ:ATOM        O  0.0000000000e+00  0.0000000000e-00
+FIXQ:ATOM        H  0.0000000000e+00  0.0000000000e-00
+# -------------------------------------------
+# KEY       label0   label1  P_AB
+# -------------------------------------------
+FIXQ:BOND        H        O  3.6841957737e-01
+
+
+# Damped Dispersion
+# =================
+
+# Mathematical form:
+#   C6_AB*f(r)*r**-6
+# where C is a constant and f(r) is the Tang-Toennies damping factor
+#   f(r) = 1 - exp(-B_AB*r)*sum_k=0..6((B_AB*r)**k/k!)
+DAMPDISP:UNIT C6 au
+DAMPDISP:UNIT B 1/angstrom
+DAMPDISP:UNIT VOL au
+DAMPDISP:SCALE 1 1.0
+DAMPDISP:SCALE 2 1.0
+DAMPDISP:SCALE 3 1.0
+# The pair parameters C6AB and R0AB are derived from atomic parameters using
+# the following mixing rules:
+#   C6_AB = 2*C6_AA*C6_BB/((VOL_B/VOL_A)**2*C6_AA+(VOL_A/VOL_B)**2*C6_BB)
+#   B_AB = 0.5*(B_AA+B_BB)
+# where
+#   C6_AA = homonuclear dispersion coefficient
+#   VOL_A = atomic volume
+#   VOL_A**2 = proportional to atomic polarizability
+#   B_AA = -0.33*(2*R_VDWA)+4.339
+#   R_VDWA = (conventional) vdw radius of atom A
+# Idea taken from JCP v132, p234109, y2010.
+# Mixing rules are commented out because they are the only available option:
+##DAMPDISP:MIX C6 LONDON_VOLUME
+##DAMPDISP:MIX B ARITHMETIC
+# ---------------------------------------------------------------------------
+# KEY            label  C6_AA             B_AA              VOL_A
+# ---------------------------------------------------------------------------
+DAMPDISP:PARS        O  1.9550248340e+01  3.2421589363e+00  3.13071058512e+00
+DAMPDISP:PARS        H  2.7982205915e+00  3.4581667399e+00  5.13207980365e+00
+
+
+# Exponential Repulsion
+# =====================
+
+# Mathematical form: A_AB*exp(-B_AB*r)
+EXPREP:UNIT A au            # Hartree, internal unit
+EXPREP:UNIT B 1/angstrom
+EXPREP:SCALE 1 0.0
+EXPREP:SCALE 2 1.0
+EXPREP:SCALE 3 1.0
+# The parameters below were derived using the frozen density approximation
+# applied to Hirshfeld-E AIM densities. The mixing rules are determined
+# empirically: A mixes more or less geometrically, B mixes more or less
+# arithmetically. When the A parameters of both atoms differ a lot, the simple
+# mixing rules overestimate the actual values. The following empirical mixing
+# rules compensate for the overestimation:
+#   ln(A_AB) = 0.5*(ln(A_AA) + ln(A_BB))*(1-x_A*abs(ln(A_AA/A_BB)))
+#   B_AB = 0.5*(B_AA + B_BB)*(1-x_B*abs(ln(A_AA/A_BB)))
+# with
+#   x_A = 2.385e-2
+#   x_B = 7.897e-3
+#EXPREP:MIX A GEOMETRIC
+EXPREP:MIX A GEOMETRIC_COR 2.385e-2
+#EXPREP:MIX B ARITHMETIC
+EXPREP:MIX B ARITHMETIC_COR 7.897e-3
+# -----------------------------------------------------
+# KEY         label  A_AA              B_AA
+# -----------------------------------------------------
+EXPREP:PARS       O  4.2117588157e+02  4.4661933834e+00
+EXPREP:PARS       H  2.3514195495e+00  4.4107388814e+00
+# -----------------------------------------------------
+
+
+# END SCOPE WATER

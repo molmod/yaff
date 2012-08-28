@@ -97,10 +97,16 @@ class RDF(AnalysisHook):
            is built up as the itertive algorithm progresses. The end option is
            ignored and max_sample is not applicable to an on-line analysis.
         """
-        if select0 is not None and len(select0) != len(set(select0)):
-            raise ValueError('No duplicates are allowed in select0')
-        if select1 is not None and len(select1) != len(set(select1)):
-            raise ValueError('No duplicates are allowed in select1')
+        if select0 is not None:
+            if len(select0) != len(set(select0)):
+                raise ValueError('No duplicates are allowed in select0')
+            if len(select0) == 0:
+                raise ValueError('select0 can not be an empty list')
+        if select1 is not None:
+            if len(select1) != len(set(select1)):
+                raise ValueError('No duplicates are allowed in select1')
+            if len(select1) == 0:
+                raise ValueError('select1 can not be an empty list')
         if select0 is not None and select1 is not None and len(select0) + len(select1) != len(set(select0) | set(select1)):
             raise ValueError('No overlap is allowed between select0 and select1')
         if select0 is None and select1 is not None:

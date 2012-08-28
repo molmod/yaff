@@ -12,32 +12,10 @@ force-field simulations. A useful simulation typically consists of four steps:
 
 In Yaff, the conventional input file is replaced by an input script. This means
 that you must write one or more small `main` programs that specify what type of
-simulation is carried out. This is a minimalistic example that includes the
-four steps given above::
+simulation is carried out. A minimalistic example is given in the file
+``examples/000_overview/simulation.py``:
 
-    # import the yaff library
-    from yaff import *
-    # control the amount of screen output and the unit system
-    log.set_level(log.medium)
-    log.set_unitsys(log.joule)
-
-    # import the h5py library to write output in the HDF5 format.
-    import h5py as h5
-
-    # 1) specify the system
-    system = System.from_file('system.chk')
-    # 2) specify the force field
-    ff = ForceField.generate(system, 'parameters.txt')
-    # 3) Integrate Newton's equation of motion and write the trajectory in HDF5 format.
-    f = h5.File('output.h5', mode='w')
-    hdf5_writer = HDF5Writer(f)
-    nve = NVEIntegrator(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
-    nve.run(5000)
-    # 4) perform an analysis, e.g. RDF computation for O_W O_W centers.
-    indexes = system.get_indexes('O_W')
-    rdf = RDFAnalysis(f, indexes)
-    rdf.result.plot('rdf.png')
-    f.close()
+.. literalinclude:: ../examples/000_overview/simulation.py
 
 These steps will be discussed in more detail in the following sections.
 

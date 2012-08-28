@@ -201,11 +201,9 @@ def test_bead_dot():
 
 
 def test_neural_net():
-    '''A simple neural network implementation based on the Bead classes
-
-       This example implements a three-layer (5,4,1) network with random
-       parameters.
-    '''
+    # A simple neural network implementation based on the Bead classes
+    # This example implements a three-layer (5,4,1) network with random
+    # parameters.
     ltc1 = BeadLinTransConst(np.random.normal(0,1,(4,5)), np.random.normal(0,1,4))
     swi1 = BeadSwitch(4)
     ltc2 = BeadLinTransConst(np.random.normal(0,1,(1,4)), np.random.normal(0,1,1))
@@ -260,4 +258,7 @@ def test_neural_net():
     print 'Test passed.'
 
 if __name__ == '__main__':
+    test_bead_lin_trans_const()
+    test_bead_switch()
+    test_bead_dot()
     test_neural_net()
