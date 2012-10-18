@@ -29,15 +29,13 @@ from molmod.constants import lightspeed
 from molmod.units import centimeter
 from yaff.log import log
 from yaff.analysis.utils import get_slice
-from yaff.analysis.hook import AnalysisHook
+from yaff.analysis.hook import AnalysisInput, AnalysisHook
 
 
 __all__ = ['Spectrum']
 
 
 class Spectrum(AnalysisHook):
-    label = 'spectrum'
-
     def __init__(self, f=None, start=0, end=-1, step=1, bsize=4096, select=None,
                  path='trajectory/vel', key='vel', outpath=None, weights=None):
         """
@@ -119,7 +117,10 @@ class Spectrum(AnalysisHook):
         self.ssize = self.bsize/2+1 # the length of the spectrum array
         self.amps = np.zeros(self.ssize, float)
         self.nfft = 0 # the number of fft calls, for statistics
-        AnalysisHook.__init__(self, f, start, end, None, step, path, key, outpath, True)
+        if outpath is None:
+            outpath = path + '_spectrum'
+        analysis_inputs = {'signal': AnalysisInput(path, key)}
+        AnalysisHook.__init__(self, f, start, end, None, step, analysis_inputs, outpath, True)
 
     def init_online(self):
         AnalysisHook.init_online(self)
@@ -147,14 +148,28 @@ class Spectrum(AnalysisHook):
             self.outg['freqs'][:] = self.freqs
             self.outg['time'][:] = self.time
 
-    def configure_online(self, iterative):
+    def offline_loop(self, ds_signal):
+        # Compute the amplitudes of the spectrum
+        current = self.start
+        stride = self.step*self.bsize
+        work = np.zeros(self.bsize, float)
+        while current <= self.end - stride:
+            for indexes in self._iter_indexes(ds_signal):
+                ds_signal.read_direct(work, (slice(current, current+stride, self.step),) + indexes)
+                self.amps += self._get_weight(indexes)*abs(np.fft.rfft(work))**2
+                self.nfft += 1
+            current += stride
+        # Compute related arrays
+        self.compute_derived()
+
+    def configure_online(self, iterative, st_signal):
         if self.select is None:
-            shape = (self.bsize,) + iterative.state[self.key].shape
+            shape = (self.bsize,) + st_signal.shape
         else:
-            shape = (self.bsize, self.select) + iterative.state[self.key].shape[1:]
+            shape = (self.bsize, self.select) + st_signal.shape[1:]
         self.work = np.zeros(shape, float)
 
-    def configure_offline(self, ds):
+    def configure_offline(self, ds_signal):
         self.work = np.zeros(self.bsize)
 
     def init_first(self):
@@ -165,11 +180,11 @@ class Spectrum(AnalysisHook):
             self.outg.create_dataset('ac', (self.ssize,), float)
             self.outg.create_dataset('time', (self.ssize,), float)
 
-    def read_online(self, iterative):
+    def read_online(self, st_signal):
         if self.select is None:
-            self.work[self.ncollect] = iterative.state[self.key].value
+            self.work[self.ncollect] = st_signal.value
         else:
-            self.work[self.ncollect] = iterative.state[self.key].value[self.select]
+            self.work[self.ncollect] = st_signal.value[self.select]
         self.ncollect += 1
 
     def compute_iteration(self):
@@ -184,20 +199,6 @@ class Spectrum(AnalysisHook):
             # reset some things
             self.work[:] = 0.0
             self.ncollect = 0
-
-    def offline_loop(self, ds):
-        # Compute the amplitudes of the spectrum
-        current = self.start
-        stride = self.step*self.bsize
-        work = np.zeros(self.bsize, float)
-        while current <= self.end - stride:
-            for indexes in self._iter_indexes(ds):
-                ds.read_direct(work, (slice(current, current+stride, self.step),) + indexes)
-                self.amps += self._get_weight(indexes)*abs(np.fft.rfft(work))**2
-                self.nfft += 1
-            current += stride
-        # Compute related arrays
-        self.compute_derived()
 
     def compute_derived(self):
         self.ac = np.fft.irfft(self.amps)[:self.ssize]

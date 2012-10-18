@@ -27,7 +27,7 @@ import numpy as np
 
 from yaff.log import log
 from yaff.analysis.utils import get_slice
-from yaff.analysis.hook import AnalysisHook
+from yaff.analysis.hook import AnalysisInput, AnalysisHook
 from yaff.pes.ext import Cell
 
 
@@ -35,11 +35,10 @@ __all__ = ['RDF']
 
 
 class RDF(AnalysisHook):
-    label = 'rdf'
-
     def __init__(self, rcut, rspacing, f=None, start=0, end=-1, max_sample=None,
                  step=None, select0=None, select1=None, exclude=None,
-                 path='trajectory/pos', key='pos', outpath=None):
+                 pospath='trajectory/pos', poskey='pos', cellpath=None,
+                 cellkey=None, outpath=None):
         """Computes a radial distribution function (RDF)
 
            **Argument:**
@@ -77,14 +76,24 @@ class RDF(AnalysisHook):
                 An array with pairs of atoms (shape K x 2) with pairs of atom
                 indexes to be excluded from the RDF.
 
-           path
+           pospath
                 The path of the dataset that contains the time dependent data in
                 the HDF5 file. The first axis of the array must be the time
-                axis.
+                axis. This is only needed for an off-line analysis
 
-           key
+           poskey
                 In case of an on-line analysis, this is the key of the state
                 item that contains the data from which the RDF is derived.
+
+           cellpath
+                The path the time-dependent cell vector data. This is only
+                needed when the cell parameters are variable and the analysis is
+                off-line.
+
+           cellkey
+                The key of the stateitem that contains the cell vectors. This
+                is only needed when the cell parameters are variable and the
+                analysis is done on-line.
 
            outpath
                 The output path for the frequency computation in the HDF5 file.
@@ -122,7 +131,10 @@ class RDF(AnalysisHook):
         self.counts = np.zeros(self.nbin, int)
         self.nsample = 0
         self._init_exclude()
-        AnalysisHook.__init__(self, f, start, end, max_sample, step, path, key, outpath, False)
+        if outpath is None:
+            outpath = pospath + '_rdf'
+        analysis_inputs = {'pos': AnalysisInput(pospath, poskey), 'cell': AnalysisInput(cellpath, cellkey, False)}
+        AnalysisHook.__init__(self, f, start, end, max_sample, step, analysis_inputs, outpath, False)
 
     def _init_exclude(self):
         if self.exclude_atoms is None:
@@ -152,25 +164,29 @@ class RDF(AnalysisHook):
         else:
             self.exclude = None
 
-    def configure_online(self, iterative):
-        self.cell = iterative.ff.system.cell
-        self.natom = iterative.ff.system.natom
-
-    def configure_offline(self, ds):
-        if 'rvecs' in self.f['system']:
-            rvecs = self.f['system/rvecs'][:]
-            self.cell = Cell(rvecs)
-            if (2*self.rcut > self.cell.rspacings).any():
-                raise ValueError('The 2*rcut argument should not exceed any of the cell spacings.')
-        else:
-            self.cell = Cell(None)
+    def _update_rvecs(self, rvecs):
+        self.cell = Cell(rvecs)
         if self.cell.nvec != 3:
             raise ValueError('RDF can only be computed for 3D periodic systems.')
+        if (2*self.rcut > self.cell.rspacings).any():
+            raise ValueError('The 2*rcut argument should not exceed any of the cell spacings.')
+
+    def configure_online(self, iterative, st_pos, st_cell=None):
+        self.natom = iterative.ff.system.natom
+        self._update_rvecs(iterative.ff.system.cell.rvecs)
+
+    def configure_offline(self, ds_pos, ds_cell=None):
+        if ds_cell is None:
+            # In this case, we have a unit cell that does not change shape.
+            # It must be configured just once.
+            if 'rvecs' in self.f['system']:
+                self._update_rvecs(self.f['system/rvecs'][:])
+            else:
+                self._update_rvecs(None)
         # get the total number of atoms
         self.natom = self.f['system/numbers'].shape[0]
 
     def init_first(self):
-        self.volume = self.cell.volume
         # Setup some work arrays
         if self.select0 is None:
             self.natom0 = self.natom
@@ -195,22 +211,25 @@ class RDF(AnalysisHook):
             self.outg.create_dataset('counts', (self.nbin,), int)
             self.outg['d'] = self.d
 
-    def read_online(self, iterative):
-        pos = iterative.state[self.key].value
+    def read_online(self, st_pos, st_cell=None):
+        if st_cell is not None:
+            self._update_rvecs(st_cell.value)
         if self.select0 is None:
-            self.pos0[:] = pos
+            self.pos0[:] = st_pos.value
         else:
-            self.pos0[:] = pos[self.select0]
+            self.pos0[:] = st_pos.value[self.select0]
         if self.select1 is not None:
-            self.pos1[:] = pos[self.select1]
+            self.pos1[:] = st_pos.value[self.select1]
 
-    def read_offline(self, ds, i):
+    def read_offline(self, i, ds_pos, ds_cell=None):
+        if ds_cell is not None:
+            self._update_rvecs(np.array(ds_cell[i]))
         if self.select0 is None:
-            ds.read_direct(self.pos0, (i,))
+            ds_pos.read_direct(self.pos0, (i,))
         else:
-            ds.read_direct(self.pos0, (i,self.select0))
+            ds_pos.read_direct(self.pos0, (i,self.select0))
         if self.select1 is not None:
-            ds.read_direct(self.pos1, (i,self.select1))
+            ds_pos.read_direct(self.pos1, (i,self.select1))
 
     def compute_iteration(self):
         self.cell.compute_distances(self.work, self.pos0, self.pos1, self.exclude)
@@ -219,7 +238,7 @@ class RDF(AnalysisHook):
 
     def compute_derived(self):
         # derive the RDF
-        ref_count = self.npair/self.volume*4*np.pi*self.d**2*self.rspacing
+        ref_count = self.npair/self.cell.volume*4*np.pi*self.d**2*self.rspacing
         self.rdf = self.counts/ref_count/self.nsample
         # derived the cumulative RDF
         self.crdf = self.counts.cumsum()/float(self.nsample*self.natom0)

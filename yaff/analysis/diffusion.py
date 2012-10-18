@@ -26,7 +26,7 @@
 import numpy as np
 
 from yaff.log import log
-from yaff.analysis.hook import AnalysisHook
+from yaff.analysis.hook import AnalysisInput, AnalysisHook
 from yaff.analysis.blav import blav
 
 
@@ -34,10 +34,8 @@ __all__ = ['Diffusion']
 
 
 class Diffusion(AnalysisHook):
-    label = 'diff'
-
     def __init__(self, f=None, start=0, end=-1, step=1, mult=20, select=None,
-                 bsize=None, path='trajectory/pos', key='pos', outpath=None):
+                 bsize=None, pospath='trajectory/pos', poskey='pos', outpath=None):
         """Computes mean-squared displacements and diffusion constants
 
            **Optional arguments:**
@@ -68,12 +66,12 @@ class Diffusion(AnalysisHook):
                 subsequent blocks. If step > 1, the intervals will be left out
                 if the overlap with boundaries of blocks with size bsize*step.
 
-           path
+           pospath
                 The path of the dataset that contains the time dependent data in
                 the HDF5 file. The first axis of the array must be the time
                 axis.
 
-           key
+           poskey
                 In case of an on-line analysis, this is the key of the state
                 item that contains the data from which the MSD's are derived.
 
@@ -91,16 +89,10 @@ class Diffusion(AnalysisHook):
         self.msdsums = np.zeros(self.mult, float)
         self.msdcounters = np.zeros(self.mult, int)
         self.counter = 0
-        AnalysisHook.__init__(self, f, start, end, None, step, path, key, outpath, True)
-
-    def init_timestep(self):
-        pass
-
-    def configure_online(self, iterative):
-        self.shape = iterative.state[self.key].shape
-
-    def configure_offline(self, ds):
-        self.shape = ds.shape[1:]
+        if outpath is None:
+            outpath = pospath + '_diff'
+        analysis_inputs = {'pos': AnalysisInput(pospath, poskey)}
+        AnalysisHook.__init__(self, f, start, end, None, step, analysis_inputs, outpath, True)
 
     def init_first(self):
         # update the shape if select is present
@@ -123,23 +115,26 @@ class Diffusion(AnalysisHook):
             self.outg.create_dataset('pars', shape=(2,), dtype=float)
             self.outg.create_dataset('pars_error', shape=(2,), dtype=float)
 
-    def read_online(self, iterative):
-        if self.select is None:
-            self.pos[:] = iterative.state[self.key].value
-        else:
-            self.pos[:] = iterative.state[self.key].value[self.select]
+    def configure_online(self, iterative, st_pos):
+        self.shape = st_pos.shape
 
-    def read_offline(self, ds, i):
-        if self.select is None:
-            ds.read_direct(self.pos, (i,))
-        else:
-            ds.read_direct(self.pos, (i, self.select))
+    def configure_offline(self, ds_pos):
+        self.shape = ds_pos.shape[1:]
 
-    def overlap_bsize(self, m):
-        if self.bsize is None:
-            return False
+    def init_timestep(self):
+        pass
+
+    def read_online(self, st_pos):
+        if self.select is None:
+            self.pos[:] = st_pos.value
         else:
-            return self.counter - (self.counter/self.bsize)*self.bsize - m - 1 < 0
+            self.pos[:] = st_pos.value[self.select]
+
+    def read_offline(self, i, ds_pos):
+        if self.select is None:
+            ds_pos.read_direct(self.pos, (i,))
+        else:
+            ds_pos.read_direct(self.pos, (i, self.select))
 
     def compute_iteration(self):
         for m in xrange(self.mult):
@@ -149,15 +144,6 @@ class Diffusion(AnalysisHook):
                     self.update_msd(msd, m)
                 self.last_poss[m][:] = self.pos
         self.counter += 1
-
-    def update_msd(self, msd, m):
-        self.msdsums[m] += msd
-        self.msdcounters[m] += 1
-        if self.outg is not None:
-            ds = self.outg['msd%03i' % (m+1)]
-            row = ds.shape[0]
-            ds.resize(row+1, axis=0)
-            ds[row] = msd
 
     def compute_derived(self):
         positive = (self.msdcounters > 0).nonzero()[0]
@@ -207,6 +193,21 @@ class Diffusion(AnalysisHook):
                     self.outg['msds_error'] = self.msds_error
                     self.outg['pars_error'][0] = self.A_error
                     self.outg['pars_error'][1] = self.B_error
+
+    def overlap_bsize(self, m):
+        if self.bsize is None:
+            return False
+        else:
+            return self.counter - (self.counter/self.bsize)*self.bsize - m - 1 < 0
+
+    def update_msd(self, msd, m):
+        self.msdsums[m] += msd
+        self.msdcounters[m] += 1
+        if self.outg is not None:
+            ds = self.outg['msd%03i' % (m+1)]
+            row = ds.shape[0]
+            ds.resize(row+1, axis=0)
+            ds[row] = msd
 
     def plot(self, fn_png='msds.png'):
         import matplotlib.pyplot as pt

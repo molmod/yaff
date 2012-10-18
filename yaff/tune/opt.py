@@ -370,7 +370,7 @@ class ParameterHistory(object):
 
         # Add the record
         self.history.append((f, x))
-        self.history.sort()
+        self.history.sort(key=(lambda el: el[0]))
 
         if len(self.history) > self.maxrec:
             del self.history[-1]

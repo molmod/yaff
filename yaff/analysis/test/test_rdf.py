@@ -22,6 +22,8 @@
 #
 #--
 
+# TODO: change import style: h5py as h5
+
 import shutil, os, h5py, numpy as np
 
 from yaff import *
@@ -34,6 +36,7 @@ def test_rdf1_offline():
     try:
         select = nve.ff.system.get_indexes('O')
         rdf = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select)
+        print f['trajectory'].keys()
         assert 'trajectory/pos_rdf' in f
         assert 'trajectory/pos_rdf/d' in f
         assert 'trajectory/pos_rdf/counts' in f
@@ -138,8 +141,6 @@ def test_rdf2_offline_exclude():
             exclude.append((3*i+1,3*i))
             exclude.append((3*i+2,3*i))
         exclude = np.array(exclude)
-        print nve.ff.system.natom
-        print exclude
         rdf = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select0, select1=select1, exclude=exclude)
         assert 'trajectory/pos_rdf' in f
         assert 'trajectory/pos_rdf/d' in f
@@ -152,3 +153,35 @@ def test_rdf2_offline_exclude():
     finally:
         shutil.rmtree(dn_tmp)
         f.close()
+
+
+def test_rdf_from_file_variable_cell():
+    system = System.from_file('input/chloro_pos.xyz', rvecs=np.diag([48.877]*3))
+    with h5py.File('test_rdf_from_file_variable_cell.h5', driver='core', backing_store=False) as f:
+        # Prepare in-memory HDF5 file
+        system.to_hdf5(f)
+        xyz_to_hdf5(f, 'input/chloro_pos.xyz')
+        rvecs_traj = []
+        with file('input/chloro_vol.txt') as fvol:
+            for line in fvol:
+                if line.startswith(' INITIAL'):
+                    vol = float(line.split()[3])
+                else:
+                    vol = float(line.split()[2])
+                rvecs = np.identity(3, float)*vol**(1.0/3.0)
+                rvecs_traj.append(rvecs)
+        rvecs_traj = np.array(rvecs_traj)
+        f['trajectory']['cell'] = rvecs_traj
+
+        # run the analysis
+        select0 = system.get_indexes('6')
+        rdf = RDF(10.0*angstrom, 0.5*angstrom, f, select0=select0, cellpath='trajectory/cell')
+
+        # do some tests
+        assert 'trajectory/pos_rdf' in f
+        assert 'trajectory/pos_rdf/d' in f
+        assert 'trajectory/pos_rdf/counts' in f
+        assert 'trajectory/pos_rdf/rdf' in f
+        assert 'trajectory/pos_rdf/crdf' in f
+        # The first part of the RDF should be zero.
+        assert (rdf.rdf[:6] == 0.0).all()

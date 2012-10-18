@@ -28,14 +28,40 @@ from yaff.sampling.iterative import Hook
 from yaff.analysis.utils import get_slice
 
 
-__all__ = ['AnalysisHook']
+__all__ = ['AnalysisInput', 'AnalysisHook']
+
+
+
+class AnalysisInput(object):
+    '''Describes the location of the time-dependent input for an analysis.'''
+    def __init__(self, path, key, required=True):
+        '''
+           **Arguments:**
+
+           path
+                The path in the HDF5 file were the input can be found. This
+                is only relevant for an off-line analysis. This must be a
+                dataset in the trajectory folder.
+
+           key
+                The key of the state item that contains the input. This is
+                only relevant for an on-line analysis.
+
+           **Optional arguments:**
+
+           required
+                When true, this input is mandatory. When false, it is optional.
+        '''
+        if path is not None and not path.startswith('trajectory/'):
+            raise ValueError('When the path is given, it must start with "trajectory/".')
+        self.path = path
+        self.key = key
+        self.required = required
 
 
 class AnalysisHook(Hook):
-    label = None
-
     def __init__(self, f=None, start=0, end=-1, max_sample=None, step=None,
-                 path=None, key=None, outpath=None, do_timestep=False):
+                 analysis_inputs={}, outpath='trajectory/noname', do_timestep=False):
         """Base class for the ansysis hooks.
 
            Analysis hooks in Yaff support both off-line and on-line analysis.
@@ -50,20 +76,11 @@ class AnalysisHook(Hook):
            start, end, max_sample, step
                 Optional arguments for the ``get_slice`` function.
 
-           path
-                The path of the dataset that contains the time dependent data in
-                the HDF5 file. The first axis of the array must be the time
-                axis.
-
-           key
-                In case of an on-line analysis, this is the key of the state
-                item that contains the main data that will be used for the
-                analysis.
+           analysis_inputs
+                A list with AnalysisInput instances
 
            outpath
-                The output path for the analysis. If not given, it defaults
-                to '%s_%' % (path, self.label). If this path already exists, it
-                will be removed first.
+                The output path for the analysis.
 
            do_timestep
                 When True, a self.timestep attribute will be initialized as
@@ -71,25 +88,29 @@ class AnalysisHook(Hook):
         """
         self.f = f
         self.start, self.end, self.step = get_slice(self.f, start, end, max_sample, step)
-        self.path = path
-        self.key = key
-        # prepare the output path
-        if outpath is None:
-            self.outpath = '%s_%s' % (path, self.label)
-        else:
-            self.outpath = outpath
+        self.analysis_inputs = analysis_inputs
+        self.outpath = outpath
         self.do_timestep = do_timestep
 
-        self.online = self.f is None or path not in self.f
+        self.online = self.f is None
+        if not self.online:
+            for ai in self.analysis_inputs.itervalues():
+                self.online |= (ai.path is None and ai.required)
+                self.online |= not (ai.path is None or ai.path in self.f)
         if not self.online:
             self.compute_offline()
         else:
             self.init_online()
 
     def __call__(self, iterative):
+        # get the requested state items
+        state_items = {}
+        for key, ai in self.analysis_inputs.iteritems():
+            if ai.key is not None:
+                state_items['st_'+key] = iterative.state[ai.key]
         # prepare some data structures
         if self._first_iteration:
-            self.configure_online(iterative)
+            self.configure_online(iterative, **state_items)
             self.init_first()
             self._first_iteration = False
         # get the time step
@@ -100,28 +121,23 @@ class AnalysisHook(Hook):
                 self.timestep = iterative.state['time'].value - self.lasttime
                 del self.lasttime
                 self.init_timestep()
-        self.read_online(iterative)
+        # do the analysis on one iteration
+        self.read_online(**state_items)
         self.compute_iteration()
         self.compute_derived()
 
     def compute_offline(self):
-        ds = self.f[self.path]
-        self.configure_offline(ds)
+        datasets = {}
+        for key, ai in self.analysis_inputs.iteritems():
+            if ai.path is not None:
+                datasets['ds_' + key] = self.f[ai.path]
+        self.configure_offline(**datasets)
         self.init_first()
         if self.do_timestep:
             self.timestep = self.f['trajectory/time'][self.start+self.step] - self.f['trajectory/time'][self.start]
             self.init_timestep()
-        self.offline_loop(ds)
+        self.offline_loop(**datasets)
         self.compute_derived()
-
-    def init_timestep(self):
-        raise NotImplementedError
-
-    def configure_online(self, iterative):
-        raise NotImplementedError
-
-    def configure_offline(self, ds):
-        raise NotImplementedError
 
     def init_first(self):
         # create the output group
@@ -132,29 +148,32 @@ class AnalysisHook(Hook):
         else:
             self.outg = None
 
-    def offline_loop(self, ds):
-        # Iterate over the dataset
-        for i in xrange(self.start, self.end, self.step):
-            self.read_offline(ds, i)
-            self.compute_iteration()
-
     def init_online(self):
         self._first_iteration = True
         if self.do_timestep:
             self.timestep = None
             self.lasttime = None
 
-    def read_online(self, iterative):
+    def offline_loop(self, **datasets):
+        # Iterate over the dataset
+        for i in xrange(self.start, self.end, self.step):
+            self.read_offline(i, **datasets)
+            self.compute_iteration()
+
+    def configure_online(self, **state_items):
+        pass
+
+    def configure_offline(self, **kwargs):
+        pass
+
+    def init_timestep(self):
         raise NotImplementedError
 
-    def read_offline(self, ds, i):
+    def read_online(self, **state_items):
         raise NotImplementedError
 
-    def configure_online(self, iterative):
-        self.shape = iterative.state[self.key].shape
-
-    def configure_offline(self, ds):
-        self.shape = ds.shape[1:]
+    def read_offline(self, i, **kwargs):
+        raise NotImplementedError
 
     def compute_iteration(self):
         raise NotImplementedError
