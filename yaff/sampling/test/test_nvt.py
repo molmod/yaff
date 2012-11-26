@@ -27,7 +27,12 @@ import h5py, numpy as np
 from yaff import *
 from yaff.sampling.test.common import get_ff_water32
 
-def test_basic():
+def test_basic_nhcnvt():
     nvt = NHCNVTIntegrator(get_ff_water32(), 1.0*femtosecond)
+    nvt.run(5)
+    assert nvt.counter == 5
+
+def test_basic_lnvt():
+    nvt = LNVTIntegrator(get_ff_water32(), 1.0*femtosecond)
     nvt.run(5)
     assert nvt.counter == 5

@@ -36,10 +36,10 @@ from yaff.sampling.md import MDScreenLog, ConsErrTracker, get_random_vel, remove
 
 
 __all__ = [
-    'NHCNVTIntegrator'
+    'NHCNVTIntegrator', 'LNVTIntegrator',
 ]
 
-
+# TODO: eliminate common code (also with NVE), possible with more hook types, e.g. to combine different types of thermostats
 
 class NHChain(object):
     # TODO: add citations to nose, hoover and martyna
@@ -193,7 +193,7 @@ class NHCNVTIntegrator(Iterative):
                 raise TypeError('The vel0 argument does not have the right shape.')
             self.vel = vel0.copy()
         remove_com_vel(self.vel, self.masses)
-        self.temp = temp
+        self.temp_bath = temp
         # TODO: allow for manual override of ndof in case of constraints.
         self.chain = NHChain(chainlength, timestep, temp, self.pos.size, timecon)
 
@@ -248,6 +248,152 @@ class NHCNVTIntegrator(Iterative):
         self.temp = self.ekin/self.ff.system.natom/3.0*2.0/boltzmann
         self.etot = self.ekin + self.epot
         self.econs = self.etot + self.econs_ref + self.chain.get_econs_contrib()
+        self._cons_err_tracker.update(self.ekin, self.econs)
+        self.cons_err = self._cons_err_tracker.get()
+
+    def finalize(self):
+        if log.do_medium:
+            log.hline()
+
+
+
+class LNVTIntegrator(Iterative):
+    default_state = [
+        AttributeStateItem('counter'),
+        AttributeStateItem('time'),
+        AttributeStateItem('epot'),
+        PosStateItem(),
+        AttributeStateItem('vel'),
+        AttributeStateItem('rmsd_delta'),
+        AttributeStateItem('rmsd_gpos'),
+        AttributeStateItem('ekin'),
+        AttributeStateItem('temp'),
+        AttributeStateItem('etot'),
+        AttributeStateItem('econs'),
+        AttributeStateItem('cons_err'),
+        DipoleStateItem(),
+        DipoleVelStateItem(),
+        VolumeStateItem(),
+        CellStateItem(),
+        EPotContribStateItem(),
+    ]
+
+    log_name = 'LNVT'
+    # TODO: cite Phys. Rev. E 75, 056707 (2007)
+
+    def __init__(self, ff, timestep, state=None, hooks=None, vel0=None, temp=300, friction=1.0, scalevel0=True, time0=0.0, counter0=0):
+        """
+           **Arguments:**
+
+           ff
+                A ForceField instance
+
+           timestep
+                The integration time step (in atomic units)
+
+           **Optional arguments:**
+
+           state
+                A list with state items. State items are simple objects
+                that take or derive a property from the current state of the
+                iterative algorithm.
+
+           hooks
+                A function (or a list of functions) that is called after every
+                iterative.
+
+           vel0
+                An array with initial velocities. If not given, random
+                velocities are sampled from the Maxwell-Boltzmann distribution
+                corresponding to the optional arguments temp0 and scalevel0
+
+           temp
+                The temperature for the random initial velocities and the
+                heat bath.
+
+           friction
+                The friction parameter of the Langevin algorithm.
+
+           scalevel0
+                If True (the default), the random velocities are rescaled such
+                that the instantaneous temperature coincides with temp0.
+
+           time0
+                The time associated with the initial state.
+
+           counter0
+                The counter value associated with the initial state.
+        """
+        self.pos = ff.system.pos.copy()
+        self.timestep = timestep
+        self.time = time0
+        if ff.system.masses is None:
+            ff.system.set_standard_masses()
+        self.masses = ff.system.masses
+        if vel0 is None:
+            self.vel = get_random_vel(temp, scalevel0, self.masses)
+            remove_com_vel(self.vel, self.masses)
+        else:
+            if vel.shape != self.pos.shape:
+                raise TypeError('The vel0 argument does not have the right shape.')
+            self.vel = vel0.copy()
+        self.temp_bath = temp
+        self.friction = friction
+
+        self.gpos = np.zeros(self.pos.shape, float)
+        self.delta = np.zeros(self.pos.shape, float)
+        # econs_ref should be changed by hooks that change positions or
+        # velocities, such that a conserved quantity can be computed.
+        self.econs_ref = 0
+        # cons_err is an object that keeps track of the error on the conserved
+        # quantity.
+        self._cons_err_tracker = ConsErrTracker()
+        Iterative.__init__(self, ff, state, hooks, counter0)
+
+    def _add_default_hooks(self):
+        if not any(isinstance(hook, MDScreenLog) for hook in self.hooks):
+            self.hooks.append(MDScreenLog())
+
+    def initialize(self):
+        self.gpos[:] = 0.0
+        self.ff.update_pos(self.pos)
+        self.epot = self.ff.compute(self.gpos)
+        self.acc = -self.gpos/self.masses.reshape(-1,1)
+        self.compute_properties()
+        Iterative.initialize(self)
+
+    def thermo(self):
+        c1 = np.exp(-self.friction*self.timestep/2)
+        c2 = np.sqrt((1.0-c1**2)*self.temp_bath*boltzmann/self.masses).reshape(-1,1)
+        self.econs_ref += 0.5*(self.vel**2*self.masses.reshape(-1,1)).sum()
+        self.vel = c1*self.vel + c2*np.random.normal(0, 1, self.vel.shape)
+        self.econs_ref -= 0.5*(self.vel**2*self.masses.reshape(-1,1)).sum()
+
+    def propagate(self):
+        self.thermo()
+
+        self.delta[:] = self.timestep*self.vel + (0.5*self.timestep**2)*self.acc
+        self.pos += self.delta
+        self.ff.update_pos(self.pos)
+        self.gpos[:] = 0.0
+        self.epot = self.ff.compute(self.gpos)
+        acc = -self.gpos/self.masses.reshape(-1,1)
+        self.vel += 0.5*(acc+self.acc)*self.timestep
+        self.acc = acc
+        self.time += self.timestep
+
+        self.thermo()
+
+        self.compute_properties()
+        Iterative.propagate(self)
+
+    def compute_properties(self):
+        self.rmsd_gpos = np.sqrt((self.gpos**2).mean())
+        self.rmsd_delta = np.sqrt((self.delta**2).mean())
+        self.ekin = 0.5*(self.vel**2*self.masses.reshape(-1,1)).sum()
+        self.temp = self.ekin/self.ff.system.natom/3.0*2.0/boltzmann
+        self.etot = self.ekin + self.epot
+        self.econs = self.etot + self.econs_ref
         self._cons_err_tracker.update(self.ekin, self.econs)
         self.cons_err = self._cons_err_tracker.get()
 
