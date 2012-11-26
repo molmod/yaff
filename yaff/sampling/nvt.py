@@ -289,7 +289,9 @@ class LNVTIntegrator(Iterative):
     log_name = 'LNVT'
     # TODO: cite Phys. Rev. E 75, 056707 (2007)
 
-    def __init__(self, ff, timestep, state=None, hooks=None, vel0=None, temp=300, friction=1e-3, scalevel0=True, time0=0.0, counter0=0):
+    def __init__(self, ff, timestep, state=None, hooks=None, vel0=None,
+                 temp=300, timecon=100*femtosecond, scalevel0=True, time0=0.0,
+                 counter0=0):
         """
            **Arguments:**
 
@@ -319,8 +321,8 @@ class LNVTIntegrator(Iterative):
                 The temperature for the random initial velocities and the
                 heat bath.
 
-           friction
-                The friction parameter of the Langevin algorithm.
+           timecon
+                The timeconstant of the Langevin integrator (1/gamma)
 
            scalevel0
                 If True (the default), the random velocities are rescaled such
@@ -346,7 +348,7 @@ class LNVTIntegrator(Iterative):
                 raise TypeError('The vel0 argument does not have the right shape.')
             self.vel = vel0.copy()
         self.temp_bath = temp
-        self.friction = friction
+        self.timecon = timecon
 
         self.gpos = np.zeros(self.pos.shape, float)
         self.delta = np.zeros(self.pos.shape, float)
@@ -372,7 +374,7 @@ class LNVTIntegrator(Iterative):
         Iterative.initialize(self)
 
     def thermo(self):
-        c1 = np.exp(-self.friction*self.timestep/2)
+        c1 = np.exp(-self.timestep/self.timecon/2)
         c2 = np.sqrt((1.0-c1**2)*self.temp_bath*boltzmann/self.masses).reshape(-1,1)
         self.econs_ref += 0.5*(self.vel**2*self.masses.reshape(-1,1)).sum()
         self.vel = c1*self.vel + c2*np.random.normal(0, 1, self.vel.shape)
