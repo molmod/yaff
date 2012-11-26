@@ -254,7 +254,7 @@ class NHCNVTIntegrator(Iterative):
         self.econs = self.etot + self.econs_ref + self.chain.get_econs_contrib()
         self._cons_err_tracker.update(self.ekin, self.econs)
         self.cons_err = self._cons_err_tracker.get()
-        self.ptens = (np.identity(3)*(boltzmann*self.temp*self.masses.size) + self.vtens)/self.ff.system.cell.volume
+        self.ptens = (np.dot(self.vel.T*self.masses, self.vel) + self.vtens)/self.ff.system.cell.volume
         self.press = np.trace(self.ptens)/3
 
     def finalize(self):
@@ -408,7 +408,7 @@ class LNVTIntegrator(Iterative):
         self.econs = self.etot + self.econs_ref
         self._cons_err_tracker.update(self.ekin, self.econs)
         self.cons_err = self._cons_err_tracker.get()
-        self.ptens = (np.identity(3)*(boltzmann*self.temp*self.masses.size) + self.vtens)/self.ff.system.cell.volume
+        self.ptens = (np.dot(self.vel.T*self.masses, self.vel) + self.vtens)/self.ff.system.cell.volume
         self.press = np.trace(self.ptens)/3
 
     def finalize(self):
