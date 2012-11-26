@@ -123,6 +123,8 @@ class NHCNVTIntegrator(Iterative):
         AttributeStateItem('etot'),
         AttributeStateItem('econs'),
         AttributeStateItem('cons_err'),
+        AttributeStateItem('ptens'),
+        AttributeStateItem('press'),
         DipoleStateItem(),
         DipoleVelStateItem(),
         VolumeStateItem(),
@@ -199,6 +201,7 @@ class NHCNVTIntegrator(Iterative):
 
         self.gpos = np.zeros(self.pos.shape, float)
         self.delta = np.zeros(self.pos.shape, float)
+        self.vtens = np.zeros((3, 3), float)
         # econs_ref should be changed by hooks that change positions or
         # velocities, such that a conserved quantity can be computed.
         self.econs_ref = 0
@@ -229,7 +232,8 @@ class NHCNVTIntegrator(Iterative):
         self.pos += self.delta
         self.ff.update_pos(self.pos)
         self.gpos[:] = 0.0
-        self.epot = self.ff.compute(self.gpos)
+        self.vtens[:] = 0.0
+        self.epot = self.ff.compute(self.gpos, self.vtens)
         acc = -self.gpos/self.masses.reshape(-1,1) # new acceleration
         self.vel += 0.5*(acc+self.acc)*self.timestep
         self.ekin = 0.5*(self.vel**2*self.masses.reshape(-1,1)).sum()
@@ -250,6 +254,8 @@ class NHCNVTIntegrator(Iterative):
         self.econs = self.etot + self.econs_ref + self.chain.get_econs_contrib()
         self._cons_err_tracker.update(self.ekin, self.econs)
         self.cons_err = self._cons_err_tracker.get()
+        self.ptens = (np.identity(3)*(boltzmann*self.temp*self.masses.size) + self.vtens)/self.ff.system.cell.volume
+        self.press = np.trace(self.ptens)/3
 
     def finalize(self):
         if log.do_medium:
@@ -271,6 +277,8 @@ class LNVTIntegrator(Iterative):
         AttributeStateItem('etot'),
         AttributeStateItem('econs'),
         AttributeStateItem('cons_err'),
+        AttributeStateItem('ptens'),
+        AttributeStateItem('press'),
         DipoleStateItem(),
         DipoleVelStateItem(),
         VolumeStateItem(),
@@ -281,7 +289,7 @@ class LNVTIntegrator(Iterative):
     log_name = 'LNVT'
     # TODO: cite Phys. Rev. E 75, 056707 (2007)
 
-    def __init__(self, ff, timestep, state=None, hooks=None, vel0=None, temp=300, friction=1.0, scalevel0=True, time0=0.0, counter0=0):
+    def __init__(self, ff, timestep, state=None, hooks=None, vel0=None, temp=300, friction=1e-3, scalevel0=True, time0=0.0, counter0=0):
         """
            **Arguments:**
 
@@ -342,6 +350,7 @@ class LNVTIntegrator(Iterative):
 
         self.gpos = np.zeros(self.pos.shape, float)
         self.delta = np.zeros(self.pos.shape, float)
+        self.vtens = np.zeros((3, 3), float)
         # econs_ref should be changed by hooks that change positions or
         # velocities, such that a conserved quantity can be computed.
         self.econs_ref = 0
@@ -376,7 +385,8 @@ class LNVTIntegrator(Iterative):
         self.pos += self.delta
         self.ff.update_pos(self.pos)
         self.gpos[:] = 0.0
-        self.epot = self.ff.compute(self.gpos)
+        self.vtens[:] = 0.0
+        self.epot = self.ff.compute(self.gpos, self.vtens)
         acc = -self.gpos/self.masses.reshape(-1,1)
         self.vel += 0.5*(acc+self.acc)*self.timestep
         self.acc = acc
@@ -396,6 +406,8 @@ class LNVTIntegrator(Iterative):
         self.econs = self.etot + self.econs_ref
         self._cons_err_tracker.update(self.ekin, self.econs)
         self.cons_err = self._cons_err_tracker.get()
+        self.ptens = (np.identity(3)*(boltzmann*self.temp*self.masses.size) + self.vtens)/self.ff.system.cell.volume
+        self.press = np.trace(self.ptens)/3
 
     def finalize(self):
         if log.do_medium:

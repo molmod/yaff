@@ -26,7 +26,7 @@
 import shutil, os
 
 from yaff import *
-from yaff.analysis.test.common import get_nve_water32, get_opt_water32
+from yaff.analysis.test.common import get_nve_water32, get_nvt_water32, get_opt_water32
 
 
 def test_plot_energies_nve():
@@ -56,6 +56,17 @@ def test_plot_temperature():
     try:
         fn_png = '%s/temperature1.png' % dn_tmp
         plot_temperature(f, fn_png)
+        assert os.path.isfile(fn_png)
+    finally:
+        shutil.rmtree(dn_tmp)
+        f.close()
+
+
+def test_plot_pressure():
+    dn_tmp, nvt, f = get_nvt_water32()
+    try:
+        fn_png = '%s/pressure1.png' % dn_tmp
+        plot_pressure(f, fn_png)
         assert os.path.isfile(fn_png)
     finally:
         shutil.rmtree(dn_tmp)

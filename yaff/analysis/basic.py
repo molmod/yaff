@@ -27,14 +27,14 @@ import h5py
 
 import numpy as np
 
-from molmod import boltzmann
+from molmod import boltzmann, pascal
 from yaff.log import log
 from yaff.analysis.utils import get_slice
 
 
 __all__ = [
-    'plot_energies', 'plot_temperature', 'plot_temp_dist', 'plot_density',
-    'plot_cell_pars', 'plot_epot_contribs',
+    'plot_energies', 'plot_temperature', 'plot_pressure', 'plot_temp_dist',
+    'plot_density', 'plot_cell_pars', 'plot_epot_contribs',
 ]
 
 
@@ -118,6 +118,39 @@ def plot_temperature(f, fn_png='temperature.png', **kwargs):
     pt.xlim(time[0], time[-1])
     pt.xlabel(tlabel)
     pt.ylabel('Temperature [K]')
+    pt.savefig(fn_png)
+
+
+def plot_pressure(f, fn_png='pressure.png', **kwargs):
+    """Make a plot of the pressure as function of time
+
+       **Arguments:**
+
+       f
+            An h5py.File instance containing the trajectory data.
+
+       **Optional arguments:**
+
+       fn_png
+            The png file to write the figure to
+
+       The optional arguments of the ``get_slice`` function are also accepted in
+       the form of keyword arguments.
+
+       The units for making the plot are taken from the yaff screen logger. This
+       type of plot is essential for checking the sanity of a simulation.
+    """
+    import matplotlib.pyplot as pt
+    start, end, step = get_slice(f, **kwargs)
+
+    press = f['trajectory/press'][start:end:step]
+    time, tlabel = get_time(f, start, end, step)
+
+    pt.clf()
+    pt.plot(time, press/(1e9*pascal), 'k-')
+    pt.xlim(time[0], time[-1])
+    pt.xlabel(tlabel)
+    pt.ylabel('pressure [GPA]')
     pt.savefig(fn_png)
 
 
