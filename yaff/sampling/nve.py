@@ -24,7 +24,7 @@
 
 
 
-import numpy as np, time
+import numpy as np
 
 from molmod import boltzmann
 
@@ -32,38 +32,13 @@ from yaff.log import log, timer
 from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
     PosStateItem, DipoleStateItem, DipoleVelStateItem, VolumeStateItem, \
     CellStateItem, EPotContribStateItem, Hook
+from yaff.sampling.md import MDScreenLog, ConsErrTracker, get_random_vel, remove_com_vel
 
 
 __all__ = [
-    'NVEScreenLog', 'AndersenThermostat', 'AndersenThermostatMcDonaldBarostat',
+    'AndersenThermostat', 'AndersenThermostatMcDonaldBarostat',
     'KineticAnnealing', 'NVEIntegrator',
 ]
-
-
-class NVEScreenLog(Hook):
-    def __init__(self, start=0, step=1):
-        Hook.__init__(self, start, step)
-        self.time0 = None
-
-    def __call__(self, iterative):
-        if log.do_medium:
-            if self.time0 is None:
-                self.time0 = time.time()
-                if log.do_medium:
-                    log.hline()
-                    log('Cons.Err. =&the root of the ratio of the variance on the conserved quantity and the variance on the kinetic energy.')
-                    log('d-rmsd    =&the root-mean-square displacement of the atoms.')
-                    log('g-rmsd    =&the root-mean-square gradient of the energy.')
-                    log('counter  Cons.Err.       Temp     d-RMSD     g-RMSD   Walltime')
-                    log.hline()
-            log('%7i %10.5f %s %s %s %10.1f' % (
-                iterative.counter,
-                iterative.cons_err,
-                log.temperature(iterative.temp),
-                log.length(iterative.rmsd_delta),
-                log.force(iterative.rmsd_gpos),
-                time.time() - self.time0,
-            ))
 
 
 class AndersenThermostat(Hook):
@@ -100,9 +75,9 @@ class AndersenThermostat(Hook):
     def __call__(self, iterative):
         # Change the velocities
         if self.select is None:
-            iterative.vel[:] = iterative.get_random_vel(self.temp, False)
+            iterative.vel[:] = get_random_vel(self.temp, False, iterative.masses)
         else:
-            iterative.vel[self.select] = iterative.get_random_vel(self.temp, False, self.select)
+            iterative.vel[self.select] = get_random_vel(self.temp, False, iterative.masses, self.select)
         # Update the kinetic energy and the reference for the conserved quantity
         ekin_after = 0.5*(iterative.vel**2*iterative.masses.reshape(-1,1)).sum()
         iterative.econs_ref += iterative.ekin - ekin_after
@@ -174,7 +149,7 @@ class AndersenThermostatMcDonaldBarostat(Hook):
                 # reinitialize the iterative algorithm
                 initialize()
             # B) Change the velocities
-            iterative.vel[:] = iterative.get_random_vel(self.temp, False)
+            iterative.vel[:] = get_random_vel(self.temp, False, iterative.masses)
             # C) Update the kinetic energy and the reference for the conserved quantity
             ekin0 = iterative.ekin
             ekin1 = 0.5*(iterative.vel**2*iterative.masses.reshape(-1,1)).sum()
@@ -231,30 +206,6 @@ class KineticAnnealing(Hook):
         ekin_after = 0.5*(iterative.vel**2*iterative.masses.reshape(-1,1)).sum()
         iterative.econs_ref += iterative.ekin - ekin_after
         iterative.ekin = ekin_after
-
-
-class ConsErrTracker(object):
-    def __init__(self):
-        self.counter = 0
-        self.ekin_sum = 0.0
-        self.ekin_sumsq = 0.0
-        self.econs_sum = 0.0
-        self.econs_sumsq = 0.0
-
-    def update(self, ekin, econs):
-        self.counter += 1
-        self.ekin_sum += ekin
-        self.ekin_sumsq += ekin**2
-        self.econs_sum += econs
-        self.econs_sumsq += econs**2
-
-    def get(self):
-        if self.counter > 0:
-            ekin_var = self.ekin_sumsq/self.counter - (self.ekin_sum/self.counter)**2
-            if ekin_var > 0:
-                econs_var = self.econs_sumsq/self.counter - (self.econs_sum/self.counter)**2
-                return np.sqrt(econs_var/ekin_var)
-        return 0.0
 
 
 class NVEIntegrator(Iterative):
@@ -326,8 +277,8 @@ class NVEIntegrator(Iterative):
             ff.system.set_standard_masses()
         self.masses = ff.system.masses
         if vel0 is None:
-            self.vel = self.get_random_vel(temp0, scalevel0)
-            self.remove_com_vel()
+            self.vel = get_random_vel(temp0, scalevel0, self.masses)
+            remove_com_vel(self.vel, self.masses)
         else:
             if vel.shape != self.pos.shape:
                 raise TypeError('The vel0 argument does not have the right shape.')
@@ -343,28 +294,8 @@ class NVEIntegrator(Iterative):
         Iterative.__init__(self, ff, state, hooks, counter0)
 
     def _add_default_hooks(self):
-        if not any(isinstance(hook, NVEScreenLog) for hook in self.hooks):
-            self.hooks.append(NVEScreenLog())
-
-    def get_random_vel(self, temp0, scalevel0, select=None):
-        if select is None:
-            masses = self.masses
-            shape = self.pos.shape
-        else:
-            masses = self.masses[select]
-            shape = (len(select), 3)
-        result = np.random.normal(0, 1, shape)*np.sqrt(boltzmann*temp0/masses).reshape(-1,1)
-        if scalevel0 and temp0 > 0:
-            temp = (result**2*masses.reshape(-1,1)).mean()/boltzmann
-            scale = np.sqrt(temp0/temp)
-            result *= scale
-        return result
-
-    def remove_com_vel(self):
-        # compute the center of mass velocity
-        com_vel = np.dot(self.masses, self.vel)/self.masses.sum()
-        # subtract
-        self.vel[:] -= com_vel
+        if not any(isinstance(hook, MDScreenLog) for hook in self.hooks):
+            self.hooks.append(MDScreenLog())
 
     def initialize(self):
         self.gpos[:] = 0.0

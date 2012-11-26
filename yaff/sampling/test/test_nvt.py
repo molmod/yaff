@@ -22,12 +22,12 @@
 #
 #--
 
+import h5py, numpy as np
 
-from yaff.sampling.dof import *
-from yaff.sampling.harmonic import *
-from yaff.sampling.io import *
-from yaff.sampling.iterative import *
-from yaff.sampling.md import *
-from yaff.sampling.nve import *
-from yaff.sampling.nvt import *
-from yaff.sampling.opt import *
+from yaff import *
+from yaff.sampling.test.common import get_ff_water32
+
+def test_basic():
+    nvt = NHCNVTIntegrator(get_ff_water32(), 1.0*femtosecond)
+    nvt.run(5)
+    assert nvt.counter == 5
