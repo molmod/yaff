@@ -25,6 +25,7 @@
 
 
 import glob
+import numpy as np
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
@@ -56,7 +57,7 @@ setup(
                      'yaff/pes/vlist.h', 'yaff/pes/vlist.pxd',
                      'yaff/pes/cell.h', 'yaff/pes/cell.pxd',
                      'yaff/pes/truncation.h', 'yaff/pes/truncation.pxd',
-                     'yaff/pes/constants.h'],
+                     'yaff/pes/constants.h', np.get_include()],
         ),
     ],
     classifiers=[
