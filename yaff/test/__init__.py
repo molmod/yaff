@@ -22,6 +22,6 @@
 #
 #--
 
-from horton.log import log
+from yaff.log import log
 
 log.set_level(log.debug)

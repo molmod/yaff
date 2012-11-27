@@ -57,7 +57,8 @@ setup(
                      'yaff/pes/vlist.h', 'yaff/pes/vlist.pxd',
                      'yaff/pes/cell.h', 'yaff/pes/cell.pxd',
                      'yaff/pes/truncation.h', 'yaff/pes/truncation.pxd',
-                     'yaff/pes/constants.h', np.get_include()],
+                     'yaff/pes/constants.h'],
+            include_dirs=[np.get_include()],
         ),
     ],
     classifiers=[
