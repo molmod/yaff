@@ -48,7 +48,8 @@ from yaff.pes.vlist import ValenceList
 
 __all__ = [
     'ForcePart', 'ForceField', 'ForcePartPair', 'ForcePartEwaldReciprocal',
-    'ForcePartEwaldCorrection', 'ForcePartEwaldNeutralizing', 'ForcePartValence',
+    'ForcePartEwaldCorrection', 'ForcePartEwaldNeutralizing',
+    'ForcePartValence', 'ForcePartPressure',
 ]
 
 
@@ -531,3 +532,51 @@ class ForcePartValence(ForcePart):
                 self.iclist.back()
                 self.dlist.back(gpos, vtens)
             return energy
+
+
+class ForcePartPressure(ForcePart):
+    '''Applies a constant istropic pressure.'''
+    def __init__(self, system, pext):
+        '''
+           **Arguments:**
+
+           system
+                An instance of the ``System`` class.
+
+           pext
+                The external pressure. (Positive will shrink the system.) In
+                case of 2D-PBC, this is the surface tension. In case of 1D, this
+                is the linear strain.
+
+           This force part is only applicable to systems that are periodic.
+        '''
+        if system.cell.nvec == 0:
+            raise ValueError('The system must be periodic in order to apply a force')
+        ForcePart.__init__(self, 'press', system)
+        self.system = system
+        self.pext = pext
+        if log.do_medium:
+            with log.section('FPINIT'):
+                log('Force part: %s' % self.name)
+                log.hline()
+
+    def _internal_compute(self, gpos, vtens):
+        with timer.section('Valence'):
+            cell = self.system.cell
+            if (vtens is not None):
+                rvecs = cell.rvecs
+                if cell.nvec == 1:
+                    vtens += self.pext/cell.volume*np.outer(rvecs[0], rvecs[0])
+                elif cell.nvec == 2:
+                    vtens += self.pext/cell.volume*(
+                          np.dot(rvecs[0], rvecs[0])*np.outer(rvecs[1], rvecs[1])
+                        + np.dot(rvecs[0], rvecs[0])*np.outer(rvecs[1], rvecs[1])
+                        - np.dot(rvecs[1], rvecs[0])*np.outer(rvecs[0], rvecs[1])
+                        - np.dot(rvecs[0], rvecs[1])*np.outer(rvecs[1], rvecs[0])
+                    )
+                elif cell.nvec == 3:
+                    gvecs = cell.gvecs
+                    vtens += self.pext*cell.volume*np.identity(3)
+                else:
+                    raise NotImplementedError
+            return cell.volume*self.pext

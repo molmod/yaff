@@ -23,8 +23,8 @@
 #--
 """Convenient Wrappers for the ForceField object
 
-   All these class are called DOF classes, because they specify a set of degrees
-   of freedom.
+   All these classes are called DOF classes, because they specify a set of
+   degrees of freedom.
 """
 
 
