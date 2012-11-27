@@ -25,8 +25,7 @@
 
 import numpy as np
 
-from yaff import kjmol, angstrom, deg, angstrom, kcalmol
-from yaff import ForceField, ForcePartValence
+from yaff import *
 
 from yaff.test.common import get_system_water32, get_system_glycine
 
@@ -468,3 +467,13 @@ def test_generator_water32():
     assert abs(part_valence.vlist.vtab['par1'][:64] - 1.0238240000e+00*angstrom).max() < 1e-10
     assert abs(part_valence.vlist.vtab['par0'][64:96] - 3.0230353700e+02*kjmol).max() < 1e-10
     assert abs(part_valence.vlist.vtab['par1'][64:96] - np.cos(8.8401698835e+01*deg)).max() < 1e-10
+
+
+def test_add_part():
+    system = get_system_water32()
+    ff = ForceField.generate(system, 'input/parameters_water_bondharm.txt')
+    part_press = ForcePartPressure(system, 1e-3)
+    ff.add_part(part_press)
+    assert part_press in ff.parts
+    assert ff.part_press is part_press
+    assert ff.compute() == ff.part_valence.energy + ff.part_press.energy

@@ -179,15 +179,11 @@ class ForceField(ForcePart):
         """
         ForcePart.__init__(self, 'all', system)
         self.system = system
-        self.parts = parts
+        self.parts = []
         self.nlist = nlist
         self.needs_nlist_update = nlist is not None
-        # Make the parts also accessible as simple attributes.
         for part in parts:
-            name = 'part_%s' % part.name
-            if name in self.__dict__:
-                raise ValueError('The part %s occurs twice in the force field.' % name)
-            self.__dict__[name] = part
+            self.add_part(part)
         if log.do_medium:
             with log.section('FFINIT'):
                 log('Force field with %i parts:&%s.' % (
@@ -195,6 +191,13 @@ class ForceField(ForcePart):
                 ))
                 log('Neighborlist present: %s' % (self.nlist is not None))
 
+    def add_part(self, part):
+        self.parts.append(part)
+        # Make the parts also accessible as simple attributes.
+        name = 'part_%s' % part.name
+        if name in self.__dict__:
+            raise ValueError('The part %s occurs twice in the force field.' % name)
+        self.__dict__[name] = part
 
     @classmethod
     def generate(cls, system, parameters, **kwargs):
