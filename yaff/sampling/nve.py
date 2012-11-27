@@ -222,6 +222,8 @@ class NVEIntegrator(Iterative):
         AttributeStateItem('etot'),
         AttributeStateItem('econs'),
         AttributeStateItem('cons_err'),
+        AttributeStateItem('ptens'),
+        AttributeStateItem('press'),
         DipoleStateItem(),
         DipoleVelStateItem(),
         VolumeStateItem(),
@@ -285,6 +287,7 @@ class NVEIntegrator(Iterative):
             self.vel = vel0.copy()
         self.gpos = np.zeros(self.pos.shape, float)
         self.delta = np.zeros(self.pos.shape, float)
+        self.vtens = np.zeros((3, 3), float)
         # econs_ref should be changed by hooks that change positions or
         # velocities, such that a conserved quantity can be computed.
         self.econs_ref = 0
@@ -310,7 +313,8 @@ class NVEIntegrator(Iterative):
         self.pos += self.delta
         self.ff.update_pos(self.pos)
         self.gpos[:] = 0.0
-        self.epot = self.ff.compute(self.gpos)
+        self.vtens[:] = 0.0
+        self.epot = self.ff.compute(self.gpos, self.vtens)
         acc = -self.gpos/self.masses.reshape(-1,1)
         self.vel += 0.5*(acc+self.acc)*self.timestep
         self.acc = acc
@@ -327,6 +331,8 @@ class NVEIntegrator(Iterative):
         self.econs = self.etot + self.econs_ref
         self._cons_err_tracker.update(self.ekin, self.econs)
         self.cons_err = self._cons_err_tracker.get()
+        self.ptens = (np.dot(self.vel.T*self.masses, self.vel) + self.vtens)/self.ff.system.cell.volume
+        self.press = np.trace(self.ptens)/3
 
     def finalize(self):
         if log.do_medium:
