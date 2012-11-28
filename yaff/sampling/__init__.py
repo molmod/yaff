@@ -27,7 +27,8 @@ from yaff.sampling.dof import *
 from yaff.sampling.harmonic import *
 from yaff.sampling.io import *
 from yaff.sampling.iterative import *
-from yaff.sampling.md import *
-from yaff.sampling.nve import *
 from yaff.sampling.nvt import *
+from yaff.sampling.npt import *
 from yaff.sampling.opt import *
+from yaff.sampling.utils import *
+from yaff.sampling.verlet import *

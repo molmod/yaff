@@ -98,8 +98,8 @@ analysis, without the need to store huge amounts of data on disk::
 
     select = system.get_indexes('O')
     rdf = RDF(None, 4.8*angstrom, 0.1*angstrom, max_sample=100, select0=select)
-    nve = NVEIntegrator(ff, hooks=rdf, temp0=300)
-    nve.run(5000)
+    verlet = VerletIntegrator(ff, hooks=rdf, temp0=300)
+    verlet.run(5000)
     rdf.plot()
     rdf.plot_crdf()
 

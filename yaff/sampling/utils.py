@@ -23,35 +23,30 @@
 #--
 
 
-from yaff import *
-from yaff.sampling.test.common import get_ff_water32
+from molmod import boltzmann
+
+import numpy as np
 
 
-def test_basic_nhc_nvt():
-    thermostat = NHCThermostat(300)
-    nvt = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=thermostat)
-    nvt.run(5)
-    assert nvt.counter == 5
-
-def test_basic_langevin_nvt():
-    thermostat = LangevinThermostat(300)
-    nvt = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=thermostat)
-    nvt.run(5)
-    assert nvt.counter == 5
-
-def test_at():
-    nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostat(300))
-    nve.run(5)
-    assert nve.counter == 5
+__all__ = [
+    'get_random_vel', 'remove_com_vel',
+]
 
 
-def test_at_select():
-    nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostat(300, select=[1,2,5]))
-    nve.run(5)
-    assert nve.counter == 5
+def get_random_vel(temp0, scalevel0, masses, select=None):
+    if select is not None:
+        masses = masses[select]
+    shape = len(masses), 3
+    result = np.random.normal(0, 1, shape)*np.sqrt(boltzmann*temp0/masses).reshape(-1,1)
+    if scalevel0 and temp0 > 0:
+        temp = (result**2*masses.reshape(-1,1)).mean()/boltzmann
+        scale = np.sqrt(temp0/temp)
+        result *= scale
+    return result
 
 
-def test_at_annealing():
-    nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostat(300, annealing=0.9))
-    nve.run(5)
-    assert nve.counter == 5
+def remove_com_vel(vel, masses):
+    # compute the center of mass velocity
+    com_vel = np.dot(masses, vel)/masses.sum()
+    # subtract
+    vel[:] -= com_vel

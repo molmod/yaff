@@ -85,8 +85,7 @@ General
 
 * RefTraj derivative of the Iterative class.
 
-* NVTNoseHooverIntegrator, NVTLangevinIntegrator (or a Langevin hook in the
-  NVEIntegrator), NpTMartynaTobiasKleinIntegrator
+* NpT: Martyna Tuckerman Tobias Klein
 
 * Parallel sampling methods.
 

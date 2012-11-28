@@ -29,7 +29,7 @@ from yaff import *
 from yaff.sampling.test.common import get_ff_water32
 
 def test_basic():
-    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond)
+    nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond)
     nve.run(5)
     assert nve.counter == 5
 
@@ -65,7 +65,7 @@ def test_hdf5():
     f = h5py.File('test_hdf5.h5', driver='core', backing_store=False)
     try:
         hdf5 = HDF5Writer(f)
-        nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
+        nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
         nve.run(15)
         assert nve.counter == 15
         check_hdf5_common(hdf5.f)
@@ -79,7 +79,7 @@ def test_hdf5_start():
     f = h5py.File('test_hdf5_start.h5', driver='core', backing_store=False)
     try:
         hdf5 = HDF5Writer(f, start=2)
-        nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
+        nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
         nve.run(5)
         assert nve.counter == 5
         check_hdf5_common(hdf5.f)
@@ -93,7 +93,7 @@ def test_hdf5_step():
     f = h5py.File('test_hdf5_step.h5', driver='core', backing_store=False)
     try:
         hdf5 = HDF5Writer(f, step=2)
-        nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
+        nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
         nve.run(5)
         assert nve.counter == 5
         check_hdf5_common(hdf5.f)
@@ -105,7 +105,7 @@ def test_hdf5_step():
 
 def test_xyz():
     xyz = XYZWriter('/dev/null')
-    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[xyz])
+    nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[xyz])
     com_vel = np.dot(nve.masses, nve.vel)/nve.masses.sum()
     assert np.linalg.norm(com_vel) < 1e-10
     nve.run(15)
@@ -116,36 +116,12 @@ def test_xyz():
 
 def test_xyz_select():
     xyz = XYZWriter('/dev/null', select=[0,1,2])
-    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[xyz])
+    nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[xyz])
     nve.run(15)
     assert nve.counter == 15
 
 
-def test_at():
-    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostat(300))
-    nve.run(5)
-    assert nve.counter == 5
-
-
-def test_at_select():
-    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostat(300, select=[1,2,5]))
-    nve.run(5)
-    assert nve.counter == 5
-
-
-def test_at_annealing():
-    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostat(300, annealing=0.9))
-    nve.run(5)
-    assert nve.counter == 5
-
-
-def test_atmb():
-    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostatMcDonaldBarostat(300, 1*bar))
-    nve.run(5)
-    assert nve.counter == 5
-
-
 def test_kinetic_annealing():
-    nve = NVEIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=KineticAnnealing())
+    nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=KineticAnnealing())
     nve.run(5)
     assert nve.counter == 5

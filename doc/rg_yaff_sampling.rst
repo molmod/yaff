@@ -27,10 +27,24 @@ Module ``yaff.sampling.io`` -- Trajectory output
    :members:
 
 
-Module ``yaff.sampling.nve`` -- NVE molecular dynamics
-======================================================
+Module ``yaff.sampling.Verlet`` -- Generic Verlet integrator
+============================================================
 
-.. automodule:: yaff.sampling.nve
+.. automodule:: yaff.sampling.verlet
+   :members:
+
+
+Module ``yaff.sampling.nvt`` -- Implementations of thermostats
+==============================================================
+
+.. automodule:: yaff.sampling.nvt
+   :members:
+
+
+Module ``yaff.sampling.npt`` -- Implementations of barostats
+============================================================
+
+.. automodule:: yaff.sampling.npt
    :members:
 
 

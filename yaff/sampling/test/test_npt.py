@@ -22,36 +22,10 @@
 #
 #--
 
-
 from yaff import *
 from yaff.sampling.test.common import get_ff_water32
 
-
-def test_basic_nhc_nvt():
-    thermostat = NHCThermostat(300)
-    nvt = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=thermostat)
-    nvt.run(5)
-    assert nvt.counter == 5
-
-def test_basic_langevin_nvt():
-    thermostat = LangevinThermostat(300)
-    nvt = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=thermostat)
-    nvt.run(5)
-    assert nvt.counter == 5
-
-def test_at():
-    nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostat(300))
-    nve.run(5)
-    assert nve.counter == 5
-
-
-def test_at_select():
-    nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostat(300, select=[1,2,5]))
-    nve.run(5)
-    assert nve.counter == 5
-
-
-def test_at_annealing():
-    nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenThermostat(300, annealing=0.9))
+def test_amb():
+    nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=AndersenMcDonaldBarostat(300, 1*bar))
     nve.run(5)
     assert nve.counter == 5

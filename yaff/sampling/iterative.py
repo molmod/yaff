@@ -87,7 +87,7 @@ class Iterative(object):
         with timer.section('%s hooks' % self.log_name):
             state_updated = False
             for hook in self.hooks:
-                if self.counter >= hook.start and (self.counter - hook.start) % hook.step == 0:
+                if hook.expects_call(self.counter):
                     if not state_updated:
                         for item in self.state_list:
                             item.update(self)
@@ -221,6 +221,9 @@ class Hook(object):
         """
         self.start = start
         self.step = step
+
+    def expects_call(self, counter):
+        return counter >= self.start and (counter - self.start) % self.step == 0
 
     def __call__(self, iterative):
         raise NotImplementedError

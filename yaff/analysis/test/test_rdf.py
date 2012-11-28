@@ -62,7 +62,7 @@ def test_rdf1_online():
         hdf5 = HDF5Writer(f)
         select = ff.system.get_indexes('O')
         rdf0 = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select)
-        nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=[hdf5, rdf0])
+        nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=[hdf5, rdf0])
         nve.run(5)
         assert nve.counter == 5
         # Also run an off-line rdf and compare
@@ -105,7 +105,7 @@ def test_rdf2_online():
         select0 = ff.system.get_indexes('O')
         select1 = ff.system.get_indexes('H')
         rdf0 = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select0, select1=select1)
-        nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=[hdf5, rdf0])
+        nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=[hdf5, rdf0])
         nve.run(5)
         assert nve.counter == 5
         # Also run an off-line rdf and compare
@@ -125,7 +125,7 @@ def test_rdf2_online_blind():
     select0 = ff.system.get_indexes('O')
     select1 = ff.system.get_indexes('H')
     rdf = RDF(4.5*angstrom, 0.1*angstrom, select0=select0, select1=select1)
-    nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=rdf)
+    nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=rdf)
     nve.run(5)
     assert nve.counter == 5
     assert rdf.nsample == 6

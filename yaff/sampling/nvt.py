@@ -28,38 +28,93 @@ import numpy as np
 
 from molmod import boltzmann, femtosecond
 
-from yaff.log import log, timer
-from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
-    PosStateItem, DipoleStateItem, DipoleVelStateItem, VolumeStateItem, \
-    CellStateItem, EPotContribStateItem, Hook
-from yaff.sampling.md import MDScreenLog, ConsErrTracker, get_random_vel, remove_com_vel
+from yaff.log import log
+from yaff.sampling.utils import get_random_vel, remove_com_vel
+from yaff.sampling.verlet import VerletHook
 
 
 __all__ = [
-    'NHCNVTIntegrator', 'LNVTIntegrator',
+    'AndersenThermostat', 'NHCThermostat', 'LangevinThermostat',
 ]
 
-# TODO: eliminate common code (also with NVE), possible with more hook types, e.g. to combine different types of thermostats
+
+class AndersenThermostat(VerletHook):
+    def __init__(self, temp, start=0, step=1, select=None, annealing=1.0):
+        """
+           This is an implementation of the Andersen thermostat. The method
+           is described in:
+
+                Andersen, H. C. J. Chem. Phys. 1980, 72, 2384-2393.
+
+           **Arguments:**
+
+           temp
+                The average temperature of the NVT ensemble
+
+           **Optional arguments:**
+
+           start
+                The first iteration at which this hook is called
+
+           step
+                The number of iterations between two subsequent calls to this
+                hook.
+
+           select
+                An array of atom indexes to indicate which atoms controlled by
+                the thermostat.
+
+           annealing
+                After every call to this hook, the temperature is multiplied
+                with this annealing factor. This effectively cools down the
+                system.
+        """
+        self.temp = temp
+        self.select = select
+        self.annealing = annealing
+        VerletHook.__init__(self, start, step)
+
+    def init(self, iterative):
+        pass
+
+    def pre(self, iterative):
+        pass
+
+    def post(self, iterative):
+        # Needed to correct the conserved quantity
+        ekin_before = iterative._compute_ekin()
+        # Change the (selected) velocities
+        if self.select is None:
+            iterative.vel[:] = get_random_vel(self.temp, False, iterative.masses)
+        else:
+            iterative.vel[self.select] = get_random_vel(self.temp, False, iterative.masses, self.select)
+        # Update the kinetic energy and the reference for the conserved quantity
+        ekin_after = iterative._compute_ekin()
+        self.econs_correction += ekin_before - ekin_after
+        # Optional annealing
+        self.temp *= self.annealing
+
 
 class NHChain(object):
-    # TODO: add citations to nose, hoover and martyna
+    # TODO: allow for manual override of the ndof argument
     def __init__(self, length, timestep, temp, ndof, timecon=100*femtosecond):
         # parameters
         self.length = length
         self.timestep = timestep
         self.temp = temp
-        self.ndof = ndof
-
-        # set the masses according to the time constant
-        angfreq = 2*np.pi/timecon
-        self.masses = np.ones(length)*(boltzmann*temp/angfreq**2)
-        self.masses[0] *= ndof
-        print 'masses'
-        print self.masses
+        self.timecon = timecon
+        self.set_ndof(ndof)
 
         # allocate degrees of freedom
         self.pos = np.zeros(length)
         self.vel = np.zeros(length) # TODO: sensible random initial velocities?
+
+    def set_ndof(self, ndof):
+        # set the masses according to the time constant
+        self.ndof = ndof
+        angfreq = 2*np.pi/self.timecon
+        self.masses = np.ones(self.length)*(boltzmann*self.temp/angfreq**2)
+        self.masses[0] *= ndof
 
     def __call__(self, ekin, vel):
         def do_bead(k, ekin):
@@ -104,313 +159,100 @@ class NHChain(object):
 
         return ekin
 
-    def get_econs_contrib(self):
+    def get_econs_correction(self):
         kt = boltzmann*self.temp
         return 0.5*(self.vel**2*self.masses).sum() + kt*(self.ndof*self.pos[0] + self.pos[1:].sum())
 
 
-class NHCNVTIntegrator(Iterative):
-    default_state = [
-        AttributeStateItem('counter'),
-        AttributeStateItem('time'),
-        AttributeStateItem('epot'),
-        PosStateItem(),
-        AttributeStateItem('vel'),
-        AttributeStateItem('rmsd_delta'),
-        AttributeStateItem('rmsd_gpos'),
-        AttributeStateItem('ekin'),
-        AttributeStateItem('temp'),
-        AttributeStateItem('etot'),
-        AttributeStateItem('econs'),
-        AttributeStateItem('cons_err'),
-        AttributeStateItem('ptens'),
-        AttributeStateItem('press'),
-        DipoleStateItem(),
-        DipoleVelStateItem(),
-        VolumeStateItem(),
-        CellStateItem(),
-        EPotContribStateItem(),
-    ]
-
-    log_name = 'NHCNVT'
-
-    def __init__(self, ff, timestep, state=None, hooks=None, vel0=None,
-                 temp=300, chainlength=3, timecon=100*femtosecond,
-                 scalevel0=True, time0=0.0, counter0=0):
+class NHCThermostat(VerletHook):
+    def __init__(self, temp, start=0, timecon=100*femtosecond, chainlength=3):
         """
+           This hook implements the Nose-Hoover-Chain thermostat. The equations
+           are derived in:
+
+                Martyna, G. J.; Klein, M. L.; Tuckerman, M. J. Chem. Phys. 1992,
+                97, 2635-2643.
+
+           The implementation (used here) of a symplectic integrator of the
+           Nose-Hoover-Chain thermostat is discussed in:
+
+                Martyna, G. J.;  Tuckerman, M. E.;  Tobias, D. J.;  Klein,
+                M. L. Mol. Phys. 1996, 87, 1117-1157.
+
            **Arguments:**
 
-           ff
-                A ForceField instance
-
-           timestep
-                The integration time step (in atomic units)
+           temp
+                The temperature of thermostat.
 
            **Optional arguments:**
 
-           state
-                A list with state items. State items are simple objects
-                that take or derive a property from the current state of the
-                iterative algorithm.
-
-           hooks
-                A function (or a list of functions) that is called after every
-                iterative.
-
-           vel0
-                An array with initial velocities. If not given, random
-                velocities are sampled from the Maxwell-Boltzmann distribution
-                corresponding to the optional arguments temp0 and scalevel0
-
-           temp
-                The temperature for the random initial velocities and the
-                thermostat.
-
-           chainlength
-                The number of beads in the Nose-Hoover chain.
+           start
+                The step at which the thermostat becomes active.
 
            timecon
                 The time constant of the Nose-Hoover thermostat.
 
-           scalevel0
-                If True (the default), the random velocities are rescaled such
-                that the instantaneous temperature coincides with temp0.
-
-           time0
-                The time associated with the initial state.
-
-           counter0
-                The counter value associated with the initial state.
+           chainlength
+                The number of beads in the Nose-Hoover chain.
         """
-        self.pos = ff.system.pos.copy()
-        self.timestep = timestep
-        self.time = time0
-        if ff.system.masses is None:
-            ff.system.set_standard_masses()
-        self.masses = ff.system.masses
-        if vel0 is None:
-            self.vel = get_random_vel(temp, scalevel0, self.masses)
-        else:
-            if vel.shape != self.pos.shape:
-                raise TypeError('The vel0 argument does not have the right shape.')
-            self.vel = vel0.copy()
-        remove_com_vel(self.vel, self.masses)
-        self.temp_bath = temp
-        # TODO: allow for manual override of ndof in case of constraints.
-        self.chain = NHChain(chainlength, timestep, temp, self.pos.size, timecon)
+        self.temp = temp
+        # At this point, the timestep and the number of degrees of freedom are
+        # not known yet.
+        self.chain = NHChain(chainlength, 0.0, temp, 0, timecon)
+        VerletHook.__init__(self, start, 1)
 
-        self.gpos = np.zeros(self.pos.shape, float)
-        self.delta = np.zeros(self.pos.shape, float)
-        self.vtens = np.zeros((3, 3), float)
-        # econs_ref should be changed by hooks that change positions or
-        # velocities, such that a conserved quantity can be computed.
-        self.econs_ref = 0
-        # cons_err is an object that keeps track of the error on the conserved
-        # quantity.
-        self._cons_err_tracker = ConsErrTracker()
-        Iterative.__init__(self, ff, state, hooks, counter0)
+    def init(self, iterative):
+        remove_com_vel(iterative.vel, iterative.masses)
+        self.chain.timestep = iterative.timestep
+        self.chain.set_ndof(iterative.pos.size)
 
-    def _add_default_hooks(self):
-        if not any(isinstance(hook, MDScreenLog) for hook in self.hooks):
-            self.hooks.append(MDScreenLog())
+    def pre(self, iterative):
+        iterative.ekin = self.chain(iterative.ekin, iterative.vel)
 
-    def initialize(self):
-        self.gpos[:] = 0.0
-        self.ff.update_pos(self.pos)
-        self.epot = self.ff.compute(self.gpos)
-        self.acc = -self.gpos/self.masses.reshape(-1,1)
-        self.ekin = 0.5*(self.vel**2*self.masses.reshape(-1,1)).sum()
-        self.compute_properties()
-        Iterative.initialize(self)
-
-    def propagate(self):
-        # call the chain
-        self.ekin = self.chain(self.ekin, self.vel)
-
-        # regular verlet step
-        self.delta[:] = self.timestep*self.vel + (0.5*self.timestep**2)*self.acc
-        self.pos += self.delta
-        self.ff.update_pos(self.pos)
-        self.gpos[:] = 0.0
-        self.vtens[:] = 0.0
-        self.epot = self.ff.compute(self.gpos, self.vtens)
-        acc = -self.gpos/self.masses.reshape(-1,1) # new acceleration
-        self.vel += 0.5*(acc+self.acc)*self.timestep
-        self.ekin = 0.5*(self.vel**2*self.masses.reshape(-1,1)).sum()
-
-        # call the chain
-        self.ekin = self.chain(self.ekin, self.vel)
-
-        self.acc = acc # override old acc by new
-        self.time += self.timestep
-        self.compute_properties()
-        Iterative.propagate(self)
-
-    def compute_properties(self):
-        self.rmsd_gpos = np.sqrt((self.gpos**2).mean())
-        self.rmsd_delta = np.sqrt((self.delta**2).mean())
-        self.temp = self.ekin/self.ff.system.natom/3.0*2.0/boltzmann
-        self.etot = self.ekin + self.epot
-        self.econs = self.etot + self.econs_ref + self.chain.get_econs_contrib()
-        self._cons_err_tracker.update(self.ekin, self.econs)
-        self.cons_err = self._cons_err_tracker.get()
-        self.ptens = (np.dot(self.vel.T*self.masses, self.vel) + self.vtens)/self.ff.system.cell.volume
-        self.press = np.trace(self.ptens)/3
-
-    def finalize(self):
-        if log.do_medium:
-            log.hline()
+    def post(self, iterative):
+        ekin = iterative._compute_ekin()
+        iterative.ekin = self.chain(ekin, iterative.vel)
+        self.econs_correction = self.chain.get_econs_correction()
 
 
-
-class LNVTIntegrator(Iterative):
-    default_state = [
-        AttributeStateItem('counter'),
-        AttributeStateItem('time'),
-        AttributeStateItem('epot'),
-        PosStateItem(),
-        AttributeStateItem('vel'),
-        AttributeStateItem('rmsd_delta'),
-        AttributeStateItem('rmsd_gpos'),
-        AttributeStateItem('ekin'),
-        AttributeStateItem('temp'),
-        AttributeStateItem('etot'),
-        AttributeStateItem('econs'),
-        AttributeStateItem('cons_err'),
-        AttributeStateItem('ptens'),
-        AttributeStateItem('press'),
-        DipoleStateItem(),
-        DipoleVelStateItem(),
-        VolumeStateItem(),
-        CellStateItem(),
-        EPotContribStateItem(),
-    ]
-
-    log_name = 'LNVT'
-    # TODO: cite Phys. Rev. E 75, 056707 (2007)
-
-    def __init__(self, ff, timestep, state=None, hooks=None, vel0=None,
-                 temp=300, timecon=100*femtosecond, scalevel0=True, time0=0.0,
-                 counter0=0):
+class LangevinThermostat(VerletHook):
+    def __init__(self, temp, start=0, timecon=100*femtosecond):
         """
+           This is an implementation of the Langevin thermostat. The algorithm
+           is described in:
+
+                Bussi, G.; Parrinello, M. Phys. Rev. E 2007, 75, 056707
+
            **Arguments:**
 
-           ff
-                A ForceField instance
-
-           timestep
-                The integration time step (in atomic units)
+           temp
+                The temperature of thermostat.
 
            **Optional arguments:**
 
-           state
-                A list with state items. State items are simple objects
-                that take or derive a property from the current state of the
-                iterative algorithm.
-
-           hooks
-                A function (or a list of functions) that is called after every
-                iterative.
-
-           vel0
-                An array with initial velocities. If not given, random
-                velocities are sampled from the Maxwell-Boltzmann distribution
-                corresponding to the optional arguments temp0 and scalevel0
-
-           temp
-                The temperature for the random initial velocities and the
-                heat bath.
+           start
+                The step at which the thermostat becomes active.
 
            timecon
-                The timeconstant of the Langevin integrator (1/gamma)
-
-           scalevel0
-                If True (the default), the random velocities are rescaled such
-                that the instantaneous temperature coincides with temp0.
-
-           time0
-                The time associated with the initial state.
-
-           counter0
-                The counter value associated with the initial state.
+                The time constant of the Nose-Hoover thermostat.
         """
-        self.pos = ff.system.pos.copy()
-        self.timestep = timestep
-        self.time = time0
-        if ff.system.masses is None:
-            ff.system.set_standard_masses()
-        self.masses = ff.system.masses
-        if vel0 is None:
-            self.vel = get_random_vel(temp, scalevel0, self.masses)
-            remove_com_vel(self.vel, self.masses)
-        else:
-            if vel.shape != self.pos.shape:
-                raise TypeError('The vel0 argument does not have the right shape.')
-            self.vel = vel0.copy()
-        self.temp_bath = temp
+        self.temp = temp
         self.timecon = timecon
+        VerletHook.__init__(self, start, 1)
 
-        self.gpos = np.zeros(self.pos.shape, float)
-        self.delta = np.zeros(self.pos.shape, float)
-        self.vtens = np.zeros((3, 3), float)
-        # econs_ref should be changed by hooks that change positions or
-        # velocities, such that a conserved quantity can be computed.
-        self.econs_ref = 0
-        # cons_err is an object that keeps track of the error on the conserved
-        # quantity.
-        self._cons_err_tracker = ConsErrTracker()
-        Iterative.__init__(self, ff, state, hooks, counter0)
+    def init(self, iterative):
+        pass
 
-    def _add_default_hooks(self):
-        if not any(isinstance(hook, MDScreenLog) for hook in self.hooks):
-            self.hooks.append(MDScreenLog())
+    def pre(self, iterative):
+        self.thermo(iterative)
 
-    def initialize(self):
-        self.gpos[:] = 0.0
-        self.ff.update_pos(self.pos)
-        self.epot = self.ff.compute(self.gpos)
-        self.acc = -self.gpos/self.masses.reshape(-1,1)
-        self.compute_properties()
-        Iterative.initialize(self)
+    def post(self, iterative):
+        self.thermo(iterative)
 
-    def thermo(self):
-        c1 = np.exp(-self.timestep/self.timecon/2)
-        c2 = np.sqrt((1.0-c1**2)*self.temp_bath*boltzmann/self.masses).reshape(-1,1)
-        self.econs_ref += 0.5*(self.vel**2*self.masses.reshape(-1,1)).sum()
-        self.vel = c1*self.vel + c2*np.random.normal(0, 1, self.vel.shape)
-        self.econs_ref -= 0.5*(self.vel**2*self.masses.reshape(-1,1)).sum()
-
-    def propagate(self):
-        self.thermo()
-
-        self.delta[:] = self.timestep*self.vel + (0.5*self.timestep**2)*self.acc
-        self.pos += self.delta
-        self.ff.update_pos(self.pos)
-        self.gpos[:] = 0.0
-        self.vtens[:] = 0.0
-        self.epot = self.ff.compute(self.gpos, self.vtens)
-        acc = -self.gpos/self.masses.reshape(-1,1)
-        self.vel += 0.5*(acc+self.acc)*self.timestep
-        self.acc = acc
-        self.time += self.timestep
-
-        self.thermo()
-
-        self.compute_properties()
-        Iterative.propagate(self)
-
-    def compute_properties(self):
-        self.rmsd_gpos = np.sqrt((self.gpos**2).mean())
-        self.rmsd_delta = np.sqrt((self.delta**2).mean())
-        self.ekin = 0.5*(self.vel**2*self.masses.reshape(-1,1)).sum()
-        self.temp = self.ekin/self.ff.system.natom/3.0*2.0/boltzmann
-        self.etot = self.ekin + self.epot
-        self.econs = self.etot + self.econs_ref
-        self._cons_err_tracker.update(self.ekin, self.econs)
-        self.cons_err = self._cons_err_tracker.get()
-        self.ptens = (np.dot(self.vel.T*self.masses, self.vel) + self.vtens)/self.ff.system.cell.volume
-        self.press = np.trace(self.ptens)/3
-
-    def finalize(self):
-        if log.do_medium:
-            log.hline()
+    def thermo(self, iterative):
+        c1 = np.exp(-iterative.timestep/self.timecon/2)
+        c2 = np.sqrt((1.0-c1**2)*self.temp*boltzmann/iterative.masses).reshape(-1,1)
+        ekin_before = iterative._compute_ekin()
+        iterative.vel[:] = c1*iterative.vel + c2*np.random.normal(0, 1, iterative.vel.shape)
+        ekin_after = iterative._compute_ekin()
+        self.econs_correction += ekin_before - ekin_after

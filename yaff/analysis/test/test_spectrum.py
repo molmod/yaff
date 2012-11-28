@@ -61,7 +61,7 @@ def test_spectrum_online():
         try:
             hdf5 = HDF5Writer(f)
             spectrum0 = Spectrum(f, bsize=bsize)
-            nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=[hdf5, spectrum0])
+            nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=[hdf5, spectrum0])
             nve.run(5)
             assert nve.counter == 5
             # Also run an off-line spectrum and compare
@@ -80,7 +80,7 @@ def test_spectrum_online_blind():
     # Setup a test FF
     ff = get_ff_water32()
     spectrum = Spectrum(bsize=2)
-    nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=spectrum)
+    nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=spectrum)
     nve.run(5)
     assert nve.counter == 5
 
@@ -91,7 +91,7 @@ def test_spectrum_online_weights():
     ff.system.set_standard_masses()
     weights = np.array([ff.system.masses]*3).T
     spectrum = Spectrum(bsize=2, weights=weights)
-    nve = NVEIntegrator(ff, 1.0*femtosecond, hooks=spectrum)
+    nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=spectrum)
     nve.run(5)
     assert nve.counter == 5
 

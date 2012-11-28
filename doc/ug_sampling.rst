@@ -15,7 +15,7 @@ cell vectors as input, and returns the energy (and optionally forces and a
 virial tensor). All algorithms below are only relying on this basic interface.
 
 Most of the algorithms are extensible through so-called `hooks`. These hooks are
-pieces of code that can be plugged into a basic algorithm (like an NVE
+pieces of code that can be plugged into a basic algorithm (like a Verlet
 integrator) to add functionality like writing trajectory files, sampling other
 ensembles or computing statistical properties on the fly.
 
@@ -39,29 +39,29 @@ The NVE (microcanonical) ensemble
 
 The equations of motion in the NVE ensemble can be integrated as follows::
 
-    nve = NVEIntegrator(ff, 1*femtosecond, temp0=300)
-    nve.run(5000)
+    verlet = VerletIntegrator(ff, 1*femtosecond, temp0=300)
+    verlet.run(5000)
 
 This example just propagates the system with 5000 steps of 1 fs, but does nearly
 nothing else. After calling the ``run`` method, one can inspect atomic positions
 and velocities of the final time step::
 
-    print nve.vel
-    print nve.pos
-    print ff.system.pos  # equivalent to the previous line
-    print nve.ekin/kjmol # the kinetic energy in kJ/mol.
+    print verlet.vel
+    print verlet.pos
+    print ff.system.pos     # equivalent to the previous line
+    print verlet.ekin/kjmol # the kinetic energy in kJ/mol.
 
 By default all information from past steps is discarded. If one is interested
 in writing a trajectory file, one must add a hook to do so. The following
 example writes a HDF5 trajectory file::
 
     hdf5_writer = HDF5Writer(h5.File('output.h5', mode='w'))
-    nve = NVEIntegrator(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
-    nve.run(5000)
+    verlet = VerletIntegrator(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
+    verlet.run(5000)
 
 The parameters of the integrator can be tuned with several optional arguments of
-the ``NVEIntegrator`` constructor. See
-:class:`yaff.sampling.nve.NVEIntegrator` for more details. The exact contents
+the ``VerletIntegrator`` constructor. See
+:class:`yaff.sampling.verlet.VerletIntegrator` for more details. The exact contents
 of the HDF5 file depends on the integrator used and the optional arguments of
 the integrator and the :class:`yaff.sampling.io.HDF5Writer`. The typical tree
 structure of a trajectory HDF5 file is as follows. (Comments were added manually
@@ -103,7 +103,7 @@ to the output of h5dump to describe all the arrays.)::
     }
 
 The hooks argument may also be a list of hook objects. For example, one may
-include the :class:`yaff.sampling.nve.AndersenThermostat` to reset the velocities
+include the :class:`yaff.sampling.nvt.AndersenThermostat` to reset the velocities
 every 200 steps. The :class:`yaff.sampling.io.XYZWriter` can be added to write a
 trajectory of the atomic positions in XYZ format::
 
@@ -115,19 +115,19 @@ trajectory of the atomic positions in XYZ format::
 
 By default a screen logging hook is added (if not yet present) to print one line
 per iteration with some critical integrator parameters. The output of the
-``NVEIntegrator`` is as follows::
+``VerletIntegrator`` is as follows::
 
-    NVE ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    NVE Cons.Err. = the root of the ratio of the variance on the conserved
-    NVE             quantity and the variance on the kinetic energy.
-    NVE d-rmsd    = the root-mean-square displacement of the atoms.
-    NVE g-rmsd    = the root-mean-square gradient of the energy.
-    NVE counter  Cons.Err.       Temp     d-RMSD     g-RMSD   Walltime
-    NVE ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    NVE       0    0.00000      299.5     0.0000       93.7        0.0
-    NVE       1    0.15231      286.4     0.0133      100.1        0.0
-    NVE       2    0.17392      297.8     0.0132       90.6        0.0
-    NVE       3    0.19803      306.8     0.0137       82.1        0.0
+ VERLET ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ VERLET Cons.Err. = the root of the ratio of the variance on the conserved
+ VERLET             quantity and the variance on the kinetic energy.
+ VERLET d-rmsd    = the root-mean-square displacement of the atoms.
+ VERLET g-rmsd    = the root-mean-square gradient of the energy.
+ VERLET counter  Cons.Err.       Temp     d-RMSD     g-RMSD   Walltime
+ VERLET ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ VERLET       0    0.00000      299.5     0.0000       93.7        0.0
+ VERLET       1    0.15231      286.4     0.0133      100.1        0.0
+ VERLET       2    0.17392      297.8     0.0132       90.6        0.0
+ VERLET       3    0.19803      306.8     0.0137       82.1        0.0
 
 The screen output is geared towards detecting simulation errors. The
 parameters ``Cons.Err.``, ``Temp``, ``d-RMSD``, ``g-RMSD`` should exhibit only
@@ -140,7 +140,7 @@ Most hooks have ``start`` and ``step`` arguments for this purpose. Consider
 the following example::
 
     hooks=[
-        NVEScreenLog(step=100)
+        VerletScreenLog(step=100)
         HDF5Writer(h5.File('output.h5', mode='w'), start=5000, step=10),
         XYZWriter('trajectory.xyz', step=50),
         AndersenThermostat(temp=300, step=1000),
@@ -152,21 +152,25 @@ intervals of 10 steps. The ``XYZwriter`` only contains the positions of the atom
 every 50 steps. The Andersen thermostat only resets the atomic velocities every
 1000 steps.
 
-For a detailed description of all options of the NVEIntegrator and the supported
+For a detailed description of all options of the VerletIntegrator and the supported
 hooks, we refer to the reference documentation:
 
-* :class:`yaff.sampling.nve.NVEIntegrator`: Vanilla NVE integrator, whose
+* :class:`yaff.sampling.verlet.VerletIntegrator`: Generic Verlet integrator, whose
   functionality can be extended through hooks.
 * :class:`yaff.sampling.io.HDF5Writer`: Writes HDF5 trajectory files and is
   compatible with most other algorithms discussed below.
 * :class:`yaff.sampling.io.XYZWriter`: Writes XYZ trajectory files, which may be
   useful for visualization purposes.
-* :class:`yaff.sampling.nve.NVEScreenLog`: The NVE screen logger.
-* :class:`yaff.sampling.nve.AndersenThermostat`: Switch from NVE to NVT with the
+* :class:`yaff.sampling.verlet.VerletScreenLog`: The Verlet screen logger.
+* :class:`yaff.sampling.nvt.AndersenThermostat`: Switch from NVE to NVT with the
   Andersen thermostat.
-* :class:`yaff.sampling.nve.AndersenThermostatMcDonaldBarostat`: experimental
+* :class:`yaff.sampling.nvt.NHCThermostat`: Switch from NVE to NVT with the
+  Nose-Hoover chains thermostat.
+* :class:`yaff.sampling.nvt.LangevingThermostat`: Switch from NVE to NVT with
+  the Langevin thermostat.
+* :class:`yaff.sampling.npt.AndersenMcDonaldBarostat`: experimental
   support for the NpT ensemble.
-* :class:`yaff.sampling.nve.KineticAnnealing`: simulated annealing based on
+* :class:`yaff.sampling.verlet.KineticAnnealing`: simulated annealing based on
   slow dissipation of the kinetic energy.
 
 
