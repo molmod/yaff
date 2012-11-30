@@ -213,12 +213,14 @@ def test_supercell_quartz_222():
     assert len(system222.bonds) == len(system111.bonds)*8
     assert abs(system222.pos[9:18] - system111.pos - system111.cell.rvecs[2]).max() < 1e-10
     assert abs(system222.pos[-9:] - system111.pos - system111.cell.rvecs.sum(axis=0)).max() < 1e-10
+    assert issubclass(system222.bonds.dtype.type, int)
     rules = [
         ('Si', '14'),
         ('O', '8'),
     ]
     check_detect_ffatypes(system222, rules)
     check_detect_bonds(system222)
+    assert issubclass(system222.bonds.dtype.type, int)
 
 
 def test_supercell_mil53_121():

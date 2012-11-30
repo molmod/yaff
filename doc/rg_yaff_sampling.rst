@@ -27,7 +27,7 @@ Module ``yaff.sampling.io`` -- Trajectory output
    :members:
 
 
-Module ``yaff.sampling.Verlet`` -- Generic Verlet integrator
+Module ``yaff.sampling.verlet`` -- Generic Verlet integrator
 ============================================================
 
 .. automodule:: yaff.sampling.verlet

@@ -628,7 +628,7 @@ class System(object):
                 rel_iimage[ibond] = np.ceil(frac-0.5)
 
             # E.3) Create the new bonds
-            new_bonds = np.zeros((len(self.bonds)*rep_all,2), float)
+            new_bonds = np.zeros((len(self.bonds)*rep_all,2), int)
             counter = 0
             for iimage0 in np.ndindex(reps):
                 for ibond in xrange(len(self.bonds)):

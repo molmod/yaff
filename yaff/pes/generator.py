@@ -25,6 +25,8 @@
    :meth:`yaff.pes.ff.ForceField.generate` method.
 """
 
+# TODO: generator crashes on BKS pot when no bonds are present.
+
 import numpy as np
 
 from molmod.units import parse_unit
