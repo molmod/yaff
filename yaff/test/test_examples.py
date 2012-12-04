@@ -60,5 +60,8 @@ def test_example_001_tutorial_bks():
     run_example('001_tutorial_bks/nvt', 'simulation.py', '300', '310')
     run_example('001_tutorial_bks/nvt', 'analysis.py', '300', '310', '10')
 
+def test_example_002_external_trajectory():
+    run_example('002_external_trajectory', 'rdf.py')
+
 def test_example_999_back_propagation():
     run_example('999_back_propagation', 'bp.py')

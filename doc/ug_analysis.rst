@@ -53,7 +53,8 @@ simulation:
 
   makes a figure ``energies.png``.
 
-* ``plot_temperate`` is similar, but plots the temperature as function of time.
+* ``plot_temperate`` and ``plot_pressure`` are similar, but they plot the
+  temperature and pressure as function of time instead of the energies.
 
 * ``plot_temp_dist`` plots the distribution (both pdf and cdf) of the
   instantaneous atomic and system temperatures and compares these with the
@@ -174,7 +175,7 @@ One may restrict the analysis to just a selection of atoms as follows::
 See :mod:`yaff.analysis.diffusion` for more details.
 
 **TODO.** Explain (and double check) how to compute diffusion constants of
-multiple one or more molecules instead of just atoms.
+multiple molecules instead of just atoms.
 
 
 Computing errors on thermodynamic averages
@@ -183,7 +184,7 @@ Computing errors on thermodynamic averages
 The block average method can be used to compute the error on time-dependent
 data that have some degree of auto-correlation. The following example computes
 the error on the average temperature from an MD simulation, using a HDF5
-trajectory file.
+trajectory file. ::
 
     f = h5.file('output.h5')
     error, sinef = blav(f['trajectory/temperature'])
@@ -198,32 +199,11 @@ Post-processing external trajectory data
 ========================================
 
 One may also use the analysis module of Yaff to process trajectories generated
-with other molecular simulation codes. This typically takes the following three
-steps. These steps may be put in a single script, but in practice it is
-recommended to have a separate script for the actual analysis.
+with other molecular simulation codes. The following example script (see
+``examples/002_external_trajectory/rdf.py``) converts the xyz file to HDF5 data,
+which is then used to perform the analysis
 
-1. Create a Yaff system object of the molecular system of interest. The
-   following example loads the XYZ file of an initial geometry and adds cell
-   vectors corresponding to a cubic cell with edge length 20.3 Å. ::
-
-    from yaff import *
-    import numpy as np
-    system = System.from_file('initial.xyz', rvecs=np.diag([20.3, 20.3, 20.3])*angstrom)
-
-2. Initialize an HDF5 file and load the trajectory in the HDF5 file::
-
-    import h5py as hf
-    f = h5.File('trajectory.h5', mode='w')
-    system.to_hdf5(f)
-    xyz_to_hdf5(f, 'trajectory.xyz')
-    f.close()
-
-3. Perform the actual analysis. In the following example, a radial distribution
-   function is computed between the hydrogen and the oxygen atoms. ::
-
-    select0 = system.get_indexes('1')
-    select1 = system.get_indexes('8')
-    rdf = RDF(10*angstrom, 0.1*angstrom, f, max_sample=100, select0=select0, select1=select1)
-    rdf.plot()
+.. literalinclude:: ../examples/002_external_trajectory/rdf.py
+    :lines: 26-
 
 See :mod:`yaff.analysis.io` for more routines to convert trajectory data.
