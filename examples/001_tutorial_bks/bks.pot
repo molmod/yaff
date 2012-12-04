@@ -1,0 +1,57 @@
+# Parameters taken from
+# PhysRevLett-v64-p1955-y1990.pdf
+# http://dx.doi.org/10.1103/PhysRevLett.64.1955
+
+# Damped Dispersion
+# =================
+# In this work, the dispersion was not damped at short distances, hence B=0.
+DAMPDISP:UNIT C6 electronvolt*angstrom**6
+DAMPDISP:UNIT B 1/angstrom
+DAMPDISP:UNIT VOL au
+DAMPDISP:SCALE 1 1.0
+DAMPDISP:SCALE 2 1.0
+DAMPDISP:SCALE 3 1.0
+# ------------------------------------------------------------------
+# KEY            label0   label0  C6_AA             B_AA
+# ------------------------------------------------------------------
+DAMPDISP:CPARS      O_B      O_B  1.7500000000e+02  0.0000000000e+00
+DAMPDISP:CPARS     Si_4      O_B  1.3353810000e+02  0.0000000000e+00
+DAMPDISP:CPARS     Al_4      O_B  1.3056590000e+02  0.0000000000e+00
+DAMPDISP:CPARS      P_4      O_B  1.9879300000e+01  0.0000000000e+00
+
+
+# Exponential Repulsion
+# =====================
+EXPREP:UNIT A electronvolt
+EXPREP:UNIT B 1/angstrom
+EXPREP:SCALE 1 1.0
+EXPREP:SCALE 2 1.0
+EXPREP:SCALE 3 1.0
+EXPREP:MIX A GEOMETRIC
+EXPREP:MIX B ARITHMETIC
+# ----------------------------------------------------------------
+# KEY          label0   label1  A_AB              B_AB
+# ----------------------------------------------------------------
+EXPREP:CPARS      O_B      O_B  1.3887730000e+03  2.7600000000e+00
+EXPREP:CPARS     Si_4      O_B  1.8003757200e+04  4.8731800000e+00
+EXPREP:CPARS     Al_4      O_B  1.6008534500e+04  4.7966700000e+00
+EXPREP:CPARS      P_4      O_B  9.0342080000e+03  5.1909800000e+00
+
+# Fixed charges
+# =============
+FIXQ:UNIT Q0 e
+FIXQ:UNIT P e
+FIXQ:UNIT R angstrom
+FIXQ:SCALE 1 1.0
+FIXQ:SCALE 2 1.0
+FIXQ:SCALE 3 1.0
+FIXQ:DIELECTRIC 1.0
+# Atomic parameters
+# ----------------------------------------------------
+# KEY        label  Q_0A              R_A
+# ----------------------------------------------------
+FIXQ:ATOM      O_B -1.2000000000e+00  0.0000000000e+00
+FIXQ:ATOM     Si_4  2.4000000000e+00  0.0000000000e+00
+FIXQ:ATOM     Al_4  1.4000000000e+00  0.0000000000e+00
+FIXQ:ATOM      P_4  3.4000000000e+00  0.0000000000e+00
+

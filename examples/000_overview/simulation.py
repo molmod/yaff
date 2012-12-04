@@ -44,8 +44,8 @@ with h5.File('output.h5', mode='w') as f:
     # 3) Integrate Newton's equation of motion and write the trajectory in HDF5
     # format.
     hdf5_writer = HDF5Writer(f)
-    nve = NVEIntegrator(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
-    nve.run(100)
+    verlet = VerletIntegrator(ff, 1*femtosecond, hooks=hdf5_writer, temp0=300)
+    verlet.run(100)
 
     # 4) perform an analysis, in this case an RDF computation for O-O pairs.
     indexes = system.get_indexes('O')

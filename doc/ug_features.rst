@@ -11,7 +11,7 @@ The main features of Yaff are:
 * Control of the program through a Python scripting interface.
 * Efficient evaluation of the energy, forces and virial in low-level C routines.
 * Robust geometry and cell optimization
-* NVE molecular dynamics with variations to perform NVT and annealing runs.
+* Molecular dynamics (NVE, NVT and annealing).
 * Elastic constants (0K) and Hessians by taking finite differences of analytical
   first-order derivatives.
 * HDF5-based trajectory format.
@@ -25,4 +25,4 @@ Missing features (work in progress) include:
 
 * Parallel force evaluaton.
 * Parallel sampling schemes.
-* Common sampling schemes, e.g. Nose-Hoover (NVT), Martyna-Tobias-Klein (NpT).
+* Constant-pressure sampling schemes: Martyna-Tuckerman-Tobias-Klein.

@@ -1,3 +1,5 @@
+.. _ug_sec_install:
+
 Installation
 ############
 

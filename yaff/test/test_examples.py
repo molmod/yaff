@@ -26,7 +26,7 @@
 import os, glob, subprocess, sys
 
 
-def run_example(dirname, fn_py):
+def run_example(dirname, fn_py, *args):
     # fix python path
     env = dict(os.environ)
     python_path = env.get('PYTHONPATH')
@@ -42,7 +42,7 @@ def run_example(dirname, fn_py):
     assert os.path.isfile(os.path.join(root, fn_py))
 
     # run example and pass through the output
-    p = subprocess.Popen(['./%s' % fn_py], cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+    p = subprocess.Popen(['./%s' % fn_py] + list(args), cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
     p.wait()
     sys.stdout.write(p.stdout.read())
     sys.stderr.write(p.stderr.read())
@@ -52,6 +52,13 @@ def run_example(dirname, fn_py):
 
 def test_example_000_overview():
     run_example('000_overview', 'simulation.py')
+
+def test_example_001_tutorial_bks():
+    run_example('001_tutorial_bks/init', 'mksystem.py')
+    run_example('001_tutorial_bks/opt', 'simulation.py')
+    run_example('001_tutorial_bks/opt', 'analysis.py')
+    run_example('001_tutorial_bks/nvt', 'simulation.py', '300', '310')
+    run_example('001_tutorial_bks/nvt', 'analysis.py', '300', '310', '10')
 
 def test_example_999_back_propagation():
     run_example('999_back_propagation', 'bp.py')

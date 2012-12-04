@@ -31,6 +31,16 @@ This guide is a gentle introduction to Yaff with many examples.
    ug_tune.rst
 
 
+Tutorials
+=========
+
+.. toctree::
+   :maxdepth: 2
+   :numbered:
+
+   tu_silica.rst
+
+
 Reference Guide
 ===============
 
