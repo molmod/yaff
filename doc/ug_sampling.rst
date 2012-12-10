@@ -181,7 +181,7 @@ A basic geometry optimization (with trajectory output in an HDF5 file) is
 implemented as follows::
 
     hdf5 = HDF5Writer(h5.File('output.h5', mode='w'))
-    opt = CGOptimizer(ff, CartesianDOF(), hooks=hdf5)
+    opt = CGOptimizer(CartesianDOF(ff), hooks=hdf5)
     opt.run(5000)
 
 The ``CartesianDOF()`` argument indicates that only the positions of the nuclei
@@ -194,7 +194,7 @@ One may also perform an optimization of the nuclei and the cell parameters as
 follows::
 
     hdf5 = HDF5Writer(h5.File('output.h5', mode='w'))
-    opt = CGOptimizer(ff, FullCellDOF(), hooks=hdf5)
+    opt = CGOptimizer(FullCellDOF(ff), hooks=hdf5)
     opt.run(5000)
 
 This will transform the degrees of freedom (DOFs) of the system (cell vectors
