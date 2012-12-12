@@ -23,7 +23,7 @@
 #--
 
 
-import tempfile, shutil, numpy as np
+import tempfile, shutil, numpy as np, h5py as h5
 
 from yaff import System, Cell, angstrom
 
@@ -55,9 +55,7 @@ def test_xyz():
     system0 = get_system_water32()
     dirname = tempfile.mkdtemp('yaff', 'test_xyz')
     try:
-        from molmod import Molecule
-        mol = Molecule(system0.numbers, system0.pos)
-        mol.write_to_file('%s/tmp.xyz' % dirname)
+        system0.to_file('%s/tmp.xyz' % dirname)
         system1 = System.from_file('%s/tmp.xyz' % dirname, rvecs=system0.cell.rvecs, ffatypes=system0.ffatypes, ffatype_ids=system0.ffatype_ids)
         assert (system0.numbers == system1.numbers).all()
         assert abs(system0.pos - system1.pos).max() < 1e-10
@@ -69,6 +67,19 @@ def test_xyz():
         assert (system0.ffatype_ids == system1.ffatype_ids).all()
         assert abs(system0.cell.rvecs - system1.cell.rvecs).max() < 1e-10
         assert system1.charges is None
+    finally:
+        shutil.rmtree(dirname)
+
+
+def test_hdf5():
+    system0 = get_system_water32()
+    dirname = tempfile.mkdtemp('yaff', 'test_hdf5')
+    try:
+        #from molmod import Molecule
+        fn = '%s/tmp.h5' % dirname
+        system0.to_file(fn)
+        with h5.File(fn) as f:
+            assert 'system' in f
     finally:
         shutil.rmtree(dirname)
 

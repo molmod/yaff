@@ -23,7 +23,7 @@
 #--
 
 
-import numpy as np
+import numpy as np, h5py as h5
 
 from yaff.log import log
 from yaff.atselect import check_name, atsel_compile
@@ -649,34 +649,59 @@ class System(object):
         # Done
         return System(**new_args)
 
-    def to_file(self, fn_chk):
-        """Write the system in the internal checkpoint format.
+    def to_file(self, fn):
+        """Write the system to a file
 
            **Arguments:**
 
-           fn_chk
+           fn
                 The file to write to.
 
-           All data are stored in atomic units.
+           Supported formats are:
+
+           chk
+                Internal human-readable checkpoint format. This format includes
+                all the information of a system object. All data are stored in
+                atomic units.
+
+           h5
+                Internal binary checkpoint format. This format includes
+                all the information of a system object. All data are stored in
+                atomic units.
+
+           xyz
+                A simple file with atomic positions and elements. Coordinates
+                are written in Angstroms.
         """
-        from molmod.io import dump_chk
-        #TODO: Add a few common formats like XYZ, PDB
-        # PDF (Cell parameters, connectivity, atom types (4char), scope -> chains)
-        dump_chk(fn_chk, {
-            'numbers': self.numbers,
-            'pos': self.pos,
-            'ffatypes': self.ffatypes,
-            'ffatype_ids': self.ffatype_ids,
-            'scopes': self.scopes,
-            'scope_ids': self.scope_ids,
-            'bonds': self.bonds,
-            'rvecs': self.cell.rvecs,
-            'charges': self.charges,
-            'masses': self.masses,
-        })
+        #TODO: Add a few common formats like PDB
+        # (Cell parameters, connectivity, atom types (4char), scope -> chains)
+        if fn.endswith('.chk'):
+            from molmod.io import dump_chk
+            dump_chk(fn, {
+                'numbers': self.numbers,
+                'pos': self.pos,
+                'ffatypes': self.ffatypes,
+                'ffatype_ids': self.ffatype_ids,
+                'scopes': self.scopes,
+                'scope_ids': self.scope_ids,
+                'bonds': self.bonds,
+                'rvecs': self.cell.rvecs,
+                'charges': self.charges,
+                'masses': self.masses,
+            })
+        elif fn.endswith('.h5'):
+            with h5.File(fn, 'w') as f:
+                self.to_hdf5(f)
+        elif fn.endswith('.xyz'):
+            from molmod.io import XYZWriter
+            from molmod.periodic import periodic
+            xyz_writer = XYZWriter(fn, [periodic[n].symbol for n in self.numbers])
+            xyz_writer.dump(str(self), self.pos)
+        else:
+            raise NotImplementedError('The extension of %s does not correspond to any known format.' % fn)
         if log.do_high:
             with log.section('SYS'):
-                log('Wrote system to %s.' % fn_chk)
+                log('Wrote system to %s.' % fn)
 
     def to_hdf5(self, f):
         """Write the system to a HDF5 file.
