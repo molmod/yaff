@@ -23,5 +23,4 @@
 #--
 
 from yaff.tune.cost import *
-from yaff.tune.opt import *
 from yaff.tune.transform import *
