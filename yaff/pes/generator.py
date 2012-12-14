@@ -971,7 +971,7 @@ class FixedChargeGenerator(NonbondedGenerator):
             system.charges = np.zeros(system.natom)
         elif log.do_warning and abs(system.charges).max() != 0:
             log.warn('Overwriting charges in system.')
-            system.charges[:] = 0.0
+        system.charges[:] = 0.0
         radii = np.zeros(system.natom)
 
         # compute the charges

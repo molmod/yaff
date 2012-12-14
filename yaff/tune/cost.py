@@ -93,7 +93,7 @@ class GeoOptSimulation(Simulation):
         #ff.system.pos[:] = self.refpos
         #energy1 = ff.compute()
         #if energy1 > energy0:
-        ff.system.pos[:] *= np.random.uniform(0.99, 1.01, ff.system.pos.shape)
+        ff.system.pos[:] = self.refpos*np.random.uniform(0.99, 1.01, ff.system.pos.shape)
         dof = CartesianDOF(ff, gpos_rms=1e-8)
         sl = OptScreenLog(step=10)
         opt = CGOptimizer(dof, hooks=[sl])

@@ -410,7 +410,15 @@ def test_generator_water32_fixq():
             assert abs(system.charges[i] + 2*0.417) < 1e-5
 
     system = get_system_water32()
+    log.set_level(log.silent)
     ff2 = ForceField.generate(system, 'input/parameters_water_fixq.txt', rcut=15.0*angstrom)
+    log.set_level(log.debug)
+    # check charges
+    for i in xrange(system.natom):
+        if system.numbers[i] == 1:
+            assert abs(system.charges[i] - 0.417) < 1e-5
+        else:
+            assert abs(system.charges[i] + 2*0.417) < 1e-5
     energy = ff.compute()
     energy2 = ff2.compute()
     assert abs(energy - energy2) < 1e-3
