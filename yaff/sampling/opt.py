@@ -54,13 +54,14 @@ class OptScreenLog(Hook):
                     log('Conv.val. =&the highest ratio of a convergence criterion over its threshold.')
                     log('N         =&the number of convergence criteria that is not met.')
                     log('Worst     =&the name of the convergence criterion that is worst.')
-                    log('counter  Conv.val.  N           Worst   Walltime')
+                    log('counter  Conv.val.  N           Worst     Energy   Walltime')
                     log.hline()
-            log('%7i % 10.3e %2i %15s %10.1f' % (
+            log('%7i % 10.3e %2i %15s %s %10.1f' % (
                 iterative.counter,
                 iterative.dof.conv_val,
                 iterative.dof.conv_count,
                 iterative.dof.conv_worst,
+                log.energy(iterative.epot),
                 time.time() - self.time0,
             ))
 
@@ -165,12 +166,12 @@ class BFGSHessianModel(object):
         hmax = abs(self.hessian).max()
         # Only compute updates if the denominators do not blow up
         denom1 = np.dot(dx, tmp)
-        if hmax*denom1 <= 1e-5*abs(tmp).max():
+        if hmax*denom1 <= 1e-5*abs(tmp).max()**2:
             if log.do_high:
                 log('Skipping BFGS update because denom1=%10.3e is not positive enough.' % denom1)
             return
         denom2 = np.dot(dg, dx)
-        if hmax*denom2 <= 1e-5*abs(dg).max():
+        if hmax*denom2 <= 1e-5*abs(dg).max()**2:
             if log.do_high:
                 log('Skipping BFGS update because denom2=%10.3e is not positive enough.' % denom2)
             return
@@ -221,7 +222,7 @@ class BFGSOptimizer(BaseOptimizer):
     """
     log_name = 'BFGSOPT'
 
-    def __init__(self, dof, state=None, hooks=None, counter0=0, small_radius=1e-5):
+    def __init__(self, dof, state=None, hooks=None, counter0=0, trust_radius=1.0, small_radius=1e-5):
         """
            **Arguments:**
 
@@ -244,6 +245,10 @@ class BFGSOptimizer(BaseOptimizer):
            counter0
                 The counter value associated with the initial state.
 
+           trust_radius
+                The initial value for the trust radius. It is adapted by the
+                algorithm after every step.
+
            small_radius
                 If the trust radius goes below this limit, the decrease in
                 energy is no longer essential. Instead a decrease in the norm
@@ -251,7 +256,7 @@ class BFGSOptimizer(BaseOptimizer):
         """
         self.x_old = dof.x0
         self.hessian = BFGSHessianModel(len(dof.x0))
-        self.trust_radius = 1.0
+        self.trust_radius = trust_radius
         self.small_radius = small_radius
         BaseOptimizer.__init__(self, dof, state, hooks, counter0)
 
@@ -274,8 +279,13 @@ class BFGSOptimizer(BaseOptimizer):
         return BaseOptimizer.propagate(self)
 
     def make_step(self):
+        # get relevant hessian information
         evals, evecs = self.hessian.get_spectrum()
-        tmp1 = -np.dot(evecs.T, self.g_old)
+        if log.do_high:
+            log(' lowest eigen value: %7.1e' % evals.min())
+            log('highest eigen value: %7.1e' % evals.max())
+        # convert gradient to internal basis
+        grad_in = np.dot(evecs.T, self.g_old)
 
         # Initial ridge parameter
         if evals.min() <= 0:
@@ -293,13 +303,20 @@ class BFGSOptimizer(BaseOptimizer):
         while True:
             # Increase ridge until step is smaller than trust radius
             while True:
+
+                # --------------------------------------------------------------
                 # MARKER FOR CONSTRAINT CODE: instead of the following line, a
                 # constrained harmonic solver should be added to find the step
                 # that minimizes the local quadratic problem under a set of linear
                 # equality/inequality constraints. This can be implemented using
                 # the active set algorithm.
-                tmp2 = tmp1*evals/(evals**2 + ridge**2)
-                radius = np.linalg.norm(tmp2)
+                # --------------------------------------------------------------
+
+                # compute the step in the internal basis with a given ridge parameter
+                step_in = -grad_in*evals/(evals**2 + ridge**2)
+                # the size of the step, is invariant under unitary transformation
+                radius = np.linalg.norm(step_in)
+                # check if the step is acceptable and make proper decision
                 if log.do_high:
                     log('%12.5e %12.5e %12.5e' % (ridge, radius, self.trust_radius))
                 if radius < self.trust_radius:
@@ -308,40 +325,47 @@ class BFGSOptimizer(BaseOptimizer):
                     ridge = abs(evals[evals!=0.0]).min()
                 else:
                     ridge *= 1.2
-            # Check if the step is trust worthy
-            delta_x = np.dot(evecs, tmp2)
+            # convert the step to user basis
+            delta_x = np.dot(evecs, step_in)
+            assert np.dot(delta_x, self.g_old) < 0
+
+            # ------------------------------------------------------------------
             # MARKER FOR CONSTRAINT CODE: the following line should be replaced
             # by something of the sort:
             # x = self.shaker.fix(self.x_old + delta_x)
+            # ------------------------------------------------------------------
+
+            # compute the function and gradient at the new position
             x = self.x_old + delta_x
             f, g = self.fun(x, True)
+
+            # ------------------------------------------------------------------
             # MARKER FOR CONSTRAINT CODE: project the gradient.
+            # ------------------------------------------------------------------
+
+            # compute the change in function value
             delta_f = f - self.f_old
+            # compute the change in norm of the gradient
             delta_norm_g = np.linalg.norm(g) - np.linalg.norm(self.g_old)
-            if delta_f > 0 or (self.trust_radius < self.small_radius and delta_norm_g < 0):
+
+            if delta_f > 0:
                 # The function must decrease, if not the trust radius is too big.
-                # This is similar to the first Wolfe condition. When the trust
-                # radius becomes small, the numerical noise on the energy may
-                # be too large to detect a decrease in energy. In that case,
-                # the norm of the gradient must decrease.
                 if log.do_high:
-                    log('Function (or grad norm) increases.')
+                    log('Function increases.')
                 self.trust_radius *= 0.5
                 continue
-            # MARKER FOR CONSTRAINT CODE: the following should be ignored if
-            # the number of active constraints changes. In case of any
-            # constraints, delta_x should be updated.
-            if np.dot(delta_x, g) > 0:
-                # This means that we ended up too far at the other end of the
-                # minimum. Note that this is intentionally very different from
-                # the second Wolfe condition. Keep in mind that this optimizer
-                # does not use line searches.
+
+            if (self.trust_radius < self.small_radius and delta_norm_g > 0):
+                # When the trust radius becomes small, the numerical noise on
+                # the energy may be too large to detect an increase energy.
+                # In that case the norm of the gradient is used instead.
                 if log.do_high:
-                    log('dot(new gradient, step) > 0.')
+                    log('Gradient norm increases.')
                 self.trust_radius *= 0.5
                 continue
+
             # If we get here, we are done.
             if log.do_high:
                 log.hline()
-            self.trust_radius *= 1.2
+            self.trust_radius *= 1.1
             return x, f, g
