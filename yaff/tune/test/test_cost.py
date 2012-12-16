@@ -58,7 +58,7 @@ def test_water_cost_dist_ic():
     mods = [ParameterModifier(rules)]
     pt = ParameterTransform(parameters, mods)
 
-    simulations = [GeoOptSimulation(system)]
+    simulations = [GeoOptSimulation('only', system)]
     tests = [ICTest(0.1*angstrom, refpos, simulations[0], BondGroup(system))]
     assert tests[0].icgroup.cases == [[1, 0], [2, 0]]
     cost = CostFunction(pt, {'all': tests})
@@ -71,6 +71,13 @@ def test_water_cost_dist_ic():
 
     x = np.array([0.8])
     assert abs(cost(x) - np.log(0.5*((0.8*1.0238240000e+00 - 1.1)/0.1)**2)) < 1e-5
+
+    results = {}
+    parameters = cost.parameter_transform(x)
+    for simulation in simulations:
+        results[simulation.name] = simulation(parameters)
+    my_results = tests[0].filter_results(results)
+    assert results == my_results
 
 
 def test_water_cost_dist_fc():
@@ -86,7 +93,7 @@ def test_water_cost_dist_fc():
     mods = [ParameterModifier(rules)]
     pt = ParameterTransform(parameters, mods)
 
-    simulations = [GeoOptHessianSimulation(system)]
+    simulations = [GeoOptHessianSimulation('only', system)]
     tests = [FCTest(kjmol/angstrom**2, sample['pos'], sample['hessian'].reshape(9, 9), simulations[0], BondGroup(system))]
     assert tests[0].icgroup.cases == [[1, 0], [2, 0]]
     cost = CostFunction(pt, {'all': tests})
@@ -119,7 +126,7 @@ def test_water_cost_angle_ic():
     mods = [ParameterModifier(rules)]
     pt = ParameterTransform(parameters, mods)
 
-    simulations = [GeoOptSimulation(system)]
+    simulations = [GeoOptSimulation('only', system)]
     tests = [ICTest(5*deg, refpos, simulations[0], BendGroup(system))]
     assert tests[0].icgroup.cases == [[2, 0, 1]]
     cost = CostFunction(pt, {'all': tests})
@@ -147,7 +154,7 @@ def test_water_cost_angle_fc():
     mods = [ParameterModifier(rules)]
     pt = ParameterTransform(parameters, mods)
 
-    simulations = [GeoOptHessianSimulation(system)]
+    simulations = [GeoOptHessianSimulation('only', system)]
     tests = [FCTest(kjmol, sample['pos'], sample['hessian'].reshape(9, 9), simulations[0], BendGroup(system))]
     assert tests[0].icgroup.cases == [[2, 0, 1]]
     cost = CostFunction(pt, {'all': tests})

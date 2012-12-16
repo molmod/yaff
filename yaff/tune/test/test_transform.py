@@ -24,6 +24,7 @@
 
 
 from yaff import *
+import numpy as np
 
 
 def test_simple_transform():
@@ -31,5 +32,6 @@ def test_simple_transform():
     rules = [ScaleRule('BONDFUES', 'PARS', 'O\s*H', 3)]
     mods = [ParameterModifier(rules)]
     pt = ParameterTransform(pf0, mods)
+    assert (pt.get_init() == np.array([1.0])).all()
     pf1 = pt([2.0])
     assert pf1['BONDFUES']['PARS'][0][1] == 'O H 4.0088096730e+03  2.0476480000e+00'

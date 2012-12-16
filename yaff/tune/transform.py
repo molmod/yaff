@@ -24,6 +24,8 @@
 
 
 import re
+import numpy as np
+
 
 __all__ = [
     'ParameterTransform', 'ParameterModifier', 'ModifierRule', 'ScaleRule',
@@ -36,6 +38,12 @@ class ParameterTransform(object):
         self.parameters0 = parameters0
         self.mods = mods
 
+    def get_init(self):
+        result = []
+        for mod in self.mods:
+            result.append(mod.get_init())
+        return np.array(result)
+
     def __call__(self, x):
         assert len(x) == len(self.mods)
         result = self.parameters0.copy()
@@ -47,6 +55,11 @@ class ParameterTransform(object):
 class ParameterModifier(object):
     def __init__(self, rules):
         self.rules = rules
+
+    def get_init(self):
+        init_vals = np.array([rule.get_init() for rule in self.rules])
+        assert init_vals.max() == init_vals.min()
+        return init_vals[0]
 
     def __call__(self, x, parameters):
         for rule in self.rules:
@@ -77,12 +90,21 @@ class ModifierRule(object):
     def modify_value(self, x, value):
         raise NotImplementedError
 
+    def get_init(self):
+        raise NotImplementedError
+
 
 class ScaleRule(ModifierRule):
     def modify_value(self, x, value):
         return x*value
 
+    def get_init(self):
+        return 1.0
+
 
 class IncrementRule(ModifierRule):
     def modify_value(self, x, value):
         return x+value
+
+    def get_init(self):
+        return 0.0

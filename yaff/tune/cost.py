@@ -45,29 +45,38 @@ class CostFunction(object):
     def __init__(self, parameter_transform, test_groups):
         self.parameter_transform = parameter_transform
         self.test_groups = test_groups
-        self.simulations = set([])
-        for name, tests in test_groups.iteritems():
+
+        # Collect all simulations
+        self.simulations = []
+        for name, tests in sorted(test_groups.iteritems()):
             for test in tests:
-                self.simulations.update(test.simulations)
+                for simulation in test.simulations:
+                    if simulation not in self.simulations:
+                        self.simulations.append(simulation)
+
+        # Collect all tests
+        self.tests = []
+        for name, tests in sorted(test_groups.iteritems()):
+            for test in tests:
+                self.tests.append((name, test))
 
     def __call__(self, x):
         # Modify the parameters
         parameters = self.parameter_transform(x)
         # Run simulations with the new parameters
+        results = {}
         for simulation in self.simulations:
-            simulation(parameters)
+            results[simulation.name] = simulation(parameters)
         # compute all the tests in each test group
-        cost = 0.0
-        for name, tests in self.test_groups.iteritems():
-            group_cost = 0.0
-            for test in tests:
-                group_cost += 0.5*test()**2
-            cost += np.log(group_cost)
-        return cost
+        costs = {}
+        for name, test in self.tests:
+            costs[name] = 0.5*test(results)**2 + costs.get(name, 0.0)
+        return sum(np.log(cost) for cost in costs.itervalues())
 
 
 class Simulation(object):
-    def __init__(self, system, **kwargs):
+    def __init__(self, name, system, **kwargs):
+        self.name = name
         self.system = system
         self.kwargs = kwargs
 
@@ -75,19 +84,20 @@ class Simulation(object):
         # prepare force field
         ff = ForceField.generate(self.system, parameters, **self.kwargs)
         # run actual simulation
-        self.run(ff)
+        return self.run(ff)
 
     def run(self, ff):
         raise NotImplementedError
 
 
 class GeoOptSimulation(Simulation):
-    def __init__(self, system, **kwargs):
+    def __init__(self, name, system, **kwargs):
         self.refpos = system.pos.copy()
-        Simulation.__init__(self, system, **kwargs)
+        self.hessian0 = kwargs.pop('hessian0', None)
+        Simulation.__init__(self, name, system, **kwargs)
 
     def run(self, ff):
-        from yaff import CartesianDOF, CGOptimizer, OptScreenLog
+        from yaff import CartesianDOF, QNOptimizer, OptScreenLog
         #prevpos = ff.system.pos[:].copy()
         #energy0 = ff.compute()
         #ff.system.pos[:] = self.refpos
@@ -95,15 +105,21 @@ class GeoOptSimulation(Simulation):
         #if energy1 > energy0:
         ff.system.pos[:] = self.refpos*np.random.uniform(0.99, 1.01, ff.system.pos.shape)
         dof = CartesianDOF(ff, gpos_rms=1e-8)
-        sl = OptScreenLog(step=10)
-        opt = CGOptimizer(dof, hooks=[sl])
+        sl = OptScreenLog(step=20)
+        opt = QNOptimizer(dof, hooks=[sl], hessian0=self.hessian0)
         opt.run(5000)
+        return {
+            'energy': ff.energy,
+            'pos': ff.system.pos.copy(),
+            'gpos': ff.gpos.copy(),
+        }
 
 
 class GeoOptHessianSimulation(GeoOptSimulation):
     def run(self, ff):
-        GeoOptSimulation.run(self, ff)
-        self.hessian = estimate_cart_hessian(ff)
+        result = GeoOptSimulation.run(self, ff)
+        result['hessian'] = estimate_cart_hessian(ff)
+        return result
 
 
 class ICGroup(object):
@@ -196,11 +212,21 @@ class Test(object):
         self.tolerance = tolerance
         self.simulations = simulations
 
-    def __call__(self):
+    def __call__(self, results):
         # Compute a dimensionless error
-        return self.compute_error()/self.tolerance
+        return self.compute_error(results)/self.tolerance
 
-    def compute_error(self):
+    def filter_results(self, results):
+        my_results = {}
+        for simulation in self.simulations:
+            name = simulation.name
+            if name in results:
+                my_results[name] = results[name]
+            else:
+                return
+        return my_results
+
+    def compute_error(self, results):
         raise NotImplementedError
 
 
@@ -218,10 +244,10 @@ class ICTest(Test):
         # Call super class
         Test.__init__(self, tolerance, [simulation])
 
-    def compute_error(self):
+    def compute_error(self, results):
         sumsq = 0.0
         count = 0
-        pos = self.simulation.system.pos
+        pos = results[self.simulation.name]['pos']
         for i in xrange(len(self.icgroup.cases)):
             indexes = self.icgroup.cases[i]
             sumsq += (self.refics[i] - self.icgroup.compute_ic(pos, indexes))**2
@@ -252,11 +278,11 @@ class FCTest(Test):
         # Call super class
         Test.__init__(self, tolerance, [simulation])
 
-    def compute_error(self):
+    def compute_error(self, results):
         sumsq = 0.0
         count = 0
-        pos = self.simulation.system.pos
-        hessian = self.simulation.hessian
+        pos = results[self.simulation.name]['pos']
+        hessian = results[self.simulation.name]['hessian']
         for i in xrange(len(self.icgroup.cases)):
             indexes = self.icgroup.cases[i]
             sumsq += (self.reffcs[i] - self.compute_fc(pos, hessian, indexes))**2
