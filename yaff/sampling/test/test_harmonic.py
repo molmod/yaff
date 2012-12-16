@@ -77,7 +77,7 @@ def test_bulk_elastic_bks():
     ])
     system.align_cell(lcs)
     ff.update_rvecs(system.cell.rvecs)
-    opt = BFGSOptimizer(FullCellDOF(ff))
+    opt = QNOptimizer(FullCellDOF(ff))
     opt.run()
     rvecs0 = system.cell.rvecs.copy()
     vol0 = system.cell.volume
@@ -95,14 +95,14 @@ def test_bulk_elastic_bks():
     rvecs1 = rvecs0*deform
     pos1 = pos0*deform
     ff.update_rvecs(rvecs1)
-    opt = BFGSOptimizer(CartesianDOF(ff))
+    opt = QNOptimizer(CartesianDOF(ff))
     opt.run()
     e1 = ff.compute()
     deform = np.array([1, 1, 1+eps])
     rvecs2 = rvecs0*deform
     pos2 = pos0*deform
     ff.update_rvecs(rvecs2)
-    opt = BFGSOptimizer(CartesianDOF(ff))
+    opt = QNOptimizer(CartesianDOF(ff))
     opt.run()
     e2 = ff.compute()
     C = (e1 + e2 - 2*e0)/(eps**2)/vol0
@@ -111,14 +111,14 @@ def test_bulk_elastic_bks():
     rvecs1 = rvecs0*deform
     pos1 = pos0*deform
     ff.update_rvecs(rvecs1)
-    opt = BFGSOptimizer(CartesianDOF(ff))
+    opt = QNOptimizer(CartesianDOF(ff))
     opt.run()
     e1 = ff.compute()
     deform = np.array([1+eps, 1, 1])
     rvecs2 = rvecs0*deform
     pos2 = pos0*deform
     ff.update_rvecs(rvecs2)
-    opt = BFGSOptimizer(CartesianDOF(ff))
+    opt = QNOptimizer(CartesianDOF(ff))
     opt.run()
     e2 = ff.compute()
     C = (e1 + e2 - 2*e0)/(eps**2)/vol0

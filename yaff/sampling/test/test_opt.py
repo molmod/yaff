@@ -130,8 +130,19 @@ def test_cg_hdf5():
         f.close()
 
 
-def test_bfgs_5steps():
-    opt = BFGSOptimizer(CartesianDOF(get_ff_water32()))
+def test_qn_5steps():
+    opt = QNOptimizer(CartesianDOF(get_ff_water32()))
+    epot0 = opt.epot
+    opt.run(5)
+    epot1 = opt.epot
+    assert opt.counter == 5
+    assert epot1 < epot0
+
+
+def test_qn_5steps_initial_hessian():
+    ff = get_ff_water32()
+    hessian = estimate_cart_hessian(ff)
+    opt = QNOptimizer(CartesianDOF(ff), hessian0=hessian)
     epot0 = opt.epot
     opt.run(5)
     epot1 = opt.epot

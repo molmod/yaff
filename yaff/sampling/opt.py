@@ -36,7 +36,7 @@ from yaff.sampling.iterative import Iterative, AttributeStateItem, \
 
 __all__ = [
     'OptScreenLog', 'BaseOptimizer', 'CGOptimizer', 'BFGSHessianModel',
-    'BFGSOptimizer',
+    'SR1HessianModel', 'QNOptimizer',
 ]
 
 
@@ -157,10 +157,31 @@ class CGOptimizer(BaseOptimizer):
         return BaseOptimizer.propagate(self)
 
 
-class BFGSHessianModel(object):
-    def __init__(self, size):
-        self.hessian = np.identity(size, float)
+class HessianModel(object):
+    def __init__(self, ndof, hessian0=None):
+        '''
+           **Arguments:**
 
+           ndof
+                The number of degrees of freedom
+
+           **Optional arguments:**
+
+           hessian0
+                An initial guess for the hessian
+        '''
+        if hessian0 is None:
+            self.hessian = np.identity(ndof, float)
+        else:
+            self.hessian = hessian0.copy()
+            if self.hessian.shape != (ndof, ndof):
+                raise TypeError('Incorrect shape of the initial hessian in quasi-newton method.')
+
+    def get_spectrum(self):
+        return np.linalg.eigh(self.hessian)
+
+
+class BFGSHessianModel(HessianModel):
     def update(self, dx, dg):
         tmp = np.dot(self.hessian, dx)
         hmax = abs(self.hessian).max()
@@ -180,12 +201,23 @@ class BFGSHessianModel(object):
         self.hessian -= np.outer(tmp, tmp)/denom1
         self.hessian += np.outer(dg, dg)/denom2
 
-    def get_spectrum(self):
-        return np.linalg.eigh(self.hessian)
+
+class SR1HessianModel(HessianModel):
+    def update(self, dx, dg):
+        tmp = dg - np.dot(self.hessian, dx)
+
+        denom = np.dot(tmp, dx)
+        if abs(denom) > 1e-5*np.linalg.norm(dx)*np.linalg.norm(tmp):
+            if log.do_debug:
+                log('Updating SR1 Hessian.       denom=%10.3e' % denom)
+            self.hessian += np.outer(tmp, tmp)/denom
+        else:
+            if log.do_high:
+                log('Skipping SR1 update because denom=%10.3e is not big enough.' % denom)
 
 
-class BFGSOptimizer(BaseOptimizer):
-    """BFGS optimizer
+class QNOptimizer(BaseOptimizer):
+    """A Quasi-newton optimizer
 
        This is just a basic implementation of the algorithm, but it has the
        potential to become more advanced and efficient. The following
@@ -220,9 +252,9 @@ class BFGSOptimizer(BaseOptimizer):
           updates. Simple assumptions about the remainder of the spectrum should
           be sufficient to keep the algorithm efficient.
     """
-    log_name = 'BFGSOPT'
+    log_name = 'QNOPT'
 
-    def __init__(self, dof, state=None, hooks=None, counter0=0, trust_radius=1.0, small_radius=1e-5):
+    def __init__(self, dof, state=None, hooks=None, counter0=0, trust_radius=1.0, small_radius=1e-5, hessian0=None):
         """
            **Arguments:**
 
@@ -253,9 +285,12 @@ class BFGSOptimizer(BaseOptimizer):
                 If the trust radius goes below this limit, the decrease in
                 energy is no longer essential. Instead a decrease in the norm
                 of the gradient is used to accept/reject a step.
+
+           hessian0
+                An initial guess for the Hessian
         """
         self.x_old = dof.x0
-        self.hessian = BFGSHessianModel(len(dof.x0))
+        self.hessian = SR1HessianModel(len(dof.x0), hessian0)
         self.trust_radius = trust_radius
         self.small_radius = small_radius
         BaseOptimizer.__init__(self, dof, state, hooks, counter0)
@@ -313,7 +348,7 @@ class BFGSOptimizer(BaseOptimizer):
                 # --------------------------------------------------------------
 
                 # compute the step in the internal basis with a given ridge parameter
-                step_in = -grad_in*evals/(evals**2 + ridge**2)
+                step_in = -grad_in/(evals + ridge)
                 # the size of the step, is invariant under unitary transformation
                 radius = np.linalg.norm(step_in)
                 # check if the step is acceptable and make proper decision
@@ -347,13 +382,14 @@ class BFGSOptimizer(BaseOptimizer):
             delta_f = f - self.f_old
             # compute the change in norm of the gradient
             delta_norm_g = np.linalg.norm(g) - np.linalg.norm(self.g_old)
+            # must_shrink is a parameter to control the trust radius
+            must_shrink = False
 
             if delta_f > 0:
                 # The function must decrease, if not the trust radius is too big.
                 if log.do_high:
                     log('Function increases.')
-                self.trust_radius *= 0.5
-                continue
+                must_shrink =True
 
             if (self.trust_radius < self.small_radius and delta_norm_g > 0):
                 # When the trust radius becomes small, the numerical noise on
@@ -361,11 +397,14 @@ class BFGSOptimizer(BaseOptimizer):
                 # In that case the norm of the gradient is used instead.
                 if log.do_high:
                     log('Gradient norm increases.')
-                self.trust_radius *= 0.5
-                continue
+                must_shrink =True
 
-            # If we get here, we are done.
-            if log.do_high:
-                log.hline()
-            self.trust_radius *= 1.1
-            return x, f, g
+            if must_shrink:
+                while self.trust_radius > radius:
+                    self.trust_radius *= 0.5
+            else:
+                # If we get here, we are done.
+                if log.do_high:
+                    log.hline()
+                self.trust_radius *= 1.1
+                return x, f, g

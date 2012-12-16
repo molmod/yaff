@@ -33,7 +33,7 @@ __all__ = ['get_ff_water32', 'get_ff_water', 'get_ff_bks']
 
 def get_ff_water32():
     system = get_system_water32()
-    return ForceField.generate(system, 'input/parameters_water.txt')
+    return ForceField.generate(system, 'input/parameters_water.txt', skin=2)
     return ff
 
 
