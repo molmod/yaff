@@ -170,6 +170,7 @@ class HessianModel(object):
            hessian0
                 An initial guess for the hessian
         '''
+        self.ndof = ndof
         if hessian0 is None:
             self.hessian = np.identity(ndof, float)
         else:
@@ -210,7 +211,11 @@ class SR1HessianModel(HessianModel):
         if abs(denom) > 1e-5*np.linalg.norm(dx)*np.linalg.norm(tmp):
             if log.do_debug:
                 log('Updating SR1 Hessian.       denom=%10.3e' % denom)
+            hmax = np.diag(self.hessian).max()
+            x = 1.0/self.ndof
             self.hessian += np.outer(tmp, tmp)/denom
+            self.hessian *= (1-x)
+            self.hessian += np.identity(self.ndof)*x*hmax
         else:
             if log.do_high:
                 log('Skipping SR1 update because denom=%10.3e is not big enough.' % denom)

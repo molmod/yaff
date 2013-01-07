@@ -62,6 +62,8 @@ class HDF5Writer(Hook):
         # executed, the data from this iteration is officially written.
         row = tgrp.attrs['row']
         for key, item in iterative.state.iteritems():
+            if item.value is None:
+                continue
             if len(item.shape) > 0 and min(item.shape) == 0:
                 continue
             if item.dtype is type(None):

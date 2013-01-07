@@ -26,10 +26,16 @@
 import h5py, numpy as np
 
 from yaff import *
-from yaff.sampling.test.common import get_ff_water32
+from yaff.sampling.test.common import get_ff_water32, get_ff_water
 
-def test_basic():
+def test_basic_water32():
     nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond)
+    nve.run(5)
+    assert nve.counter == 5
+
+
+def test_basic_water():
+    nve = VerletIntegrator(get_ff_water(), 1.0*femtosecond)
     nve.run(5)
     assert nve.counter == 5
 

@@ -142,7 +142,7 @@ class StateItem(object):
 
 class AttributeStateItem(StateItem):
     def get_value(self, iterative):
-        return getattr(iterative, self.key)
+        return getattr(iterative, self.key, None)
 
     def copy(self):
         return self.__class__(self.key)

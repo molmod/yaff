@@ -193,8 +193,9 @@ class VerletIntegrator(Iterative):
                 self.econs += hook.econs_correction
         self._cons_err_tracker.update(self.ekin, self.econs)
         self.cons_err = self._cons_err_tracker.get()
-        self.ptens = (np.dot(self.vel.T*self.masses, self.vel) + self.vtens)/self.ff.system.cell.volume
-        self.press = np.trace(self.ptens)/3
+        if self.ff.system.cell.nvec > 0:
+            self.ptens = (np.dot(self.vel.T*self.masses, self.vel) + self.vtens)/self.ff.system.cell.volume
+            self.press = np.trace(self.ptens)/3
 
     def finalize(self):
         if log.do_medium:
