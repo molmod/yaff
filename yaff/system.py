@@ -289,6 +289,15 @@ class System(object):
 
     nffatype = property(get_nffatype)
 
+    def get_nbond(self):
+        '''The number of bonds'''
+        if self.bonds is None:
+            return 0
+        else:
+            return len(self.bonds)
+
+    nbond = property(get_nbond)
+
     @classmethod
     def from_file(cls, *fns, **user_kwargs):
         """Construct a new System instance from one or more files

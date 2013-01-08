@@ -168,6 +168,7 @@ def test_detect_bonds_glycine():
 
 def test_detect_bonds_water32():
     system = get_system_water32()
+    assert system.nbond == 64
     check_detect_bonds(system)
 
 
