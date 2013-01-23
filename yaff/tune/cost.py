@@ -103,11 +103,11 @@ class GeoOptSimulation(Simulation):
         #ff.system.pos[:] = self.refpos
         #energy1 = ff.compute()
         #if energy1 > energy0:
-        ff.system.pos[:] = self.refpos*np.random.uniform(0.99, 1.01, ff.system.pos.shape)
+        ff.system.pos[:] = self.refpos#*np.random.uniform(0.99, 1.01, ff.system.pos.shape)
         dof = CartesianDOF(ff, gpos_rms=1e-8)
         sl = OptScreenLog(step=20)
-        opt = QNOptimizer(dof, hooks=[sl], hessian0=self.hessian0)
-        opt.run(5000)
+        self.opt = QNOptimizer(dof, hooks=[sl], hessian0=self.hessian0)
+        self.opt.run(5000)
         return {
             'energy': ff.energy,
             'pos': ff.system.pos.copy(),

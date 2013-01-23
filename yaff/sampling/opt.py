@@ -197,16 +197,17 @@ class BFGSHessianModel(HessianModel):
         if hmax*denom1 <= 1e-5*abs(tmp).max()**2:
             if log.do_high:
                 log('Skipping BFGS update because denom1=%10.3e is not positive enough.' % denom1)
-            return
+            return False
         denom2 = np.dot(dg, dx)
         if hmax*denom2 <= 1e-5*abs(dg).max()**2:
             if log.do_high:
                 log('Skipping BFGS update because denom2=%10.3e is not positive enough.' % denom2)
-            return
+            return False
         if log.do_debug:
             log('Updating BFGS Hessian.    denom1=%10.3e   denom2=%10.3e' % (denom1, denom2))
         self.hessian -= np.outer(tmp, tmp)/denom1
         self.hessian += np.outer(dg, dg)/denom2
+        return True
 
 
 class SR1HessianModel(HessianModel):
@@ -217,14 +218,12 @@ class SR1HessianModel(HessianModel):
         if abs(denom) > 1e-5*np.linalg.norm(dx)*np.linalg.norm(tmp):
             if log.do_debug:
                 log('Updating SR1 Hessian.       denom=%10.3e' % denom)
-            hmax = np.diag(self.hessian).max()
-            x = 1.0/self.ndof
             self.hessian += np.outer(tmp, tmp)/denom
-            self.hessian *= (1-x)
-            self.hessian += np.identity(self.ndof)*x*hmax
+            return True
         else:
             if log.do_high:
                 log('Skipping SR1 update because denom=%10.3e is not big enough.' % denom)
+            return False
 
 
 class QNOptimizer(BaseOptimizer):
@@ -303,6 +302,7 @@ class QNOptimizer(BaseOptimizer):
         self.x_old = dof.x0
         self.hessian = SR1HessianModel(len(dof.x0), hessian0)
         self.trust_radius = trust_radius
+        self.initial_trust_radius = trust_radius
         self.small_radius = small_radius
         BaseOptimizer.__init__(self, dof, state, hooks, counter0)
 
@@ -315,7 +315,13 @@ class QNOptimizer(BaseOptimizer):
         # Update the Hessian
         assert not self.g is self.g_old
         assert not self.x is self.x_old
-        self.hessian.update(self.x - self.x_old, self.g - self.g_old)
+        hessian_safe = self.hessian.update(self.x - self.x_old, self.g - self.g_old)
+        if not hessian_safe:
+            # Reset the Hessian completely
+            if log.do_high:
+                log('Resetting hessian due to failed update.')
+            self.hessian = SR1HessianModel(len(self.x))
+            self.trust_radius = self.initial_trust_radius
         # Move new to old
         self.x_old = self.x
         self.f_old = self.f
@@ -408,7 +414,7 @@ class QNOptimizer(BaseOptimizer):
                 # In that case the norm of the gradient is used instead.
                 if log.do_high:
                     log('Gradient norm increases.')
-                must_shrink =True
+                must_shrink = True
 
             if must_shrink:
                 while self.trust_radius > radius:
@@ -417,5 +423,6 @@ class QNOptimizer(BaseOptimizer):
                 # If we get here, we are done.
                 if log.do_high:
                     log.hline()
-                self.trust_radius *= 1.1
+                if self.trust_radius < 1e2*self.initial_trust_radius:
+                    self.trust_radius *= 1.1
                 return x, f, g
