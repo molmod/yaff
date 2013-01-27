@@ -25,6 +25,12 @@
 
 import numpy as np, time
 
+try:
+    # The implementation in scipy is often more robust
+    from scipy.linalg import eigh
+except ImportError:
+    eigh = np.eigh
+
 from molmod.minimizer import ConjugateGradient, QuasiNewton, NewtonLineSearch, \
     Minimizer
 
@@ -179,7 +185,7 @@ class HessianModel(object):
                 raise TypeError('Incorrect shape of the initial hessian in quasi-newton method.')
 
     def get_spectrum(self):
-        return np.linalg.eigh(self.hessian)
+        return eigh(self.hessian)
 
 
 class BFGSHessianModel(HessianModel):
