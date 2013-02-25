@@ -29,23 +29,6 @@ from yaff import *
 from molmod import femtosecond
 
 
-def test_xyz_to_hdf5():
-    f = h5py.File('test_xyz_to_hdf5.h5', driver='core', backing_store=False)
-    # Bad practice. Proper use is to initialize the system object from a
-    # different XYZ (or yet something else) with a single geometry.
-    system = System.from_file('input/water_trajectory.xyz')
-    system.to_hdf5(f)
-    # Actual trajectory conversion, twice
-    for i in xrange(2):
-        xyz_to_hdf5(f, 'input/water_trajectory.xyz')
-        assert 'trajectory' in f
-        assert f['trajectory'].attrs['row'] == 5
-        assert abs(f['trajectory/pos'][0,0,0] - 3.340669*angstrom) < 1e-5
-        assert abs(f['trajectory/pos'][-1,-1,-1] - -3.335574*angstrom) < 1e-5
-        assert abs(f['trajectory/pos'][3,2,1] - 3.363249*angstrom) < 1e-5
-    f.close()
-
-
 def test_cp2k_ener_to_hdf5():
     f = h5py.File('test_xyz_to_hdf5.h5', driver='core', backing_store=False)
     # Bad practice. The trajectory file has no system directory...
