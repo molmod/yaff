@@ -23,4 +23,3 @@ Module ``yaff.conversion.xyz`` -- XYZ Files
 
 .. automodule:: yaff.conversion.xyz
    :members:
-
