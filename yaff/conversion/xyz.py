@@ -97,4 +97,3 @@ def xyz_to_hdf5(f, fn_xyz, sub=slice(None), file_unit=angstrom, name='pos'):
 
         # Check number of rows
         check_trajectory_rows(tgrp, existing_row, row)
-

@@ -30,6 +30,7 @@ from molmod.constants import *
 
 from yaff.analysis import *
 from yaff.atselect import *
+from yaff.conversion import *
 from yaff.log import *
 from yaff.pes import *
 from yaff.sampling import *

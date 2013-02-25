@@ -44,4 +44,3 @@ def test_xyz_to_hdf5():
         assert abs(f['trajectory/pos'][-1,-1,-1] - -3.335574*angstrom) < 1e-5
         assert abs(f['trajectory/pos'][3,2,1] - 3.363249*angstrom) < 1e-5
     f.close()
-

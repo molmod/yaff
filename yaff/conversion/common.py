@@ -23,8 +23,11 @@
 #--
 
 
+from yaff.log import log
+
+
 __all__ = [
-    'get_trajectory_group', 'get_trajectory_datasets', 'append_to_dataset', 
+    'get_trajectory_group', 'get_trajectory_datasets', 'append_to_dataset',
     'check_trajectory_rows'
 ]
 
@@ -73,5 +76,3 @@ def check_trajectory_rows(tgrp, existing_row, row):
     else:
         if existing_row != row:
             raise ValueError('The amount of data loaded into the HDF5 file is not consistent with number of rows already present in the trajectory.')
-
-
