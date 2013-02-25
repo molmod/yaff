@@ -22,7 +22,7 @@
 #
 #--
 
-import shutil, os, h5py, numpy as np
+import shutil, os, h5py as h5, numpy as np
 
 from yaff import *
 from yaff.analysis.test.common import get_nve_water32
@@ -57,7 +57,7 @@ def test_spectrum_online():
         # Setup a test FF
         ff = get_ff_water32()
         # Run a test simulation
-        f = h5py.File('tmp%i.h5' % bsize, driver='core', backing_store=False)
+        f = h5.File('yaff.analysis.test.test_spectrum.test_spectrum_online_%i.h5' % bsize, driver='core', backing_store=False)
         try:
             hdf5 = HDF5Writer(f)
             spectrum0 = Spectrum(f, bsize=bsize)
@@ -97,7 +97,7 @@ def test_spectrum_online_weights():
 
 
 def test_spectrum_iter_indexes():
-    f = h5py.File('test_spectrum_iter_indexes.h5', driver='core', backing_store=False)
+    f = h5.File('yaff.analysis.test.test_spectrum.test_spectrum_iter_indexes.h5', driver='core', backing_store=False)
     spectrum = Spectrum(f, bsize=10)
     f.close()
     l = list(spectrum._iter_indexes(np.zeros((10, 5, 3), float)))

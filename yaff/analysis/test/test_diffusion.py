@@ -22,7 +22,7 @@
 #
 #--
 
-import shutil, os, h5py
+import shutil, os, h5py as h5
 
 from yaff import *
 from yaff.analysis.test.common import get_nve_water32
@@ -52,7 +52,7 @@ def test_diff_online():
     # Setup a test FF
     ff = get_ff_water32()
     # Run a test simulation
-    f = h5py.File('test_diff_online.h5', driver='core', backing_store=False)
+    f = h5.File('yaff.analysis.test.test_diffusion.test_diff_online.h5', driver='core', backing_store=False)
     try:
         hdf5 = HDF5Writer(f)
         select = ff.system.get_indexes('O')

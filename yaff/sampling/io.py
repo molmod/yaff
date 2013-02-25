@@ -35,7 +35,7 @@ class HDF5Writer(Hook):
            **Argument:**
 
            f
-                A h5py.File object to write the trajectory to.
+                A h5.File object to write the trajectory to.
 
            **Optional arguments:**
 

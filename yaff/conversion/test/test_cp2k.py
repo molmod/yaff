@@ -23,14 +23,14 @@
 #--
 
 
-import h5py
+import h5py as h5
 
 from yaff import *
 from molmod import femtosecond
 
 
 def test_cp2k_ener_to_hdf5():
-    f = h5py.File('test_xyz_to_hdf5.h5', driver='core', backing_store=False)
+    f = h5.File('yaff.conversion.test.test_cp2k.test_xyz_to_hdf5.h5', driver='core', backing_store=False)
     # Bad practice. The trajectory file has no system directory...
     # Actual trajectory conversion, twice
     for i in xrange(2):

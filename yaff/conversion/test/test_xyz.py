@@ -23,14 +23,14 @@
 #--
 
 
-import h5py
+import h5py as h5
 
 from yaff import *
 from molmod import femtosecond
 
 
 def test_xyz_to_hdf5():
-    f = h5py.File('test_xyz_to_hdf5.h5', driver='core', backing_store=False)
+    f = h5.File('yaff.conversion.test.test_xyz.test_xyz_to_hdf5.h5', driver='core', backing_store=False)
     # Bad practice. Proper use is to initialize the system object from a
     # different XYZ (or yet something else) with a single geometry.
     system = System.from_file('input/water_trajectory.xyz')

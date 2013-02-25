@@ -23,7 +23,7 @@
 #--
 
 
-import tempfile, h5py
+import tempfile, h5py as h5
 
 from yaff import *
 from yaff.sampling.test.common import get_ff_water32
@@ -35,7 +35,7 @@ def get_nve_water32():
     # Setup a test FF
     ff = get_ff_water32()
     # Run a test simulation
-    f = h5py.File('%s/output.h5' % dn_tmp)
+    f = h5.File('%s/output.h5' % dn_tmp)
     hdf5 = HDF5Writer(f)
     nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=hdf5)
     nve.run(5)
@@ -49,7 +49,7 @@ def get_nvt_water32():
     # Setup a test FF
     ff = get_ff_water32()
     # Run a test simulation
-    f = h5py.File('%s/output.h5' % dn_tmp)
+    f = h5.File('%s/output.h5' % dn_tmp)
     hdf5 = HDF5Writer(f)
     thermostat = LangevinThermostat(temp=300)
     nvt = VerletIntegrator(ff, 1.0*femtosecond, hooks=[hdf5, thermostat])
@@ -64,7 +64,7 @@ def get_opt_water32():
     # Setup a test FF
     ff = get_ff_water32()
     # Run a test simulation
-    f = h5py.File('%s/output.h5' % dn_tmp)
+    f = h5.File('%s/output.h5' % dn_tmp)
     hdf5 = HDF5Writer(f)
     opt = CGOptimizer(FullCellDOF(ff), hooks=hdf5)
     opt.run(5)

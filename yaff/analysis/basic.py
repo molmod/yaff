@@ -23,7 +23,7 @@
 #--
 
 
-import h5py
+import h5py as h5
 
 import numpy as np
 
@@ -54,7 +54,7 @@ def plot_energies(f, fn_png='energies.png', **kwargs):
        **Arguments:**
 
        f
-            An h5py.File instance containing the trajectory data.
+            An h5.File instance containing the trajectory data.
 
        **Optional arguments:**
 
@@ -94,7 +94,7 @@ def plot_temperature(f, fn_png='temperature.png', **kwargs):
        **Arguments:**
 
        f
-            An h5py.File instance containing the trajectory data.
+            An h5.File instance containing the trajectory data.
 
        **Optional arguments:**
 
@@ -127,7 +127,7 @@ def plot_pressure(f, fn_png='pressure.png', **kwargs):
        **Arguments:**
 
        f
-            An h5py.File instance containing the trajectory data.
+            An h5.File instance containing the trajectory data.
 
        **Optional arguments:**
 
@@ -160,7 +160,7 @@ def plot_temp_dist(f, fn_png='temp_dist.png', select=None, **kwargs):
        **Arguments:**
 
        f
-            An h5py.File instance containing the trajectory data.
+            An h5.File instance containing the trajectory data.
 
        **Optional arguments:**
 
@@ -319,7 +319,7 @@ def plot_density(f, fn_png='density.png', **kwargs):
        **Arguments:**
 
        f
-            An h5py.File instance containing the trajectory data.
+            An h5.File instance containing the trajectory data.
 
        **Optional arguments:**
 
@@ -353,7 +353,7 @@ def plot_cell_pars(f, fn_png='cell_pars.png', **kwargs):
        **Arguments:**
 
        f
-            An h5py.File instance containing the trajectory data.
+            An h5.File instance containing the trajectory data.
 
        **Optional arguments:**
 
@@ -430,7 +430,7 @@ def plot_epot_contribs(f, fn_png='epot_contribs.png', size=1.0, **kwargs):
        **Arguments:**
 
        f
-            An h5py.File instance containing the trajectory data.
+            An h5.File instance containing the trajectory data.
 
        **Optional arguments:**
 

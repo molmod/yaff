@@ -23,7 +23,7 @@
 #--
 
 
-import numpy as np, h5py as h5
+import numpy as np
 
 from yaff.log import log
 from yaff.atselect import check_name, atsel_compile
@@ -718,7 +718,7 @@ class System(object):
            **Arguments:**
 
            f
-                A Writable h5py.File object.
+                A Writable h5.File object.
         """
         if 'system' in f:
             raise ValueError('The HDF5 file already contains a system description.')

@@ -69,7 +69,7 @@ class AnalysisHook(Hook):
            **Optional arguments:**
 
            f
-                An h5py.File instance containing the trajectory data. If ``f``
+                An h5.File instance containing the trajectory data. If ``f``
                 is not given, or it does not contain the dataset referred to
                 with the ``path`` argument, an on-line analysis is carried out.
 

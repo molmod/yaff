@@ -117,7 +117,7 @@ def check_hdf5_common(f):
 
 
 def test_cg_hdf5():
-    f = h5py.File('test_cg_hdf5.h5', driver='core', backing_store=False)
+    f = h5.File('yaff.sampling.test.test_opt.test_cg_hdf5.h5', driver='core', backing_store=False)
     try:
         hdf5 = HDF5Writer(f)
         opt = CGOptimizer(CartesianDOF(get_ff_water32()), hooks=hdf5)

@@ -22,9 +22,8 @@
 #
 #--
 
-# TODO: change import style: h5py as h5
 
-import shutil, os, h5py, numpy as np
+import shutil, os, h5py as h5, numpy as np
 
 from yaff import *
 from yaff.analysis.test.common import get_nve_water32
@@ -57,7 +56,7 @@ def test_rdf1_online():
     # Setup a test FF
     ff = get_ff_water32()
     # Run a test simulation
-    f = h5py.File('test_rdf1_online.h5', driver='core', backing_store=False)
+    f = h5.File('yaff.analysis.test.test_rdf.test_rdf1_online.h5', driver='core', backing_store=False)
     try:
         hdf5 = HDF5Writer(f)
         select = ff.system.get_indexes('O')
@@ -99,7 +98,7 @@ def test_rdf2_online():
     # Setup a test FF
     ff = get_ff_water32()
     # Run a test simulation
-    f = h5py.File('test_rdf2_online.h5', driver='core', backing_store=False)
+    f = h5.File('yaff.analysis.test.test_rdf.test_rdf2_online.h5', driver='core', backing_store=False)
     try:
         hdf5 = HDF5Writer(f)
         select0 = ff.system.get_indexes('O')
@@ -157,7 +156,7 @@ def test_rdf2_offline_exclude():
 
 def test_rdf_from_file_variable_cell():
     system = System.from_file('input/chloro_pos.xyz', rvecs=np.diag([48.877]*3))
-    with h5py.File('test_rdf_from_file_variable_cell.h5', driver='core', backing_store=False) as f:
+    with h5.File('yaff.analysis.test.test_rdf.test_rdf_from_file_variable_cell.h5', driver='core', backing_store=False) as f:
         # Prepare in-memory HDF5 file
         system.to_hdf5(f)
         xyz_to_hdf5(f, 'input/chloro_pos.xyz')

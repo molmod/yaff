@@ -23,13 +23,13 @@
 #--
 
 
-import h5py
+import h5py as h5
 
 from yaff import *
 
 
 def test_dlpoly_history_uo():
-    f = h5py.File('yaff.conversion.test.test_dlpoly_history_uo.h5', driver='core', backing_store=False)
+    f = h5.File('yaff.conversion.test.test_dlpoly.test_dlpoly_history_uo.h5', driver='core', backing_store=False)
     # Bad practice. The trajectory file has no system directory...
     # Actual trajectory conversion, twice
     for i in xrange(2):
@@ -54,7 +54,7 @@ def test_dlpoly_history_uo():
 
 
 def test_dlpoly_history_sam():
-    f = h5py.File('yaff.conversion.test.test_dlpoly_history_sam.h5', driver='core', backing_store=False)
+    f = h5.File('yaff.conversion.test.test_dlpoly.test_dlpoly_history_sam.h5', driver='core', backing_store=False)
     # Bad practice. The trajectory file has no system directory...
     # Actual trajectory conversion, twice
     for i in xrange(2):
