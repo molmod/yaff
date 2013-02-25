@@ -23,7 +23,7 @@
 #--
 
 
-import numpy as np
+import numpy as np, h5py as h5
 
 from yaff.log import log
 from yaff.atselect import check_name, atsel_compile
@@ -305,7 +305,7 @@ class System(object):
            **Arguments:**
 
            fn1, fn2, ...
-                A list if filenames that are read in order. Information in later
+                A list of filenames that are read in order. Information in later
                 files overrides information in earlier files.
 
            **Optional arguments:**
@@ -329,6 +329,7 @@ class System(object):
                 Internal text-based checkpoint format. It just contains a
                 dictionary with the constructor arguments.
         """
+        # TODO: add support for (open) hdf5 files
         with log.section('SYS'):
             kwargs = {}
             for fn in fns:

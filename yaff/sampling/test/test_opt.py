@@ -23,7 +23,7 @@
 #--
 
 
-import h5py, numpy as np
+import h5py as h5, numpy as np
 
 from yaff import *
 from yaff.sampling.test.common import get_ff_water32
