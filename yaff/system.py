@@ -695,7 +695,6 @@ class System(object):
         oldnew = {}
         counter = 0
         for cluster in clusters: # all merged atoms come first
-            print cluster
             newold[counter] = sorted(cluster)
             for item in cluster:
                 oldnew[item] = counter
@@ -717,7 +716,6 @@ class System(object):
             else:
                 new = np.zeros(natom, old.dtype)
                 for inew, iolds in newold.iteritems():
-                    print new.shape, inew, old.shape, iolds[0]
                     new[inew] = old[iolds[0]]
                 return new
 
