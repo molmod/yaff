@@ -55,6 +55,7 @@ source code.
    rg_yaff_pes.rst
    rg_yaff_sampling.rst
    rg_yaff_analysis.rst
+   rg_yaff_conversion.rst
    rg_yaff_tune.rst
 
 

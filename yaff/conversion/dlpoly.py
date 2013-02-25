@@ -43,7 +43,7 @@ def dlpoly_history_to_hdf5(f, fn_history, sub=slice(None), pos_unit=angstrom,
        f
             An open and writable HDF5 file.
 
-       fn_hisotyr
+       fn_history
             The filename of the DLPOLY history file.
 
        **Optional arguments:**

@@ -206,4 +206,4 @@ which is then used to perform the analysis
 .. literalinclude:: ../examples/002_external_trajectory/rdf.py
     :lines: 26-
 
-See :mod:`yaff.analysis.io` for more routines to convert trajectory data.
+See :ref:`rg_conversion` for more routines to convert trajectory data.

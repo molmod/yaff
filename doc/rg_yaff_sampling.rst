@@ -20,12 +20,6 @@ Module ``yaff.sampling.harmonic`` -- Harmonic models
    :members:
 
 
-Module ``yaff.sampling.io`` -- Trajectory output
-================================================
-
-.. automodule:: yaff.sampling.io
-   :members:
-
 
 Module ``yaff.sampling.verlet`` -- Generic Verlet integrator
 ============================================================
