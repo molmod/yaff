@@ -659,6 +659,108 @@ class System(object):
         # Done
         return System(**new_args)
 
+    def remove_duplicate(self, threshold=0.1):
+        '''Return a system object in which the duplicate atoms and bonds are removed.
+
+           **Optional argument:**
+
+           threshold
+                The minimum distance between two atoms that are supposed to be
+                different.
+
+           When it makes sense, properties of overlapping atoms are averaged
+           out. In other cases, the atom with the lowest index in a cluster of
+           overlapping atoms defines the new value of a property.
+        '''
+        # compute distances
+        ndist = (self.natom*(self.natom-1))/2
+        if ndist == 0: # single atom systems, go home ...
+            return
+        dists = np.zeros(ndist)
+        self.cell.compute_distances(dists, self.pos)
+
+        # find clusters of overlapping atoms
+        from molmod import ClusterFactory
+        cf = ClusterFactory()
+        counter = 0
+        for i0 in xrange(self.natom):
+            for i1 in xrange(i0):
+                if dists[counter] < threshold:
+                    cf.add_related(i0, i1)
+                counter += 1
+        clusters = [c.items for c in cf.get_clusters()]
+
+        # make a mapping from new to old atoms
+        newold = {}
+        oldnew = {}
+        counter = 0
+        for cluster in clusters: # all merged atoms come first
+            print cluster
+            newold[counter] = sorted(cluster)
+            for item in cluster:
+                oldnew[item] = counter
+            counter += 1
+        if len(clusters) > 0:
+            old_reduced = set.union(*clusters)
+        else:
+            old_reduced = []
+        for item in xrange(self.natom): # all remaining atoms follow
+            if item not in old_reduced:
+                newold[counter] = [item]
+                oldnew[item] = counter
+                counter += 1
+        natom = len(newold)
+
+        def reduce_int_array(old):
+            if old is None:
+                return None
+            else:
+                new = np.zeros(natom, old.dtype)
+                for inew, iolds in newold.iteritems():
+                    print new.shape, inew, old.shape, iolds[0]
+                    new[inew] = old[iolds[0]]
+                return new
+
+        def reduce_float_array(old):
+            if old is None:
+                return None
+            else:
+                new = np.zeros(natom, old.dtype)
+                for inew, iolds in newold.iteritems():
+                    new[inew] = old[iolds].mean()
+                return new
+
+        # trivial cases
+        numbers = reduce_int_array(self.numbers)
+        scope_ids = reduce_int_array(self.scope_ids)
+        ffatype_ids = reduce_int_array(self.ffatype_ids)
+        charges = reduce_float_array(self.charges)
+        masses = reduce_float_array(self.masses)
+
+        # create averaged positions
+        pos = np.zeros((natom, 3), float)
+        for inew, iolds in newold.iteritems():
+            # move to the same image
+            oldposs = self.pos[iolds].copy()
+            assert oldposs.ndim == 2
+            ref = oldposs[0]
+            for oldpos in oldposs[1:]:
+                delta = oldpos-ref
+                self.cell.mic(delta)
+                oldpos[:] = delta+ref
+            # compute mean position
+            pos[inew] = oldposs.mean(axis=0)
+
+        # create reduced list of bonds
+        if self.bonds is None:
+            bonds = None
+        else:
+            bonds = set((oldnew[ia], oldnew[ib]) for ia, ib in self.bonds)
+            bonds = np.array([bond for bond in bonds])
+
+        return self.__class__(numbers, pos, self.scopes, scope_ids, self.ffatypes, ffatype_ids, bonds, self.cell.rvecs, charges, masses)
+
+
     def to_file(self, fn):
         """Write the system to a file
 

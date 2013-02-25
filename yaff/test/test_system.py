@@ -263,3 +263,29 @@ def test_supercell_nobonds():
         rvecs=np.identity(3)*cellpar,
     )
     sys333 = sys111.supercell(3,3,3)
+
+
+def test_remove_duplicate1():
+    system1 = get_system_quartz()
+    system2 = system1.remove_duplicate()
+    assert system1.natom == system2.natom
+    assert system1.nbond == system2.nbond
+    assert (system1.numbers == system2.numbers).all()
+    assert (system1.pos == system2.pos).all()
+    assert (system1.ffatype_ids == system2.ffatype_ids).all()
+    assert system1.neighs1 == system2.neighs1
+
+
+def test_remove_duplicate2():
+    system1 = get_system_quartz()
+    system2 = system1.supercell(1, 2, 1)
+    system2.cell = system1.cell
+    system3 = system2.remove_duplicate()
+    assert system1.natom == system3.natom
+    assert system1.nbond == system3.nbond
+    assert system1.numbers.sum() == system3.numbers.sum()
+    assert abs(system1.pos.mean(axis=0) - system3.pos.mean(axis=0)).max() < 1e-10
+    assert system1.ffatype_ids.sum() == system3.ffatype_ids.sum()
+
+
+# TODO: add more real-life test for remove_dupplicate
