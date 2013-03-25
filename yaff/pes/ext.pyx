@@ -42,6 +42,7 @@ cimport dlist
 cimport iclist
 cimport vlist
 cimport truncation
+cimport grid
 
 from yaff.log import log
 
@@ -52,7 +53,7 @@ __all__ = [
     'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep',
     'PairPotDampDisp', 'PairPotEI', 'compute_ewald_reci', 'compute_ewald_corr',
     'dlist_forward', 'dlist_back', 'iclist_forward', 'iclist_back',
-    'vlist_forward', 'vlist_back',
+    'vlist_forward', 'vlist_back', 'compute_grid3d'
 ]
 
 
@@ -1586,3 +1587,12 @@ def vlist_back(np.ndarray[iclist.iclist_row_type, ndim=1] ictab,
     assert vtab.flags['C_CONTIGUOUS']
     vlist.vlist_back(<iclist.iclist_row_type*>ictab.data,
                      <vlist.vlist_row_type*>vtab.data, nv)
+
+#
+# grid
+#
+
+def compute_grid3d(np.ndarray[double, ndim=1] center, Cell unitcell, np.ndarray[double, ndim=3] egrid):
+    assert center.flags['C_CONTIGUOUS']
+    assert center.shape[0] == 3
+    return grid.compute_grid3d(<double*>center.data, unitcell._c_cell, <double*>egrid.data, <long*>egrid.shape)

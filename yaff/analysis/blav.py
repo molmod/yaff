@@ -29,6 +29,8 @@ import numpy as np
 __all__ = ['blav']
 
 
+# TODO: Use more robust algorithms (see emails sam in software folder)
+
 def blav(signal, minblock=100, fn_png=None, unit=None):
     """Analyze the signal with the block average method.
 

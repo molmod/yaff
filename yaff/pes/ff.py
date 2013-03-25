@@ -40,7 +40,7 @@ import numpy as np
 
 from yaff.log import log, timer
 from yaff.pes.ext import compute_ewald_reci, compute_ewald_corr, PairPotEI, \
-    PairPotLJ, PairPotMM3, PairPotGrimme
+    PairPotLJ, PairPotMM3, PairPotGrimme, compute_grid3d
 from yaff.pes.dlist import DeltaList
 from yaff.pes.iclist import InternalCoordinateList
 from yaff.pes.vlist import ValenceList
@@ -49,7 +49,7 @@ from yaff.pes.vlist import ValenceList
 __all__ = [
     'ForcePart', 'ForceField', 'ForcePartPair', 'ForcePartEwaldReciprocal',
     'ForcePartEwaldCorrection', 'ForcePartEwaldNeutralizing',
-    'ForcePartValence', 'ForcePartPressure',
+    'ForcePartValence', 'ForcePartPressure', 'ForcePartGrid',
 ]
 
 
@@ -554,7 +554,7 @@ class ForcePartPressure(ForcePart):
            This force part is only applicable to systems that are periodic.
         '''
         if system.cell.nvec == 0:
-            raise ValueError('The system must be periodic in order to apply a force')
+            raise ValueError('The system must be periodic in order to apply a pressure')
         ForcePart.__init__(self, 'press', system)
         self.system = system
         self.pext = pext
@@ -583,3 +583,45 @@ class ForcePartPressure(ForcePart):
                 else:
                     raise NotImplementedError
             return cell.volume*self.pext
+
+
+class ForcePartGrid(ForcePart):
+    '''Energies obtained by grid interpolation.'''
+    def __init__(self, system, grids):
+        '''
+           **Arguments:**
+
+           system
+                An instance of the ``System`` class.
+
+           grids
+                A dictionary with (ffatype, grid) items. Each grid must be a
+                three-dimensional array with energies.
+
+           This force part is only applicable to systems that are 3D periodic.
+        '''
+        if system.cell.nvec != 3:
+            raise ValueError('The system must be 3d periodic for the grid term.')
+        for grid in grids.itervalues():
+            if grid.ndim != 3:
+                raise ValueError('The energy grids must be 3D numpy arrays.')
+        ForcePart.__init__(self, 'grid', system)
+        self.system = system
+        self.grids = grids
+        if log.do_medium:
+            with log.section('FPINIT'):
+                log('Force part: %s' % self.name)
+                log.hline()
+
+    def _internal_compute(self, gpos, vtens):
+        with timer.section('Grid'):
+            if gpos is not None:
+                raise NotImplementedError('Cartesian gradients are not supported yet in ForcePartGrid')
+            if vtens is not None:
+                raise NotImplementedError('Cell deformation are not supported by ForcePartGrid')
+            cell = self.system.cell
+            result = 0
+            for i in xrange(self.system.natom):
+                grid = self.grids[self.system.get_ffatype(i)]
+                result += compute_grid3d(self.system.pos[i], cell, grid)
+            return result

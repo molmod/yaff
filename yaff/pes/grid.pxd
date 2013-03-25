@@ -22,12 +22,7 @@
 #
 #--
 
+cimport cell
 
-# TODO: read trajectory from one file, write output in another file
-
-from yaff.analysis.basic import *
-from yaff.analysis.blav import *
-from yaff.analysis.diffusion import *
-from yaff.analysis.rdf import *
-from yaff.analysis.spectrum import *
-from yaff.analysis.utils import *
+cdef extern from "grid.h":
+    double compute_grid3d(double* center, cell.cell_type *cell, double* egrid, long* shape)

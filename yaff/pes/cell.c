@@ -244,3 +244,10 @@ void cell_copy_gspacings(cell_type* cell, double *gspacings, int full) {
   n = (full)?3:(*cell).nvec;
   for (i=0; i<n; i++) gspacings[i] = (*cell).gspacings[i];
 }
+
+void cell_to_frac(cell_type* cell, double *cart, double* frac) {
+  double *gvecs = (*cell).gvecs;
+  frac[0] = gvecs[0]*cart[0] + gvecs[1]*cart[1] + gvecs[2]*cart[2];
+  frac[1] = gvecs[3]*cart[0] + gvecs[4]*cart[1] + gvecs[5]*cart[2];
+  frac[2] = gvecs[6]*cart[0] + gvecs[7]*cart[1] + gvecs[8]*cart[2];
+}

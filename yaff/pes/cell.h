@@ -22,8 +22,8 @@
 //--
 
 
-#ifndef YAFF_CELL_H
-#define YAFF_CELL_H
+#ifndef YAFF_PES_CELL_H
+#define YAFF_PES_CELL_H
 
 typedef struct {
   double rvecs[9], gvecs[9];
@@ -50,5 +50,7 @@ void cell_copy_rvecs(cell_type* cell, double *rvecs, int full);
 void cell_copy_gvecs(cell_type* cell, double *gvecs, int full);
 void cell_copy_rspacings(cell_type* cell, double *rspacings, int full);
 void cell_copy_gspacings(cell_type* cell, double *gspacings, int full);
+
+void cell_to_frac(cell_type* cell, double *cart, double* frac);
 
 #endif
