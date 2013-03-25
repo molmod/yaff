@@ -67,7 +67,8 @@ def floyd_warshall(bonds, natom):
        Use it for small test systems only.
     '''
     dmat = np.zeros((natom, natom), int)+natom**2
-    np.diag(dmat)[:] = 0
+    for i in xrange(natom):
+        dmat[i,i] = 0
     for i0, i1 in bonds:
         dmat[i0,i1] = 1
         dmat[i1,i0] = 1
