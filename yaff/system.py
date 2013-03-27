@@ -440,8 +440,14 @@ class System(object):
                     if i0==i3: continue
                     yield i0, i1, i2, i3
 
-    def detect_bonds(self):
+    def detect_bonds(self, exceptions=None):
         """Initialize the ``bonds`` attribute based on inter-atomic distances
+
+           **Optional argument:**
+
+           exceptions:
+                Specify custom threshold for certain pairs of elements. This
+                must be a dictionary with ((num0, num1), threshold) as items.
 
            For each pair of elements, a distance threshold is used to detect
            bonded atoms. The distance threshold is based on a database of known
@@ -459,8 +465,18 @@ class System(object):
             new_bonds = []
             for i in ishort:
                 i0, i1 = _unravel_triangular(i)
-                if bonds.bonded(self.numbers[i0], self.numbers[i1], work[i]):
-                    new_bonds.append((i0, i1))
+                n0 = self.numbers[i0]
+                n1 = self.numbers[i1]
+                if exceptions is not None:
+                    threshold = exceptions.get((n0, n1))
+                    if threshold is None and n0!=n1:
+                        threshold = exceptions.get((n1, n0))
+                    if threshold is not None:
+                        if work[i] < threshold:
+                            new_bonds.append([i0, i1])
+                        continue
+                if bonds.bonded(n0, n1, work[i]):
+                    new_bonds.append([i0, i1])
             self.bonds = np.array(new_bonds)
             self._init_derived_bonds()
 

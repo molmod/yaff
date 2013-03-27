@@ -27,7 +27,7 @@ import tempfile, shutil, numpy as np, h5py as h5
 
 from yaff import System, Cell, angstrom
 
-from common import get_system_water32, get_system_glycine, get_system_quartz
+from common import get_system_water32, get_system_glycine, get_system_quartz, get_system_cyclopropene
 
 
 def test_chk():
@@ -175,6 +175,23 @@ def test_detect_bonds_water32():
 def test_detect_bonds_quartz():
     system = get_system_quartz()
     check_detect_bonds(system)
+
+
+def test_detect_bonds_water_exceptions():
+    system = get_system_water32()
+    # create system without bonds
+    system = System(system.numbers, system.pos)
+    # Add bonds between hydrogen atoms (unrealistic but useful for testing)
+    system.detect_bonds({(1,1): 2.0*angstrom})
+    assert system.nbond >= 96
+
+def test_detect_bonds_cyclopropene_exceptions():
+    system = get_system_cyclopropene()
+    # create system without bonds
+    system = System(system.numbers, system.pos)
+    # Add bonds between all hydrogen and carbon atoms (unrealistic but useful for testing)
+    system.detect_bonds({(1,6): 8.0*angstrom})
+    assert system.nbond == 3+4*3
 
 
 def check_detect_ffatypes(system, rules):
