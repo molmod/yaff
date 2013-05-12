@@ -18,6 +18,13 @@ Module ``yaff.conversion.dlpoly`` -- DLPOLY Files
    :members:
 
 
+Module ``yaff.conversion.gaussian`` -- Gaussian09 BOMD log Files
+================================================================
+
+.. automodule:: yaff.conversion.gaussian
+   :members:
+
+
 Module ``yaff.conversion.xyz`` -- XYZ Files
 ===========================================
 

@@ -27,4 +27,5 @@ from yaff.conversion.common import *
 
 from yaff.conversion.cp2k import *
 from yaff.conversion.dlpoly import *
+from yaff.conversion.gaussian import *
 from yaff.conversion.xyz import *

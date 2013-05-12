@@ -33,13 +33,6 @@ Module ``yaff.analysis.hook`` -- Abstract hook implementation for trajectory ana
    :members:
 
 
-Module ``yaff.analysis.io`` -- Conversion of trajectory data
-===================================================================
-
-.. automodule:: yaff.analysis.io
-   :members:
-
-
 Module ``yaff.analysis.rdf`` -- Radial distribution functions
 =============================================================
 
