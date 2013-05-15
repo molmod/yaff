@@ -163,6 +163,41 @@ class System(object):
                     if i3 != i0 and i3 not in self.neighs1[i0] and i3 not in self.neighs2[i0]:
                         self.neighs3[i0].add(i3)
                         self.neighs3[i3].add(i0)
+        # report some basic stuff on screen
+        if log.do_medium:
+            log('Analysis of the bonds:')
+            bond_types = {}
+            for i0, i1 in self.bonds:
+                key = tuple(sorted([self.numbers[i0], self.numbers[i1]]))
+                bond_types[key] = bond_types.get(key, 0) + 1
+            log.hline()
+            log(' First   Second   Count')
+            for (num0, num1), count in sorted(bond_types.iteritems()):
+                log('%6i   %6i   %5i' % (num0, num1, count))
+            log.hline()
+            log.blank()
+
+            log('Analysis of the neighbors:')
+            log.hline()
+            log('Number of first neighbors:  %6i' % (sum(len(n) for n in self.neighs1.itervalues())/2))
+            log('Number of second neighbors: %6i' % (sum(len(n) for n in self.neighs2.itervalues())/2))
+            log('Number of third neighbors:  %6i' % (sum(len(n) for n in self.neighs3.itervalues())/2))
+            # Collect all types of 'environments' for each element. This is
+            # useful to double check the bonds
+            envs = {}
+            for i0 in xrange(self.natom):
+                num0 = self.numbers[i0]
+                nnums = tuple(sorted(self.numbers[i1] for i1 in self.neighs1[i0]))
+                key = (num0, nnums)
+                envs[key] = envs.get(key, 0)+1
+            # Print the environments on screen
+            log.hline()
+            log('Element   Neighboring elements   Count')
+            for (num0, nnums), count in sorted(envs.iteritems()):
+                log('%7i   %20s   %5i' % (num0, ','.join(str(num1) for num1 in nnums), count))
+            log.hline()
+            log.blank()
+
 
     def _init_derived_scopes(self):
         if self.scope_ids is None:
