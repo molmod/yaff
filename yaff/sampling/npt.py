@@ -74,28 +74,29 @@ class AndersenMcDonaldBarostat(VerletHook):
         pass
 
     def post(self, iterative):
-        def reset():
+        def compute(pos, rvecs):
+            iterative.pos[:] = pos
             iterative.gpos[:] = 0.0
-            iterative.ff.update_pos(iterative.pos)
+            iterative.ff.update_rvecs(rvecs)
+            iterative.ff.update_pos(pos)
             iterative.epot = iterative.ff.compute(iterative.gpos)
             iterative.acc = -iterative.gpos/iterative.masses.reshape(-1,1)
 
+        natom = iterative.ff.system.natom
         with timer.section('AMB'):
             # A) Change the logarithm of the volume isotropically.
             scale = np.exp(np.random.uniform(-self.amp, self.amp))
-            # A.1) scale the system and recompute the energy
+            # A.0) Keep track of old state
             vol0 = iterative.ff.system.cell.volume
             epot0 = iterative.epot
             rvecs0 = iterative.ff.system.cell.rvecs.copy()
-            iterative.ff.update_rvecs(rvecs0*scale)
             pos0 = iterative.pos.copy()
-            iterative.pos[:] = pos0*scale # TODO: why not update_pos?
-            reset()
+            # A.1) scale the system and recompute the energy
+            compute(pos0*scale, rvecs0*scale)
             epot1 = iterative.epot
             vol1 = iterative.ff.system.cell.volume
             # A.2) compute the acceptance ratio
             beta = 1/(boltzmann*self.temp)
-            natom = iterative.ff.system.natom
             arg = (epot1 - epot0 + self.press*(vol1 - vol0) - (natom+1)/beta*np.log(vol1/vol0))
             accepted = arg < 0 or np.random.uniform(0, 1) < np.exp(-beta*arg)
             if accepted:
@@ -103,10 +104,7 @@ class AndersenMcDonaldBarostat(VerletHook):
                 self.econs_correction += epot0 - epot1
             else:
                 # revert the cell and the positions in the original state
-                iterative.ff.update_rvecs(rvecs0)
-                iterative.pos[:] = pos0 # TODO: why not update_pos?
-                # reset the iterative algorithm
-                reset()
+                compute(pos0, rvecs0)
             # B) Change the velocities
             ekin0 = iterative._compute_ekin()
             iterative.vel[:] = get_random_vel(self.temp, False, iterative.masses)

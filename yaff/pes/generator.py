@@ -25,7 +25,6 @@
    :meth:`yaff.pes.ff.ForceField.generate` method.
 """
 
-# TODO: generator crashes on BKS pot when no bonds are present.
 
 import numpy as np
 
@@ -52,7 +51,7 @@ __all__ = [
     'BondFuesGenerator', 'BendGenerator', 'BendAngleHarmGenerator',
     'BendCosHarmGenerator', 'UreyBradleyHarmGenerator',
 
-    'ValenceCrossGenerator', 'BondCrossGeneratorGenerator',
+    'ValenceCrossGenerator', 'BondCrossGenerator',
 
     'NonbondedGenerator', 'LJGenerator', 'MM3Generator', 'ExpRepGenerator',
     'DampDispGenerator', 'FixedChargeGenerator',
@@ -173,7 +172,6 @@ class FFArgs(object):
         elif self.reci_ei == 'ewald':
             if system.cell.nvec == 3:
                 # Reciprocal-space electrostatics
-                # TODO: also make these smooth if smooth_ei is True
                 part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=self.gcut_scale*alpha)
                 self.parts.append(part_ewald_reci)
                 # Ewald corrections
@@ -588,8 +586,7 @@ class ValenceCrossGenerator(Generator):
         raise NotImplementedError
 
 
-# TODO: add test to make sure that R0==R1 in the case of symmetric ffatypes.
-class BondCrossGeneratorGenerator(ValenceCrossGenerator):
+class BondCrossGenerator(ValenceCrossGenerator):
     prefix = 'BONDCROSS'
     par_info = [('K', float), ('R0', float), ('R1', float)]
     nffatype = 3
@@ -867,7 +864,6 @@ class DampDispGenerator(NonbondedGenerator):
         bs = np.zeros(system.nffatype, float)
         vols = np.zeros(system.nffatype, float)
         for i in xrange(system.nffatype):
-            # TODO: make test and fix other occurences of this bug
             key = (system.ffatypes[i],)
             par_list = par_table.get(key, [])
             if len(par_list) == 0:
@@ -982,7 +978,7 @@ class FixedChargeGenerator(NonbondedGenerator):
             else:
                 charge, radius = pars
                 if radius > 0:
-                    raise NotImplementedError('TODO: support smeared charges.')
+                    raise NotImplementedError
                 system.charges[i] += charge
                 radii[i] = radius
         for i0, i1 in system.bonds:

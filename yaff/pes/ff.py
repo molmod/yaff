@@ -221,8 +221,6 @@ class ForceField(ForcePart):
            with the default constructor. Parameters for atom types that are not
            present in the system, are simply ignored.
         """
-        # TODO: (IDEA) Add option to only generate energy terms that involve
-        # a given list of atom indexes.
         if system.ffatype_ids is None:
             raise ValueError('The generators needs ffatype_ids in the system object.')
         with log.section('GEN'), timer.section('Generator'):
@@ -341,7 +339,6 @@ class ForcePartEwaldReciprocal(ForcePart):
         self.gcut = gcut
         self.update_gmax()
         self.work = np.empty(system.natom*2)
-        self.needs_update_gmax = True
         if log.do_medium:
             with log.section('FPINIT'):
                 log('Force part: %s' % self.name)
@@ -353,8 +350,6 @@ class ForcePartEwaldReciprocal(ForcePart):
 
     def update_gmax(self):
         '''This routine must be called after the attribute self.gmax is modified.'''
-        # TODO: do this automatically or figure out why that would not be a good
-        # idea and document it here.
         self.gmax = np.ceil(self.gcut/self.system.cell.gspacings-0.5).astype(int)
         if log.do_debug:
             with log.section('EWALD'):

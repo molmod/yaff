@@ -81,8 +81,6 @@ double forward_dihed_angle(iclist_row_type* ic, dlist_row_type* deltas) {
   } else if (c < -1) {
     c = -1;
   }
-  // TODO: This is only correct for pure cosines of the dihedral angle. One
-  //       should add a sign convention for the angle to model chiral stuff.
   return acos(c);
 }
 

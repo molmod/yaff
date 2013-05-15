@@ -303,6 +303,3 @@ def test_remove_duplicate2():
     assert system1.numbers.sum() == system3.numbers.sum()
     assert abs(system1.pos.mean(axis=0) - system3.pos.mean(axis=0)).max() < 1e-10
     assert system1.ffatype_ids.sum() == system3.ffatype_ids.sum()
-
-
-# TODO: add more real-life test for remove_dupplicate

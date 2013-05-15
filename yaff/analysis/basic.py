@@ -189,9 +189,6 @@ def plot_temp_dist(f, fn_png='temp_dist.png', select=None, **kwargs):
     from scipy.stats import chi2
     start, end, step = get_slice(f, **kwargs)
 
-    # TODO: plot (and compute) the analytical results with steps, just like the
-    # empirical data.
-
     # Make an array with the weights used to compute the temperature
     if select is None:
         weights = np.array(f['system/masses'])/boltzmann

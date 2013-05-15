@@ -23,8 +23,6 @@
 #--
 
 
-# TODO: read trajectory from one file, write output in another file
-
 from yaff.analysis.basic import *
 from yaff.analysis.blav import *
 from yaff.analysis.diffusion import *

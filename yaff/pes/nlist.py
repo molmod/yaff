@@ -37,11 +37,6 @@
 '''
 
 
-# TODO. The neighbor lists may also be affected by the weak implementation of
-# the minimum image convention. See what needs to be done. If there is no
-# problem with very skewed cells, document this feature.
-
-
 import numpy as np
 
 from yaff.log import log, timer
@@ -55,7 +50,7 @@ __all__ = ['NeighborList']
 neigh_dtype = [
     ('a', int), ('b', int), ('d', float),        # a & b are atom indexes, d is the distance
     ('dx', float), ('dy', float), ('dz', float), # relative vector (includes cell vectors of image cell)
-    ('r0', int), ('r1', int), ('r2', int)        # position of image cell. TODO: redundant? distinction between central an non-central should be sufficient.
+    ('r0', int), ('r1', int), ('r2', int)        # position of image cell.
 ]
 
 
@@ -125,8 +120,7 @@ class NeighborList(object):
             elif len(self.rmax) == 3:
                 log('rmax a,b,c   = %i,%i,%i' % tuple(self.rmax))
         # Request a rebuild of the neighborlist because there is no simple way
-        # to figure out whether an update is sufficient. TODO: look at other
-        # codes to see how this is done.
+        # to figure out whether an update is sufficient.
         self.rebuild_next = True
 
     def update(self):
@@ -293,9 +287,6 @@ class NeighborList(object):
                             validation[key] = value
 
         # D) Compare
-        # TODO: Comparison of both nlists should be based on distances and atom
-        # indexes. It is not a real problem when the integer r-vector is
-        # different. (Not urgent.)
         wrong = False
         with log.section('NLIST'):
             for key0, value0 in validation.iteritems():

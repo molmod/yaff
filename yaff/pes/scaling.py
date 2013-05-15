@@ -153,9 +153,6 @@ class Scalings(object):
                             ))
                     log.blank()
         if troubles:
-            # TODO: in a distant future it may be worth the trouble to
-            # reimplement the pair scaling such that these cases are handeled
-            # gracefully.
             raise AssertionError('Due to the small spacing between some crystal planes, the scaling of non-bonding interactions will not work properly. Use a supercell to avoid this problem.')
 
 

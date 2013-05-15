@@ -33,9 +33,6 @@ from yaff.log import log
 __all__ = ['dlpoly_history_to_hdf5']
 
 
-# TODO: output file
-
-
 def dlpoly_history_to_hdf5(f, fn_history, sub=slice(None), pos_unit=angstrom,
     vel_unit=angstrom/picosecond, frc_unit=amu*angstrom/picosecond**2,
     time_unit=picosecond, mass_unit=amu):

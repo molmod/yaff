@@ -96,7 +96,6 @@ class AndersenThermostat(VerletHook):
 
 
 class NHChain(object):
-    # TODO: allow for manual override of the ndof argument
     def __init__(self, length, timestep, temp, ndof, timecon=100*femtosecond):
         # parameters
         self.length = length
@@ -107,7 +106,7 @@ class NHChain(object):
 
         # allocate degrees of freedom
         self.pos = np.zeros(length)
-        self.vel = np.zeros(length) # TODO: sensible random initial velocities?
+        self.vel = np.zeros(length)
 
     def set_ndof(self, ndof):
         # set the masses according to the time constant

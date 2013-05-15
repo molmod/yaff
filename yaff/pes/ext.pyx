@@ -29,9 +29,6 @@
 '''
 
 
-# TODO: find a way to get __cinit__ signature in sphinx doc
-
-
 import numpy as np
 cimport numpy as np
 cimport cell
@@ -89,8 +86,6 @@ cdef class Cell:
         '''
         self.update_rvecs(rvecs)
 
-    # TODO: figure out how to format the signature on the first line such that
-    # sphinx can pick it up.
     def update_rvecs(self, np.ndarray[double, ndim=2] rvecs):
         '''update_rvecs(rvecs)
 
@@ -279,8 +274,6 @@ cdef class Cell:
            those sizes in case some pairs in the excluded list are not
            applicable.
         """
-        # TODO: return the number of computed distances and use this number
-        # in the RDF code.
         cdef long* exclude_pointer
 
         assert pos0.shape[1] == 3

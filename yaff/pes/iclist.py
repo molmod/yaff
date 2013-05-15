@@ -70,13 +70,6 @@ __all__ = [
 ]
 
 
-# TODO: normalize the order of the indexes in the IC objects to maximize reuse.
-# The current implementation may have both the angles (1,2,3) and (3,2,1) in
-# the list, without realizing that this is one and the same angle. It would
-# get computed twice for no good reason, other than me being too lazy to add
-# a little bookkeeping to the code.
-
-
 iclist_dtype = [
     ('kind', int),                      # Numerical code for the type of internal coordinate, e.g. bond, angle, ...
     ('i0', int), ('sign0', int),        # row index and sign flip of first relative vector in ``DeltaList`` object

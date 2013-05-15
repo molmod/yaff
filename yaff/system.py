@@ -309,8 +309,6 @@ class System(object):
                     log('%22s %22s  %3i       %3i' % (scope, ffatype, ffatype_id, (self.ffatype_ids==ffatype_id).sum()))
             log.hline()
             log.blank()
-        # TODO: Add double check such that the same atom type implies the same
-        # atomic number.
 
     def get_natom(self):
         """The number of atoms"""
@@ -364,7 +362,6 @@ class System(object):
                 Internal text-based checkpoint format. It just contains a
                 dictionary with the constructor arguments.
         """
-        # TODO: add support for (open) hdf5 files
         with log.section('SYS'):
             kwargs = {}
             for fn in fns:
@@ -834,8 +831,6 @@ class System(object):
                 A simple file with atomic positions and elements. Coordinates
                 are written in Angstroms.
         """
-        #TODO: Add a few common formats like PDB
-        # (Cell parameters, connectivity, atom types (4char), scope -> chains)
         if fn.endswith('.chk'):
             from molmod.io import dump_chk
             dump_chk(fn, {
