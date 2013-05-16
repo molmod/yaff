@@ -252,7 +252,12 @@ class ICTest(Test):
             indexes = self.icgroup.cases[i]
             sumsq += (self.refics[i] - self.icgroup.compute_ic(pos, indexes))**2
             count += 1
-        return np.sqrt(sumsq/count)
+        # Not all icgroups have to be present in all simulations, so count
+        # can be zero
+        if count==0:
+            return 0
+        else:
+            return np.sqrt(sumsq/count)
 
 
 class FCTest(Test):
@@ -287,7 +292,12 @@ class FCTest(Test):
             indexes = self.icgroup.cases[i]
             sumsq += (self.reffcs[i] - self.compute_fc(pos, hessian, indexes))**2
             count += 1
-        return np.sqrt(sumsq/count)
+        # Not all icgroups have to be present in all simulations, so count
+        # can be zero
+        if count==0:
+            return 0
+        else:
+            return np.sqrt(sumsq/count)
 
     def compute_fc(self, pos, hessian, indexes):
         # the derivative of the internal coordinate toward Cartesian coordinates
