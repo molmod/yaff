@@ -44,7 +44,7 @@ def get_time(f, start, end, step):
         time = f['trajectory/time'][start:end:step]/log.time.conversion
     else:
         label = 'Step'
-        time = f['trajectory/counter'][start:end:step]
+        time = np.array(range(len(f['trajectory/epot'][:])), float)[start:end:step]
     return time, label
 
 

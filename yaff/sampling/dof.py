@@ -36,7 +36,7 @@ from yaff.log import log
 
 __all__ = [
     'DOF', 'CartesianDOF', 'BaseCellDOF', 'FullCellDOF', 'StrainCellDOF',
-    'IsoCellDOF', 'AnisoCellDOF', 'ACRatioCellDOF'
+    'IsoCellDOF', 'AnisoCellDOF', 'ACRatioCellDOF', 'ABRatioCellDOF'
 ]
 
 
@@ -525,14 +525,10 @@ class ACRatioCellDOF(BaseCellDOF):
         rvecs_scaled[0,0] = 2.0*x[0]*np.cos(self.theta/2.0)
         rvecs_scaled[1,:] = x[1:4]
         rvecs_scaled[2,2] = 2.0*x[0]*np.sin(self.theta/2.0)
-        #print "rvecs = "
-        #print rvecs_scaled*self._cell_scale/1.889726133921252
         return rvecs_scaled*self._cell_scale, index
 
     def grvecs_to_gx(self, grvecs):
         gD = 2.0*np.cos(self.theta/2.0)*grvecs[0,0] + 2.0*np.sin(self.theta/2.0)*grvecs[2,2]
-        #print "grvecs ="
-        #print grvecs/0.00020155297149517787
         return np.array([gD, grvecs[1,0], grvecs[1,1], grvecs[1,2]])*self._cell_scale
 
     def check_convergence(self):
@@ -597,3 +593,107 @@ class ACRatioCellDOF(BaseCellDOF):
         log("- AC plane properties:")
         log("    AC diagonal length     = %s" % log.length(diag) )
         log("    AC interdiagonal angle = %s" % log.angle(self.theta) )
+
+class ABRatioCellDOF(BaseCellDOF):
+    """
+        This is a special constrained cell optimization in which the a and b
+        cell vectors are orthogonal and their length ratio is kept constant.
+        The c cell vector is completely free. These constraints are implemented
+        by using following cell vectors:
+
+            a = (2*D*cos(theta/2) ,        0         , 0  )
+            b = (       0         , 2*D*sin(theta/2) , 0  )
+            c = (       cx        ,        cy        , cz )
+
+        Herein, D is half the length of the diagonal of the ab plane of the unit
+        cell and theta is the angle between the 2 diagonals in the same ab
+        plane. By keeping theta fixed to a user specified value, the ratio of a
+        and b is kept constant.
+    """
+    def __init__(self, ff, theta, gpos_rms=1e-5, dpos_rms=1e-3, gcell_rms=1e-5, dcell_rms=1e-3, do_frozen=False):
+        self.theta = theta
+        BaseCellDOF.__init__(self, ff, gpos_rms=gpos_rms, dpos_rms=dpos_rms, gcell_rms=gcell_rms, dcell_rms=dcell_rms, do_frozen=do_frozen)
+
+    def get_initial_cellvars(self):
+        cell = self.ff.system.cell
+        if cell.nvec != 3:
+            raise ValueError('An ABRatioCell optimization requires a 3D periodic cell')
+        D = np.sqrt(cell.rvecs[0,0]**2 + cell.rvecs[1,1]**2)/2.0
+        self._cell_scale = cell.volume**(1.0/cell.nvec)
+        return np.array([D, cell.rvecs[2,0], cell.rvecs[2,1], cell.rvecs[2,2]])/self._cell_scale
+
+    def x_to_rvecs(self, x):
+        index = 4
+        rvecs_scaled = np.zeros([3,3], float)
+        rvecs_scaled[0,0] = 2.0*x[0]*np.sin(self.theta/2.0)
+        rvecs_scaled[1,1] = 2.0*x[0]*np.cos(self.theta/2.0)
+        rvecs_scaled[2,:] = x[1:4]
+        return rvecs_scaled*self._cell_scale, index
+
+    def grvecs_to_gx(self, grvecs):
+        gD = 2.0*np.sin(self.theta/2.0)*grvecs[0,0] + 2.0*np.cos(self.theta/2.0)*grvecs[1,1]
+        return np.array([gD, grvecs[2,0], grvecs[2,1], grvecs[2,2]])*self._cell_scale
+
+    def check_convergence(self):
+        # When called for the first time, initialize _last_pos and _last_cell
+        if self._last_pos is None:
+            self._last_pos = self._pos.copy()
+            self._last_cell = self._cell.copy()
+            self.converged = False
+            self.conv_val = 2
+            self.conv_worst = 'first_step'
+            self.conv_count = -1
+            return
+        # Compute the values that have to be compared to the thresholds
+        if not self.do_frozen:
+            gpossq = (self._gpos**2).sum(axis=1)
+            self.gpos_max = np.sqrt(gpossq.max())
+            self.gpos_rms = np.sqrt(gpossq.mean())
+            self.gpos_indmax = gpossq.argmax()
+            self._dpos[:] = self._pos
+            self._dpos -= self._last_pos
+            dpossq = (self._dpos**2).sum(axis=1)
+            self.dpos_max = np.sqrt(dpossq.max())
+            self.dpos_rms = np.sqrt(dpossq.mean())
+        #
+        gD = 2.0*np.sin(self.theta/2.0)*self._gcell[0,0] + 2.0*np.cos(self.theta/2.0)*self._gcell[1,1]
+        gcellsq = np.array([gD**2, self._gcell[2,0]**2, self._gcell[2,1]**2, self._gcell[2,2]**2])
+        self.gcell_max = np.sqrt(gcellsq.max())
+        self.gcell_rms = np.sqrt(gcellsq.mean())
+        self._dcell[:] = self._cell
+        self._dcell -= self._last_cell
+        #
+        dcellsq = (self._dcell**2).sum(axis=1)
+        self.dcell_max = np.sqrt(dcellsq.max())
+        self.dcell_rms = np.sqrt(dcellsq.mean())
+        # Compute a general value that has to go below 1.0 to have convergence.
+        conv_vals = []
+        if not self.do_frozen and self.th_gpos_rms is not None:
+            conv_vals.append((self.gpos_rms/self.th_gpos_rms, 'gpos_rms'))
+            conv_vals.append((self.gpos_max/(self.th_gpos_rms*3), 'gpos_max(%i)' %self.gpos_indmax))
+        if self.th_dpos_rms is not None:
+            conv_vals.append((self.dpos_rms/self.th_dpos_rms, 'dpos_rms'))
+            conv_vals.append((self.dpos_max/(self.th_dpos_rms*3), 'dpos_max'))
+        if self.th_gcell_rms is not None:
+            conv_vals.append((self.gcell_rms/self.th_gcell_rms, 'gcell_rms'))
+            conv_vals.append((self.gcell_max/(self.th_gcell_rms*3), 'gcell_max'))
+        if self.th_dcell_rms is not None:
+            conv_vals.append((self.dcell_rms/self.th_dcell_rms, 'dcell_rms'))
+            conv_vals.append((self.dcell_max/(self.th_dcell_rms*3), 'dcell_max'))
+        if len(conv_vals) == 0:
+            raise RuntimeError('At least one convergence criterion must be present.')
+        self.conv_val, self.conv_worst = max(conv_vals)
+        self.conv_count = sum(int(v>=1) for v, n in conv_vals)
+        self.converged = (self.conv_count == 0)
+        self._last_pos[:] = self._pos[:]
+        self._last_cell[:] = self._cell[:]
+
+    def log(self):
+        lengths, angles = self.ff.system.cell.parameters
+        diag = np.sqrt(lengths[0]**2 + lengths[1]**2)
+        theta = 2.0*np.arctan(lengths[0]/lengths[1])
+        BaseCellDOF.log(self)
+        log(" ")
+        log("- AB plane properties:")
+        log("    AB diagonal length     = %s" % log.length(diag) )
+        log("    AB interdiagonal angle = %s" % log.angle(theta) )
