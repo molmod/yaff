@@ -32,3 +32,4 @@ from yaff.sampling.npt import *
 from yaff.sampling.opt import *
 from yaff.sampling.utils import *
 from yaff.sampling.verlet import *
+from yaff.sampling.trajectory import *
