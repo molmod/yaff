@@ -26,12 +26,14 @@
 import numpy as np
 
 from yaff.log import log, timer
+from yaff.pes.ff import ForcePartValence
 
 
 __all__ = [
     'Iterative', 'StateItem', 'AttributeStateItem', 'PosStateItem',
     'DipoleStateItem', 'DipoleVelStateItem', 'VolumeStateItem', 'CellStateItem',
-    'EPotContribStateItem', 'Hook',
+    'EPotContribStateItem', 'EpotBondsStateItem', 'EpotBendsStateItem',
+    'EpotDihedsStateItem', 'Hook',
 ]
 
 
@@ -206,6 +208,60 @@ class EPotContribStateItem(StateItem):
 
     def iter_attrs(self, iterative):
         yield 'epot_contrib_names', tuple(part.name for part in iterative.ff.parts)
+
+
+class EpotBondsStateItem(StateItem):
+    """Keeps track of all the Valence Bond contributions to the potential energy"""
+    def __init__(self):
+        StateItem.__init__(self, 'epot_bonds')
+
+    def get_value(self, iterative):
+        value = 0.0
+        for part in iterative.ff.parts:
+            if isinstance(part, ForcePartValence):
+                vtab = part.vlist.vtab
+                ictab = part.vlist.iclist.ictab
+                break
+        for term in vtab:
+            if term['kind']!=3 and ictab[term['ic0']]['kind']==0:
+                value += term['energy']
+        return value
+
+
+class EpotBendsStateItem(StateItem):
+    """Keeps track of all the Valence Bend contributions to the potential energy"""
+    def __init__(self):
+        StateItem.__init__(self, 'epot_bends')
+
+    def get_value(self, iterative):
+        value = 0.0
+        for part in iterative.ff.parts:
+            if isinstance(part, ForcePartValence):
+                vtab = part.vlist.vtab
+                ictab = part.vlist.iclist.ictab
+                break
+        for term in vtab:
+            if term['kind']!=3 and ictab[term['ic0']]['kind'] in [1,2]:
+                value += term['energy']
+        return value
+
+
+class EpotDihedsStateItem(StateItem):
+    """Keeps track of all the Valence Dihedral contributions to the potential energy"""
+    def __init__(self):
+        StateItem.__init__(self, 'epot_diheds')
+
+    def get_value(self, iterative):
+        value = 0.0
+        for part in iterative.ff.parts:
+            if isinstance(part, ForcePartValence):
+                vtab = part.vlist.vtab
+                ictab = part.vlist.iclist.ictab
+                break
+        for term in vtab:
+            if term['kind']!=3 and ictab[term['ic0']]['kind'] in [3,4]:
+                value += term['energy']
+        return value
 
 
 class Hook(object):
