@@ -58,22 +58,23 @@ class Parameters(object):
        remainder of the line contains arguments for the definition. Definitions
        may be repeated with different or the same arguments.
     '''
-    def __init__(self, sections=None, complain=None):
+    def __init__(self, sections=None):
         if sections is None:
             self.sections = {}
         else:
             self.sections = sections
-        if complain is None:
-            self.complain = Complain()
-        else:
-            self.complain = complain
 
     @classmethod
-    def from_file(cls, filename):
-        '''Load a parameter file from an actual file.'''
+    def from_file(cls, filenames):
+        '''Create a Parameters instance from one or more text files.
 
+           **Arguments:**
 
-        def parse_line(line):
+           filenames
+                A single filename or a list of filenames
+        '''
+
+        def parse_line(line, complain):
             '''parse a single line'''
             pos = line.find(':')
             if pos == -1:
@@ -93,27 +94,31 @@ class Parameters(object):
             data = rest[pos+1:]
             return prefix, suffix, data
 
-        with file(filename) as f:
-            complain = Complain(filename)
-            result = cls({}, complain)
-            counter = 1
-            for line in f:
-                line = line[:line.find('#')].strip()
-                if len(line) > 0:
-                    # parse single line
-                    prefix, suffix, data = parse_line(line)
-                    # get/make section
-                    section = result.sections.get(prefix)
-                    if section is None:
-                        section = ParameterSection(prefix, {}, complain)
-                        result.sections[prefix] = section
-                    # get/make definition
-                    definition = section.definitions.get(suffix)
-                    if definition is None:
-                        definition = ParameterDefinition(suffix, [], complain)
-                        section.definitions[suffix] = definition
-                    definition.lines.append((counter, data))
-                counter += 1
+        if isinstance(filenames, basestring):
+            filenames = [filenames]
+
+        result = cls({})
+        for filename in filenames:
+            with file(filename) as f:
+                counter = 1
+                complain = Complain(filename)
+                for line in f:
+                    line = line[:line.find('#')].strip()
+                    if len(line) > 0:
+                        # parse single line
+                        prefix, suffix, data = parse_line(line, complain)
+                        # get/make section
+                        section = result.sections.get(prefix)
+                        if section is None:
+                            section = ParameterSection(prefix, {}, complain)
+                            result.sections[prefix] = section
+                        # get/make definition
+                        definition = section.definitions.get(suffix)
+                        if definition is None:
+                            definition = ParameterDefinition(suffix, [], complain)
+                            section.definitions[suffix] = definition
+                        definition.lines.append((counter, data))
+                    counter += 1
 
         return result
 
@@ -122,7 +127,7 @@ class Parameters(object):
         sections = {}
         for prefix, section in self.sections.iteritems():
             sections[prefix] = section.copy()
-        return Parameters(sections, self.complain)
+        return Parameters(sections)
 
     def write_to_file(self, filename):
         '''Write the parameters back to a file
@@ -141,7 +146,7 @@ class Parameters(object):
     def __getitem__(self, prefix):
         result = self.sections.get(prefix.upper())
         if result is None:
-            result = ParameterSection(prefix, {}, self.complain)
+            result = ParameterSection(prefix, {})
         return result
 
 

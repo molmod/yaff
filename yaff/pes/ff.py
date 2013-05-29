@@ -209,9 +209,10 @@ class ForceField(ForcePart):
                 An instance of the System class
 
            parameters
-                Two types are accepted: (i) the filename of the parameter file,
-                which is a text file that adheres to YAFF parameter format, or
-                (ii) an instance of the Parameters class.
+                Three types are accepted: (i) the filename of the parameter
+                file, which is a text file that adheres to YAFF parameter
+                format, (ii) a list of such filenames, or (ii) an instance of
+                the Parameters class.
 
            See the constructor of the :class:`yaff.pes.generator.FFArgs` class
            for the available optional arguments.
@@ -226,10 +227,10 @@ class ForceField(ForcePart):
         with log.section('GEN'), timer.section('Generator'):
             from yaff.pes.generator import apply_generators, FFArgs
             from yaff.pes.parameters import Parameters
+            if log.do_medium:
+                log('Generating force field from %s' % str(parameters))
             if not isinstance(parameters, Parameters):
                 parameters = Parameters.from_file(parameters)
-            if log.do_medium:
-                log('Generating force field based on file \'%s\'' % (parameters.complain.filename))
             ff_args = FFArgs(**kwargs)
             apply_generators(system, parameters, ff_args)
             return ForceField(system, ff_args.parts, ff_args.nlist)

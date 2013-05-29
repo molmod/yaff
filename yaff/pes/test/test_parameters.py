@@ -63,7 +63,6 @@ def test_consistency_copy():
 
 def test_from_file_bks():
     pf = Parameters.from_file('input/parameters_bks.txt')
-    assert pf.complain.filename == 'input/parameters_bks.txt'
     assert pf['EXPREP'].complain.filename == 'input/parameters_bks.txt'
     assert pf['EXPREP']['CPARS'].complain.filename == 'input/parameters_bks.txt'
     assert pf['EXPREP']['CPARS'][0][1] == '       O        O  1.3887730000e+03  2.7600000000e+00'
@@ -71,6 +70,18 @@ def test_from_file_bks():
     assert pf['FIXQ']['SCALE'][-1][1] == '3 1.0'
     assert len(pf['FOO'].definitions) == 0
     assert len(pf['FOO']['BARR'].lines) == 0
+
+
+def test_from_file_water_2():
+    pf = Parameters.from_file(['input/parameters_water_dampdisp1.txt', 'input/parameters_water_exprep1.txt'])
+    assert pf['DAMPDISP'].complain.filename == 'input/parameters_water_dampdisp1.txt'
+    assert pf['DAMPDISP']['SCALE'].complain.filename == 'input/parameters_water_dampdisp1.txt'
+    assert pf['DAMPDISP']['SCALE'][0][0] == 4
+    assert pf['DAMPDISP']['SCALE'][0][1] == '1 1.0'
+    assert pf['EXPREP'].complain.filename == 'input/parameters_water_exprep1.txt'
+    assert pf['EXPREP']['PARS'].complain.filename == 'input/parameters_water_exprep1.txt'
+    assert pf['EXPREP']['PARS'][0][0] == 8
+    assert pf['EXPREP']['PARS'][0][1] == 'O 4.2117588157e+02 4.4661933834e+00'
 
 
 def test_complain():
