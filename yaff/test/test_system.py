@@ -303,3 +303,15 @@ def test_remove_duplicate2():
     assert system1.numbers.sum() == system3.numbers.sum()
     assert abs(system1.pos.mean(axis=0) - system3.pos.mean(axis=0)).max() < 1e-10
     assert system1.ffatype_ids.sum() == system3.ffatype_ids.sum()
+
+
+def test_subsystem():
+    system1 = get_system_quartz()
+    system2 = system1.subsystem((system1.numbers == 8).nonzero()[0])
+    assert system2.natom == 6
+    assert (system2.numbers == 8).all()
+    assert len(system2.bonds) == 0
+    assert system2.scopes is None
+    assert system2.get_ffatype(0) == 'O'
+    assert (system2.charges == -0.9).all()
+    assert (system1.cell.rvecs == system2.cell.rvecs).all()

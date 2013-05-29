@@ -45,7 +45,9 @@ def _unravel_triangular(i):
 
 
 class System(object):
-    def __init__(self, numbers, pos, scopes=None, scope_ids=None, ffatypes=None, ffatype_ids=None, bonds=None, rvecs=None, charges=None, masses=None):
+    def __init__(self, numbers, pos, scopes=None, scope_ids=None, ffatypes=None,
+                 ffatype_ids=None, bonds=None, rvecs=None, charges=None,
+                 masses=None):
         '''
            **Arguments:**
 
@@ -806,6 +808,50 @@ class System(object):
 
         return self.__class__(numbers, pos, self.scopes, scope_ids, self.ffatypes, ffatype_ids, bonds, self.cell.rvecs, charges, masses)
 
+    def subsystem(self, indexes):
+        '''Return a System instance in which only the given atom are retained.'''
+
+        def reduce_array(old):
+            if old is None:
+                return None
+            else:
+                new = np.zeros((len(indexes),) + old.shape[1:], old.dtype)
+                for inew, iold in enumerate(indexes):
+                    new[inew] = old[iold]
+                return new
+
+        def reduce_scopes():
+            if self.scopes is None:
+                return None
+            else:
+                return [self.get_scope(i) for i in indexes]
+
+        def reduce_ffatypes():
+            if self.ffatypes is None:
+                return None
+            else:
+                return [self.get_ffatype(i) for i in indexes]
+
+        def reduce_bonds(old):
+            translation = dict((iold, inew) for inew, iold in enumerate(indexes))
+            new = []
+            for old0, old1 in old:
+                new0 = translation.get(old0)
+                new1 = translation.get(old1)
+                if not (new0 is None or new1 is None):
+                    new.append([new0, new1])
+            return new
+
+        return System(
+            numbers=reduce_array(self.numbers),
+            pos=reduce_array(self.pos),
+            scopes=reduce_scopes(),
+            ffatypes=reduce_ffatypes(),
+            bonds=reduce_bonds(self.bonds),
+            rvecs=self.cell.rvecs,
+            charges=reduce_array(self.charges),
+            masses=reduce_array(self.masses),
+        )
 
     def to_file(self, fn):
         """Write the system to a file
