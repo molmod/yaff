@@ -25,8 +25,11 @@
 
 import numpy as np
 
+from molmod.units import *
+
 from yaff.log import log, timer
-from yaff.pes.ff import ForcePartValence
+from yaff.pes.ff import ForcePartValence, ForcePartPair
+from yaff.pes.ext import PairPotEI
 
 
 __all__ = [
@@ -211,57 +214,144 @@ class EPotContribStateItem(StateItem):
 
 
 class EpotBondsStateItem(StateItem):
-    """Keeps track of all the Valence Bond contributions to the potential energy"""
-    def __init__(self):
+    """Keeps track of all the Valence Bond contributions to the potential energy."""
+    def __init__(self, do_ei=False):
+        """
+           **Optional arguments:**
+
+           do_ei
+                If True, the electrostatic contributions of the bonded atom pair
+                will also be tracked.
+        """
+        self.do_ei = do_ei
         StateItem.__init__(self, 'epot_bonds')
 
     def get_value(self, iterative):
-        value = 0.0
+        val = 0.0
+        ei = 0.0
         for part in iterative.ff.parts:
             if isinstance(part, ForcePartValence):
                 vtab = part.vlist.vtab
                 ictab = part.vlist.iclist.ictab
-                break
+                dtab = part.vlist.iclist.dlist.deltas
         for term in vtab:
             if term['kind']!=3 and ictab[term['ic0']]['kind']==0:
-                value += term['energy']
-        return value
+                val += term['energy']
+                if self.do_ei:
+                    ic = ictab[term['ic0']]
+                    qi = iterative.ff.system.charges[dtab[ic['i0']]['i']]
+                    qj = iterative.ff.system.charges[dtab[ic['i0']]['j']]
+                    d  = ic['value']
+                    ei += qi*qj/d
+        if self.do_ei:
+            return np.array([val, val+ei])
+        else:
+            return val
+
+    def iter_atts(self, iterative):
+        if self.do_ei:
+            yield 'epot_bonds_names', tuple('val', 'val+ei')
+        else:
+            yield []
 
 
 class EpotBendsStateItem(StateItem):
     """Keeps track of all the Valence Bend contributions to the potential energy"""
-    def __init__(self):
+    def __init__(self, do_ei=False):
+        """
+           **Optional arguments:**
+
+           do_ei
+                If True, the electrostatic contributions of the 1-3 non-bonded
+                atom pair will also be tracked.
+        """
+        self.do_ei = do_ei
         StateItem.__init__(self, 'epot_bends')
 
     def get_value(self, iterative):
-        value = 0.0
+        val = 0.0
+        ei = 0.0
         for part in iterative.ff.parts:
             if isinstance(part, ForcePartValence):
                 vtab = part.vlist.vtab
                 ictab = part.vlist.iclist.ictab
-                break
+                dtab = part.vlist.iclist.dlist.deltas
         for term in vtab:
             if term['kind']!=3 and ictab[term['ic0']]['kind'] in [1,2]:
-                value += term['energy']
-        return value
+                val += term['energy']
+                if self.do_ei:
+                    ic = ictab[term['ic0']]
+                    d0 = dtab[ic['i0']]
+                    d1 = dtab[ic['i1']]
+                    rji = np.array([d0['dx'], d0['dy'], d0['dz']])*ic['sign0']
+                    rjk = np.array([d1['dx'], d1['dy'], d1['dz']])*ic['sign1']
+                    ji = np.array([d0['i'], d0['j']])[::ic['sign0']]
+                    jk = np.array([d1['i'], d1['j']])[::ic['sign1']]
+                    qi = iterative.ff.system.charges[ji[1]]
+                    qk = iterative.ff.system.charges[jk[1]]
+                    d  = np.linalg.norm(rji-rjk)
+                    ei += qi*qk/d
+        if self.do_ei:
+            return np.array([val, val+ei])
+        else:
+            return val
+
+    def iter_atts(self, iterative):
+        if self.do_ei:
+            yield 'epot_bends_names', tuple('val', 'val+ei')
+        else:
+            yield []
 
 
 class EpotDihedsStateItem(StateItem):
     """Keeps track of all the Valence Dihedral contributions to the potential energy"""
-    def __init__(self):
+    def __init__(self, do_ei=False):
+        """
+           **Optional arguments:**
+
+           do_ei
+                If True, the electrostatic contributions of the 1-4 non-bonded
+                atom pair will also be tracked.
+        """
+        self.do_ei = do_ei
         StateItem.__init__(self, 'epot_diheds')
 
     def get_value(self, iterative):
-        value = 0.0
+        val = 0.0
+        ei = 0.0
         for part in iterative.ff.parts:
             if isinstance(part, ForcePartValence):
                 vtab = part.vlist.vtab
                 ictab = part.vlist.iclist.ictab
-                break
+                dtab = part.vlist.iclist.dlist.deltas
         for term in vtab:
             if term['kind']!=3 and ictab[term['ic0']]['kind'] in [3,4]:
-                value += term['energy']
-        return value
+                val += term['energy']
+                if self.do_ei:
+                    ic = ictab[term['ic0']]
+                    d0 = dtab[ic['i0']]
+                    d1 = dtab[ic['i1']]
+                    d2 = dtab[ic['i2']]
+                    rji = np.array([d0['dx'], d0['dy'], d0['dz']])*ic['sign0']
+                    rjk = np.array([d1['dx'], d1['dy'], d1['dz']])*ic['sign1']
+                    rkl = np.array([d2['dx'], d2['dy'], d2['dz']])*ic['sign2']
+                    ji = np.array([d0['i'], d0['j']])[::ic['sign0']]
+                    jk = np.array([d1['i'], d1['j']])[::ic['sign1']]
+                    kl = np.array([d2['i'], d2['j']])[::ic['sign2']]
+                    qi = iterative.ff.system.charges[ji[1]]
+                    ql = iterative.ff.system.charges[kl[1]]
+                    d  = np.linalg.norm(rji-rjk-rkl)
+                    ei += qi*ql/d
+        if self.do_ei:
+            return np.array([val, val+ei])
+        else:
+            return val
+
+    def iter_atts(self, iterative):
+        if self.do_ei:
+            yield 'epot_diheds_names', tuple('val', 'val+ei')
+        else:
+            yield []
 
 
 class Hook(object):
