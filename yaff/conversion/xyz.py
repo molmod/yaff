@@ -77,7 +77,7 @@ def xyz_to_hdf5(f, fn_xyz, sub=slice(None), file_unit=angstrom, name='pos'):
         if 'numbers' not in f['system']:
             raise ValueError('The HDF5 file must have a system group with atomic numbers.')
 
-        xyz_reader = XYZReader(fn_xyz, sub=sub)
+        xyz_reader = XYZReader(fn_xyz, sub=sub, file_unit=file_unit)
         if len(xyz_reader.numbers) != len(f['system/numbers']):
             raise ValueError('The number of atoms in the HDF5 and the XYZ files does not match.')
         if (xyz_reader.numbers != f['system/numbers']).any():
@@ -87,7 +87,7 @@ def xyz_to_hdf5(f, fn_xyz, sub=slice(None), file_unit=angstrom, name='pos'):
         tgrp, existing_row = get_trajectory_group(f)
 
         # Take care of the dataset
-        ds, = get_trajectory_datasets(tgrp, ('pos', (len(xyz_reader.numbers), 3)))
+        ds, = get_trajectory_datasets(tgrp, (name, (len(xyz_reader.numbers), 3)))
 
         # Fill the dataset with data.
         row = 0
