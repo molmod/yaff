@@ -973,14 +973,14 @@ class FixedChargeGenerator(NonbondedGenerator):
         # compute the charges
         for i in xrange(system.natom):
             pars = atom_table.get(system.get_ffatype(i))
-            if pars is None and log.do_warning:
-                log.warn('No charge defined for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
-            else:
+            if pars is not None:
                 charge, radius = pars
                 if radius > 0:
                     raise NotImplementedError
                 system.charges[i] += charge
                 radii[i] = radius
+            elif log.do_warning:
+                log.warn('No charge defined for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
         for i0, i1 in system.bonds:
             ffatype0 = system.get_ffatype(i0)
             ffatype1 = system.get_ffatype(i1)
