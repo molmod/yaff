@@ -870,6 +870,21 @@ class System(object):
             masses=reduce_array(self.masses),
         )
 
+    def cut_bonds(self, indexes):
+        '''Remove all bonds of a fragment with the remainder of the system;
+
+           **Arguments:**
+
+           indexes
+                The atom indexes in the fragment
+        '''
+        new_bonds = []
+        indexes = set(indexes)
+        for i0, i1 in self.bonds:
+            if not ((i0 in indexes) ^ (i1 in indexes)):
+                new_bonds.append([i0, i1])
+        self.bonds = np.array(new_bonds)
+
     def to_file(self, fn):
         """Write the system to a file
 

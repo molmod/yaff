@@ -27,7 +27,7 @@ import tempfile, shutil, numpy as np, h5py as h5
 
 from yaff import System, Cell, angstrom
 
-from common import get_system_water32, get_system_glycine, get_system_quartz, get_system_cyclopropene
+from common import get_system_water32, get_system_glycine, get_system_quartz, get_system_cyclopropene, get_system_peroxide
 
 
 def test_chk():
@@ -315,3 +315,9 @@ def test_subsystem():
     assert system2.get_ffatype(0) == 'O'
     assert (system2.charges == -0.9).all()
     assert (system1.cell.rvecs == system2.cell.rvecs).all()
+
+
+def test_cut_bonds():
+    system = get_system_peroxide()
+    system.cut_bonds([0,2])
+    assert (system.bonds == [[0,2],[1,3]]).all()
