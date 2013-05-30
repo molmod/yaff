@@ -189,7 +189,7 @@ cdef class Cell:
         tmp /= lengths
         tmp /= lengths.reshape((-1,1))
         if len(rvecs) < 2:
-            cosines = np.arrays([])
+            cosines = np.array([])
         elif len(rvecs) == 2:
             cosines = np.array([tmp[0,1]])
         else:

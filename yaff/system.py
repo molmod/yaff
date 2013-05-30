@@ -123,9 +123,26 @@ class System(object):
         self.cell = Cell(rvecs)
         self.charges = charges
         self.masses = masses
-        # compute some derived attributes
         with log.section('SYS'):
+            # report some stuff
+            self._init_log()
+            # compute some derived attributes
             self._init_derived()
+
+    def _init_log(self):
+        if log.do_medium:
+            log('Unit cell')
+            log.hline()
+            log('Number of periodic dimensions: %i' % self.cell.nvec)
+            lengths, angles = self.cell.parameters
+            names = 'abc'
+            for i in xrange(len(lengths)):
+                log('Cell parameter %5s: %10s' % (names[i], log.length(lengths[i])))
+            names = 'alpha', 'beta', 'gamma'
+            for i in xrange(len(angles)):
+                log('Cell parameter %5s: %10s' % (names[i], log.angle(angles[i])))
+            log.hline()
+            log.blank()
 
     def _init_derived(self):
         if self.bonds is not None:
