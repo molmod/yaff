@@ -28,7 +28,8 @@ import numpy as np
 
 
 def test_simple_transform():
-    pf0 = Parameters.from_file('input/parameters_water.txt')
+    fn_pars = context.get_fn('test/parameters_water.txt')
+    pf0 = Parameters.from_file(fn_pars)
     rules = [ScaleRule('BONDFUES', 'PARS', 'O\s*H', 3)]
     mods = [ParameterModifier(rules)]
     pt = ParameterTransform(pf0, mods)

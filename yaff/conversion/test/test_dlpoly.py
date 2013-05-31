@@ -33,7 +33,8 @@ def test_dlpoly_history_uo():
     # Bad practice. The trajectory file has no system directory...
     # Actual trajectory conversion, twice
     for i in xrange(2):
-        dlpoly_history_to_hdf5(f, 'input/dlpoly_HISTORY_uo')
+        fn = context.get_fn('test/dlpoly_HISTORY_uo')
+        dlpoly_history_to_hdf5(f, fn)
         assert 'trajectory' in f
         assert f['trajectory'].attrs['row'] == 3
         assert abs(f['trajectory/time'][0]/picosecond - 4.00) < 1e-10
@@ -58,7 +59,8 @@ def test_dlpoly_history_sam():
     # Bad practice. The trajectory file has no system directory...
     # Actual trajectory conversion, twice
     for i in xrange(2):
-        dlpoly_history_to_hdf5(f, 'input/dlpoly_HISTORY_sam')
+        fn = context.get_fn('test/dlpoly_HISTORY_sam')
+        dlpoly_history_to_hdf5(f, fn)
         assert 'trajectory' in f
         assert f['trajectory'].attrs['row'] == 3
         assert abs(f['trajectory/time'][0]/picosecond - 0.500) < 1e-10

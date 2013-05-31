@@ -34,7 +34,8 @@ def test_cp2k_ener_to_hdf5():
     # Bad practice. The trajectory file has no system directory...
     # Actual trajectory conversion, twice
     for i in xrange(2):
-        cp2k_ener_to_hdf5(f, 'input/cp2k-1.ener')
+        fn = context.get_fn('test/cp2k-1.ener')
+        cp2k_ener_to_hdf5(f, fn)
         assert 'trajectory' in f
         assert f['trajectory'].attrs['row'] == 9
         assert 'step' in f['trajectory']

@@ -41,9 +41,11 @@ def test_icgroup_cases():
 
 
 def test_water_cost_dist_ic():
-    system = System.from_file('input/water_trajectory.xyz', ffatypes=['O', 'H', 'H'])
+    fn_xyz = context.get_fn('test/water_trajectory.xyz')
+    system = System.from_file(fn_xyz, ffatypes=['O', 'H', 'H'])
     system.detect_bonds()
-    parameters = Parameters.from_file('input/parameters_water.txt')
+    fn_pars = context.get_fn('test/parameters_water.txt')
+    parameters = Parameters.from_file(fn_pars)
     del parameters.sections['FIXQ']
     del parameters.sections['DAMPDISP']
     del parameters.sections['EXPREP']
@@ -81,10 +83,12 @@ def test_water_cost_dist_ic():
 
 
 def test_water_cost_dist_fc():
-    sample = load_chk('input/water_hessian.chk')
+    fn_chk = context.get_fn('test/water_hessian.chk')
+    sample = load_chk(fn_chk)
     system = System(pos=sample['pos'], numbers=sample['numbers'], ffatypes=['O', 'H', 'H'])
     system.detect_bonds()
-    parameters = Parameters.from_file('input/parameters_water.txt')
+    fn_pars = context.get_fn('test/parameters_water.txt')
+    parameters = Parameters.from_file(fn_pars)
     del parameters.sections['FIXQ']
     del parameters.sections['DAMPDISP']
     del parameters.sections['EXPREP']
@@ -109,9 +113,11 @@ def test_water_cost_dist_fc():
 
 
 def test_water_cost_angle_ic():
-    system = System.from_file('input/water_trajectory.xyz', ffatypes=['O', 'H', 'H'])
+    fn_xyz = context.get_fn('test/water_trajectory.xyz')
+    system = System.from_file(fn_xyz, ffatypes=['O', 'H', 'H'])
     system.detect_bonds()
-    parameters = Parameters.from_file('input/parameters_water.txt')
+    fn_pars = context.get_fn('test/parameters_water.txt')
+    parameters = Parameters.from_file(fn_pars)
     del parameters.sections['FIXQ']
     del parameters.sections['DAMPDISP']
     del parameters.sections['EXPREP']
@@ -142,10 +148,12 @@ def test_water_cost_angle_ic():
 
 
 def test_water_cost_angle_fc():
-    sample = load_chk('input/water_hessian.chk')
+    fn_chk = context.get_fn('test/water_hessian.chk')
+    sample = load_chk(fn_chk)
     system = System(pos=sample['pos'], numbers=sample['numbers'], ffatypes=['O', 'H', 'H'])
     system.detect_bonds()
-    parameters = Parameters.from_file('input/parameters_water.txt')
+    fn_pars = context.get_fn('test/parameters_water.txt')
+    parameters = Parameters.from_file(fn_pars)
     del parameters.sections['FIXQ']
     del parameters.sections['DAMPDISP']
     del parameters.sections['EXPREP']

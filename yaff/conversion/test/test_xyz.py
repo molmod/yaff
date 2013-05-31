@@ -33,11 +33,12 @@ def test_xyz_to_hdf5():
     f = h5.File('yaff.conversion.test.test_xyz.test_xyz_to_hdf5.h5', driver='core', backing_store=False)
     # Bad practice. Proper use is to initialize the system object from a
     # different XYZ (or yet something else) with a single geometry.
-    system = System.from_file('input/water_trajectory.xyz')
+    fn_xyz = context.get_fn('test/water_trajectory.xyz')
+    system = System.from_file(fn_xyz)
     system.to_hdf5(f)
     # Actual trajectory conversion, twice
     for i in xrange(2):
-        xyz_to_hdf5(f, 'input/water_trajectory.xyz')
+        xyz_to_hdf5(f, fn_xyz)
         assert 'trajectory' in f
         assert f['trajectory'].attrs['row'] == 5
         assert abs(f['trajectory/pos'][0,0,0] - 3.340669*angstrom) < 1e-5
@@ -50,11 +51,12 @@ def test_xyz_to_hdf5_alt():
     f = h5.File('yaff.conversion.test.test_xyz.test_xyz_to_hdf5.h5', driver='core', backing_store=False)
     # Bad practice. Proper use is to initialize the system object from a
     # different XYZ (or yet something else) with a single geometry.
-    system = System.from_file('input/water_trajectory.xyz')
+    fn_xyz = context.get_fn('test/water_trajectory.xyz')
+    system = System.from_file(fn_xyz)
     system.to_hdf5(f)
     # Actual trajectory conversion, twice
     for i in xrange(2):
-        xyz_to_hdf5(f, 'input/water_trajectory.xyz', file_unit=1, name='test')
+        xyz_to_hdf5(f, fn_xyz, file_unit=1, name='test')
         assert 'trajectory' in f
         assert f['trajectory'].attrs['row'] == 5
         assert abs(f['trajectory/test'][0,0,0] - 3.340669) < 1e-5

@@ -31,7 +31,8 @@ from yaff.conversion.gaussian import _scan_g09_forces, _scan_g09_time, \
 
 
 def test_scan_forces():
-    with open('input/gaussian_sioh4_md.log') as f:
+    fn_log = context.get_fn('test/gaussian_sioh4_md.log')
+    with open(fn_log) as f:
         numbers, frc = _scan_g09_forces(f)
 
     assert numbers[0] == 14
@@ -45,7 +46,8 @@ def test_scan_forces():
 
 
 def test_scan_time():
-    with open('input/gaussian_sioh4_md.log') as f:
+    fn_log = context.get_fn('test/gaussian_sioh4_md.log')
+    with open(fn_log) as f:
         time, step, ekin, epot, etot = _scan_g09_time(f)
         assert time == 0.0
         assert step == 2
@@ -63,7 +65,8 @@ def test_scan_time():
 
 def test_scan_pos_vel():
     vel_unit = np.sqrt(amu)/second
-    with open('input/gaussian_sioh4_md.log') as f:
+    fn_log = context.get_fn('test/gaussian_sioh4_md.log')
+    with open(fn_log) as f:
         _scan_to_line(f, " Cartesian coordinates: (bohr)") # skip first one, has different format
         pos, vel = _scan_g09_pos_vel(f)
         assert pos[0,0] == -1.287811626725E-02
@@ -76,12 +79,14 @@ def test_scan_pos_vel():
 
 def test_to_hdf():
     vel_unit = np.sqrt(amu)/second
+    fn_xyz = context.get_fn('test/gaussian_sioh4_md.xyz')
+    fn_log = context.get_fn('test/gaussian_sioh4_md.log')
     with h5.File('yaff.conversion.test.test_gaussian.test_to_hdf5.h5', driver='core', backing_store=False) as f:
-        system = System.from_file('input/gaussian_sioh4_md.xyz')
+        system = System.from_file(fn_xyz)
         system.to_hdf5(f)
         # Actual trajectory conversion, twice
         for i in xrange(2):
-            g09log_to_hdf5(f, 'input/gaussian_sioh4_md.log')
+            g09log_to_hdf5(f, fn_log)
             assert 'trajectory' in f
             assert f['trajectory'].attrs['row'] == 2
             assert 'pos' in f['trajectory']

@@ -23,29 +23,25 @@
 #--
 
 
-from yaff import *
-from yaff.test.common import get_system_water32, get_system_water, \
-    get_system_quartz
+import os, subprocess
+
+from yaff import context
 
 
-__all__ = ['get_ff_water32', 'get_ff_water', 'get_ff_bks']
+def test_context():
+    fn = context.get_fn('test/parameters_bks.txt')
+    assert os.path.isfile(fn)
+    fns = context.glob('test/parameters_*')
+    assert fn in fns
 
 
-def get_ff_water32():
-    system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water.txt')
-    return ForceField.generate(system, fn_pars, skin=2)
-    return ff
-
-
-def get_ff_water():
-    system = get_system_water()
-    fn_pars = context.get_fn('test/parameters_water.txt')
-    return ForceField.generate(system, fn_pars)
-    return ff
-
-
-def get_ff_bks(**kwargs):
-    system = get_system_quartz()
-    fn_pars = context.get_fn('test/parameters_bks.txt')
-    return ForceField.generate(system, fn_pars, **kwargs)
+def test_data_files():
+    # Find files in data that were not checked in.
+    # This test only makes sense if ran inside the source tree. The purpose is
+    # to detect mistakes in the development process.
+    if context.data_dir == os.path.abspath('data/') and os.path.isdir('.git'):
+        lines = subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard', 'data']).split('\n')
+        for line in lines:
+            line = line.strip()
+            if len(line) != 0:
+                raise ValueError('The following file is not checked in: %s' % line)

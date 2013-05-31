@@ -23,45 +23,41 @@
 #--
 
 
-import os, glob, subprocess, sys
+import os, shlex, subprocess
 
 
-def run_example(dirname, fn_py, *args):
-    # fix python path
+def run_example(workdir, command):
     env = dict(os.environ)
-    python_path = env.get('PYTHONPATH')
-    if python_path is None:
-        python_path = os.getcwd()
-    else:
-        python_path += ':' + os.getcwd()
-    env['PYTHONPATH'] = python_path
-
-    # prepare Popen arguments
-    root = os.path.join("examples", dirname)
-    assert os.path.isdir(root)
-    assert os.path.isfile(os.path.join(root, fn_py))
-
-    # run example and pass through the output
-    p = subprocess.Popen(['./%s' % fn_py] + list(args), cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
-    p.wait()
-    sys.stdout.write(p.stdout.read())
-    sys.stderr.write(p.stderr.read())
-
-    # final check
-    assert p.returncode == 0
+    rootdir = os.getcwd()
+    env['PYTHONPATH'] = rootdir + ':' + env.get('PYTHONPATH', '')
+    env['YAFFDATA'] = os.path.join(rootdir, 'data')
+    workdir = os.path.join(rootdir, workdir)
+    print workdir
+    proc = subprocess.Popen(shlex.split(command), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=workdir, env=env)
+    outdata, errdata = proc.communicate()
+    if proc.returncode != 0:
+        print 'Standard output'
+        print '+'*80
+        print outdata
+        print '+'*80
+        print 'Standard error'
+        print '+'*80
+        print errdata
+        print '+'*80
+        assert False
 
 def test_example_000_overview():
-    run_example('000_overview', 'simulation.py')
+    run_example('examples/000_overview', './simulation.py')
 
 def test_example_001_tutorial_bks():
-    run_example('001_tutorial_bks/init', 'mksystem.py')
-    run_example('001_tutorial_bks/opt', 'simulation.py')
-    run_example('001_tutorial_bks/opt', 'analysis.py')
-    run_example('001_tutorial_bks/nvt', 'simulation.py', '300', '310')
-    run_example('001_tutorial_bks/nvt', 'analysis.py', '300', '310', '10')
+    run_example('examples/001_tutorial_bks/init', './mksystem.py')
+    run_example('examples/001_tutorial_bks/opt', './simulation.py')
+    run_example('examples/001_tutorial_bks/opt', './analysis.py')
+    run_example('examples/001_tutorial_bks/nvt', './simulation.py 300 310')
+    run_example('examples/001_tutorial_bks/nvt', './analysis.py 300 310 10')
 
 def test_example_002_external_trajectory():
-    run_example('002_external_trajectory', 'rdf.py')
+    run_example('examples/002_external_trajectory', './rdf.py')
 
 def test_example_999_back_propagation():
-    run_example('999_back_propagation', 'bp.py')
+    run_example('examples/999_back_propagation', './bp.py')

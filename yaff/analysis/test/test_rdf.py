@@ -155,13 +155,15 @@ def test_rdf2_offline_exclude():
 
 
 def test_rdf_from_file_variable_cell():
-    system = System.from_file('input/chloro_pos.xyz', rvecs=np.diag([48.877]*3))
+    fn_xyz = context.get_fn('test/chloro_pos.xyz')
+    fn_vol = context.get_fn('test/chloro_vol.txt')
+    system = System.from_file(fn_xyz, rvecs=np.diag([48.877]*3))
     with h5.File('yaff.analysis.test.test_rdf.test_rdf_from_file_variable_cell.h5', driver='core', backing_store=False) as f:
         # Prepare in-memory HDF5 file
         system.to_hdf5(f)
-        xyz_to_hdf5(f, 'input/chloro_pos.xyz')
+        xyz_to_hdf5(f, fn_xyz)
         rvecs_traj = []
-        with file('input/chloro_vol.txt') as fvol:
+        with file(fn_vol) as fvol:
             for line in fvol:
                 if line.startswith(' INITIAL'):
                     vol = float(line.split()[3])

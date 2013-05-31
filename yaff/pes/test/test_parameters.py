@@ -43,8 +43,8 @@ def check_consistent(pf1, pf2):
 
 
 def test_consistency_io():
-    for fn_parameters in 'input/parameters_bks.txt', 'input/parameters_water.txt':
-        pf1 = Parameters.from_file(fn_parameters)
+    for fn_parameters in 'test/parameters_bks.txt', 'test/parameters_water.txt':
+        pf1 = Parameters.from_file(context.get_fn(fn_parameters))
         dirname = tempfile.mkdtemp('yaff', 'test_consistency_parameters')
         try:
             pf1.write_to_file('%s/parameters_foo.txt' % dirname)
@@ -55,16 +55,17 @@ def test_consistency_io():
 
 
 def test_consistency_copy():
-    for fn_parameters in 'input/parameters_bks.txt', 'input/parameters_water.txt':
-        pf1 = Parameters.from_file(fn_parameters)
+    for fn_parameters in 'test/parameters_bks.txt', 'test/parameters_water.txt':
+        pf1 = Parameters.from_file(context.get_fn(fn_parameters))
         pf2 = pf1.copy()
         check_consistent(pf1, pf2)
 
 
 def test_from_file_bks():
-    pf = Parameters.from_file('input/parameters_bks.txt')
-    assert pf['EXPREP'].complain.filename == 'input/parameters_bks.txt'
-    assert pf['EXPREP']['CPARS'].complain.filename == 'input/parameters_bks.txt'
+    fn_pars = context.get_fn('test/parameters_bks.txt')
+    pf = Parameters.from_file(fn_pars)
+    assert pf['EXPREP'].complain.filename == fn_pars
+    assert pf['EXPREP']['CPARS'].complain.filename == fn_pars
     assert pf['EXPREP']['CPARS'][0][1] == '       O        O  1.3887730000e+03  2.7600000000e+00'
     assert pf['DAMPDISP']['UNIT'][2][0] == 10
     assert pf['FIXQ']['SCALE'][-1][1] == '3 1.0'
@@ -73,13 +74,15 @@ def test_from_file_bks():
 
 
 def test_from_file_water_2():
-    pf = Parameters.from_file(['input/parameters_water_dampdisp1.txt', 'input/parameters_water_exprep1.txt'])
-    assert pf['DAMPDISP'].complain.filename == 'input/parameters_water_dampdisp1.txt'
-    assert pf['DAMPDISP']['SCALE'].complain.filename == 'input/parameters_water_dampdisp1.txt'
+    fn_pars1 = context.get_fn('test/parameters_water_dampdisp1.txt')
+    fn_pars2 = context.get_fn('test/parameters_water_exprep1.txt')
+    pf = Parameters.from_file([fn_pars1, fn_pars2])
+    assert pf['DAMPDISP'].complain.filename == fn_pars1
+    assert pf['DAMPDISP']['SCALE'].complain.filename == fn_pars1
     assert pf['DAMPDISP']['SCALE'][0][0] == 4
     assert pf['DAMPDISP']['SCALE'][0][1] == '1 1.0'
-    assert pf['EXPREP'].complain.filename == 'input/parameters_water_exprep1.txt'
-    assert pf['EXPREP']['PARS'].complain.filename == 'input/parameters_water_exprep1.txt'
+    assert pf['EXPREP'].complain.filename == fn_pars2
+    assert pf['EXPREP']['PARS'].complain.filename == fn_pars2
     assert pf['EXPREP']['PARS'][0][0] == 8
     assert pf['EXPREP']['PARS'][0][1] == 'O 4.2117588157e+02 4.4661933834e+00'
 

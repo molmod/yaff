@@ -686,7 +686,8 @@ def test_pair_pot_grimme_2atoms():
 
 def test_bks_isfinite():
     system = get_system_quartz()
-    ff = ForceField.generate(system, 'input/parameters_bks.txt')
+    fn_pars = context.get_fn('test/parameters_bks.txt')
+    ff = ForceField.generate(system, fn_pars)
     assert np.isfinite(ff.part_pair_dampdisp.pair_pot.c6_cross).all()
     assert np.isfinite(ff.part_pair_dampdisp.pair_pot.b_cross).all()
     ff.compute()
@@ -701,7 +702,8 @@ def test_bks_isfinite():
 
 def test_bks_vtens_gpos_parts():
     system = get_system_quartz()
-    ff = ForceField.generate(system, 'input/parameters_bks.txt', smooth_ei=True, reci_ei='ignore')
+    fn_pars = context.get_fn('test/parameters_bks.txt')
+    ff = ForceField.generate(system, fn_pars, smooth_ei=True, reci_ei='ignore')
     for part in ff.parts:
         check_vtens_part(system, part, ff.nlist)
         check_gpos_part(system, part, ff.nlist)
