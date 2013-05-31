@@ -146,9 +146,15 @@ class ForcePart(object):
             my_vtens = self.vtens
             my_vtens[:] = 0.0
         self.energy = self._internal_compute(my_gpos, my_vtens)
+        if np.isnan(self.energy):
+            raise ValueError('The energy is not-a-number (nan).')
         if gpos is not None:
+            if np.isnan(my_gpos).any():
+                raise ValueError('Some gpos element(s) is/are not-a-number (nan).')
             gpos += my_gpos
         if vtens is not None:
+            if np.isnan(my_vtens).any():
+                raise ValueError('Some vtens element(s) is/are not-a-number (nan).')
             vtens += my_vtens
         return self.energy
 

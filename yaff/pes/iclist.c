@@ -21,7 +21,6 @@
 //
 //--
 
-
 #include <math.h>
 #include "iclist.h"
 
@@ -216,7 +215,9 @@ void back_dihed_cos(iclist_row_type* ic, dlist_row_type* deltas, double value, d
 }
 
 void back_dihed_angle(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
-  back_dihed_cos(ic, deltas, cos(value), -grad/sin(value));
+  double tmp = sin(value);
+  if (tmp!=0.0) tmp = -grad/tmp;
+  back_dihed_cos(ic, deltas, cos(value), tmp);
 }
 
 ic_back_type ic_back_fns[6] = {

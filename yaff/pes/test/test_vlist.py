@@ -582,3 +582,21 @@ def test_gpos_vtens_ub_water():
                     part.add_term(Harmonic(2.1,2.0*angstrom,UreyBradley(i0, i1, i2)))
     check_gpos_part(system, part)
     check_vtens_part(system, part)
+
+
+def test_zero_dihed_steven():
+    pos = np.array([
+       [  3.99364178360816302e+00,   6.30763314754801546e-02,  -3.46387534695341159e+00],
+       [  8.25853872852823123e+00,  -2.56426319334358244e+00,   2.79913814647939019e-01],
+       [  6.27951244286421861e+00,  -1.73747102970232015e+00,  -2.05686744048685455e+00],
+       [  8.12025850622788603e+00,  -6.72445448176343996e-01,   2.91920676811204993e+00],
+    ])
+    numbers = np.array([1, 2, 3, 4])
+    system = System(numbers, pos)
+    fp = ForcePartValence(system)
+    fp.add_term(Cosine(3, 0.001, 0.0, DihedAngle(0, 1, 2, 3)))
+    gpos = np.zeros(pos.shape)
+    fp.compute(gpos)
+    assert fp.iclist.ictab[0]['value'] == 0.0
+    assert fp.iclist.ictab[0]['grad'] == 0.0
+    assert not np.isnan(gpos).any()
