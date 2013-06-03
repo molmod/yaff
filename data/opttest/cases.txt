@@ -1,0 +1,26 @@
+# Example case for an isolated system
+
+case water_dimer
+    system opttest/water_dimer.chk
+    forcefield test/parameters_water.txt
+    dof cartesian
+    maxiter 353
+    energy -1314.5
+    gpos_rms 1e-6
+
+case alpha_quartz_cartesian
+    system opttest/alpha_quartz.chk
+    forcefield test/parameters_bks.txt
+    dof cartesian
+    maxiter 8
+    energy -16864.0
+    gpos_rms 1e-5
+
+case alpha_quartz_strain
+    system opttest/alpha_quartz.chk
+    forcefield test/parameters_bks.txt
+    dof strain
+    maxiter 31
+    energy -16864.0
+    gpos_rms 1e-5
+

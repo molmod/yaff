@@ -42,7 +42,7 @@ from yaff.sampling.iterative import Iterative, AttributeStateItem, \
 
 __all__ = [
     'OptScreenLog', 'BaseOptimizer', 'CGOptimizer', 'BFGSHessianModel',
-    'SR1HessianModel', 'QNOptimizer',
+    'SR1HessianModel', 'QNOptimizer', 'solve_trust_radius'
 ]
 
 
@@ -264,7 +264,7 @@ class QNOptimizer(BaseOptimizer):
     """
     log_name = 'QNOPT'
 
-    def __init__(self, dof, state=None, hooks=None, counter0=0, trust_radius=1.0, small_radius=1e-5, hessian0=None):
+    def __init__(self, dof, state=None, hooks=None, counter0=0, trust_radius=1.0, small_radius=1e-5, too_small_radius=1e-10, hessian0=None):
         """
            **Arguments:**
 
@@ -296,6 +296,11 @@ class QNOptimizer(BaseOptimizer):
                 energy is no longer essential. Instead a decrease in the norm
                 of the gradient is used to accept/reject a step.
 
+           too_small_radius
+                If the trust radius becomes smaller than this parameter, the
+                optimizer gives up. Insanely small trust radii are typical for
+                potential energy surfaces that are not entirely smooth.
+
            hessian0
                 An initial guess for the Hessian
         """
@@ -304,6 +309,7 @@ class QNOptimizer(BaseOptimizer):
         self.trust_radius = trust_radius
         self.initial_trust_radius = trust_radius
         self.small_radius = small_radius
+        self.too_small_radius = too_small_radius
         BaseOptimizer.__init__(self, dof, state, hooks, counter0)
 
     def initialize(self):
@@ -336,64 +342,22 @@ class QNOptimizer(BaseOptimizer):
         if log.do_high:
             log(' lowest eigen value: %7.1e' % evals.min())
             log('highest eigen value: %7.1e' % evals.max())
-        # convert gradient to internal basis
-        grad_in = np.dot(evecs.T, self.g_old)
+        # convert gradient to eigen basis
+        grad_eigen = np.dot(evecs.T, self.g_old)
 
-        # Initial ridge parameter
-        if evals.min() <= 0:
-            # Make the ridge large enough to step in a direction opposite to the
-            # gradient.
-            ridge = abs(evals.min())*1.1
-        else:
-            ridge = 0.0
-
-        # Trust radius loop
-        if log.do_high:
-            log.hline()
-            log('       Ridge      Radius       Trust')
-            log.hline()
         while True:
-            # Increase ridge until step is smaller than trust radius
-            while True:
+            # Find the step with the given radius. If the hessian is positive
+            # definite and the unconstrained step is smaller than the trust
+            # radius, this step is returned
+            delta_eigen = solve_trust_radius(grad_eigen, evals, self.trust_radius)
+            radius = np.linalg.norm(delta_eigen)
 
-                # --------------------------------------------------------------
-                # MARKER FOR CONSTRAINT CODE: instead of the following line, a
-                # constrained harmonic solver should be added to find the step
-                # that minimizes the local quadratic problem under a set of linear
-                # equality/inequality constraints. This can be implemented using
-                # the active set algorithm.
-                # --------------------------------------------------------------
-
-                # compute the step in the internal basis with a given ridge parameter
-                step_in = -grad_in/(evals + ridge)
-                # the size of the step, is invariant under unitary transformation
-                radius = np.linalg.norm(step_in)
-                # check if the step is acceptable and make proper decision
-                if log.do_high:
-                    log('%12.5e %12.5e %12.5e' % (ridge, radius, self.trust_radius))
-                if radius < self.trust_radius:
-                    break
-                if ridge == 0.0:
-                    ridge = abs(evals[evals!=0.0]).min()
-                else:
-                    ridge *= 1.2
             # convert the step to user basis
-            delta_x = np.dot(evecs, step_in)
-            assert np.dot(delta_x, self.g_old) < 0
-
-            # ------------------------------------------------------------------
-            # MARKER FOR CONSTRAINT CODE: the following line should be replaced
-            # by something of the sort:
-            # x = self.shaker.fix(self.x_old + delta_x)
-            # ------------------------------------------------------------------
+            delta_x = np.dot(evecs, delta_eigen)
 
             # compute the function and gradient at the new position
             x = self.x_old + delta_x
             f, g = self.fun(x, True)
-
-            # ------------------------------------------------------------------
-            # MARKER FOR CONSTRAINT CODE: project the gradient.
-            # ------------------------------------------------------------------
 
             # compute the change in function value
             delta_f = f - self.f_old
@@ -406,7 +370,7 @@ class QNOptimizer(BaseOptimizer):
                 # The function must decrease, if not the trust radius is too big.
                 if log.do_high:
                     log('Function increases.')
-                must_shrink =True
+                must_shrink = True
 
             if (self.trust_radius < self.small_radius and delta_norm_g > 0):
                 # When the trust radius becomes small, the numerical noise on
@@ -417,12 +381,69 @@ class QNOptimizer(BaseOptimizer):
                 must_shrink = True
 
             if must_shrink:
-                while self.trust_radius > radius:
+                self.trust_radius *= 0.5
+                while self.trust_radius >= radius:
                     self.trust_radius *= 0.5
+                if self.trust_radius < self.too_small_radius:
+                    raise RuntimeError('The trust radius becomes too small. Is the potential energy surface smooth?')
             else:
-                # If we get here, we are done.
+                # If we get here, we are done with the trust radius loop.
                 if log.do_high:
                     log.hline()
+                # It is fine to increase the trust radius a little after a
+                # successful step.
                 if self.trust_radius < 1e2*self.initial_trust_radius:
-                    self.trust_radius *= 1.1
+                    self.trust_radius *= 2.0
+                # Return the results of the successful step
                 return x, f, g
+
+
+def solve_trust_radius(grad, evals, radius, threshold=1e-5):
+    '''Find a step in eigen space with the given radius'''
+    # First try an unconstrained step if the eigen values are all strictly
+    # positive
+    if evals.min() > 0:
+        step = -grad/evals
+        if np.linalg.norm(step) <= radius:
+            return step
+
+    # define some auxiliary functions
+    def compute_step(ridge):
+        return -grad/(evals+ridge)
+
+    def compute_error(ridge):
+        return np.linalg.norm(compute_step(ridge)) - radius
+
+    # the ultimate lower bound that we'd rather avoid
+    ridge_min = -evals.min()
+
+    def find_edge(alpha, sign):
+        while True:
+            ridge = ridge_min + alpha
+            error = compute_error(ridge)
+            if sign*error < 0:
+                return ridge, error
+            if sign > 0:
+                alpha *= 2
+            else:
+                alpha /= 2
+
+    # find a proper lower bound, error > 0
+    a = find_edge(min(1e1, abs(evals.max())), -1)
+    # find an upper bound, error < 0
+    b = find_edge(max(1e-5, abs(ridge_min)), 1)
+
+    # bisection algorithm to find root
+    error = np.inf
+    while abs(error) > radius*threshold:
+        ridge = (a[1]*a[0]-b[1]*b[0])/(a[1]-b[1])
+        error = compute_error(ridge)
+        c = ridge, error
+        if error > 0 and a[1] > 0:
+            a = c
+        else:
+            b = c
+
+    # best guess
+    ridge = c[0]
+    return compute_step(ridge)
