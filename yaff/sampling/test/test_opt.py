@@ -26,7 +26,7 @@
 import h5py as h5, numpy as np
 
 from yaff import *
-from yaff.sampling.test.common import get_ff_water32
+from yaff.sampling.test.common import get_ff_water32, get_ff_bks
 from yaff.pes.test.common import check_gpos_part, check_vtens_part, \
     check_gpos_ff, check_vtens_ff
 

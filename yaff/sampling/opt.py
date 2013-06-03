@@ -289,7 +289,8 @@ class QNOptimizer(BaseOptimizer):
 
            trust_radius
                 The initial value for the trust radius. It is adapted by the
-                algorithm after every step.
+                algorithm after every step. The adapted trust radius is never
+                allowed to increase above this initial value.
 
            small_radius
                 If the trust radius goes below this limit, the decrease in
@@ -392,8 +393,8 @@ class QNOptimizer(BaseOptimizer):
                     log.hline()
                 # It is fine to increase the trust radius a little after a
                 # successful step.
-                if self.trust_radius < 1e2*self.initial_trust_radius:
-                    self.trust_radius *= 1.1
+                if self.trust_radius < self.initial_trust_radius:
+                    self.trust_radius *= 2.0
                 # Return the results of the successful step
                 return x, f, g
 
