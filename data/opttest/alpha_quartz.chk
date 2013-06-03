@@ -5,17 +5,12 @@ bonds                                     kind=intar 12,2
                      2                      5                      1                      5
                      1                      4                      0                      4
                      2                      3                      0                      3
-charges                                   kind=fltar 9
- 1.800000000000000e+00  1.800000000000000e+00  1.800000000000000e+00 -9.000000000000000e-01
--9.000000000000000e-01 -9.000000000000000e-01 -9.000000000000000e-01 -9.000000000000000e-01
--9.000000000000000e-01
 ffatype_ids                               kind=intar 9
                      0                      0                      0                      1
                      1                      1                      1                      1
                      1
 ffatypes                                  kind=strar 2
                     Si                      O
-masses                                    kind=none   None
 numbers                                   kind=intar 9
                     14                     14                     14                      8
                      8                      8                      8                      8
