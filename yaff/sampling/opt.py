@@ -393,7 +393,7 @@ class QNOptimizer(BaseOptimizer):
                 # It is fine to increase the trust radius a little after a
                 # successful step.
                 if self.trust_radius < 1e2*self.initial_trust_radius:
-                    self.trust_radius *= 2.0
+                    self.trust_radius *= 1.1
                 # Return the results of the successful step
                 return x, f, g
 
