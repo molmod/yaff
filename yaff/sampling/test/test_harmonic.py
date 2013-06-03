@@ -95,6 +95,7 @@ def test_bulk_elastic_bks():
     rvecs1 = rvecs0*deform
     pos1 = pos0*deform
     ff.update_rvecs(rvecs1)
+    ff.update_pos(pos1)
     opt = QNOptimizer(CartesianDOF(ff))
     opt.run()
     e1 = ff.compute()
@@ -102,6 +103,7 @@ def test_bulk_elastic_bks():
     rvecs2 = rvecs0*deform
     pos2 = pos0*deform
     ff.update_rvecs(rvecs2)
+    ff.update_pos(pos2)
     opt = QNOptimizer(CartesianDOF(ff))
     opt.run()
     e2 = ff.compute()
@@ -111,6 +113,7 @@ def test_bulk_elastic_bks():
     rvecs1 = rvecs0*deform
     pos1 = pos0*deform
     ff.update_rvecs(rvecs1)
+    ff.update_pos(pos1)
     opt = QNOptimizer(CartesianDOF(ff))
     opt.run()
     e1 = ff.compute()
@@ -118,6 +121,7 @@ def test_bulk_elastic_bks():
     rvecs2 = rvecs0*deform
     pos2 = pos0*deform
     ff.update_rvecs(rvecs2)
+    ff.update_pos(pos2)
     opt = QNOptimizer(CartesianDOF(ff))
     opt.run()
     e2 = ff.compute()

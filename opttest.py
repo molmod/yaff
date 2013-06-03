@@ -116,8 +116,8 @@ def load_cases(fn, select_title=None):
         system = System.from_file(context.get_fn(args['system']))
         if system.cell.nvec == 0:
             ff_args = {'rcut': 200.0}
-        elif system.cell.nvec == 3:
-            ff_args = {'alpha_scale': 3.5}
+        else:
+            ff_args = {}
         ff = ForceField.generate(system, context.get_fn(args['forcefield']), **ff_args)
         dof_args = dict((key, data) for key, data in args.iteritems() if (key.endswith('_rms') or key.endswith('_max')))
         dof = args['dof'](ff, **dof_args)
@@ -157,7 +157,7 @@ class Case(object):
             log.set_file(sys.stdout)
             output.close()
         self.niter = opt.counter
-    
+
     def _report(self):
         if self.error:
             self.status = 'ERROR'
@@ -185,7 +185,7 @@ def main():
             niters.append(case.niter)
             status_counts[case.status] = status_counts.get(case.status, 0) + 1
             success &= case.status == 'SUCCESS'
-        log.hline()        
+        log.hline()
         log('Total number of iterations:   %i' % sum(niters))
         log('Maximum number of iterations: %i' % max(niters))
         log('Number of tests:              %i' % len(cases))
@@ -198,4 +198,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
