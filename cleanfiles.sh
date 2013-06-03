@@ -9,3 +9,4 @@ rm -rv doc/_build
 rm -v MANIFEST
 rm -vr dist
 rm -vr build
+rm -v trajectory_*.xyz

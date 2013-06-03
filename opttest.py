@@ -38,6 +38,8 @@ def parse_args():
         help='Select one test to run. If not given, all tests are executed.')
     parser.add_argument('-v', '--verbose', default=False, action='store_true',
         help='Do not suppress the output during the optimization.')
+    parser.add_argument('-x', '--xyz', default=False, action='store_true',
+        help='Write XYZ trajectory files for the optimizations.')
     return parser.parse_args()
 
 
@@ -137,16 +139,19 @@ class Case(object):
         self.maxiter = maxiter
         self.energy = energy
 
-    def run(self, verbose):
-        self._optimize(verbose)
+    def run(self, verbose, xyz):
+        self._optimize(verbose, xyz)
         self._report()
 
-    def _optimize(self, verbose):
+    def _optimize(self, verbose, xyz):
         if not verbose:
             output = open('/dev/null', 'w')
             log.set_file(output)
         try:
-            opt = QNOptimizer(self.dof)
+            hooks = []
+            if xyz:
+                hooks.append(XYZWriter('trajectory_%s.xyz' % self.title))
+            opt = QNOptimizer(self.dof, hooks=hooks)
             opt.run(self.maxiter)
             self.error = False
         except:
@@ -181,7 +186,7 @@ def main():
         status_counts = {}
         success = True
         for case in cases:
-            case.run(args.verbose)
+            case.run(args.verbose, args.xyz)
             niters.append(case.niter)
             status_counts[case.status] = status_counts.get(case.status, 0) + 1
             success &= case.status == 'SUCCESS'
