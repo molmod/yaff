@@ -397,7 +397,13 @@ class System(object):
                     kwargs['charges'] = np.array(psf.charges, copy=False)
                 elif fn.endswith('.chk'):
                     from molmod.io import load_chk
-                    kwargs.update(load_chk(fn))
+                    allowed_keys = [
+                        'numbers', 'pos', 'scopes', 'scope_ids', 'ffatypes',
+                        'ffatype_ids', 'bonds', 'rvecs', 'charges', 'masses',
+                    ]
+                    for key, value in load_chk(fn).iteritems():
+                        if key in allowed_keys:
+                            kwargs.update({key: value})
                 else:
                     raise IOError('Can not read from file \'%s\'.' % fn)
                 if log.do_high:
