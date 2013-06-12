@@ -37,7 +37,7 @@ from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
     ForcePartEwaldNeutralizing
 from yaff.pes.iclist import Bond, BendAngle, BendCos, \
-    UreyBradley, DihedAngle, DihedCos
+    UreyBradley, DihedAngle, DihedCos, OopAngle, OopCos
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
 from yaff.pes.vlist import Harmonic, Fues, Cross, Cosine, \
@@ -494,6 +494,35 @@ class TorsionGenerator(ValenceGenerator):
             return Chebychev2(pars[1], ic)
         else:
             return ValenceGenerator.get_vterm(self, pars, indexes)
+
+
+class InversionGenerator(ValenceGenerator):
+    nffatype = 4
+    par_info = [('A', float)]
+    prefix = 'INVERSION'
+    ICClass = OopCos
+    VClass = Chebychev1
+    allow_superposition = True
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield (key[1],key[0],key[2],key[3])
+
+    def iter_indexes(self, system):
+        #Loop over all atoms; if an atom has 3 neighbors,
+        #it is candidate for an inversion term
+        for atom in system.neighs1.keys():
+            neighbours = list(system.neighs1[atom])
+            if len(neighbours)==3:
+                #Yield a term for all three out-of-plane angles
+                #with atom as center atom
+                yield neighbours[0],neighbours[1],neighbours[2],atom
+                yield neighbours[1],neighbours[2],neighbours[0],atom
+                yield neighbours[2],neighbours[0],neighbours[1],atom
+
+    def get_vterm(self, pars, indexes):
+        ic = OopCos(*indexes)
+        return Chebychev1(pars[0], ic)
 
 
 

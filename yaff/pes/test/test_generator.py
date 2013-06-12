@@ -27,7 +27,7 @@ import numpy as np
 
 from yaff import *
 
-from yaff.test.common import get_system_water32, get_system_glycine
+from yaff.test.common import get_system_water32, get_system_glycine, get_system_formaldehyde
 
 
 def test_generator_water32_bondharm():
@@ -507,3 +507,18 @@ def test_add_part():
     assert part_press in ff.parts
     assert ff.part_press is part_press
     assert ff.compute() == ff.part_valence.energy + ff.part_press.energy
+
+
+def test_generator_formaldehyde_inversion():
+    system = get_system_formaldehyde()
+    fn_pars = context.get_fn('test/parameters_formaldehyde_inversion.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert len(ff.parts) == 1
+    assert isinstance(ff.parts[0], ForcePartValence)
+    part_valence = ff.parts[0]
+    assert part_valence.dlist.ndelta == 3
+    assert (part_valence.iclist.ictab['kind'][0:3] == 6).all()
+    assert part_valence.iclist.nic == 3
+    assert (part_valence.vlist.vtab['kind'][0:3] == 5).all()
+    assert abs(part_valence.vlist.vtab['par0'] - 1.0*kjmol).all() < 1e-10
+    assert part_valence.vlist.nv == 3
