@@ -66,7 +66,7 @@ from yaff.pes.ext import iclist_forward, iclist_back
 
 __all__ = [
     'InternalCoordinateList', 'InternalCoordinate', 'Bond', 'BendAngle',
-    'BendCos', 'DihedAngle', 'DihedCos', 'UreyBradley',
+    'BendCos', 'DihedAngle', 'DihedCos', 'UreyBradley', 'OopAngle', 'OopCos',
 ]
 
 
@@ -293,3 +293,41 @@ class UreyBradley(InternalCoordinate):
 
     def get_conversion(self):
         return log.length.conversion
+
+
+class OopCos(InternalCoordinate):
+    '''Cosine of an out-of-plane angle.'''
+    kind = 6
+    def __init__(self, i, j, k, l):
+        '''
+           **Arguments:**
+
+           i, j, k, l
+                The indexes of the atoms involved in the out-of-plane angle.
+                The central atom is given by the last index (l). This IC gives
+                the angle between the plane formed by atoms i, j and l and the
+                bond between l and k.
+        '''
+        InternalCoordinate.__init__(self, [(i,l), (j,l), (k,l)])
+
+    def get_conversion(self):
+        return 1.0
+
+
+class OopAngle(InternalCoordinate):
+    '''An out-of-plane angle.'''
+    kind = 7
+    def __init__(self, i, j, k, l):
+        '''
+           **Arguments:**
+
+           i, j, k, l
+                The indexes of the atoms involved in the out-of-plane angle.
+                The central atom is given by the last index (l). This IC gives
+                the angle between the plane formed by atoms i, j and l and the
+                bond between l and k.
+        '''
+        InternalCoordinate.__init__(self, [(i,l), (j,l), (k,l)])
+
+    def get_conversion(self):
+        return log.angle.conversion

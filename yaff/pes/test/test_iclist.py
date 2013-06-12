@@ -30,7 +30,7 @@ from nose.plugins.skip import SkipTest
 from yaff import *
 
 from yaff.test.common import get_system_quartz, get_system_peroxide, \
-    get_system_mil53, get_system_water32
+    get_system_mil53, get_system_water32, get_system_formaldehyde
 
 
 def test_iclist_quartz_bonds():
@@ -245,3 +245,16 @@ def test_ic_list_dihedral_pernicious():
     iclist.ictab[0] = (4, 0, -1, 1, 1, 2, -1, 0, 0, 0.0, 0.0)
     iclist.forward()
     assert abs(abs(iclist.ictab[0]['value']) - np.pi) < 1e-8
+
+
+def test_oop_formaldehyde():
+    system = get_system_formaldehyde()
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    iclist.add_ic(OopCos(2,3,1,0))
+    iclist.add_ic(OopAngle(2,3,1,0))
+    dlist.forward()
+    iclist.forward()
+    print dlist.deltas[0]['gx']
+    assert abs( iclist.ictab[0]['value'] - 1.0 ) < 1e-8
+    assert abs( iclist.ictab[1]['value'] - 0.0 ) < 1e-8

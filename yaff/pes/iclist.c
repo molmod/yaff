@@ -83,8 +83,42 @@ double forward_dihed_angle(iclist_row_type* ic, dlist_row_type* deltas) {
   return acos(c);
 }
 
-ic_forward_type ic_forward_fns[6] = {
-  forward_bond, forward_bend_cos, forward_bend_angle, forward_dihed_cos, forward_dihed_angle, forward_bond
+double forward_oop_cos(iclist_row_type* ic, dlist_row_type* deltas) {
+  double *delta0, *delta1, *delta2;
+  double n[3];
+  double n_sq, tmp0, tmp1;
+  delta0 = (double*)(deltas + (*ic).i0);
+  delta1 = (double*)(deltas + (*ic).i1);
+  delta2 = (double*)(deltas + (*ic).i2);
+  // The normal to the plane spanned by the first and second vector
+  n[0] = delta0[1]*delta1[2] - delta0[2]*delta1[1];
+  n[1] = delta0[2]*delta1[0] - delta0[0]*delta1[2];
+  n[2] = delta0[0]*delta1[1] - delta0[1]*delta1[0];
+  // The norm squared of this normal
+  n_sq = n[0]*n[0] + n[1]*n[1] + n[2]*n[2];
+  // Norm squared of the third vector
+  tmp0 = delta2[0]*delta2[0] + delta2[1]*delta2[1] + delta2[2]*delta2[2];
+  // Dot product of the normal with the third vector
+  tmp1 = n[0]*delta2[0] + n[1]*delta2[1] + n[2]*delta2[2];
+  // The cosine of the oop angle (assumed to be positive)
+  return sqrt(1.0 - tmp1*tmp1/tmp0/n_sq);
+}
+
+double forward_oop_angle(iclist_row_type* ic, dlist_row_type* deltas) {
+  double c;
+  c = forward_oop_cos(ic, deltas);
+  // Guard against round-off errors before taking the dot product.
+  if (c > 1) {
+    c = 1;
+  } else if (c < -1) {
+    c = -1;
+  }
+  return acos(c);
+}
+
+ic_forward_type ic_forward_fns[8] = {
+  forward_bond, forward_bend_cos, forward_bend_angle, forward_dihed_cos, forward_dihed_angle, forward_bond,
+  forward_oop_cos, forward_oop_angle
 };
 
 void iclist_forward(dlist_row_type* deltas, iclist_row_type* ictab, long nic) {
@@ -220,8 +254,58 @@ void back_dihed_angle(iclist_row_type* ic, dlist_row_type* deltas, double value,
   back_dihed_cos(ic, deltas, cos(value), tmp);
 }
 
-ic_back_type ic_back_fns[6] = {
-  back_bond, back_bend_cos, back_bend_angle, back_dihed_cos, back_dihed_angle, back_bond
+void back_oop_cos(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  dlist_row_type *delta0, *delta1, *delta2;
+  double n[3], d0_cross_d1[3], d1_cross_d2[3], d2_cross_d0[3];
+  double n_norm, d2_norm, n_dot_d2, f;
+
+  delta0 = deltas + (*ic).i0;
+  delta1 = deltas + (*ic).i1;
+  delta2 = deltas + (*ic).i2;
+  // Cross products of delta vectors (introduce a function vectorproduct() ?)
+  d0_cross_d1[0] = (*delta0).dy * (*delta1).dz - (*delta0).dz * (*delta1).dy;
+  d0_cross_d1[1] = (*delta0).dz * (*delta1).dx - (*delta0).dx * (*delta1).dz;
+  d0_cross_d1[2] = (*delta0).dx * (*delta1).dy - (*delta0).dy * (*delta1).dx;
+
+  d1_cross_d2[0] = (*delta1).dy * (*delta2).dz - (*delta1).dz * (*delta2).dy;
+  d1_cross_d2[1] = (*delta1).dz * (*delta2).dx - (*delta1).dx * (*delta2).dz;
+  d1_cross_d2[2] = (*delta1).dx * (*delta2).dy - (*delta1).dy * (*delta2).dx;
+
+  d2_cross_d0[0] = (*delta2).dy * (*delta0).dz - (*delta2).dz * (*delta0).dy;
+  d2_cross_d0[1] = (*delta2).dz * (*delta0).dx - (*delta2).dx * (*delta0).dz;
+  d2_cross_d0[2] = (*delta2).dx * (*delta0).dy - (*delta2).dy * (*delta0).dx;
+
+  n[0] = d0_cross_d1[0], n[1] = d0_cross_d1[1],n[2] = d0_cross_d1[2]; //normal to plane of first two vectors
+  // The norm of crossproduct of first two vectors
+  n_norm = sqrt( n[0]*n[0] + n[1]*n[1] + n[2]*n[2] );
+  // Norm of the third vector
+  d2_norm = sqrt((*delta2).dx * (*delta2).dx + (*delta2).dy * (*delta2).dy + (*delta2).dz * (*delta2).dz);
+  // Dot product of the crossproduct of first two vectors with the third vector
+  n_dot_d2 = n[0]*(*delta2).dx + n[1]*(*delta2).dy + n[2]*(*delta2).dz;
+  // The expression for the cosine of the out-of-plane angle can be written as:
+  // cos(phi) = sqrt(1-f**2), so the derivatives can be computed as
+  // d cos(phi) / d x = -f / sqrt(1-f**2) * d f / d x
+  f = n_dot_d2/d2_norm/n_norm;
+  (*delta0).gx += -f/value*grad*( d1_cross_d2[0]/d2_norm/n_norm - n_dot_d2/d2_norm/n_norm/n_norm*( (*delta1).dy*d0_cross_d1[2] - (*delta1).dz*d0_cross_d1[1] ) );
+  (*delta0).gy += -f/value*grad*( d1_cross_d2[1]/d2_norm/n_norm - n_dot_d2/d2_norm/n_norm/n_norm*( (*delta1).dz*d0_cross_d1[0] - (*delta1).dx*d0_cross_d1[2] ) );
+  (*delta0).gz += -f/value*grad*( d1_cross_d2[2]/d2_norm/n_norm - n_dot_d2/d2_norm/n_norm/n_norm*( (*delta1).dx*d0_cross_d1[1] - (*delta1).dy*d0_cross_d1[0] ) );
+  (*delta1).gx += -f/value*grad*( d2_cross_d0[0]/d2_norm/n_norm - n_dot_d2/d2_norm/n_norm/n_norm*( (*delta0).dz*d0_cross_d1[1] - (*delta0).dy*d0_cross_d1[2] ) );
+  (*delta1).gy += -f/value*grad*( d2_cross_d0[1]/d2_norm/n_norm - n_dot_d2/d2_norm/n_norm/n_norm*( (*delta0).dx*d0_cross_d1[2] - (*delta0).dz*d0_cross_d1[0] ) );
+  (*delta1).gz += -f/value*grad*( d2_cross_d0[2]/d2_norm/n_norm - n_dot_d2/d2_norm/n_norm/n_norm*( (*delta0).dy*d0_cross_d1[0] - (*delta0).dx*d0_cross_d1[1] ) );
+  (*delta2).gx += -f/value*grad*( d0_cross_d1[0]/d2_norm/n_norm - n_dot_d2/d2_norm/d2_norm/n_norm*(*delta2).dx );
+  (*delta2).gy += -f/value*grad*( d0_cross_d1[1]/d2_norm/n_norm - n_dot_d2/d2_norm/d2_norm/n_norm*(*delta2).dy );
+  (*delta2).gz += -f/value*grad*( d0_cross_d1[2]/d2_norm/n_norm - n_dot_d2/d2_norm/d2_norm/n_norm*(*delta2).dz );
+}
+
+void back_oop_angle(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  double tmp = sin(value);
+  if (tmp!=0.0) tmp = -grad/tmp;
+  back_oop_cos(ic, deltas, cos(value), tmp);
+}
+
+ic_back_type ic_back_fns[8] = {
+  back_bond, back_bend_cos, back_bend_angle, back_dihed_cos, back_dihed_angle, back_bond,
+  back_oop_cos, back_oop_angle
 };
 
 void iclist_back(dlist_row_type* deltas, iclist_row_type* ictab, long nic) {

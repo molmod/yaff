@@ -455,3 +455,17 @@ def get_2systems_2oxygens():
         ]),
     )
     return sys1, sys2
+
+
+def get_system_formaldehyde():
+    return System(
+        numbers=np.array([6,8,1,1]),
+        pos=np.array([
+            [0.0000000000,  0.0000000000,  -0.5265526741],
+            [0.0000000000,  0.0000000000,   0.6555124750],
+            [0.0000000000, -0.9325664988,  -1.1133424527],
+            [0.0000000000,  0.9325664988,  -1.1133424527],
+        ])*angstrom,
+        ffatypes=['C','O','H','H'],
+        bonds=np.array([[0,1],[0,2],[0,3]]),
+    )
