@@ -255,6 +255,5 @@ def test_oop_formaldehyde():
     iclist.add_ic(OopAngle(2,3,1,0))
     dlist.forward()
     iclist.forward()
-    print dlist.deltas[0]['gx']
     assert abs( iclist.ictab[0]['value'] - 1.0 ) < 1e-8
     assert abs( iclist.ictab[1]['value'] - 0.0 ) < 1e-8

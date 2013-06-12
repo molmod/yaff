@@ -28,7 +28,7 @@ from molmod import bend_angle, bend_cos, dihed_angle, dihed_cos
 from yaff import *
 
 from yaff.test.common import get_system_quartz, get_system_water32, \
-    get_system_2T, get_system_peroxide, get_system_mil53
+    get_system_2T, get_system_peroxide, get_system_mil53, get_system_formaldehyde
 from yaff.pes.test.common import check_gpos_part, check_vtens_part
 
 
@@ -600,3 +600,40 @@ def test_zero_dihed_steven():
     assert fp.iclist.ictab[0]['value'] == 0.0
     assert fp.iclist.ictab[0]['grad'] == 0.0
     assert not np.isnan(gpos).any()
+
+
+def test_inversion_formaldehyde():
+    """
+    Test for an inversion term made by combining a Chebychev1 energy term with
+    an out-of-plane cosine.
+    """
+    oop_fc = 1.0
+    system = get_system_formaldehyde()
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    vlist = ValenceList(iclist)
+    #Add a term for all out-of-plane angles with the carbon as center
+    vlist.add_term(Chebychev1(oop_fc, OopCos(2,3,1,0)))
+    vlist.add_term(Chebychev1(oop_fc, OopCos(1,2,3,0)))
+    vlist.add_term(Chebychev1(oop_fc, OopCos(1,3,2,0)))
+    dlist.forward()
+    iclist.forward()
+    energy = vlist.forward()
+    #For a planar molecule the energy should be zero
+    check_energy = 0.0
+    assert abs(energy - check_energy) < 1e-8
+    #Now put the carbon out of the plane; the energy shoud rise
+    system.pos[0,0] += 1.00000000*angstrom
+    dlist.forward()
+    iclist.forward()
+    energy = vlist.forward()
+    print energy
+    #Calculate the energy manually
+    check_energy = 0.0
+    for term in iclist.ictab:
+        print term
+        #Select the terms corresponding to oop cosines
+        if term[0]==6:
+            print term
+            check_energy += 0.5*oop_fc*(1.0-term['value'])
+    assert abs(energy - check_energy) < 1e-8
