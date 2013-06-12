@@ -1,0 +1,3 @@
+INVERSION:UNIT A kjmol
+INVERSION:PARS  H   H   O   C  1.0
+INVERSION:PARS  H   O   H   C  1.0

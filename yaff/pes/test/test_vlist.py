@@ -637,3 +637,36 @@ def test_inversion_formaldehyde():
             print term
             check_energy += 0.5*oop_fc*(1.0-term['value'])
     assert abs(energy - check_energy) < 1e-8
+
+
+def get_ff_formaldehyde():
+    # This forcefield is based on UFF, but we only really care about 
+    # out-of-plane angles
+    system = get_system_formaldehyde()
+    # Move the C atom to make the molecule non-planar
+    system.pos[0,0] += 0.2*angstrom
+    # Valence part
+    part_valence = ForcePartValence(system)
+    # Harmonic bonds
+    part_valence.add_term(Harmonic(3.371456e3*kjmol/angstrom**2, 1.219*angstrom, Bond(0, 1)))
+    part_valence.add_term(Harmonic(1.484153e3*kjmol/angstrom**2, 1.084*angstrom, Bond(0, 2)))
+    part_valence.add_term(Harmonic(1.484153e3*kjmol/angstrom**2, 1.084*angstrom, Bond(0, 3)))
+    # Harmonic bends
+    part_valence.add_term(Harmonic(6.91928e2*kjmol, np.cos(120.0*deg), BendCos(1,0,2)))
+    part_valence.add_term(Harmonic(6.91928e2*kjmol, np.cos(120.0*deg), BendCos(1,0,3)))
+    part_valence.add_term(Harmonic(2.57789e2*kjmol, np.cos(120.0*deg), BendCos(2,0,3)))
+    # Out-of-plane angles
+    part_valence.add_term(Chebychev1(6.978*kjmol, OopCos(2,3,1,0)))
+    part_valence.add_term(Chebychev1(6.978*kjmol, OopCos(1,2,3,0)))
+    part_valence.add_term(Chebychev1(6.978*kjmol, OopCos(1,3,2,0)))
+    return ForceField(system, [part_valence], None)
+
+
+def test_opt_formaldehyde():
+    ff = get_ff_formaldehyde()
+    opt = QNOptimizer(CartesianDOF(ff))
+    opt.run(100)
+    #Check if all out-of-plane angles go to zero (so their cosine goes to 1)
+    for ic in ff.part_valence.iclist.ictab:
+        if ic['kind'] == 6:
+            assert abs(ic['value'] - 1.0) < 1e-6
