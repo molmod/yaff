@@ -31,7 +31,7 @@ from molmod.io import XYZWriter
 
 from yaff import *
 
-from yaff.test.common import get_system_water32, get_system_formaldehyde
+from yaff.test.common import get_system_water32
 from yaff.pes.test.common import check_gpos_ff, check_vtens_ff
 
 

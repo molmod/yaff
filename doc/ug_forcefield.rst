@@ -311,6 +311,38 @@ Prefix -- TORSION
 .. literalinclude:: ../input/parameters_glycine_torsion.txt
 
 
+Prefix -- INVERSION
+-----------------
+
+**Energy term:**
+
+.. math:: E_\text{INVERSION} = \sum_{i=1}^{N_t} \frac{1}{2} A_i (1 - \cos( \chi_i ))
+
+**Parameters:**
+
+* :math:`A_i` (``A``): The amplitude of inversion barrier :math:`i`.
+
+**Constants:**
+
+* :math:`N_t`: the number of inversion terms.
+
+**Geometry dependent variables:**
+
+* :math:`\chi_i`: the out-of-plane angle between the plane spanned by atoms 1,2,4 and the bond between atoms 3 and 4.
+
+**Commands:**
+
+* ``UNIT`` (may repeat): Specify the units of the parameter ``A``. See
+  :ref:`sub_sub_sec_general_commands`.
+* ``PARS`` (may repeat): Specify parameters for a given combination of atom types.
+  Five data fields must be given: ``ffatype0``,
+  ``ffatype1``, ``ffatype2``, ``ffatype3`` and ``A``.
+
+**Example**:
+
+.. literalinclude:: ../input/parameters_formaldehyde_inversion.txt
+
+
 Prefix -- BONDCROSS
 -------------------
 

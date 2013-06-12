@@ -640,7 +640,7 @@ def test_inversion_formaldehyde():
 
 
 def get_ff_formaldehyde():
-    # This forcefield is based on UFF, but we only really care about 
+    # This forcefield is based on UFF, but we only really care about
     # out-of-plane angles
     system = get_system_formaldehyde()
     # Move the C atom to make the molecule non-planar
