@@ -255,9 +255,51 @@ void back_dihed_angle(iclist_row_type* ic, dlist_row_type* deltas, double value,
 }
 
 void back_oop_cos(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  // This calculation is tedious. Expressions are checked with the following
+  // maple commands (assuming the maple worksheet is bug-free)
+  /*
+  restart:
+  with(LinearAlgebra):
+  d0:=Vector([d0x,d0y,d0z]):
+  d1:=Vector([d1x,d1y,d1z]):
+  d2:=Vector([d2x,d2y,d2z]):
+  assume(d0x,real,d0y,real,d0z,real,d1x,real,d1y,real,d1z,real,d2x,real,d2y,real,d2z,real):
+  d0_cross_d1:=CrossProduct(d0,d1):
+  d1_cross_d2:=CrossProduct(d1,d2):
+  d2_cross_d0:=CrossProduct(d2,d0):
+  n:=d0_cross_d1:
+  n_sq:=Norm(n,2,conjugate=false)**2:
+  d2_sq:=Norm(d2,2,conjugate=false)**2:
+  n_dot_d2:=DotProduct(n,d2):
+  fac:=n_dot_d2/d2_sq/n_sq:
+  f:=DotProduct(d2,CrossProduct(d0,d1))/Norm(d2,2,conjugate=false)/Norm(CrossProduct(d0,d1),2,conjugate=false):
+  cosphi:= (1-f**2)**(1/2):
+
+  dcosphi_d0x:=diff(cosphi,d0x):
+  dcosphi_d0y:=diff(cosphi,d0y):
+  dcosphi_d0z:=diff(cosphi,d0z):
+  dcosphi_d1x:=diff(cosphi,d1x):
+  dcosphi_d1y:=diff(cosphi,d1y):
+  dcosphi_d1z:=diff(cosphi,d1z):
+  dcosphi_d2x:=diff(cosphi,d2x):
+  dcosphi_d2y:=diff(cosphi,d2y):
+  dcosphi_d2z:=diff(cosphi,d2z):
+
+  simplify(dcosphi_d0x + fac/cosphi*( d1_cross_d2[1] - n_dot_d2/n_sq*(d1[2]*n[3]-d1[3]*n[2])));
+  simplify(dcosphi_d0y + fac/cosphi*( d1_cross_d2[2] - n_dot_d2/n_sq*(d1[3]*n[1]-d1[1]*n[3])));
+  simplify(dcosphi_d0z + fac/cosphi*( d1_cross_d2[3] - n_dot_d2/n_sq*(d1[1]*n[2]-d1[2]*n[1])));
+  simplify(dcosphi_d1x + fac/cosphi*( d2_cross_d0[1] - n_dot_d2/n_sq*(d0[3]*n[2]-d0[2]*n[3])));
+  simplify(dcosphi_d1y + fac/cosphi*( d2_cross_d0[2] - n_dot_d2/n_sq*(d0[1]*n[3]-d0[3]*n[1])));
+  simplify(dcosphi_d1z + fac/cosphi*( d2_cross_d0[3] - n_dot_d2/n_sq*(d0[2]*n[1]-d0[1]*n[2])));
+  simplify(dcosphi_d2x + fac/cosphi*( d0_cross_d1[1] - n_dot_d2/d2_sq*d2[1]) );
+  simplify(dcosphi_d2y + fac/cosphi*( d0_cross_d1[2] - n_dot_d2/d2_sq*d2[2]) );
+  simplify(dcosphi_d2z + fac/cosphi*( d0_cross_d1[3] - n_dot_d2/d2_sq*d2[3]) );
+  */
+
+
   dlist_row_type *delta0, *delta1, *delta2;
   double n[3], d0_cross_d1[3], d1_cross_d2[3], d2_cross_d0[3];
-  double n_norm, d2_norm, n_dot_d2, f;
+  double n_sq, d2_sq, n_dot_d2, fac;
 
   delta0 = deltas + (*ic).i0;
   delta1 = deltas + (*ic).i1;
@@ -276,25 +318,25 @@ void back_oop_cos(iclist_row_type* ic, dlist_row_type* deltas, double value, dou
   d2_cross_d0[2] = (*delta2).dx * (*delta0).dy - (*delta2).dy * (*delta0).dx;
 
   n[0] = d0_cross_d1[0], n[1] = d0_cross_d1[1],n[2] = d0_cross_d1[2]; //normal to plane of first two vectors
-  // The norm of crossproduct of first two vectors
-  n_norm = sqrt( n[0]*n[0] + n[1]*n[1] + n[2]*n[2] );
-  // Norm of the third vector
-  d2_norm = sqrt((*delta2).dx * (*delta2).dx + (*delta2).dy * (*delta2).dy + (*delta2).dz * (*delta2).dz);
+  // The squared norm of crossproduct of first two vectors
+  n_sq = n[0]*n[0] + n[1]*n[1] + n[2]*n[2];
+  // Squared norm of the third vector
+  d2_sq = (*delta2).dx * (*delta2).dx + (*delta2).dy * (*delta2).dy + (*delta2).dz * (*delta2).dz;
   // Dot product of the crossproduct of first two vectors with the third vector
   n_dot_d2 = n[0]*(*delta2).dx + n[1]*(*delta2).dy + n[2]*(*delta2).dz;
   // The expression for the cosine of the out-of-plane angle can be written as:
   // cos(phi) = sqrt(1-f**2), so the derivatives can be computed as
   // d cos(phi) / d x = -f / sqrt(1-f**2) * d f / d x
-  f = n_dot_d2/d2_norm/n_norm;
-  (*delta0).gx += -f/value*grad*( d1_cross_d2[0]/d2_norm/n_norm - n_dot_d2/d2_norm/n_norm/n_norm*( (*delta1).dy*d0_cross_d1[2] - (*delta1).dz*d0_cross_d1[1] ) );
-  (*delta0).gy += -f/value*grad*( d1_cross_d2[1]/d2_norm/n_norm - n_dot_d2/d2_norm/n_norm/n_norm*( (*delta1).dz*d0_cross_d1[0] - (*delta1).dx*d0_cross_d1[2] ) );
-  (*delta0).gz += -f/value*grad*( d1_cross_d2[2]/d2_norm/n_norm - n_dot_d2/d2_norm/n_norm/n_norm*( (*delta1).dx*d0_cross_d1[1] - (*delta1).dy*d0_cross_d1[0] ) );
-  (*delta1).gx += -f/value*grad*( d2_cross_d0[0]/d2_norm/n_norm - n_dot_d2/d2_norm/n_norm/n_norm*( (*delta0).dz*d0_cross_d1[1] - (*delta0).dy*d0_cross_d1[2] ) );
-  (*delta1).gy += -f/value*grad*( d2_cross_d0[1]/d2_norm/n_norm - n_dot_d2/d2_norm/n_norm/n_norm*( (*delta0).dx*d0_cross_d1[2] - (*delta0).dz*d0_cross_d1[0] ) );
-  (*delta1).gz += -f/value*grad*( d2_cross_d0[2]/d2_norm/n_norm - n_dot_d2/d2_norm/n_norm/n_norm*( (*delta0).dy*d0_cross_d1[0] - (*delta0).dx*d0_cross_d1[1] ) );
-  (*delta2).gx += -f/value*grad*( d0_cross_d1[0]/d2_norm/n_norm - n_dot_d2/d2_norm/d2_norm/n_norm*(*delta2).dx );
-  (*delta2).gy += -f/value*grad*( d0_cross_d1[1]/d2_norm/n_norm - n_dot_d2/d2_norm/d2_norm/n_norm*(*delta2).dy );
-  (*delta2).gz += -f/value*grad*( d0_cross_d1[2]/d2_norm/n_norm - n_dot_d2/d2_norm/d2_norm/n_norm*(*delta2).dz );
+  fac = n_dot_d2/d2_sq/n_sq;
+  (*delta0).gx += -fac/value*grad*( d1_cross_d2[0] - n_dot_d2/n_sq*( (*delta1).dy*n[2] - (*delta1).dz*n[1] ) );
+  (*delta0).gy += -fac/value*grad*( d1_cross_d2[1] - n_dot_d2/n_sq*( (*delta1).dz*n[0] - (*delta1).dx*n[2] ) );
+  (*delta0).gz += -fac/value*grad*( d1_cross_d2[2] - n_dot_d2/n_sq*( (*delta1).dx*n[1] - (*delta1).dy*n[0] ) );
+  (*delta1).gx += -fac/value*grad*( d2_cross_d0[0] - n_dot_d2/n_sq*( (*delta0).dz*n[1] - (*delta0).dy*n[2] ) );
+  (*delta1).gy += -fac/value*grad*( d2_cross_d0[1] - n_dot_d2/n_sq*( (*delta0).dx*n[2] - (*delta0).dz*n[0] ) );
+  (*delta1).gz += -fac/value*grad*( d2_cross_d0[2] - n_dot_d2/n_sq*( (*delta0).dy*n[0] - (*delta0).dx*n[1] ) );
+  (*delta2).gx += -fac/value*grad*( d0_cross_d1[0] - n_dot_d2/d2_sq*(*delta2).dx );
+  (*delta2).gy += -fac/value*grad*( d0_cross_d1[1] - n_dot_d2/d2_sq*(*delta2).dy );
+  (*delta2).gz += -fac/value*grad*( d0_cross_d1[2] - n_dot_d2/d2_sq*(*delta2).dz );
 }
 
 void back_oop_angle(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
