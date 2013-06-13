@@ -299,7 +299,7 @@ void back_oop_cos(iclist_row_type* ic, dlist_row_type* deltas, double value, dou
 
   dlist_row_type *delta0, *delta1, *delta2;
   double n[3], d0_cross_d1[3], d1_cross_d2[3], d2_cross_d0[3];
-  double n_sq, d2_sq, n_dot_d2, fac;
+  double n_sq, d2_sq, n_dot_d2, fac, tmp0, tmp1, tmp2;
 
   delta0 = deltas + (*ic).i0;
   delta1 = deltas + (*ic).i1;
@@ -328,15 +328,18 @@ void back_oop_cos(iclist_row_type* ic, dlist_row_type* deltas, double value, dou
   // cos(phi) = sqrt(1-f**2), so the derivatives can be computed as
   // d cos(phi) / d x = -f / sqrt(1-f**2) * d f / d x
   fac = n_dot_d2/d2_sq/n_sq;
-  (*delta0).gx += -fac/value*grad*( d1_cross_d2[0] - n_dot_d2/n_sq*( (*delta1).dy*n[2] - (*delta1).dz*n[1] ) );
-  (*delta0).gy += -fac/value*grad*( d1_cross_d2[1] - n_dot_d2/n_sq*( (*delta1).dz*n[0] - (*delta1).dx*n[2] ) );
-  (*delta0).gz += -fac/value*grad*( d1_cross_d2[2] - n_dot_d2/n_sq*( (*delta1).dx*n[1] - (*delta1).dy*n[0] ) );
-  (*delta1).gx += -fac/value*grad*( d2_cross_d0[0] - n_dot_d2/n_sq*( (*delta0).dz*n[1] - (*delta0).dy*n[2] ) );
-  (*delta1).gy += -fac/value*grad*( d2_cross_d0[1] - n_dot_d2/n_sq*( (*delta0).dx*n[2] - (*delta0).dz*n[0] ) );
-  (*delta1).gz += -fac/value*grad*( d2_cross_d0[2] - n_dot_d2/n_sq*( (*delta0).dy*n[0] - (*delta0).dx*n[1] ) );
-  (*delta2).gx += -fac/value*grad*( d0_cross_d1[0] - n_dot_d2/d2_sq*(*delta2).dx );
-  (*delta2).gy += -fac/value*grad*( d0_cross_d1[1] - n_dot_d2/d2_sq*(*delta2).dy );
-  (*delta2).gz += -fac/value*grad*( d0_cross_d1[2] - n_dot_d2/d2_sq*(*delta2).dz );
+  tmp0 = fac/value;
+  tmp1 = n_dot_d2/n_sq;
+  tmp2 = n_dot_d2/d2_sq;
+  (*delta0).gx += - tmp0*grad*( d1_cross_d2[0] -  tmp1*( (*delta1).dy*n[2] - (*delta1).dz*n[1] ) );
+  (*delta0).gy += - tmp0*grad*( d1_cross_d2[1] -  tmp1*( (*delta1).dz*n[0] - (*delta1).dx*n[2] ) );
+  (*delta0).gz += - tmp0*grad*( d1_cross_d2[2] -  tmp1*( (*delta1).dx*n[1] - (*delta1).dy*n[0] ) );
+  (*delta1).gx += - tmp0*grad*( d2_cross_d0[0] -  tmp1*( (*delta0).dz*n[1] - (*delta0).dy*n[2] ) );
+  (*delta1).gy += - tmp0*grad*( d2_cross_d0[1] -  tmp1*( (*delta0).dx*n[2] - (*delta0).dz*n[0] ) );
+  (*delta1).gz += - tmp0*grad*( d2_cross_d0[2] -  tmp1*( (*delta0).dy*n[0] - (*delta0).dx*n[1] ) );
+  (*delta2).gx += - tmp0*grad*( d0_cross_d1[0] -  tmp2*(*delta2).dx );
+  (*delta2).gy += - tmp0*grad*( d0_cross_d1[1] -  tmp2*(*delta2).dy );
+  (*delta2).gz += - tmp0*grad*( d0_cross_d1[2] -  tmp2*(*delta2).dz );
 }
 
 void back_oop_angle(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
