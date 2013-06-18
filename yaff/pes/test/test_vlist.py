@@ -670,3 +670,20 @@ def test_opt_formaldehyde():
     for ic in ff.part_valence.iclist.ictab:
         if ic['kind'] == 6:
             assert abs(ic['value'] - 1.0) < 1e-6
+
+
+def test_gpos_vtens_oopcos_formaldehyde():
+    system = get_system_formaldehyde()
+    part = ForcePartValence(system)
+    part.add_term(Harmonic(2.1,0.0*angstrom,OopCos(2,3,1,0)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
+
+
+def test_gpos_vtens_oopdist_formaldehyde():
+    system = get_system_formaldehyde()
+    system.pos[0,0] += 0.0*angstrom
+    part = ForcePartValence(system)
+    part.add_term(Harmonic(0.0,0.0*angstrom,OopDist(2,3,1,0)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)

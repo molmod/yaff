@@ -67,6 +67,7 @@ from yaff.pes.ext import iclist_forward, iclist_back
 __all__ = [
     'InternalCoordinateList', 'InternalCoordinate', 'Bond', 'BendAngle',
     'BendCos', 'DihedAngle', 'DihedCos', 'UreyBradley', 'OopAngle', 'OopCos',
+    'OopDist', 
 ]
 
 
@@ -331,3 +332,21 @@ class OopAngle(InternalCoordinate):
 
     def get_conversion(self):
         return log.angle.conversion
+
+
+class OopDist(InternalCoordinate):
+    '''Distance from an atom to the plane formed by three other atoms'''
+    kind = 8
+    def __init__(self, i, j, k, l):
+        '''
+           **Arguments:**
+
+           i, j, k, l
+                The indexes of the atoms involved in the out-of-plane distance.
+                The central atom is given by the last index (l). The plane is
+                formed by the other three atoms i,j and k.
+        '''
+        InternalCoordinate.__init__(self, [(i,j), (j,k), (k,l)])
+
+    def get_conversion(self):
+        return log.length.conversion

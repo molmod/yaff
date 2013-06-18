@@ -247,7 +247,7 @@ def test_ic_list_dihedral_pernicious():
     assert abs(abs(iclist.ictab[0]['value']) - np.pi) < 1e-8
 
 
-def test_oop_formaldehyde():
+def test_oop_angle_formaldehyde():
     system = get_system_formaldehyde()
     dlist = DeltaList(system)
     iclist = InternalCoordinateList(dlist)
@@ -257,3 +257,36 @@ def test_oop_formaldehyde():
     iclist.forward()
     assert abs( iclist.ictab[0]['value'] - 1.0 ) < 1e-8
     assert abs( iclist.ictab[1]['value'] - 0.0 ) < 1e-8
+
+
+def test_oop_dist_formaldehyde():
+    # All atoms in the y-z plane
+    system = get_system_formaldehyde()
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    iclist.add_ic(OopDist(2,3,1,0))
+    dlist.forward()
+    iclist.forward()
+    assert abs( iclist.ictab[0]['value'] - 0.0 ) < 1e-8
+    # Put the C atom out of the plane
+    system = get_system_formaldehyde()
+    system.pos[0,0] += 1.2*angstrom
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    iclist.add_ic(OopDist(2,3,1,0))
+    dlist.forward()
+    iclist.forward()
+    assert abs( iclist.ictab[0]['value'] - 1.2*angstrom ) < 1e-8
+    # Check if the distance is invariant for permutations of the first three atoms
+    from itertools import permutations
+    for perm in permutations((1,2,3)):
+        iclist.add_ic(OopDist(perm[0],perm[1],perm[2],0))
+    dlist.forward()
+    iclist.forward()
+    for ic in iclist.ictab:
+        if ic['kind']==8:
+            assert abs( ic['value'] - 1.2*angstrom ) < 1e-8
+        
+    
+
+
