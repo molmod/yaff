@@ -49,7 +49,7 @@ __all__ = [
 
     'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator',
     'BondFuesGenerator', 'BendGenerator', 'BendAngleHarmGenerator',
-    'BendCosHarmGenerator', 'UreyBradleyHarmGenerator', 
+    'BendCosHarmGenerator', 'UreyBradleyHarmGenerator',
     'OopAngleGenerator', 'OopDistGenerator',
 
     'ValenceCrossGenerator', 'BondCrossGenerator',
