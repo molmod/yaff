@@ -120,7 +120,7 @@ double forward_oop_angle(iclist_row_type* ic, dlist_row_type* deltas) {
 double forward_oop_distance(iclist_row_type* ic, dlist_row_type* deltas) {
   double *delta0, *delta1, *delta2;
   double n[3];
-  double n_norm, n_dot_d2,d;
+  double n_norm, n_dot_d2;
   delta0 = (double*)(deltas + (*ic).i0);
   delta1 = (double*)(deltas + (*ic).i1);
   delta2 = (double*)(deltas + (*ic).i2);
@@ -134,7 +134,7 @@ double forward_oop_distance(iclist_row_type* ic, dlist_row_type* deltas) {
   if (n_norm == 0) return 0.0;
   n_dot_d2 = n[0]*delta2[0] + n[1]*delta2[1] + n[2]*delta2[2];
   // Distance from point to plane spanned by first and second vector
-  return fabs(n_dot_d2)/n_norm;
+  return n_dot_d2/n_norm;
 }
 
 ic_forward_type ic_forward_fns[9] = {
@@ -370,10 +370,6 @@ void back_oop_angle(iclist_row_type* ic, dlist_row_type* deltas, double value, d
 }
 
 void back_oop_distance(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
-  // This calculation is tedious. Expressions are checked with the following
-  // maple commands (assuming the maple worksheet is bug-free)
-
-
   dlist_row_type *delta0, *delta1, *delta2;
   double n[3], d0_cross_d1[3], d1_cross_d2[3], d2_cross_d0[3];
   double n_norm, n_dot_d2, fac, tmp0, sign;
@@ -401,23 +397,18 @@ void back_oop_distance(iclist_row_type* ic, dlist_row_type* deltas, double value
   //if (n_norm == 0) ???;
   // Dot product of the crossproduct of first two vectors with the third vector
   n_dot_d2 = n[0]*(*delta2).dx + n[1]*(*delta2).dy + n[2]*(*delta2).dz;
-  // If n_dot_d2==0, !
-  if (n_dot_d2 == 0.0) sign = -1.0;
-  else sign = fabs(n_dot_d2)/n_dot_d2;
-  printf("Grad = %.10f\n",grad);
-  printf("n_dot_d2 = %.10f\n",n_dot_d2);
   fac = grad/n_norm;
   tmp0 = n_dot_d2/n_norm/n_norm;
 
-  (*delta0).gx += sign*fac*( d1_cross_d2[0] -  tmp0*( (*delta1).dy*n[2] - (*delta1).dz*n[1] ) );
-  (*delta0).gy += sign*fac*( d1_cross_d2[1] -  tmp0*( (*delta1).dz*n[0] - (*delta1).dx*n[2] ) );
-  (*delta0).gz += sign*fac*( d1_cross_d2[2] -  tmp0*( (*delta1).dx*n[1] - (*delta1).dy*n[0] ) );
-  (*delta1).gx += sign*fac*( d2_cross_d0[0] -  tmp0*( (*delta0).dz*n[1] - (*delta0).dy*n[2] ) );
-  (*delta1).gy += sign*fac*( d2_cross_d0[1] -  tmp0*( (*delta0).dx*n[2] - (*delta0).dz*n[0] ) );
-  (*delta1).gz += sign*fac*( d2_cross_d0[2] -  tmp0*( (*delta0).dy*n[0] - (*delta0).dx*n[1] ) );
-  (*delta2).gx += sign*fac*( d0_cross_d1[0] );
-  (*delta2).gy += sign*fac*( d0_cross_d1[1] );
-  (*delta2).gz += sign*fac*( d0_cross_d1[2] );
+  (*delta0).gx += fac*( d1_cross_d2[0] -  tmp0*( (*delta1).dy*n[2] - (*delta1).dz*n[1] ) );
+  (*delta0).gy += fac*( d1_cross_d2[1] -  tmp0*( (*delta1).dz*n[0] - (*delta1).dx*n[2] ) );
+  (*delta0).gz += fac*( d1_cross_d2[2] -  tmp0*( (*delta1).dx*n[1] - (*delta1).dy*n[0] ) );
+  (*delta1).gx += fac*( d2_cross_d0[0] -  tmp0*( (*delta0).dz*n[1] - (*delta0).dy*n[2] ) );
+  (*delta1).gy += fac*( d2_cross_d0[1] -  tmp0*( (*delta0).dx*n[2] - (*delta0).dz*n[0] ) );
+  (*delta1).gz += fac*( d2_cross_d0[2] -  tmp0*( (*delta0).dy*n[0] - (*delta0).dx*n[1] ) );
+  (*delta2).gx += fac*( d0_cross_d1[0] );
+  (*delta2).gy += fac*( d0_cross_d1[1] );
+  (*delta2).gz += fac*( d0_cross_d1[2] );
 }
 
 ic_back_type ic_back_fns[9] = {

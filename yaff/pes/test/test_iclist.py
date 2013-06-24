@@ -285,8 +285,4 @@ def test_oop_dist_formaldehyde():
     iclist.forward()
     for ic in iclist.ictab:
         if ic['kind']==8:
-            assert abs( ic['value'] - 1.2*angstrom ) < 1e-8
-        
-    
-
-
+            assert abs( abs(ic['value']) - 1.2*angstrom ) < 1e-8

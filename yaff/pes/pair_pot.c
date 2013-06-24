@@ -181,10 +181,13 @@ double pair_fn_lj(void *pair_data, long center_index, long other_index, double d
     (*(pair_data_lj_type*)pair_data).sigma[center_index]+
     (*(pair_data_lj_type*)pair_data).sigma[other_index]
   );
+    // Uncomment for geometric mixing rules
+    /*
   sigma = sqrt(
     (*(pair_data_lj_type*)pair_data).sigma[center_index]*
     (*(pair_data_lj_type*)pair_data).sigma[other_index]
   );
+    */
   epsilon = sqrt(
     (*(pair_data_lj_type*)pair_data).epsilon[center_index]*
     (*(pair_data_lj_type*)pair_data).epsilon[other_index]
