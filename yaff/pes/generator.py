@@ -37,7 +37,7 @@ from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
     ForcePartEwaldNeutralizing
 from yaff.pes.iclist import Bond, BendAngle, BendCos, \
-    UreyBradley, DihedAngle, DihedCos, OopAngle, OopCos
+    UreyBradley, DihedAngle, DihedCos, OopAngle, OopCos, OopDist
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
 from yaff.pes.vlist import Harmonic, Fues, Cross, Cosine, \
@@ -527,7 +527,7 @@ class OopAngleGenerator(ValenceGenerator):
 
 class OopDistGenerator(ValenceGenerator):
     nffatype = 4
-    par_info = [('K', float), ('R0', float)]
+    par_info = [('K', float), ('D0', float)]
     prefix = 'OOPDIST'
     ICClass = OopDist
     VClass = Harmonic
