@@ -49,7 +49,8 @@ __all__ = [
 
     'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator',
     'BondFuesGenerator', 'BendGenerator', 'BendAngleHarmGenerator',
-    'BendCosHarmGenerator', 'UreyBradleyHarmGenerator',
+    'BendCosHarmGenerator', 'UreyBradleyHarmGenerator', 
+    'OopAngleGenerator', 'OopDistGenerator',
 
     'ValenceCrossGenerator', 'BondCrossGenerator',
 
@@ -496,10 +497,10 @@ class TorsionGenerator(ValenceGenerator):
             return ValenceGenerator.get_vterm(self, pars, indexes)
 
 
-class InversionGenerator(ValenceGenerator):
+class OopAngleGenerator(ValenceGenerator):
     nffatype = 4
     par_info = [('A', float)]
-    prefix = 'INVERSION'
+    prefix = 'OOPANGLE'
     ICClass = OopCos
     VClass = Chebychev1
     allow_superposition = True
@@ -510,7 +511,7 @@ class InversionGenerator(ValenceGenerator):
 
     def iter_indexes(self, system):
         #Loop over all atoms; if an atom has 3 neighbors,
-        #it is candidate for an inversion term
+        #it is candidate for an OopAngle term
         for atom in system.neighs1.keys():
             neighbours = list(system.neighs1[atom])
             if len(neighbours)==3:
@@ -524,7 +525,33 @@ class InversionGenerator(ValenceGenerator):
         ic = OopCos(*indexes)
         return Chebychev1(pars[0], ic)
 
+class OopDistGenerator(ValenceGenerator):
+    nffatype = 4
+    par_info = [('K', float), ('R0', float)]
+    prefix = 'OOPDIST'
+    ICClass = OopDist
+    VClass = Harmonic
+    allow_superposition = False
 
+    def iter_alt_keys(self, key):
+        yield key
+        yield (key[2],key[0],key[1],key[3])
+        yield (key[1],key[2],key[0],key[3])
+        yield (key[2],key[1],key[0],key[3])
+        yield (key[1],key[0],key[2],key[3])
+        yield (key[0],key[2],key[1],key[3])
+
+    def iter_indexes(self, system):
+        #Loop over all atoms; if an atom has 3 neighbors,
+        #it is candidate for an OopDist term
+        for atom in system.neighs1.keys():
+            neighbours = list(system.neighs1[atom])
+            if len(neighbours)==3:
+                yield neighbours[0],neighbours[1],neighbours[2],atom
+
+    def get_vterm(self, pars, indexes):
+        ic = OopDist(*indexes)
+        return Harmonic(pars[0], ic)
 
 class ValenceCrossGenerator(Generator):
     '''All generators for cross valence terms derive from this class.
