@@ -551,7 +551,7 @@ class OopDistGenerator(ValenceGenerator):
 
     def get_vterm(self, pars, indexes):
         ic = OopDist(*indexes)
-        return Harmonic(pars[0], ic)
+        return Harmonic(pars[0], pars[1], ic)
 
 class ValenceCrossGenerator(Generator):
     '''All generators for cross valence terms derive from this class.
