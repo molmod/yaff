@@ -138,26 +138,26 @@ void back_chebychev2(vlist_row_type* term, iclist_row_type* ictab) {
 }
 
 void back_chebychev3(vlist_row_type* term, iclist_row_type* ictab) {
-  double c;  
+  double c;
   c = ictab[(*term).ic0].value;
   ictab[(*term).ic0].grad += (*term).par1*1.5*(*term).par0*(4*c*c-1);
 }
 
 void back_chebychev4(vlist_row_type* term, iclist_row_type* ictab) {
-  double c;  
+  double c;
   c = ictab[(*term).ic0].value;
   ictab[(*term).ic0].grad += (*term).par1*8*(*term).par0*c*(2*c*c-1);
 }
 
 void back_chebychev6(vlist_row_type* term, iclist_row_type* ictab) {
-  double c;  
+  double c;
   c = ictab[(*term).ic0].value;
   ictab[(*term).ic0].grad += (*term).par1*6*(*term).par0*c*(16*c*c*c*c-16*c*c+3);
 }
 
 v_back_type v_back_fns[10] = {
   back_harmonic, back_polyfour, back_fues, back_cross, back_cosine,
-  back_chebychev1, back_chebychev2, back_chebychev3, back_chebychev4, 
+  back_chebychev1, back_chebychev2, back_chebychev3, back_chebychev4,
   back_chebychev6
 };
 

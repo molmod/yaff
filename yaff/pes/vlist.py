@@ -63,7 +63,7 @@ from yaff.pes.ext import vlist_forward, vlist_back
 
 __all__ = [
     'ValenceList', 'ValenceTerm', 'Harmonic', 'PolyFour', 'Fues', 'Cross',
-    'Cosine', 'Chebychev1', 'Chebychev2', 'Chebychev3', 'Chebychev4', 
+    'Cosine', 'Chebychev1', 'Chebychev2', 'Chebychev3', 'Chebychev4',
     'Chebychev6',
 ]
 
@@ -327,7 +327,7 @@ class Chebychev1(ValenceTerm):
        angle is needed, not the angle itself.
 
        This term corresponds to multiplicity 1. The minus sign corresponds to a
-       rest value of 0 degrees. With a the plus sign, the rest value becomes 
+       rest value of 0 degrees. With a the plus sign, the rest value becomes
        180 degrees.
     '''
     kind = 5
@@ -364,7 +364,7 @@ class Chebychev2(ValenceTerm):
        angle is needed, not the angle itself.
 
        This term corresponds to multiplicity 2. The minus sign corresponds to a
-       rest value of 0 degrees. With a the plus sign, the rest value becomes 
+       rest value of 0 degrees. With a the plus sign, the rest value becomes
        90 degrees.
     '''
     kind = 6
@@ -401,7 +401,7 @@ class Chebychev3(ValenceTerm):
        angle is needed, not the angle itself.
 
        This term corresponds to multiplicity 3. The minus sign corresponds to a
-       rest value of 0 degrees. With a the plus sign, the rest value becomes 
+       rest value of 0 degrees. With a the plus sign, the rest value becomes
        60 degrees.
     '''
     kind = 7
@@ -431,7 +431,7 @@ class Chebychev3(ValenceTerm):
 
 class Chebychev4(ValenceTerm):
     '''A fourth degree polynomial: 0.5*A*(1 -+ T4)
-       where T4=8*x**4-8*x**2+1 is the fourth Chebychev polynomial of the 
+       where T4=8*x**4-8*x**2+1 is the fourth Chebychev polynomial of the
        first kind.
 
        This is used for a computationally efficient implementation of torsional
@@ -439,7 +439,7 @@ class Chebychev4(ValenceTerm):
        angle is needed, not the angle itself.
 
        This term corresponds to multiplicity 4. The minus sign corresponds to a
-       rest value of 0 degrees. With a the plus sign, the rest value becomes 
+       rest value of 0 degrees. With a the plus sign, the rest value becomes
        45 degrees.
     '''
     kind = 8
@@ -469,7 +469,7 @@ class Chebychev4(ValenceTerm):
 
 class Chebychev6(ValenceTerm):
     '''A sixth degree polynomial: 0.5*A*(1 -+ T6)
-       where T6=32*x**6-48*x**4+18*x**2-1 is the sixth Chebychev polynomial of 
+       where T6=32*x**6-48*x**4+18*x**2-1 is the sixth Chebychev polynomial of
        the first kind.
 
        This is used for a computationally efficient implementation of torsional
@@ -477,7 +477,7 @@ class Chebychev6(ValenceTerm):
        angle is needed, not the angle itself.
 
        This term corresponds to multiplicity 6. The minus sign corresponds to a
-       rest value of 0 degrees. With a the plus sign, the rest value becomes 
+       rest value of 0 degrees. With a the plus sign, the rest value becomes
        30 degrees.
     '''
     kind = 9
