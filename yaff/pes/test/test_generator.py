@@ -142,6 +142,8 @@ def test_generator_glycine_torsion():
     for row in part_valence.vlist.vtab[:11]:
         if row['kind'] == 4:
             key = int(row['par0'])
+        elif row['kind'] == 5:
+            key = 1
         elif row['kind'] == 6:
             key = 2
         else:
