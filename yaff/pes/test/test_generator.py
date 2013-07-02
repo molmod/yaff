@@ -153,6 +153,68 @@ def test_generator_glycine_torsion():
     assert m_counts[3] == 4
 
 
+def test_generator_fake_torsion1():
+    system = get_system_glycine()
+    fn_pars = context.get_fn('test/parameters_fake_torsion1.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert len(ff.parts) == 1
+    part_valence = ff.part_valence
+    assert part_valence.vlist.nv == 12
+    m_counts = {}
+    for row in part_valence.vlist.vtab[:12]:
+        print row['kind']
+        if row['kind'] == 5:
+            key = 1
+        elif row['kind'] == 6:
+            key = 2
+        elif row['kind'] == 7:
+            key = 3
+        elif row['kind'] == 8:
+            key = 4
+        elif row['kind'] == 9:
+            key = 6
+        else:
+            raise AssertionError
+        m_counts[key] = m_counts.get(key, 0) + 1
+    assert len(m_counts) == 5
+    assert m_counts[1] == 4
+    assert m_counts[2] == 2
+    assert m_counts[3] == 4
+    assert m_counts[4] == 1
+    assert m_counts[6] == 1
+
+
+def test_generator_fake_torsion2():
+    system = get_system_glycine()
+    fn_pars = context.get_fn('test/parameters_fake_torsion2.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert len(ff.parts) == 1
+    part_valence = ff.part_valence
+    assert part_valence.vlist.nv == 12
+    m_counts = {}
+    for row in part_valence.vlist.vtab[:12]:
+        print row['kind']
+        if row['kind'] == 5:
+            key = 1
+        elif row['kind'] == 6:
+            key = 2
+        elif row['kind'] == 7:
+            key = 3
+        elif row['kind'] == 8:
+            key = 4
+        elif row['kind'] == 9:
+            key = 6
+        else:
+            raise AssertionError
+        m_counts[key] = m_counts.get(key, 0) + 1
+    assert len(m_counts) == 5
+    assert m_counts[1] == 1
+    assert m_counts[2] == 1
+    assert m_counts[3] == 4
+    assert m_counts[4] == 2
+    assert m_counts[6] == 4
+
+
 def test_generator_water32_bondcross():
     system = get_system_water32()
     fn_pars = context.get_fn('test/parameters_water_bondcross.txt')
