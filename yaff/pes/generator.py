@@ -41,7 +41,7 @@ from yaff.pes.iclist import Bond, BendAngle, BendCos, \
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
 from yaff.pes.vlist import Harmonic, Fues, Cross, Cosine, \
-    Chebychev1, Chebychev2
+    Chebychev1, Chebychev2, Chebychev3, Chebychev4, Chebychev6
 
 
 __all__ = [
@@ -487,12 +487,39 @@ class TorsionGenerator(ValenceGenerator):
         return system.iter_dihedrals()
 
     def get_vterm(self, pars, indexes):
+        # A torsion term with multiplicity m and rest value either 0 or pi/m
+        # degrees, can be treated as a polynomial in cos(phi). The code below
+        # selects the right polynomial.
         if pars[2] == 0.0 and pars[0] == 1:
             ic = DihedCos(*indexes)
-            return Chebychev1(pars[1], ic)
+            return Chebychev1(pars[1], ic, sign=-1)
+        elif abs(pars[2] - np.pi/1)<1e-6 and pars[0] == 1:
+            ic = DihedCos(*indexes)
+            return Chebychev1(pars[1], ic, sign=1)
         elif pars[2] == 0.0 and pars[0] == 2:
             ic = DihedCos(*indexes)
-            return Chebychev2(pars[1], ic)
+            return Chebychev2(pars[1], ic, sign=-1)
+        elif abs(pars[2] - np.pi/2)<1e-6 and pars[0] == 2:
+            ic = DihedCos(*indexes)
+            return Chebychev2(pars[1], ic, sign=1)
+        elif pars[2] == 0.0 and pars[0] == 3:
+            ic = DihedCos(*indexes)
+            return Chebychev3(pars[1], ic, sign=-1)
+        elif abs(pars[2] - np.pi/3)<1e-6 and pars[0] == 3:
+            ic = DihedCos(*indexes)
+            return Chebychev3(pars[1], ic, sign=1)
+        elif pars[2] == 0.0 and pars[0] == 4:
+            ic = DihedCos(*indexes)
+            return Chebychev4(pars[1], ic, sign=-1)
+        elif abs(pars[2] - np.pi/4)<1e-6 and pars[0] == 4:
+            ic = DihedCos(*indexes)
+            return Chebychev4(pars[1], ic, sign=1)
+        elif pars[2] == 0.0 and pars[0] == 6:
+            ic = DihedCos(*indexes)
+            return Chebychev6(pars[1], ic, sign=-1)
+        elif abs(pars[2] - np.pi/6)<1e-6 and pars[0] == 6:
+            ic = DihedCos(*indexes)
+            return Chebychev6(pars[1], ic, sign=1)
         else:
             return ValenceGenerator.get_vterm(self, pars, indexes)
 
