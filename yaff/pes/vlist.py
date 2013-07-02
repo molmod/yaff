@@ -63,7 +63,8 @@ from yaff.pes.ext import vlist_forward, vlist_back
 
 __all__ = [
     'ValenceList', 'ValenceTerm', 'Harmonic', 'PolyFour', 'Fues', 'Cross',
-    'Cosine', 'Chebychev1', 'Chebychev2'
+    'Cosine', 'Chebychev1', 'Chebychev2', 'Chebychev3', 'Chebychev4', 
+    'Chebychev6',
 ]
 
 
@@ -318,17 +319,19 @@ class Cosine(ValenceTerm):
 
 
 class Chebychev1(ValenceTerm):
-    '''A first order Chebychev polynomial: 0.5*A*(1-x)
+    '''A first degree polynomial: 0.5*A*(1 -+ T1)
+       where T1=x is the first Chebychev polynomial of the first kind.
 
        This is used for a computationally efficient implementation of torsional
        energy terms, because the only computation of the cosine of the dihedral
        angle is needed, not the angle itself.
 
-       This term corresponds to multiplicity 1, and has its rest value fixed to
-       0 degrees. (With a negative A, the rest value becomes 180 degrees.)
+       This term corresponds to multiplicity 1. The minus sign corresponds to a
+       rest value of 0 degrees. With a the plus sign, the rest value becomes 
+       180 degrees.
     '''
     kind = 5
-    def __init__(self, A, ic):
+    def __init__(self, A, ic, sign=-1):
         '''
            **Arguments:**
 
@@ -337,29 +340,35 @@ class Chebychev1(ValenceTerm):
 
            ic
                 An ``InternalCoordinate`` object.
+
+           sign
+                Choose positive or negative sign in the polynomial.
         '''
-        ValenceTerm.__init__(self, [A], [ic])
+        ValenceTerm.__init__(self, [A,sign], [ic])
 
     def get_log(self):
         c = self.ics[0].get_conversion()
-        return '%s(A=%.5e)' % (
+        return '%s(A=%.5e,sign=%+2d)' % (
             self.__class__.__name__,
             self.pars[0]/(log.energy.conversion/c),
+            self.pars[1],
         )
 
 
 class Chebychev2(ValenceTerm):
-    '''A second order Chebychev polynomial: A*(1-x^2)
+    '''A second degree polynomial: 0.5*A*(1 -+ T2)
+       where T2=2*x**2-1 is the second Chebychev polynomial of the first kind.
 
        This is used for a computationally efficient implementation of torsional
        energy terms, because the only computation of the cosine of the dihedral
        angle is needed, not the angle itself.
 
-       This term corresponds to multiplicity 2, and has its rest value fixed to
-       0 degrees. (With a negative A, the rest value becomes 90 degrees.)
+       This term corresponds to multiplicity 2. The minus sign corresponds to a
+       rest value of 0 degrees. With a the plus sign, the rest value becomes 
+       90 degrees.
     '''
     kind = 6
-    def __init__(self, A, ic):
+    def __init__(self, A, ic, sign=-1):
         '''
            **Arguments:**
 
@@ -368,12 +377,129 @@ class Chebychev2(ValenceTerm):
 
            ic
                 An ``InternalCoordinate`` object.
+
+           sign
+                Choose positive or negative sign in the polynomial.
         '''
-        ValenceTerm.__init__(self, [A], [ic])
+        ValenceTerm.__init__(self, [A,sign], [ic])
 
     def get_log(self):
         c = self.ics[0].get_conversion()
-        return '%s(A=%.5e)' % (
+        return '%s(A=%.5e,sign=%+2d)' % (
             self.__class__.__name__,
             self.pars[0]/(log.energy.conversion/c**2),
+            self.pars[1],
+        )
+
+
+class Chebychev3(ValenceTerm):
+    '''A third degree polynomial: 0.5*A*(1 -+ T3)
+       where T3=4*x**3-3*x is the third Chebychev polynomial of the first kind.
+
+       This is used for a computationally efficient implementation of torsional
+       energy terms, because the only computation of the cosine of the dihedral
+       angle is needed, not the angle itself.
+
+       This term corresponds to multiplicity 3. The minus sign corresponds to a
+       rest value of 0 degrees. With a the plus sign, the rest value becomes 
+       60 degrees.
+    '''
+    kind = 7
+    def __init__(self, A, ic, sign=-1):
+        '''
+           **Arguments:**
+
+           A
+                The energy scale of the function (in atomic units).
+
+           ic
+                An ``InternalCoordinate`` object.
+
+           sign
+                Choose positive or negative sign in the polynomial.
+        '''
+        ValenceTerm.__init__(self, [A,sign], [ic])
+
+    def get_log(self):
+        c = self.ics[0].get_conversion()
+        return '%s(A=%.5e,sign=%+2d)' % (
+            self.__class__.__name__,
+            self.pars[0]/(log.energy.conversion/c**2),
+            self.pars[1],
+        )
+
+
+class Chebychev4(ValenceTerm):
+    '''A fourth degree polynomial: 0.5*A*(1 -+ T4)
+       where T4=8*x**4-8*x**2+1 is the fourth Chebychev polynomial of the 
+       first kind.
+
+       This is used for a computationally efficient implementation of torsional
+       energy terms, because the only computation of the cosine of the dihedral
+       angle is needed, not the angle itself.
+
+       This term corresponds to multiplicity 4. The minus sign corresponds to a
+       rest value of 0 degrees. With a the plus sign, the rest value becomes 
+       45 degrees.
+    '''
+    kind = 8
+    def __init__(self, A, ic, sign=-1):
+        '''
+           **Arguments:**
+
+           A
+                The energy scale of the function (in atomic units).
+
+           ic
+                An ``InternalCoordinate`` object.
+
+           sign
+                Choose positive or negative sign in the polynomial.
+        '''
+        ValenceTerm.__init__(self, [A,sign], [ic])
+
+    def get_log(self):
+        c = self.ics[0].get_conversion()
+        return '%s(A=%.5e,sign=%+2d)' % (
+            self.__class__.__name__,
+            self.pars[0]/(log.energy.conversion/c**2),
+            self.pars[1],
+        )
+
+
+class Chebychev6(ValenceTerm):
+    '''A sixth degree polynomial: 0.5*A*(1 -+ T6)
+       where T6=32*x**6-48*x**4+18*x**2-1 is the sixth Chebychev polynomial of 
+       the first kind.
+
+       This is used for a computationally efficient implementation of torsional
+       energy terms, because the only computation of the cosine of the dihedral
+       angle is needed, not the angle itself.
+
+       This term corresponds to multiplicity 6. The minus sign corresponds to a
+       rest value of 0 degrees. With a the plus sign, the rest value becomes 
+       30 degrees.
+    '''
+    kind = 9
+    def __init__(self, A, ic, sign=-1):
+        '''
+           **Arguments:**
+
+           A
+                The energy scale of the function (in atomic units).
+
+           ic
+                An ``InternalCoordinate`` object.
+
+           sign
+                Choose positive or negative sign in the polynomial.
+        '''
+        ValenceTerm.__init__(self, [A,sign], [ic])
+
+    def get_log(self):
+        c = self.ics[0].get_conversion()
+        return '%s(A=%.5e,sign=%+2d)' % (
+            self.__class__.__name__,
+            self.pars[0]/(log.energy.conversion/c**2),
+            self.pars[1],
         )
