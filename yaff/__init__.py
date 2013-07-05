@@ -23,7 +23,7 @@
 #--
 
 
-__version__ = '0.0'
+__version__ = '1.0'
 
 from molmod.units import *
 from molmod.constants import *

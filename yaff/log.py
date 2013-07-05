@@ -49,11 +49,10 @@ ________________\ \\\_____\ \\\_______\ \\\__\ \\\_____________\ \\\____________
 _________________\ \\\_____\ \\\_______\ \\\__\ \\\_____________\ \\\___________
 __________________\///______\///________\///___\///______________\///___________
 
-
-                 Welcome to Yaff - yet another force field code
+                  Welcome to Yaff 1.0 - Yet another force field
 
                                    Written by
-                  Toon Verstraelen(1)* and Louis Vanduyfhuys(1)
+      Toon Verstraelen(1)*, Louis Vanduyfhuys(1) and Steven Vandenbrande(1)
 
 (1) Center for Molecular Modeling, Ghent University Belgium.
 * mailto: Toon.Vesrtraelen@UGent.be

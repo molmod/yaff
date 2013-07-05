@@ -33,7 +33,7 @@ distribution to install these dependencies.
 
 The following software must be installed:
 
-* Python 2.5, 2.6 or 2.7 (including the development files): http://www.python.org/
+* Python >= 2.7 (including the development files): http://www.python.org/
 * Numpy >= 1.0: http://numpy.scipy.org/
 * Cython >= 0.15.1 : http://www.cython.org/
 * h5py >= 2.0.0: http://code.google.com/p/h5py/
@@ -42,64 +42,73 @@ The following software must be installed:
 Most Linux distributions can install this software with just a single terminal
 command.
 
-* Ubuntu 12.4::
+* Ubuntu 12.4 and later::
 
-    sudo apt-get install python-numpy cython python-h5py python-matplotlib
+    sudo apt-get install python-numpy cython python-h5py python-matplotlib python-nose python-sphinx
 
-* Fedora 17::
+* Fedora 17 and later::
 
-    sudo yum install numpy cython h5py python-matplotlib
+    sudo yum install numpy cython h5py python-matplotlib python-nose sphinx
 
 
-Installing the latest version of Yaff
-=====================================
+Download Yaff
+=============
 
-The following series of commands will download the latest version of Yaff,
-and will then install it into your home directory. ::
+Stable release
+--------------
 
-    cd ~/build/
+The latest stable release of Yaff can be downloaded here:
+
+    http://users.ugent.be/~tovrstra/yaff/yaff-1.0.tar.gz.
+
+Choose a suitable directory, e.g. ``~/build``, download and unpack the archive::
+
+    mkdir -p ~/build
+    cd ~/build
+    wget http://users.ugent.be/~tovrstra/yaff/yaff-1.0.tar.gz
+    tar -xvzf yaff-1.0.tar.gz
+    cd yaff-1.0
+
+Latest development code (experts only)
+--------------------------------------
+
+In order to get the latest development version of the source code, and to upload
+your own changes, you need to work with git. Git is a version control system
+that makes life easy when a group of people are working on a common source code.
+All information about git (including downloads and tutorials) can be found here:
+http://git-scm.com/. The official git URL of Yaff is:
+git://github.com/yaff/yaff.git. In order to `clone` the public Yaff
+repository, run this command::
+
     git clone git://github.com/molmod/yaff.git
-    (cd yaff; ./setup.py install --home=~)
+    cd yaff
+
+The version history can be updated with the latest patches with the following
+command::
+
+    git pull
+
+There is also a web interface to Yaff's git repository:
+https://github.com/molmod/yaff
+
+
+Install Yaff
+============
+
+The following command installs Yaff into your home directory. ::
+
+    ./setup.py install --user
 
 You are now ready to start using Yaff!
 
 
-Upgrading to the latest version of MolMod and Yaff
-==================================================
+Test your installation
+======================
 
-In case you want to upgrade Yaff to the latest development version after
-a previous install, then execute the following commands::
+Execute the following commands to run the tests::
 
-    cd ~/build/
-    (cd molmod; git pull; rm -r ~/lib*/python/molmod*; ./setup.py install --home=~)
-    (cd yaff; git pull; rm -r ~/lib*/python/yaff*; ./setup.py install --home=~)
-
-
-Testing your installation
-=========================
-
-For development and testing one needs to install additional packages:
-
-* Nosetests >= 0.11: http://somethingaboutorange.com/mrl/projects/nose/0.11.2/
-* Sphinx >= 1.0: http://sphinx.pocoo.org/
-
-Most Linux distributions can install this software with just a single terminal command:
-
-* Ubuntu 12.4::
-
-    sudo apt-get install python-nose python-sphinx
-
-* Fedora 17::
-
-    sudo yum install python-nose sphinx
-
-Once these dependencies are installed, execute the following commands to run the
-tests::
-
-    cd ~/build/yaff
-    ./cleanfiles.sh
-    ./setup.py build_ext -i
-    nosetests -v
+    cd
+    nosetests -v yaff
 
 If some tests fail, post the output of the tests on the `Yaff
 mailing list <https://groups.google.com/forum/#!forum/ninjaff>`_.

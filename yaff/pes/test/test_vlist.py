@@ -787,10 +787,8 @@ def test_pi_dihed_steven():
 
 
 def test_inversion_formaldehyde():
-    """
-    Test for an inversion term made by combining a Chebychev1 energy term with
-    an out-of-plane cosine.
-    """
+    # Test for an inversion term made by combining a Chebychev1 energy term with
+    # an out-of-plane cosine.
     oop_fc = 1.0
     system = get_system_formaldehyde()
     dlist = DeltaList(system)

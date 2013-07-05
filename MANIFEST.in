@@ -1,0 +1,4 @@
+include README
+include COPYING
+include yaff/pes/*.pxd
+include yaff/pes/*.h
