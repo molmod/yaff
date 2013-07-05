@@ -24,6 +24,7 @@
 
 import numpy as np
 from molmod import bend_angle, bend_cos, dihed_angle, dihed_cos
+from nose.plugins.skip import SkipTest
 
 from yaff import *
 
@@ -744,6 +745,45 @@ def test_zero_dihed_steven():
     assert fp.iclist.ictab[0]['value'] == 0.0
     assert fp.iclist.ictab[0]['grad'] == 0.0
     assert not np.isnan(gpos).any()
+
+
+def test_pi_dihed_steven():
+    raise SkipTest('Current implementation of dihedral angle is numerically instable for derivatives close to 0 and 180 deg.')
+    pos0 = np.array([
+        [-1.569651557428415,  2.607830491228437,  0.147778432480783],
+        [ 0.232512681083857,  0.525428350542485, -0.040349603247728],
+        [ 2.731099007352725,  1.143841961682292, -0.263793263490733],
+        [ 4.427734700284959, -0.813154425943770, -0.440868229620179],
+    ])
+    pos1 = np.array([
+        [-1.569651087819148,  2.607822317490105,  0.147780336986862],
+        [ 0.232512798189943,  0.525437313611198, -0.040362705978732],
+        [ 2.731087893401052,  1.143824270036481, -0.263785656061896],
+        [ 4.427712083945147, -0.813160470365458, -0.440873675490262],
+
+    ])
+
+    def helper(pos):
+        numbers = np.array([1, 2, 3, 4])
+        system = System(numbers, pos)
+        fp = ForcePartValence(system)
+        fp.add_term(Cosine(3, 0.1, 1.0, DihedAngle(0, 1, 2, 3)))
+        fp.dlist.forward()
+        fp.iclist.forward()
+        fp.iclist.ictab['grad'][0] = 1.0
+        fp.iclist.back()
+        gpos = np.zeros(pos.shape)
+        fp.dlist.back(gpos, None)
+        print fp.iclist.ictab[0]
+        return gpos
+
+    gpos0 = helper(pos0)
+    gpos1 = helper(pos1)
+
+    print gpos0
+    print gpos1
+    print gpos1/gpos0
+    assert abs(gpos0 - gpos1).max() < 1e-3
 
 
 def test_inversion_formaldehyde():
