@@ -15,9 +15,9 @@ Each step will be discussed in more detail in the following sections.
 In Yaff, the conventional input file is replaced by an input script. This means
 that one must write one or more small `main` programs that specify what type of
 simulation is carried out. A minimalistic example, which covers all four steps,
-is given in the file ``examples/000_overview/simulation.py``:
+is given in the file ``data/examples/000_overview/simulation.py``:
 
-.. literalinclude:: ../examples/000_overview/simulation.py
+.. literalinclude:: ../data/examples/000_overview/simulation.py
     :lines: 26-
 
 Yaff internally works with atomic units, although other unit systems can be used

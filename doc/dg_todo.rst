@@ -27,12 +27,6 @@ General
 
 * Add topological analysis to System class.
 
-* Make an examples directory and add literal includes from this directory into
-  the documentation. The first example from the documentation has to
-  correspond to ``examples/000_some_name``. Run these examples as part of the
-  unit tests. The examples may also contain unit tests, these should also
-  be executed.
-
 * See TODO comments in code.
 
 

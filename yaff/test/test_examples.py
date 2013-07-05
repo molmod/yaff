@@ -22,16 +22,19 @@
 #
 #--
 
-
 import os, shlex, subprocess
+
+from yaff import context
 
 
 def run_example(workdir, command):
     env = dict(os.environ)
-    rootdir = os.getcwd()
-    env['PYTHONPATH'] = rootdir + ':' + env.get('PYTHONPATH', '')
-    env['YAFFDATA'] = os.path.join(rootdir, 'data')
-    workdir = os.path.join(rootdir, workdir)
+    if os.path.isfile('setup.py') and os.path.isdir('data') and os.path.isdir('yaff'):
+        # Needed in case the tests are executed on an in-place build:
+        rootdir = os.getcwd()
+        env['PYTHONPATH'] = rootdir + ':' + env.get('PYTHONPATH', '')
+        env['YAFFDATA'] = os.path.join(rootdir, 'data')
+    workdir = context.get_fn(workdir)
     print workdir
     proc = subprocess.Popen(shlex.split(command), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=workdir, env=env)
     outdata, errdata = proc.communicate()

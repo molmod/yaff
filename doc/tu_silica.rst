@@ -11,16 +11,16 @@ Introduction
 This tutorial introduces some basic features of Yaff with the aid of relatively
 simple simulations using the BKS force field [BKS1990]_. The files needed for
 this tutorial are distributed with the source code of Yaff in the directory
-``examples/001_toturial_bks``. This tutorial assumes that you have successfuly
-installed Yaff. (See :ref:`ug_sec_install` for more details.)
+``data/examples/001_toturial_bks``. This tutorial assumes that you have
+successfuly installed Yaff. (See :ref:`ug_sec_install` for more details.)
 
 A copy of the latest source code with the examples can be obtained with the
 following commands::
 
     git clone git://github.com/molmod/yaff.git
-    cd yaff/examples/001_tutorial_bks
+    cd yaff/data/examples/001_tutorial_bks
 
-The directory ``examples/001_toturial_bks`` contains three directories
+The directory ``data/examples/001_toturial_bks`` contains three directories
 (``init``, ``opt`` and ``nvt``) and a file ``bks.pot``. The latter contains the
 parameters of the BKS force field. The ``init`` directory just contains a script
 and some input data to set up the initial structure of alpha quartz. The

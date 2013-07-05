@@ -24,7 +24,6 @@
 
 
 import numpy as np
-from nose.plugins.skip import SkipTest
 
 from yaff import *
 

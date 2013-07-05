@@ -200,10 +200,10 @@ Post-processing external trajectory data
 
 One may also use the analysis module of Yaff to process trajectories generated
 with other molecular simulation codes. The following example script (see
-``examples/002_external_trajectory/rdf.py``) converts the xyz file to HDF5 data,
+``data/examples/002_external_trajectory/rdf.py``) converts the xyz file to HDF5 data,
 which is then used to perform the analysis
 
-.. literalinclude:: ../examples/002_external_trajectory/rdf.py
+.. literalinclude:: ../data/examples/002_external_trajectory/rdf.py
     :lines: 26-
 
 See :ref:`rg_conversion` for more routines to convert trajectory data.

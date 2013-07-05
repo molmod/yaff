@@ -53,6 +53,15 @@ class my_install_data(install_data):
                     f.close()
 
 
+def find_all_data_files(dn):
+    result = []
+    for root, dirs, files in os.walk(os.path.join('data', dn)):
+        if len(files) > 0:
+            files = [os.path.join(root, fn) for fn in files]
+            result.append(('share/yaff/' + root[5:], files))
+    return result
+
+
 setup(
     name='YAFF',
     version='0.0',
@@ -68,7 +77,7 @@ setup(
     cmdclass = {'build_ext': build_ext, 'install_data': my_install_data},
     data_files=[
         ('share/yaff/test', glob('data/test/*.*')),
-    ],
+    ] + find_all_data_files('examples'),
     ext_modules=[
         Extension("yaff.pes.ext",
             sources=['yaff/pes/ext.pyx', 'yaff/pes/nlist.c',

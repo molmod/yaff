@@ -140,7 +140,7 @@ Prefix -- BONDHARM
 
 **Example**:
 
-.. literalinclude:: ../input/parameters_water_bondharm.txt
+.. literalinclude:: ../data/test/parameters_water_bondharm.txt
 
 
 Prefix -- BONDFUES
@@ -173,7 +173,7 @@ Prefix -- BONDFUES
 
 **Example**:
 
-.. literalinclude:: ../input/parameters_water_bondfues.txt
+.. literalinclude:: ../data/test/parameters_water_bondfues.txt
 
 
 
@@ -207,7 +207,7 @@ Prefix -- BENDAHARM
 
 **Example**:
 
-.. literalinclude:: ../input/parameters_water_bendaharm.txt
+.. literalinclude:: ../data/test/parameters_water_bendaharm.txt
 
 
 
@@ -241,7 +241,7 @@ Prefix -- BENDCHARM
 
 **Example**:
 
-.. literalinclude:: ../input/parameters_water_bendcharm.txt
+.. literalinclude:: ../data/test/parameters_water_bendcharm.txt
 
 
 Prefix -- UBHARM
@@ -274,7 +274,7 @@ Prefix -- UBHARM
 
 **Example**:
 
-.. literalinclude:: ../input/parameters_water_ubharm.txt
+.. literalinclude:: ../data/test/parameters_water_ubharm.txt
 
 
 Prefix -- TORSION
@@ -308,11 +308,11 @@ Prefix -- TORSION
 
 **Example**:
 
-.. literalinclude:: ../input/parameters_glycine_torsion.txt
+.. literalinclude:: ../data/test/parameters_glycine_torsion.txt
 
 
 Prefix -- INVERSION
------------------
+-------------------
 
 **Energy term:**
 
@@ -340,7 +340,7 @@ Prefix -- INVERSION
 
 **Example**:
 
-.. literalinclude:: ../input/parameters_formaldehyde_inversion.txt
+.. literalinclude:: ../data/test/parameters_formaldehyde_inversion.txt
 
 
 Prefix -- BONDCROSS
@@ -375,7 +375,7 @@ Prefix -- BONDCROSS
 
 **Example**:
 
-.. literalinclude:: ../input/parameters_water_bondcross.txt
+.. literalinclude:: ../data/test/parameters_water_bondcross.txt
 
 **Note**:
 
@@ -427,7 +427,7 @@ with
 
 **Example**:
 
-.. literalinclude:: ../input/parameters_water_lj.txt
+.. literalinclude:: ../data/test/parameters_water_lj.txt
 
 
 Prefix -- MM3
@@ -474,7 +474,7 @@ with
 
 **Example**:
 
-.. literalinclude:: ../input/parameters_water_mm3.txt
+.. literalinclude:: ../data/test/parameters_water_mm3.txt
 
 
 Prefix -- EXPREP
@@ -525,7 +525,7 @@ parameters using two possible mixing rules for each parameter:
 
 **Example**:
 
-.. literalinclude:: ../input/parameters_fake_exprep1.txt
+.. literalinclude:: ../data/test/parameters_fake_exprep1.txt
 
 
 Prefix -- DAMPDISP
@@ -581,7 +581,7 @@ pair of atom types. These are the mixing rules:
 
 **Example**:
 
-.. literalinclude:: ../input/parameters_fake_dampdisp1.txt
+.. literalinclude:: ../data/test/parameters_fake_dampdisp1.txt
 
 
 Prefix -- FIXQ
@@ -635,7 +635,7 @@ However, one is free to follow other conventions for the sake of convenience.
 
 **Example**:
 
-.. literalinclude:: ../input/parameters_water_fixq.txt
+.. literalinclude:: ../data/test/parameters_water_fixq.txt
 
 .. _sub_sub_sec_general_commands:
 
@@ -686,7 +686,7 @@ The following is an example for a reasonable non-polarizable water FF. The
 parameters were generated with an old beta version of our in-house parameter
 calibration software. Don't expect it to be a great water model!
 
-.. literalinclude:: ../input/parameters_water.txt
+.. literalinclude:: ../data/test/parameters_water.txt
 
 
 Beyond force field parameter files

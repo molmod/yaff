@@ -310,8 +310,8 @@ The dot product of two vectors::
             ars_gin[0][:] += self.ar_gout[0]*self._ars_in[1]
             ars_gin[1][:] += self.ar_gout[0]*self._ars_in[0]
 
-These examples are taken from ``examples/999_back_propagation/bp.py`` in the
-source tree. That file also contains a completely functional example
+These examples are taken from ``data/examples/999_back_propagation/bp.py`` in
+the source tree. That file also contains a completely functional example
 implementation of a neural network based on the ``Bead`` classes.
 
 
@@ -319,8 +319,9 @@ Unit testing
 ============
 
 Each bead may be tested separately, which is a great way of isolating bugs. See
-``examples/999_back_propagation/bp.py`` for practical examples. The unit tests
-in this example use the generic derivative tester from the ``molmod`` module.
+``data/examples/999_back_propagation/bp.py`` for practical examples. The unit
+tests in this example use the generic derivative tester from the ``molmod``
+module.
 
 
 Real example
