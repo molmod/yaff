@@ -49,6 +49,7 @@ __all__ = [
 
     'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator',
     'BondFuesGenerator', 'BendGenerator', 'BendAngleHarmGenerator',
+    'TorsionGenerator', 'TorsionCosHarmGenerator',
     'BendCosHarmGenerator', 'UreyBradleyHarmGenerator',
     'OopAngleGenerator', 'OopDistGenerator',
 
@@ -469,6 +470,21 @@ class UreyBradleyHarmGenerator(BendGenerator):
     par_info = [('K', float), ('R0', float)]
     prefix = 'UBHARM'
     ICClass = UreyBradley
+
+
+class TorsionCosHarmGenerator(ValenceGenerator):
+    nffatype = 4
+    par_info = [('A', float), ('COS0', float)]
+    prefix = 'TORSCHARM'
+    ICClass = DihedCos
+    VClass = Harmonic
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        return system.iter_dihedrals()
 
 
 class TorsionGenerator(ValenceGenerator):
