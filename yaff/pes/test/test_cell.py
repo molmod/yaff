@@ -150,19 +150,19 @@ def test_cell_distances1_exclude_a():
     # First
     output = np.zeros(1, float)
     exclude = np.zeros((0,2),int)
-    cell.compute_distances(output, pos0, exclude=exclude)
+    cell.compute_distances(output, pos0, pairs=exclude)
     assert output[0] == 1
 
     # Second
     output = np.zeros(0, float)
     exclude = np.array([[1,0]])
-    cell.compute_distances(output, pos0, exclude=exclude)
+    cell.compute_distances(output, pos0, pairs=exclude)
 
     # Third
     output = np.zeros(0, float)
     exclude = np.array([[0,1]])
     try:
-        cell.compute_distances(output, pos0, exclude=exclude)
+        cell.compute_distances(output, pos0, pairs=exclude)
         assert False
     except ValueError:
         pass
@@ -186,21 +186,21 @@ def test_cell_distances1_exclude_b():
     # First
     output = np.zeros(2, float)
     exclude = np.array([[1,0]])
-    cell.compute_distances(output, pos0, exclude=exclude)
+    cell.compute_distances(output, pos0, pairs=exclude)
     assert output[0] == 1
     assert output[1] == 2
 
     # Second
     output = np.zeros(1, float)
     exclude = np.array([[1,0],[2,1]])
-    cell.compute_distances(output, pos0, exclude=exclude)
+    cell.compute_distances(output, pos0, pairs=exclude)
     assert output[0] == 1
 
     # Third
     output = np.zeros(1, float)
     exclude = np.array([[2,1],[1,0]])
     try:
-        cell.compute_distances(output, pos0, exclude=exclude)
+        cell.compute_distances(output, pos0, pairs=exclude)
         assert False
     except ValueError:
         pass
@@ -223,14 +223,14 @@ def test_cell_distances2_exclude_a():
     # First
     output = np.zeros(0, float)
     exclude = np.array([[0,0]])
-    cell.compute_distances(output, pos0, pos1, exclude=exclude)
+    cell.compute_distances(output, pos0, pos1, pairs=exclude)
 
     # Second
     output = np.zeros(0, float)
     for exclude in np.array([[-1,0]]), np.array([[0,-1]]), np.array([[0,5]]), np.array([[1,0]]):
         print exclude
         try:
-            cell.compute_distances(output, pos0, pos1, exclude=exclude)
+            cell.compute_distances(output, pos0, pos1, pairs=exclude)
             assert False
         except ValueError:
             pass
@@ -258,7 +258,7 @@ def test_cell_distances2_exclude_b():
     # First
     output = np.zeros(3, float)
     exclude = np.array([[0,0]])
-    cell.compute_distances(output, pos0, pos1, exclude=exclude)
+    cell.compute_distances(output, pos0, pos1, pairs=exclude)
     assert output[0] == 2
     assert output[1] == 0
     assert output[2] == 1
@@ -266,7 +266,7 @@ def test_cell_distances2_exclude_b():
     # Second
     output = np.zeros(2, float)
     exclude = np.array([[0,0],[1,1]])
-    cell.compute_distances(output, pos0, pos1, exclude=exclude)
+    cell.compute_distances(output, pos0, pos1, pairs=exclude)
     assert output[0] == 2
     assert output[1] == 0
 
@@ -274,7 +274,145 @@ def test_cell_distances2_exclude_b():
     output = np.zeros(2, float)
     for exclude in np.array([[1,0],[0,1]]), np.array([[1,0],[0,0]]):
         try:
-            cell.compute_distances(output, pos0, pos1, exclude=exclude)
+            cell.compute_distances(output, pos0, pos1, pairs=exclude)
             assert False
         except ValueError:
             pass
+
+
+def test_compute_distances1_nimage():
+    natom = 10
+    nimage = 1
+    cell = get_system_water32().cell
+    pos = np.random.normal(0, 10, (natom, 3))
+    factor = (1+2*nimage)**3
+    output = np.zeros(factor*(natom*(natom-1))/2, float)
+    cell.compute_distances(output, pos, nimage=nimage)
+    counter = 0
+    for r0 in xrange(-1, 2):
+        for r1 in xrange(-1, 2):
+            for r2 in xrange(-1, 2):
+                for i0 in xrange(natom):
+                    for i1 in xrange(i0):
+                        delta = pos[i0] - pos[i1]
+                        cell.mic(delta)
+                        cell.add_vec(delta, np.array([r0, r1, r2]))
+                        assert abs(output[counter] - np.linalg.norm(delta)) < 1e-10
+                        counter += 1
+
+
+def test_compute_distances1_nimage_exclude():
+    natom = 10
+    nimage = 1
+    cell = get_system_water32().cell
+    pos = np.random.normal(0, 10, (natom, 3))
+    exclude = np.array([[1, 0], [2, 1]])
+    factor = (1+2*nimage)**3
+    output = np.zeros(factor*(natom*(natom-1))/2 - 2, float)
+    cell.compute_distances(output, pos, pairs=exclude, nimage=nimage)
+    counter = 0
+    ex_counter = 0
+    for r0 in xrange(-1, 2):
+        for r1 in xrange(-1, 2):
+            for r2 in xrange(-1, 2):
+                for i0 in xrange(natom):
+                    for i1 in xrange(i0):
+                        if (r0 == 0) and (r1 == 0) and (r2 == 0):
+                            if ex_counter < len(exclude) and i0 == exclude[ex_counter,0] and i1 == exclude[ex_counter, 1]:
+                                ex_counter += 1
+                                continue
+                        delta = pos[i0] - pos[i1]
+                        cell.mic(delta)
+                        cell.add_vec(delta, np.array([r0, r1, r2]))
+                        assert abs(output[counter] - np.linalg.norm(delta)) < 1e-10
+                        counter += 1
+    assert ex_counter == 2
+
+
+def test_compute_distances2_nimage():
+    n0 = 10
+    n1 = 5
+    nimage = 1
+    cell = get_system_water32().cell
+    pos0 = np.random.normal(0, 10, (n0, 3))
+    pos1 = np.random.normal(0, 10, (n1, 3))
+    factor = (1+2*nimage)**3
+    output = np.zeros(factor*n0*n1, float)
+    cell.compute_distances(output, pos0, pos1, nimage=nimage)
+    counter = 0
+    for r0 in xrange(-1, 2):
+        for r1 in xrange(-1, 2):
+            for r2 in xrange(-1, 2):
+                for i0 in xrange(n0):
+                    for i1 in xrange(n1):
+                        delta = pos0[i0] - pos1[i1]
+                        cell.mic(delta)
+                        cell.add_vec(delta, np.array([r0, r1, r2]))
+                        assert abs(output[counter] - np.linalg.norm(delta)) < 1e-10
+                        counter += 1
+
+
+def test_compute_distances2_nimage_exclude():
+    n0 = 10
+    n1 = 5
+    nimage = 1
+    cell = get_system_water32().cell
+    pos0 = np.random.normal(0, 10, (n0, 3))
+    pos1 = np.random.normal(0, 10, (n1, 3))
+    factor = (1+2*nimage)**3
+    exclude = np.array([[1, 0], [2, 1]])
+    output = np.zeros(factor*n0*n1 - 2, float)
+    cell.compute_distances(output, pos0, pos1, pairs=exclude, nimage=nimage)
+    counter = 0
+    ex_counter = 0
+    for r0 in xrange(-1, 2):
+        for r1 in xrange(-1, 2):
+            for r2 in xrange(-1, 2):
+                for i0 in xrange(n0):
+                    for i1 in xrange(n1):
+                        if (r0 == 0) and (r1 == 0) and (r2 == 0):
+                            if ex_counter < len(exclude) and i0 == exclude[ex_counter,0] and i1 == exclude[ex_counter, 1]:
+                                ex_counter += 1
+                                continue
+                        delta = pos0[i0] - pos1[i1]
+                        cell.mic(delta)
+                        cell.add_vec(delta, np.array([r0, r1, r2]))
+                        assert abs(output[counter] - np.linalg.norm(delta)) < 1e-10
+                        counter += 1
+    assert ex_counter == 2
+
+
+def test_compute_distances1_include():
+    natom = 10
+    cell = get_system_water32().cell
+    pos = np.random.normal(0, 10, (natom, 3))
+    # all
+    output_all = np.zeros((natom*(natom-1))/2, float)
+    cell.compute_distances(output_all, pos)
+    # exclude
+    pairs = np.array([[1, 0], [3, 2], [5, 3]])
+    output_ex = np.zeros((natom*(natom-1))/2-3, float)
+    cell.compute_distances(output_ex, pos, pairs=pairs, do_include=False)
+    # include
+    output_in = np.zeros(3, float)
+    cell.compute_distances(output_in, pos, pairs=pairs, do_include=True)
+    assert set(output_all) == set(output_ex) | set(output_in)
+
+
+def test_compute_distances2_include():
+    n0 = 10
+    n1 = 5
+    cell = get_system_water32().cell
+    pos0 = np.random.normal(0, 10, (n0, 3))
+    pos1 = np.random.normal(0, 10, (n1, 3))
+    # all
+    output_all = np.zeros(n0*n1, float)
+    cell.compute_distances(output_all, pos0, pos1)
+    # exclude
+    pairs = np.array([[1, 0], [3, 2], [5, 3]])
+    output_ex = np.zeros(n0*n1-3, float)
+    cell.compute_distances(output_ex, pos0, pos1, pairs=pairs, do_include=False)
+    # include
+    output_in = np.zeros(3, float)
+    cell.compute_distances(output_in, pos0, pos1, pairs=pairs, do_include=True)
+    assert set(output_all) == set(output_ex) | set(output_in)

@@ -36,8 +36,8 @@ cdef extern from "cell.h":
     void cell_add_vec(double *delta, cell_type* cell, long* r)
 
     bint is_invalid_exclude(long* exclude, long natom0, long natom1, long nexclude, bint intra)
-    void cell_compute_distances1(cell_type* cell, double* pos, double* output, long natom, long* exclude, long nexclude)
-    void cell_compute_distances2(cell_type* cell, double* pos0, double* pos1, double* output, long natom0, long natom1, long* exclude, long nexclude)
+    void cell_compute_distances1(cell_type* cell, double* pos, double* output, long natom, long* pairs, long npair, bint do_include, long nimage)
+    void cell_compute_distances2(cell_type* cell, double* pos0, double* pos1, double* output, long natom0, long natom1, long* pairs, long npair, bint do_include, long nimage)
 
 
     int cell_get_nvec(cell_type* cell)

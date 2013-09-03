@@ -36,7 +36,7 @@ __all__ = ['RDF']
 
 class RDF(AnalysisHook):
     def __init__(self, rcut, rspacing, f=None, start=0, end=-1, max_sample=None,
-                 step=None, select0=None, select1=None, exclude=None,
+                 step=None, select0=None, select1=None, pairs_sr=None, nimage=0,
                  pospath='trajectory/pos', poskey='pos', cellpath=None,
                  cellkey=None, outpath=None):
         """Computes a radial distribution function (RDF)
@@ -45,7 +45,7 @@ class RDF(AnalysisHook):
 
            rcut
                 The cutoff for the RDF analysis. This should be lower than the
-                spacing between the primitive cell planes.
+                spacing between the primitive cell planes, multiplied by (1+2*nimage).
 
            rspacing
                 The width of the bins to build up the RDF.
@@ -72,9 +72,15 @@ class RDF(AnalysisHook):
                 an 'internal' RDF will be computed for the atoms specified in
                 select0.
 
-           exclude
-                An array with pairs of atoms (shape K x 2) with pairs of atom
-                indexes to be excluded from the RDF.
+           pairs_sr
+                An array with short-range pairs of atoms (shape K x 2). When
+                given, an additional RDFs is generated for the short-range pairs
+                (rdf_sr).
+
+           nimage
+                The number of cell images to consider in the computation of the
+                pair distances. By default, this is zero, meaning that only the
+                minimum image convention is used.
 
            pospath
                 The path of the dataset that contains the time dependent data in
@@ -124,30 +130,43 @@ class RDF(AnalysisHook):
         self.rspacing = rspacing
         self.select0 = select0
         self.select1 = select1
-        self.exclude_atoms = exclude
+        self.pairs_sr = self._process_pairs_sr(pairs_sr)
+        self.nimage = nimage
         self.nbin = int(self.rcut/self.rspacing)
         self.bins = np.arange(self.nbin+1)*self.rspacing
         self.d = self.bins[:-1] + 0.5*self.rspacing
-        self.counts = np.zeros(self.nbin, int)
+        self.rdf_sum = np.zeros(self.nbin, float)
+        if self.pairs_sr is not None:
+            self.rdf_sum_sr = np.zeros(self.nbin, float)
         self.nsample = 0
-        self._init_exclude()
         if outpath is None:
             outpath = pospath + '_rdf'
         analysis_inputs = {'pos': AnalysisInput(pospath, poskey), 'cell': AnalysisInput(cellpath, cellkey, False)}
         AnalysisHook.__init__(self, f, start, end, max_sample, step, analysis_inputs, outpath, False)
 
-    def _init_exclude(self):
-        if self.exclude_atoms is None:
-            self.exclude = None
-            return
+    def _process_pairs_sr(self, pairs_sr):
+        '''Process the short-range pairs
+
+           The following modifications are made to the list of short-range
+           pairs:
+
+           - The pairs that do not fit in select0 (and select1) are left out.
+           - The list is properly sorted.
+
+           Note that the argument pairs_sr provided to the constructor is not
+           modified in-place. It is therefore safe to reuse it for another RDF
+           analysis.
+        '''
+        if pairs_sr is None:
+            return None
         elif self.select1 is None:
             index0 = dict((atom0, i0) for i0, atom0 in enumerate(self.select0))
             index1 = index0
         else:
             index0 = dict((atom0, i0) for i0, atom0 in enumerate(self.select0))
             index1 = dict((atom1, i1) for i1, atom1 in enumerate(self.select1))
-        exclude = []
-        for atom0, atom1 in self.exclude_atoms:
+        my_pairs_sr = []
+        for atom0, atom1 in pairs_sr:
             i0 = index0.get(atom0)
             i1 = index1.get(atom1)
             if i0 is None or i1 is None:
@@ -157,18 +176,16 @@ class RDF(AnalysisHook):
                 continue
             if self.select1 is None and i0 < i1:
                 i0, i1 = i1, i0
-            exclude.append((i0, i1))
-        exclude.sort()
-        if len(exclude) > 0:
-            self.exclude = np.array(exclude)
-        else:
-            self.exclude = None
+            my_pairs_sr.append((i0, i1))
+        if len(my_pairs_sr) > 0:
+            my_pairs_sr.sort()
+            return np.array(my_pairs_sr)
 
     def _update_rvecs(self, rvecs):
         self.cell = Cell(rvecs)
         if self.cell.nvec != 3:
             raise ValueError('RDF can only be computed for 3D periodic systems.')
-        if (2*self.rcut > self.cell.rspacings).any():
+        if (2*self.rcut > self.cell.rspacings*(1+2*self.nimage)).any():
             raise ValueError('The 2*rcut argument should not exceed any of the cell spacings.')
 
     def configure_online(self, iterative, st_pos, st_cell=None):
@@ -187,12 +204,14 @@ class RDF(AnalysisHook):
         self.natom = self.f['system/numbers'].shape[0]
 
     def init_first(self):
-        # Setup some work arrays
+        '''Setup some work arrays'''
+        # determine the number of atoms
         if self.select0 is None:
             self.natom0 = self.natom
         else:
             self.natom0 = len(self.select0)
         self.pos0 = np.zeros((self.natom0, 3), float)
+        # the number of pairs
         if self.select1 is None:
             self.npair = (self.natom0*(self.natom0-1))/2
             self.pos1 = None
@@ -200,16 +219,16 @@ class RDF(AnalysisHook):
             self.natom1 = len(self.select1)
             self.pos1 = np.zeros((self.natom1, 3), float)
             self.npair = self.natom0*self.natom1
-        if self.exclude is not None:
-            self.npair -= len(self.exclude)
-        self.work = np.zeros(self.npair, float)
+        # multiply the number of pairs by all images
+        self.npair *= (1 + 2*self.nimage)**3
         # Prepare the output
+        self.work = np.zeros(self.npair, float)
         AnalysisHook.init_first(self)
         if self.outg is not None:
             self.outg.create_dataset('rdf', (self.nbin,), float)
-            self.outg.create_dataset('crdf', (self.nbin,), float)
-            self.outg.create_dataset('counts', (self.nbin,), int)
             self.outg['d'] = self.d
+            if self.pairs_sr is not None:
+                self.outg.create_dataset('rdf_sr', (self.nbin,), float)
 
     def read_online(self, st_pos, st_cell=None):
         if st_cell is not None:
@@ -232,38 +251,36 @@ class RDF(AnalysisHook):
             ds_pos.read_direct(self.pos1, (i,self.select1))
 
     def compute_iteration(self):
-        self.cell.compute_distances(self.work, self.pos0, self.pos1, self.exclude)
-        self.counts += np.histogram(self.work, bins=self.bins)[0]
+        self.cell.compute_distances(self.work, self.pos0, self.pos1, nimage=self.nimage)
+        counts = np.histogram(self.work, bins=self.bins)[0]
+        normalization = (self.npair/(self.cell.volume*(1+2*self.nimage)**3)*(4*np.pi*self.rspacing))*self.d**2
+        self.rdf_sum += counts/normalization
+        if self.pairs_sr is not None:
+            self.cell.compute_distances(self.work[:len(self.pairs_sr)], self.pos0, self.pos1, pairs=self.pairs_sr, do_include=True)
+            counts_sr = np.histogram(self.work[:len(self.pairs_sr)], bins=self.bins)[0]
+            self.rdf_sum_sr += counts_sr/normalization
         self.nsample += 1
 
     def compute_derived(self):
         # derive the RDF
-        ref_count = self.npair/self.cell.volume*4*np.pi*self.d**2*self.rspacing
-        self.rdf = self.counts/ref_count/self.nsample
-        # derived the cumulative RDF
-        self.crdf = self.counts.cumsum()/float(self.nsample*self.natom0)
+        self.rdf = self.rdf_sum/self.nsample
+        if self.pairs_sr is not None:
+            self.rdf_sr = self.rdf_sum_sr/self.nsample
         # store everything in the h5py file
         if self.outg is not None:
             self.outg['rdf'][:] = self.rdf
-            self.outg['crdf'][:] = self.crdf
-            self.outg['counts'][:] = self.counts
+            if self.pairs_sr is not None:
+                self.outg['rdf_sr'][:] = self.rdf_sr
+
 
     def plot(self, fn_png='rdf.png'):
         import matplotlib.pyplot as pt
         pt.clf()
         xunit = log.length.conversion
         pt.plot(self.d/xunit, self.rdf, 'k-', drawstyle='steps-mid')
+        if self.pairs_sr is not None:
+            pt.plot(self.d/xunit, self.rdf_sr, 'r-', drawstyle='steps-mid')
         pt.xlabel('Distance [%s]' % log.length.notation)
         pt.ylabel('RDF')
-        pt.xlim(self.bins[0]/xunit, self.bins[-1]/xunit)
-        pt.savefig(fn_png)
-
-    def plot_crdf(self, fn_png='crdf.png'):
-        import matplotlib.pyplot as pt
-        pt.clf()
-        xunit = log.length.conversion
-        pt.plot(self.d/xunit, self.crdf, 'k-', drawstyle='steps-mid')
-        pt.xlabel('Distance [%s]' % log.length.notation)
-        pt.ylabel('CRDF')
         pt.xlim(self.bins[0]/xunit, self.bins[-1]/xunit)
         pt.savefig(fn_png)

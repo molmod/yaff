@@ -35,17 +35,11 @@ def test_rdf1_offline():
     try:
         select = nve.ff.system.get_indexes('O')
         rdf = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select)
-        print f['trajectory'].keys()
         assert 'trajectory/pos_rdf' in f
         assert 'trajectory/pos_rdf/d' in f
-        assert 'trajectory/pos_rdf/counts' in f
         assert 'trajectory/pos_rdf/rdf' in f
-        assert 'trajectory/pos_rdf/crdf' in f
         fn_png = '%s/rdf.png' % dn_tmp
         rdf.plot(fn_png)
-        assert os.path.isfile(fn_png)
-        fn_png = '%s/crdf.png' % dn_tmp
-        rdf.plot_crdf(fn_png)
         assert os.path.isfile(fn_png)
     finally:
         shutil.rmtree(dn_tmp)
@@ -69,8 +63,6 @@ def test_rdf1_online():
         assert rdf0.nsample == rdf1.nsample
         assert abs(rdf0.d - rdf1.d).max() < 1e-10
         assert abs(rdf0.rdf - rdf1.rdf).max() < 1e-10
-        assert abs(rdf0.crdf - rdf1.crdf).max() < 1e-10
-        assert abs(rdf0.counts - rdf1.counts).max() < 1e-10
     finally:
         f.close()
 
@@ -83,9 +75,7 @@ def test_rdf2_offline():
         rdf = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select0, select1=select1)
         assert 'trajectory/pos_rdf' in f
         assert 'trajectory/pos_rdf/d' in f
-        assert 'trajectory/pos_rdf/counts' in f
         assert 'trajectory/pos_rdf/rdf' in f
-        assert 'trajectory/pos_rdf/crdf' in f
         fn_png = '%s/rdf.png' % dn_tmp
         rdf.plot(fn_png)
         assert os.path.isfile(fn_png)
@@ -112,8 +102,6 @@ def test_rdf2_online():
         assert rdf0.nsample == rdf1.nsample
         assert abs(rdf0.d - rdf1.d).max() < 1e-10
         assert abs(rdf0.rdf - rdf1.rdf).max() < 1e-10
-        assert abs(rdf0.crdf - rdf1.crdf).max() < 1e-10
-        assert abs(rdf0.counts - rdf1.counts).max() < 1e-10
     finally:
         f.close()
 
@@ -130,22 +118,46 @@ def test_rdf2_online_blind():
     assert rdf.nsample == 6
 
 
-def test_rdf2_offline_exclude():
+def test_rdf2_offline_pairs_sr():
     dn_tmp, nve, f = get_nve_water32()
     try:
         select0 = nve.ff.system.get_indexes('O')
         select1 = nve.ff.system.get_indexes('H')
-        exclude = []
+        pairs_sr = []
         for i in xrange(32):
-            exclude.append((3*i+1,3*i))
-            exclude.append((3*i+2,3*i))
-        exclude = np.array(exclude)
-        rdf = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select0, select1=select1, exclude=exclude)
+            pairs_sr.append((3*i+1,3*i))
+            pairs_sr.append((3*i+2,3*i))
+        pairs_sr = np.array(pairs_sr)
+        rdf = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select0, select1=select1, pairs_sr=pairs_sr)
         assert 'trajectory/pos_rdf' in f
         assert 'trajectory/pos_rdf/d' in f
-        assert 'trajectory/pos_rdf/counts' in f
         assert 'trajectory/pos_rdf/rdf' in f
-        assert 'trajectory/pos_rdf/crdf' in f
+        assert 'trajectory/pos_rdf/rdf_sr' in f
+        assert (f['trajectory/pos_rdf/rdf'][:] != f['trajectory/pos_rdf/rdf_sr']).any()
+        fn_png = '%s/rdf.png' % dn_tmp
+        rdf.plot(fn_png)
+        assert os.path.isfile(fn_png)
+    finally:
+        shutil.rmtree(dn_tmp)
+        f.close()
+
+
+def test_rdf2_offline_pairs_sr_nimage():
+    dn_tmp, nve, f = get_nve_water32()
+    try:
+        select0 = nve.ff.system.get_indexes('O')
+        select1 = nve.ff.system.get_indexes('H')
+        pairs_sr = []
+        for i in xrange(32):
+            pairs_sr.append((3*i+1,3*i))
+            pairs_sr.append((3*i+2,3*i))
+        pairs_sr = np.array(pairs_sr)
+        rdf = RDF(9.0*angstrom, 0.1*angstrom, f, select0=select0, select1=select1, pairs_sr=pairs_sr, nimage=1)
+        assert 'trajectory/pos_rdf' in f
+        assert 'trajectory/pos_rdf/d' in f
+        assert 'trajectory/pos_rdf/rdf' in f
+        assert 'trajectory/pos_rdf/rdf_sr' in f
+        assert (f['trajectory/pos_rdf/rdf'][:] != f['trajectory/pos_rdf/rdf_sr']).any()
         fn_png = '%s/rdf.png' % dn_tmp
         rdf.plot(fn_png)
         assert os.path.isfile(fn_png)
@@ -181,8 +193,6 @@ def test_rdf_from_file_variable_cell():
         # do some tests
         assert 'trajectory/pos_rdf' in f
         assert 'trajectory/pos_rdf/d' in f
-        assert 'trajectory/pos_rdf/counts' in f
         assert 'trajectory/pos_rdf/rdf' in f
-        assert 'trajectory/pos_rdf/crdf' in f
         # The first part of the RDF should be zero.
         assert (rdf.rdf[:6] == 0.0).all()

@@ -163,6 +163,7 @@ int is_invalid_exclude(long* exclude, long natom0, long natom1, long nexclude, i
   return 0;
 }
 
+
 int is_excluded(long* exclude, long i0, long i1, long* iex, long nexclude) {
   if (*iex >= nexclude) return 0;
   while (exclude[2*(*iex)] < i0) {
@@ -178,36 +179,79 @@ int is_excluded(long* exclude, long i0, long i1, long* iex, long nexclude) {
   return ((exclude[2*(*iex)+1] == i1) && (exclude[2*(*iex)] == i0));
 }
 
-void cell_compute_distances1(cell_type* cell, double* pos, double* output, long natom, long* exclude, long nexclude) {
+
+double helper_distances(double* pos0, double* pos1, cell_type* cell, long* r) {
   double delta[3];
-  long i0, i1, iex;
-  iex = 0;
-  for (i0=0; i0<natom; i0++) {
-    for (i1=0; i1<i0; i1++) {
-      if (is_excluded(exclude, i0, i1, &iex, nexclude)) continue;
-      delta[0] = pos[3*i0  ] - pos[3*i1  ];
-      delta[1] = pos[3*i0+1] - pos[3*i1+1];
-      delta[2] = pos[3*i0+2] - pos[3*i1+2];
-      cell_mic(delta, cell);
-      *output = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
+  delta[0] = pos0[0] - pos1[0];
+  delta[1] = pos0[1] - pos1[1];
+  delta[2] = pos0[2] - pos1[2];
+  cell_mic(delta, cell);
+  if (r != NULL) {
+    cell_add_vec(delta, cell, r);
+  }
+  return sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
+}
+
+void cell_compute_distances1(cell_type* cell, double* pos, double* output, long natom, long* pairs, long npair, int do_include, long nimage) {
+  if (do_include) {
+    long ipair;
+    for (ipair=0; ipair<npair; ipair++) {
+      *output = helper_distances(pos + 3*pairs[2*ipair], pos + 3*pairs[2*ipair+1], cell, NULL);
       output++;
+    }
+  } else {
+    long r[3];
+    long i0, i1, ipair, r0, r1, r2;
+    ipair = 0;
+    for (r0=-nimage; r0 <= nimage; r0++) {
+      r[0] = r0;
+      for (r1=-nimage; r1 <= nimage; r1++) {
+        r[1] = r1;
+        for (r2=-nimage; r2 <= nimage; r2++) {
+          r[2] = r2;
+          for (i0=0; i0<natom; i0++) {
+            for (i1=0; i1<i0; i1++) {
+              if ((r0==0) && (r1==0) && (r2==0)) {
+                if (is_excluded(pairs, i0, i1, &ipair, npair)) continue;
+              }
+              *output = helper_distances(pos + 3*i0, pos + 3*i1, cell, r);
+              output++;
+            }
+          }
+        }
+      }
     }
   }
 }
 
-void cell_compute_distances2(cell_type* cell, double* pos0, double* pos1, double* output, long natom0, long natom1, long* exclude, long nexclude) {
-  double delta[3];
-  long i0, i1, iex;
-  iex = 0;
-  for (i0=0; i0<natom0; i0++) {
-    for (i1=0; i1<natom1; i1++) {
-      if (is_excluded(exclude, i0, i1, &iex, nexclude)) continue;
-      delta[0] = pos0[3*i0  ] - pos1[3*i1  ];
-      delta[1] = pos0[3*i0+1] - pos1[3*i1+1];
-      delta[2] = pos0[3*i0+2] - pos1[3*i1+2];
-      cell_mic(delta, cell);
-      *output = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
+void cell_compute_distances2(cell_type* cell, double* pos0, double* pos1, double* output, long natom0, long natom1, long* pairs, long npair, int do_include, long nimage) {
+  if (do_include) {
+    long ipair;
+    for (ipair=0; ipair<npair; ipair++) {
+      *output = helper_distances(pos0 + 3*pairs[2*ipair], pos1 + 3*pairs[2*ipair+1], cell, NULL);
       output++;
+    }
+  } else {
+    long r[3];
+    long i0, i1, ipair, r0, r1, r2;
+    ipair = 0;
+    for (r0=-nimage; r0 <= nimage; r0++) {
+      r[0] = r0;
+      for (r1=-nimage; r1 <= nimage; r1++) {
+        r[1] = r1;
+        for (r2=-nimage; r2 <= nimage; r2++) {
+          r[2] = r2;
+          for (i0=0; i0<natom0; i0++) {
+            for (i1=0; i1<natom1; i1++) {
+              if ((r0==0) && (r1==0) && (r2==0)) {
+                if (is_excluded(pairs, i0, i1, &ipair, npair)) continue;
+              }
+              *output = helper_distances(pos0 + 3*i0, pos1 + 3*i1, cell, r);
+              output++;
+            }
+          }
+        }
+      }
     }
   }
 }

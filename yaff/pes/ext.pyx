@@ -230,10 +230,10 @@ cdef class Cell:
     def compute_distances(self, np.ndarray[double, ndim=1] output,
                           np.ndarray[double, ndim=2] pos0,
                           np.ndarray[double, ndim=2] pos1=None,
-                          np.ndarray[long, ndim=2] exclude=None):
-        """compute_distances(output, pos0, pos1=None, exclude=None)
-
-           Computes all distances between the given coordinates
+                          np.ndarray[long, ndim=2] pairs=None,
+                          bint do_include=False,
+                          long nimage=0):
+        """Computes all distances between the given coordinates
 
            **Arguments:**
 
@@ -249,14 +249,27 @@ cdef class Cell:
            pos1
                 A second array with Cartesian coordinates
 
-           exclude
-                A sorted array of atom pairs that will be excluded from the
-                computation. The indexes in this array refer to rows of
-                pos0 or pos1. If pos1 is not given, both columns refer to rows
-                of pos0. If pos1 is given, the first column refers to rows of
-                pos0 and the second column refers to rows of pos1. The rows in
-                the exclude array should be sorted lexicographically, first
-                along the first column, then along the second column.
+           pairs
+                A sorted array of atom pairs. When do_include==False, this list
+                will be excluded from the computation. When do_include==True,
+                only these pairs are considered when computing distances.
+
+                The indexes in this array refer to rows of pos0 or pos1. If pos1
+                is not given, both columns refer to rows of pos0. If pos1 is
+                given, the first column refers to rows of pos0 and the second
+                column refers to rows of pos1. The rows in the pairst array
+                should be sorted lexicographically, first along the first
+                column, then along the second column.
+
+           do_include
+                True or False, controls how the pairs list is interpreted. When
+                set to True, nimage must be zero and the pairs attribute must be
+                a non-empty array.
+
+           nimage
+                The number of cell images to consider in the computation of the
+                pair distances. By default, this is zero, meaning that only the
+                minimum image convention is used.
 
            This routine can operate in two different ways, depending on the
            presence/absence of the argument ``pos1``. If not given, all
@@ -274,46 +287,60 @@ cdef class Cell:
            those sizes in case some pairs in the excluded list are not
            applicable.
         """
-        cdef long* exclude_pointer
+        cdef long* pairs_pointer
 
         assert pos0.shape[1] == 3
         assert pos0.flags['C_CONTIGUOUS']
+        assert nimage >= 0
         natom0 = pos0.shape[0]
 
-        if exclude is not None:
-            assert exclude.shape[1] == 2
-            assert exclude.flags['C_CONTIGUOUS']
-            exclude_pointer = <long*> exclude.data
-            nexclude = exclude.shape[0]
+        if pairs is not None:
+            assert pairs.shape[1] == 2
+            assert pairs.flags['C_CONTIGUOUS']
+            pairs_pointer = <long*> pairs.data
+            npair = pairs.shape[0]
         else:
-            exclude_pointer = NULL
-            nexclude = 0
+            pairs_pointer = NULL
+            npair = 0
+
+        if nimage > 0:
+            if self.nvec == 0:
+                raise ValueError('Can only include distances to periodic images for periodic systems.')
+            factor = (1+2*nimage)**self.nvec
+        else:
+            factor = 1
+
+        if do_include:
+            if nimage != 0:
+                raise ValueError('When do_include==True, nimage must be zero.')
+            if npair == 0:
+                raise ValueError('No pairs given and do_include==True.')
 
         if pos1 is None:
-            if exclude is None:
-                assert (natom0*(natom0-1))/2 == output.shape[0]
+            if do_include:
+                npair == output.shape[0]
             else:
-                assert (natom0*(natom0-1))/2 - len(exclude) == output.shape[0]
-            if cell.is_invalid_exclude(<long*> exclude.data, natom0, natom0, nexclude, True):
-                raise ValueError('The exclude array must countain indices within proper bounds ans must be lexicographically sorted.')
+                assert factor*(natom0*(natom0-1))/2 - npair == output.shape[0]
+            if cell.is_invalid_exclude(pairs_pointer, natom0, natom0, npair, True):
+                raise ValueError('The pairs array must countain indices within proper bounds and must be lexicographically sorted.')
             cell.cell_compute_distances1(self._c_cell, <double*> pos0.data,
                                          <double*> output.data, natom0,
-                                         <long*> exclude_pointer, nexclude)
+                                         <long*> pairs_pointer, npair, do_include, nimage)
         else:
             assert pos1.shape[1] == 3
             assert pos1.flags['C_CONTIGUOUS']
             natom1 = pos1.shape[0]
 
-            if exclude is None:
-                assert natom0*natom1 == output.shape[0]
+            if do_include:
+                npair == output.shape[0]
             else:
-                assert natom0*natom1 - len(exclude) == output.shape[0]
-            if cell.is_invalid_exclude(<long*> exclude.data, natom0, natom1, nexclude, False):
-                raise ValueError('The exclude array must countain indices within proper bounds ans must be lexicographically sorted.')
+                assert factor*natom0*natom1 - npair == output.shape[0]
+            if cell.is_invalid_exclude(pairs_pointer, natom0, natom1, npair, False):
+                raise ValueError('The pairs array must countain indices within proper bounds and must be lexicographically sorted.')
             cell.cell_compute_distances2(self._c_cell, <double*> pos0.data,
                                          <double*> pos1.data,
                                          <double*> output.data, natom0, natom1,
-                                         <long*> exclude_pointer, nexclude)
+                                         <long*> pairs_pointer, npair, do_include, nimage)
 
 
 #
