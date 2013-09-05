@@ -77,7 +77,7 @@ def check_alpha_depedence(system):
 
 
 def get_electrostatic_energy(alpha, system):
-    # Creat system
+    # Create tools needed to evaluate the energy
     nlist = NeighborList(system)
     scalings = Scalings(system, 0.0, 0.0, 0.5)
     # Construct the ewald real-space potential and part
