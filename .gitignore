@@ -2,5 +2,4 @@
 *.so
 *.png
 *.h5
-*.chk
 ext.c
