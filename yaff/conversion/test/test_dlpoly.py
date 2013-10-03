@@ -76,3 +76,22 @@ def test_dlpoly_history_sam():
 
         assert abs(f['trajectory/cell'][offset+1,2,2]/angstrom - 28.83) < 1e-10
         assert abs(f['trajectory/pos'][offset+1,2]/angstrom - [1.4848E+01, 5.1697E+00, 1.2132E+01]).max() < 1e-10
+
+
+def test_dlpoly_history_an():
+    with h5.File('yaff.conversion.test.test_dlpoly.test_dlpoly_history_an.h5', driver='core', backing_store=False) as f:
+        # Bad practice. The trajectory file has no system directory...
+        # Actual trajectory conversion, par1
+        fn = context.get_fn('test/dlpoly_HISTORY_an1')
+        dlpoly_history_to_hdf5(f, fn)
+        assert get_last_trajectory_row(f['trajectory']) == 2
+        assert abs(f['trajectory/cell'][1]/angstrom - [[27.41, 0.000, 0.000], [-13.71, 23.84, 0.000], [-0.1021E-01, 0.9013E-02, 29.50]]).max() < 1e-10
+        assert abs(f['trajectory/pos'][0,-1,-1]/angstrom - -1.4007E+01) < 1e-10
+        # Actual trajectory conversion, par1
+        fn = context.get_fn('test/dlpoly_HISTORY_an2')
+        dlpoly_history_to_hdf5(f, fn)
+        assert get_last_trajectory_row(f['trajectory']) == 4
+        assert abs(f['trajectory/cell'][1]/angstrom - [[27.41, 0.000, 0.000], [-13.71, 23.84, 0.000], [-0.1021E-01, 0.9013E-02, 29.50]]).max() < 1e-10
+        assert abs(f['trajectory/cell'][3]/angstrom - [[27.41, 0.000, 0.000], [-13.71, 23.84, 0.000], [-0.1021E-01, 0.9013E-02, 29.50]]).max() < 1e-10
+        assert abs(f['trajectory/pos'][0,-1,-1]/angstrom - -1.4007E+01) < 1e-10
+        assert abs(f['trajectory/pos'][3,-1,-1]/angstrom - 1.4275E+01) < 1e-10
