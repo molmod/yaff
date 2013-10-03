@@ -27,7 +27,8 @@ import numpy as np
 
 from molmod import amu, second, femtosecond
 from yaff.conversion.common import get_trajectory_group, \
-    get_trajectory_datasets, append_to_dataset, check_trajectory_rows
+    get_trajectory_datasets, write_to_dataset, get_last_trajectory_row, \
+    check_trajectory_rows
 from yaff.log import log
 
 
@@ -169,10 +170,10 @@ def g09log_to_hdf5(f, fn_log):
         natom = f['system/numbers'].shape[0]
 
         # Take care of the trajectory group
-        tgrp, existing_row = get_trajectory_group(f)
+        tgrp = get_trajectory_group(f)
 
         # Take care of the pos and vel datasets
-        ds_pos, ds_vel, ds_frc, ds_time, ds_step, ds_epot, ds_ekin, ds_etot = get_trajectory_datasets(tgrp,
+        dss = get_trajectory_datasets(tgrp,
             ('pos', (natom, 3)),
             ('vel', (natom, 3)),
             ('frc', (natom, 3)),
@@ -182,21 +183,22 @@ def g09log_to_hdf5(f, fn_log):
             ('ekin', (1,)),
             ('etot', (1,)),
         )
+        ds_pos, ds_vel, ds_frc, ds_time, ds_step, ds_epot, ds_ekin, ds_etot = dss
 
         # Load frame by frame
-        row = 0
+        row = get_last_trajectory_row(dss)
         for numbers, pos, vel, frc, time, step, epot, ekin, etot in _iter_frames_g09(fn_log):
             if (numbers != f['system/numbers']).any():
                 log.warn('The element numbers of the HDF5 and LOG file do not match.')
-            append_to_dataset(ds_pos, pos, row)
-            append_to_dataset(ds_vel, vel, row)
-            append_to_dataset(ds_frc, frc, row)
-            append_to_dataset(ds_time, time, row)
-            append_to_dataset(ds_step, step, row)
-            append_to_dataset(ds_epot, epot, row)
-            append_to_dataset(ds_ekin, ekin, row)
-            append_to_dataset(ds_etot, etot, row)
+            write_to_dataset(ds_pos, pos, row)
+            write_to_dataset(ds_vel, vel, row)
+            write_to_dataset(ds_frc, frc, row)
+            write_to_dataset(ds_time, time, row)
+            write_to_dataset(ds_step, step, row)
+            write_to_dataset(ds_epot, epot, row)
+            write_to_dataset(ds_ekin, ekin, row)
+            write_to_dataset(ds_etot, etot, row)
             row += 1
 
         # Check number of rows
-        check_trajectory_rows(tgrp, existing_row, row)
+        check_trajectory_rows(tgrp, dss, row)

@@ -26,7 +26,8 @@
 from molmod import angstrom, amu, picosecond
 from molmod.io import DLPolyHistoryReader
 from yaff.conversion.common import get_trajectory_group, \
-    get_trajectory_datasets, append_to_dataset, check_trajectory_rows
+    get_trajectory_datasets, get_last_trajectory_row, write_to_dataset, \
+    check_trajectory_rows
 from yaff.log import log
 
 
@@ -69,7 +70,7 @@ def dlpoly_history_to_hdf5(f, fn_history, sub=slice(None), pos_unit=angstrom,
             ))
 
         # Take care of the data group
-        tgrp, existing_row = get_trajectory_group(f)
+        tgrp = get_trajectory_group(f)
 
         # Open the history file for reading
         hist_reader = DLPolyHistoryReader(fn_history, sub, pos_unit, vel_unit,
@@ -77,32 +78,37 @@ def dlpoly_history_to_hdf5(f, fn_history, sub=slice(None), pos_unit=angstrom,
 
         # Take care of the datasets that should always be present
         natom = hist_reader.num_atoms
-        ds_step, ds_time, ds_cell, ds_pos = get_trajectory_datasets(
+        dss = get_trajectory_datasets(
             tgrp,
             ('step', (1,)),
             ('time', (1,)),
             ('cell', (3,3)),
             ('pos', (natom, 3)),
         )
+        ds_step, ds_time, ds_cell, ds_pos = dss
 
         # Take care of optional data sets
         if hist_reader.keytrj > 0:
             ds_vel = get_trajectory_datasets(tgrp, ('vel', (natom, 3)))[0]
+            dss.append(ds_vel)
         if hist_reader.keytrj > 1:
             ds_frc = get_trajectory_datasets(tgrp, ('frc', (natom, 3)))[0]
+            dss.append(ds_frc)
+
+        # Decide on the first row to start writing data
+        row = get_last_trajectory_row(dss)
 
         # Load data
-        row = 0
         for frame in hist_reader:
-            append_to_dataset(ds_step, frame["step"], row)
-            append_to_dataset(ds_time, frame["time"], row)
-            append_to_dataset(ds_cell, frame["cell"].T, row)
-            append_to_dataset(ds_pos, frame["pos"], row)
+            write_to_dataset(ds_step, frame["step"], row)
+            write_to_dataset(ds_time, frame["time"], row)
+            write_to_dataset(ds_cell, frame["cell"].T, row)
+            write_to_dataset(ds_pos, frame["pos"], row)
             if hist_reader.keytrj > 0:
-                append_to_dataset(ds_vel, frame["vel"], row)
+                write_to_dataset(ds_vel, frame["vel"], row)
             if hist_reader.keytrj > 1:
-                append_to_dataset(ds_frc, frame["frc"], row)
+                write_to_dataset(ds_frc, frame["frc"], row)
             row += 1
 
         # Check number of rows
-        check_trajectory_rows(tgrp, existing_row, row)
+        check_trajectory_rows(tgrp, dss, row)

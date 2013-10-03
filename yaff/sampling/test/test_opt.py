@@ -124,7 +124,7 @@ def test_cg_hdf5():
         opt.run(15)
         assert opt.counter == 15
         check_hdf5_common(hdf5.f)
-        assert f['trajectory'].attrs['row'] == 16
+        assert get_last_trajectory_row(f['trajectory']) == 16
         assert f['trajectory/counter'][15] == 15
     finally:
         f.close()

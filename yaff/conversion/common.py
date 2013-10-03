@@ -21,58 +21,114 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''Tools for writing trajectory data'''
 
+
+import h5py as h5
 
 from yaff.log import log
 
 
 __all__ = [
-    'get_trajectory_group', 'get_trajectory_datasets', 'append_to_dataset',
-    'check_trajectory_rows'
+    'get_trajectory_group', 'get_trajectory_datasets',
+    'get_last_trajectory_row', 'write_to_dataset', 'check_trajectory_rows'
 ]
 
 
 def get_trajectory_group(f):
+    '''Create or return an existing trajectory group
+
+       **Arguments:**
+
+       f
+            An open HDF5 File or Group object.
+    '''
     if 'trajectory' not in f:
         if log.do_high:
-            log('Creating new trajectory datagroup in %s' % f.filename)
+            log('Creating new trajectory datagroup in %s.' % f.filename)
         tgrp = f.create_group('trajectory')
-        existing_row = None
     else:
         tgrp = f['trajectory']
-        existing_row = tgrp.attrs['row']
         if log.do_high:
-            log('Using existing trajectory datagroup in %s with %i rows of data' % (f.filename, existing_row))
-    return tgrp, existing_row
+            log('Using existing trajectory datagroup in %s.' % f.filename)
+    return tgrp
 
 
 def get_trajectory_datasets(tgrp, *fields):
+    '''Return a list of new/existing datasets corresponding to the given fields
+
+       **Arguments:**
+
+       tgrp
+            The trajectory group
+
+       fields
+            A list of fields, i.e. pairs of name and row_shape.
+    '''
     result = []
     for name, row_shape in fields:
         if name in tgrp:
+            ds = tgrp[name]
             if log.do_medium:
-                log('Overwriting existing dataset %s in group %s.' % (name, tgrp.name))
-            del tgrp[name]
-
-        if log.do_high:
-            log('Creating new dataset %s with row shape %s' % (name, row_shape))
-        # Create a new dataset
-        shape = (0,) + row_shape
-        maxshape = (None,) + row_shape
-        ds = tgrp.create_dataset(name, shape, maxshape=maxshape, dtype=float)
+                log('Found an existing dataset %s in group %s with %i rows.' % (name, tgrp.name, ds.shape[0]))
+        else:
+            if log.do_high:
+                log('Creating new dataset %s with row shape %s' % (name, row_shape))
+            # Create a new dataset
+            shape = (0,) + row_shape
+            maxshape = (None,) + row_shape
+            ds = tgrp.create_dataset(name, shape, maxshape=maxshape, dtype=float)
         result.append(ds)
     return result
 
 
-def append_to_dataset(ds, value, row):
+def get_last_trajectory_row(dss):
+    '''Find the first row to write new trajectory data.
+
+       **Arguments:**
+
+       dss
+            A list of datasets or the trajectory group.
+    '''
+    if isinstance(dss, h5.Group):
+        dss = dss.itervalues()
+    row = min(ds.shape[0] for ds in dss)
+    return row
+
+
+def write_to_dataset(ds, value, row):
+    '''Write a result at a given row in a trajectory. If needed, the dataset is extended.
+
+       **Arguments:**
+
+       ds
+            The dataset
+
+       value
+            The data to be written
+
+       row
+            The row index.
+    '''
     if ds.shape[0] <= row:
         ds.resize(row+1, axis=0)
     ds[row] = value
 
 
-def check_trajectory_rows(tgrp, existing_row, row):
-    if existing_row is None:
-        tgrp.attrs['row'] = row
-    else:
-        if existing_row != row:
-            raise ValueError('The amount of data loaded into the HDF5 file is not consistent with number of rows already present in the trajectory.')
+def check_trajectory_rows(tgrp, dss, row):
+    '''Check if the datasets with the new trajectory data have consistent sizes.
+
+       **Arguments:**
+
+       tgrp
+            The trajectory group.
+
+       dss
+            The list of datasets that was filled with data.
+
+       row
+            The last row.
+    '''
+    # check the sizes of the modified datasets
+    for ds in dss:
+        assert ds.shape[0] >= row

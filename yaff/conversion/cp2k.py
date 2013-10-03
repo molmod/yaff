@@ -26,7 +26,8 @@
 from molmod import femtosecond
 from molmod.io import slice_match
 from yaff.conversion.common import get_trajectory_group, \
-    get_trajectory_datasets, append_to_dataset, check_trajectory_rows
+    get_trajectory_datasets, get_last_trajectory_row, write_to_dataset, \
+    check_trajectory_rows
 from yaff.log import log
 
 __all__ = ['cp2k_ener_to_hdf5']
@@ -65,10 +66,10 @@ def cp2k_ener_to_hdf5(f, fn_ener, sub=slice(None)):
             ))
 
         # Take care of the data group
-        tgrp, existing_row = get_trajectory_group(f)
+        tgrp = get_trajectory_group(f)
 
         # Take care of the datasets
-        ds_step, ds_time, ds_ke, ds_temp, ds_pe, ds_cq = get_trajectory_datasets(
+        dss = get_trajectory_datasets(
             tgrp,
             ('step', (1,)),
             ('time', (1,)),
@@ -77,9 +78,10 @@ def cp2k_ener_to_hdf5(f, fn_ener, sub=slice(None)):
             ('epot', (1,)),
             ('econs', (1,)),
         )
+        ds_step, ds_time, ds_ke, ds_temp, ds_pe, ds_cq = dss
 
         # Fill the datasets with data.
-        row = 0
+        row = get_last_trajectory_row(dss)
         counter = 0
         fin = file(fn_ener)
 
@@ -97,15 +99,15 @@ def cp2k_ener_to_hdf5(f, fn_ener, sub=slice(None)):
         for line in fin:
             if slice_match(sub, counter):
                 words = line.split()
-                append_to_dataset(ds_step, float(words[0]), row)
-                append_to_dataset(ds_time, float(words[1])*femtosecond, row)
-                append_to_dataset(ds_ke, float(words[2]), row)
-                append_to_dataset(ds_temp, float(words[3]), row)
-                append_to_dataset(ds_pe, float(words[4]), row)
-                append_to_dataset(ds_cq, float(words[5]), row)
+                write_to_dataset(ds_step, float(words[0]), row)
+                write_to_dataset(ds_time, float(words[1])*femtosecond, row)
+                write_to_dataset(ds_ke, float(words[2]), row)
+                write_to_dataset(ds_temp, float(words[3]), row)
+                write_to_dataset(ds_pe, float(words[4]), row)
+                write_to_dataset(ds_cq, float(words[5]), row)
                 row += 1
             counter += 1
         fin.close()
 
         # Check number of rows
-        check_trajectory_rows(tgrp, existing_row, row)
+        check_trajectory_rows(tgrp, dss, row)

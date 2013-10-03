@@ -86,39 +86,40 @@ def test_to_hdf():
         system.to_hdf5(f)
         # Actual trajectory conversion, twice
         for i in xrange(2):
+            offset = 2*i
             g09log_to_hdf5(f, fn_log)
             assert 'trajectory' in f
-            assert f['trajectory'].attrs['row'] == 2
+            assert get_last_trajectory_row(f['trajectory']) == 2+offset
             assert 'pos' in f['trajectory']
-            assert f['trajectory/pos'].shape == (2, 9, 3)
-            assert f['trajectory/pos'][0,0,0] == -1.287811626725E-02
+            assert f['trajectory/pos'].shape == (2+offset, 9, 3)
+            assert f['trajectory/pos'][offset,0,0] == -1.287811626725E-02
             assert f['trajectory/pos'][-1,-1,-1] == 2.710239686065E+00
             assert 'vel' in f['trajectory']
-            assert f['trajectory/vel'].shape == (2, 9, 3)
-            assert f['trajectory/vel'][0,0,0] == -6.493457131863E+13*vel_unit
+            assert f['trajectory/vel'].shape == (2+offset, 9, 3)
+            assert f['trajectory/vel'][offset,0,0] == -6.493457131863E+13*vel_unit
             assert f['trajectory/vel'][-1,-1,-1] == 4.186482857132E+12*vel_unit
             assert 'frc' in f['trajectory']
-            assert f['trajectory/frc'].shape == (2, 9, 3)
-            assert f['trajectory/frc'][0,0,0] == 0.002725302
+            assert f['trajectory/frc'].shape == (2+offset, 9, 3)
+            assert f['trajectory/frc'][offset,0,0] == 0.002725302
             assert f['trajectory/frc'][-1,-1,-1] == 0.008263482
             assert 'time' in f['trajectory']
-            assert f['trajectory/time'].shape == (2, 1)
-            assert f['trajectory/time'][0] == 0.0
+            assert f['trajectory/time'].shape == (2+offset, 1)
+            assert f['trajectory/time'][offset] == 0.0
             assert f['trajectory/time'][-1] == 1.125278*femtosecond
             assert 'step' in f['trajectory']
-            assert f['trajectory/step'].shape == (2, 1)
-            assert f['trajectory/step'][0] == 2
+            assert f['trajectory/step'].shape == (2+offset, 1)
+            assert f['trajectory/step'][offset] == 2
             assert f['trajectory/step'][-1] == 3
             assert 'epot' in f['trajectory']
-            assert f['trajectory/epot'].shape == (2, 1)
-            assert f['trajectory/epot'][0] == -592.9048374
+            assert f['trajectory/epot'].shape == (2+offset, 1)
+            assert f['trajectory/epot'][offset] == -592.9048374
             assert f['trajectory/epot'][-1] == -592.8986401
             assert 'ekin' in f['trajectory']
-            assert f['trajectory/ekin'].shape == (2, 1)
-            assert f['trajectory/ekin'][0] == 0.0306188
+            assert f['trajectory/ekin'].shape == (2+offset, 1)
+            assert f['trajectory/ekin'][offset] == 0.0306188
             assert f['trajectory/ekin'][-1] == 0.0244215
             assert 'etot' in f['trajectory']
-            assert f['trajectory/etot'].shape == (2, 1)
-            assert f['trajectory/etot'][0] == -592.8742186
+            assert f['trajectory/etot'].shape == (2+offset, 1)
+            assert f['trajectory/etot'][offset] == -592.8742186
             assert f['trajectory/etot'][-1] == -592.8742186
         f.close()

@@ -27,7 +27,8 @@
 from molmod import angstrom
 from molmod.io import XYZReader, slice_match
 from yaff.conversion.common import get_trajectory_group, \
-    get_trajectory_datasets, append_to_dataset, check_trajectory_rows
+    get_trajectory_datasets, write_to_dataset, get_last_trajectory_row, \
+    check_trajectory_rows
 from yaff.log import log
 
 
@@ -84,16 +85,16 @@ def xyz_to_hdf5(f, fn_xyz, sub=slice(None), file_unit=angstrom, name='pos'):
             log.warn('The atomic numbers of the HDF5 and XYZ file do not match.')
 
         # Take care of the trajectory group
-        tgrp, existing_row = get_trajectory_group(f)
+        tgrp = get_trajectory_group(f)
 
         # Take care of the dataset
         ds, = get_trajectory_datasets(tgrp, (name, (len(xyz_reader.numbers), 3)))
 
         # Fill the dataset with data.
-        row = 0
+        row = get_last_trajectory_row([ds])
         for title, coordinates in xyz_reader:
-            append_to_dataset(ds, coordinates, row)
+            write_to_dataset(ds, coordinates, row)
             row += 1
 
         # Check number of rows
-        check_trajectory_rows(tgrp, existing_row, row)
+        check_trajectory_rows(tgrp, [ds], row)

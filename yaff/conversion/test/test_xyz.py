@@ -30,36 +30,39 @@ from molmod import femtosecond
 
 
 def test_xyz_to_hdf5():
-    f = h5.File('yaff.conversion.test.test_xyz.test_xyz_to_hdf5.h5', driver='core', backing_store=False)
-    # Bad practice. Proper use is to initialize the system object from a
-    # different XYZ (or yet something else) with a single geometry.
-    fn_xyz = context.get_fn('test/water_trajectory.xyz')
-    system = System.from_file(fn_xyz)
-    system.to_hdf5(f)
-    # Actual trajectory conversion, twice
-    for i in xrange(2):
-        xyz_to_hdf5(f, fn_xyz)
-        assert 'trajectory' in f
-        assert f['trajectory'].attrs['row'] == 5
-        assert abs(f['trajectory/pos'][0,0,0] - 3.340669*angstrom) < 1e-5
-        assert abs(f['trajectory/pos'][-1,-1,-1] - -3.335574*angstrom) < 1e-5
-        assert abs(f['trajectory/pos'][3,2,1] - 3.363249*angstrom) < 1e-5
-    f.close()
+    with h5.File('yaff.conversion.test.test_xyz.test_xyz_to_hdf5.h5', driver='core', backing_store=False) as f:
+        # Bad practice. Proper use is to initialize the system object from a
+        # different XYZ (or yet something else) with a single geometry.
+        fn_xyz = context.get_fn('test/water_trajectory.xyz')
+        system = System.from_file(fn_xyz)
+        system.to_hdf5(f)
+        # Actual trajectory conversion, twice
+        for i in xrange(2):
+            offset = 5*i
+            xyz_to_hdf5(f, fn_xyz)
+            assert 'trajectory' in f
+            print get_last_trajectory_row(f['trajectory'])
+            for key, ds in f['trajectory'].iteritems():
+                print key, ds.shape
+            assert get_last_trajectory_row(f['trajectory']) == 5 + offset
+            assert abs(f['trajectory/pos'][offset,0,0] - 3.340669*angstrom) < 1e-5
+            assert abs(f['trajectory/pos'][-1,-1,-1] - -3.335574*angstrom) < 1e-5
+            assert abs(f['trajectory/pos'][offset+3,2,1] - 3.363249*angstrom) < 1e-5
 
 
 def test_xyz_to_hdf5_alt():
-    f = h5.File('yaff.conversion.test.test_xyz.test_xyz_to_hdf5.h5', driver='core', backing_store=False)
-    # Bad practice. Proper use is to initialize the system object from a
-    # different XYZ (or yet something else) with a single geometry.
-    fn_xyz = context.get_fn('test/water_trajectory.xyz')
-    system = System.from_file(fn_xyz)
-    system.to_hdf5(f)
-    # Actual trajectory conversion, twice
-    for i in xrange(2):
-        xyz_to_hdf5(f, fn_xyz, file_unit=1, name='test')
-        assert 'trajectory' in f
-        assert f['trajectory'].attrs['row'] == 5
-        assert abs(f['trajectory/test'][0,0,0] - 3.340669) < 1e-5
-        assert abs(f['trajectory/test'][-1,-1,-1] - -3.335574) < 1e-5
-        assert abs(f['trajectory/test'][3,2,1] - 3.363249) < 1e-5
-    f.close()
+    with h5.File('yaff.conversion.test.test_xyz.test_xyz_to_hdf5_alt.h5', driver='core', backing_store=False) as f:
+        # Bad practice. Proper use is to initialize the system object from a
+        # different XYZ (or yet something else) with a single geometry.
+        fn_xyz = context.get_fn('test/water_trajectory.xyz')
+        system = System.from_file(fn_xyz)
+        system.to_hdf5(f)
+        # Actual trajectory conversion, twice
+        for i in xrange(2):
+            offset = 5*i
+            xyz_to_hdf5(f, fn_xyz, file_unit=1, name='test')
+            assert 'trajectory' in f
+            assert get_last_trajectory_row(f['trajectory']) == 5 + offset
+            assert abs(f['trajectory/test'][offset,0,0] - 3.340669) < 1e-5
+            assert abs(f['trajectory/test'][-1,-1,-1] - -3.335574) < 1e-5
+            assert abs(f['trajectory/test'][offset+3,2,1] - 3.363249) < 1e-5

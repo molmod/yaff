@@ -34,10 +34,11 @@ def test_cp2k_ener_to_hdf5():
     # Bad practice. The trajectory file has no system directory...
     # Actual trajectory conversion, twice
     for i in xrange(2):
+        offset = i*9
         fn = context.get_fn('test/cp2k-1.ener')
         cp2k_ener_to_hdf5(f, fn)
         assert 'trajectory' in f
-        assert f['trajectory'].attrs['row'] == 9
+        assert get_last_trajectory_row(f['trajectory']) == 9 + offset
         assert 'step' in f['trajectory']
         assert 'time' in f['trajectory']
         assert 'ekin' in f['trajectory']
@@ -45,9 +46,9 @@ def test_cp2k_ener_to_hdf5():
         assert 'epot' in f['trajectory']
         assert 'econs' in f['trajectory']
         assert f['trajectory/step'][1] == 1.0
-        assert abs(f['trajectory/time'][5] - 5.0*femtosecond) < 1e-10
+        assert abs(f['trajectory/time'][5+offset] - 5.0*femtosecond) < 1e-10
         assert abs(f['trajectory/ekin'][-1] - 1.069191015) < 1e-5
-        assert abs(f['trajectory/temp'][2] - 303.049958848) < 1e-5
-        assert abs(f['trajectory/epot'][6] - -6.517529834) < 1e-5
-        assert abs(f['trajectory/econs'][7] - -5.405095660) < 1e-5
+        assert abs(f['trajectory/temp'][2+offset] - 303.049958848) < 1e-5
+        assert abs(f['trajectory/epot'][6+offset] - -6.517529834) < 1e-5
+        assert abs(f['trajectory/econs'][7+offset] - -5.405095660) < 1e-5
     f.close()

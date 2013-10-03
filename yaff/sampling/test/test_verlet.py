@@ -75,7 +75,7 @@ def test_hdf5():
         nve.run(15)
         assert nve.counter == 15
         check_hdf5_common(hdf5.f)
-        assert f['trajectory'].attrs['row'] == 16
+        assert get_last_trajectory_row(f['trajectory']) == 16
         assert f['trajectory/counter'][15] == 15
     finally:
         f.close()
@@ -89,7 +89,7 @@ def test_hdf5_start():
         nve.run(5)
         assert nve.counter == 5
         check_hdf5_common(hdf5.f)
-        assert f['trajectory'].attrs['row'] == 4
+        assert get_last_trajectory_row(f['trajectory']) == 4
         assert f['trajectory/counter'][3] == 5
     finally:
         f.close()
@@ -103,7 +103,7 @@ def test_hdf5_step():
         nve.run(5)
         assert nve.counter == 5
         check_hdf5_common(hdf5.f)
-        assert f['trajectory'].attrs['row'] == 3
+        assert get_last_trajectory_row(f['trajectory']) == 3
         assert f['trajectory/counter'][2] == 4
     finally:
         f.close()
