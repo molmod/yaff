@@ -40,9 +40,9 @@ def test_dlpoly_history_uo():
         assert get_last_trajectory_row(f['trajectory']) == 3 + offset
         assert abs(f['trajectory/time'][offset]/picosecond - 4.00) < 1e-10
         assert abs(f['trajectory/time'][offset+1]/picosecond - 4.05) < 1e-10
-        assert f['trajectory/pos'].shape == (3+offset, 324, 3)
-        assert f['trajectory/vel'].shape == (3+offset, 324, 3)
-        assert f['trajectory/frc'].shape == (3+offset, 324, 3)
+        assert f['trajectory/pos'].shape == (3+offset, 3, 3)
+        assert f['trajectory/vel'].shape == (3+offset, 3, 3)
+        assert f['trajectory/frc'].shape == (3+offset, 3, 3)
 
         assert abs(f['trajectory/cell'][offset,0,0]/angstrom - 16.46) < 1e-10
         assert abs(f['trajectory/pos'][offset,0]/angstrom - [1.3522E+00, 1.3159E+00, 1.4312E+00]).max() < 1e-10
@@ -50,9 +50,9 @@ def test_dlpoly_history_uo():
         assert abs(f['trajectory/frc'][offset,0]/(amu*angstrom/picosecond**2) - [1.7612E+03, 3.6680E+03, 2.4235E+03]).max() < 1e-10
 
         assert abs(f['trajectory/cell'][offset+1,2,2]/angstrom - 16.46) < 1e-10
-        assert abs(f['trajectory/pos'][offset+1,2]/angstrom - [1.2991E+00, 1.2788E+00, -4.1091E+00]).max() < 1e-10
-        assert abs(f['trajectory/vel'][offset+1,3]/angstrom*picosecond - [-1.1137E+01, 7.0935E+00, 1.0432E+01]).max() < 1e-10
-        assert abs(f['trajectory/frc'][offset+1,3]/(amu*angstrom/picosecond**2) - [-4.5523E+03, -2.4187E+03, -3.1966E+03]).max() < 1e-10
+        assert abs(f['trajectory/pos'][offset+1,2]/angstrom - [-6.2693E-03, -2.4735E-02, 1.2793E-02]).max() < 1e-10
+        assert abs(f['trajectory/vel'][offset+1,1]/angstrom*picosecond - [7.0023E-01, -9.6551E+00, -1.1618E+01]).max() < 1e-10
+        assert abs(f['trajectory/frc'][offset+1,2]/(amu*angstrom/picosecond**2) - [7.9765E+03, 3.5419E+01, 2.6775E+03]).max() < 1e-10
 
 
 def test_dlpoly_history_sam():
@@ -67,7 +67,7 @@ def test_dlpoly_history_sam():
         assert get_last_trajectory_row(f['trajectory']) == 3+offset
         assert abs(f['trajectory/time'][offset]/picosecond - 0.500) < 1e-10
         assert abs(f['trajectory/time'][offset+1]/picosecond - 0.501) < 1e-10
-        assert f['trajectory/pos'].shape == (3+offset, 1264, 3)
+        assert f['trajectory/pos'].shape == (3+offset, 15, 3)
         assert 'trajectory/vel' not in f
         assert 'trajectory/frc' not in f
 
