@@ -35,7 +35,6 @@ def run_example(workdir, command):
         env['PYTHONPATH'] = rootdir + ':' + env.get('PYTHONPATH', '')
         env['YAFFDATA'] = os.path.join(rootdir, 'data')
     workdir = context.get_fn(workdir)
-    print workdir
     proc = subprocess.Popen(shlex.split(command), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=workdir, env=env)
     outdata, errdata = proc.communicate()
     if proc.returncode != 0:
@@ -48,19 +47,22 @@ def run_example(workdir, command):
         print errdata
         print '+'*80
         assert False
+    fn_clean = os.path.join(workdir, 'clean.sh')
+    if os.path.isfile(fn_clean):
+        assert os.system('cd %s; ./clean.sh &> /dev/null' % workdir) == 0
+
 
 def test_example_000_overview():
     run_example('examples/000_overview', './simulation.py')
 
+
 def test_example_001_tutorial_bks():
-    run_example('examples/001_tutorial_bks/init', './mksystem.py')
-    run_example('examples/001_tutorial_bks/opt', './simulation.py')
-    run_example('examples/001_tutorial_bks/opt', './analysis.py')
-    run_example('examples/001_tutorial_bks/nvt', './simulation.py 300 310')
-    run_example('examples/001_tutorial_bks/nvt', './analysis.py 300 310 10')
+    run_example('examples/001_tutorial_bks', './all.sh')
+
 
 def test_example_002_external_trajectory():
     run_example('examples/002_external_trajectory', './rdf.py')
+
 
 def test_example_999_back_propagation():
     run_example('examples/999_back_propagation', './bp.py')
