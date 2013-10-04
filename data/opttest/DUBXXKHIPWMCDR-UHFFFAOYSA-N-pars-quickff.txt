@@ -1,0 +1,146 @@
+# Bond stretch
+# ============
+
+# Mathematical form depends on the kind selected below. Few kinds are supported:
+# - BONDHARM: 0.5*K*(r-R0)**2
+# - BONDFUES: 0.5*K*R0**2*(1+(R0/r)*((R0/r)-2.0))
+
+# The actual parameters and their units may depend on the kind.
+BONDHARM:UNIT K kjmol/angstrom**2
+BONDHARM:UNIT R0 angstrom
+
+# -----------------------------------------------------------------
+# KEY         ffatype0 ffatype1  K                 R0
+# -----------------------------------------------------------------
+BONDHARM:PARS C3_c2_n1    C3_c3  3.0778119976e+03  1.4099355533e+00
+BONDHARM:PARS C3_c2_n1    C4_c1  2.4500695187e+03  1.4907669553e+00
+BONDHARM:PARS C3_c2_n1    N2_cn  3.7742731278e+03  1.3405987743e+00
+BONDHARM:PARS C3_c2_n1 N3_c1_n1_o1  3.0943978789e+03  1.3489218274e+00
+BONDHARM:PARS    C3_c3    C4_c1  2.3625608337e+03  1.4961193938e+00
+BONDHARM:PARS    C4_c1     H1_c  2.9695085861e+03  1.0950286130e+00
+BONDHARM:PARS    C4_o1     H1_c  3.0397616103e+03  1.0906525303e+00
+BONDHARM:PARS    C4_o1    O2_cn  1.9832771585e+03  1.4405114143e+00
+BONDHARM:PARS    N2_cn N3_c1_n1_o1  2.9145617241e+03  1.3674122313e+00
+BONDHARM:PARS N3_c1_n1_o1    O2_cn  2.8562148053e+03  1.3797706026e+00
+
+# Angle bending
+# =============
+
+# Mathematical form depends on the kind selected below. Few kinds are supported:
+# - BENDAHARM: 0.5*K*(theta-THETA0)**2
+# - BENDCHARM: 0.5*K*(cos(theta)-cos(THETA0))**2
+# - UBHARM: 0.5*K*(r-R0)**2
+# where theta is the bending angle and r is the distance between the non-bonded
+# pair of atoms.
+
+# The actual parameters and their units may depend on the kind.
+BENDAHARM:UNIT K kjmol/rad**2
+BENDAHARM:UNIT THETA0 deg
+
+# ---------------------------------------------------------------------------
+# KEY          ffatype0 ffatype1 ffatype2  K                 THETA0/COS0/R0
+# ---------------------------------------------------------------------------
+BENDAHARM:PARS C3_c2_n1    C3_c3 C3_c2_n1  5.6219904828e+02  1.0543480444e+02
+BENDAHARM:PARS C3_c2_n1    C3_c3    C4_c1  4.2480617637e+02  1.2727856078e+02
+BENDAHARM:PARS C3_c2_n1    C4_c1     H1_c  3.1024332852e+02  1.1073206447e+02
+BENDAHARM:PARS C3_c2_n1    N2_cn N3_c1_n1_o1  7.6188441844e+02  1.0238637037e+02
+BENDAHARM:PARS C3_c2_n1 N3_c1_n1_o1    N2_cn  4.5704004060e+02  1.1511155044e+02
+BENDAHARM:PARS C3_c2_n1 N3_c1_n1_o1    O2_cn  3.9758316126e+02  1.2554417304e+02
+BENDAHARM:PARS    C3_c3 C3_c2_n1    C4_c1  3.5985789331e+02  1.3042499349e+02
+BENDAHARM:PARS    C3_c3 C3_c2_n1    N2_cn  6.7359093898e+02  1.1211221924e+02
+BENDAHARM:PARS    C3_c3 C3_c2_n1 N3_c1_n1_o1  5.9351840238e+02  1.0525856217e+02
+BENDAHARM:PARS    C3_c3    C4_c1     H1_c  2.9080896041e+02  1.1172435386e+02
+BENDAHARM:PARS    C4_c1 C3_c2_n1    N2_cn  2.8027735786e+02  1.1923768004e+02
+BENDAHARM:PARS    C4_c1 C3_c2_n1 N3_c1_n1_o1  4.8725794939e+02  1.2223171815e+02
+BENDAHARM:PARS    C4_o1    O2_cn N3_c1_n1_o1  7.2636422980e+02  1.1069088197e+02
+BENDAHARM:PARS     H1_c    C4_c1     H1_c  2.5129621341e+02  1.0777917166e+02
+BENDAHARM:PARS     H1_c    C4_o1     H1_c  2.3888223619e+02  1.1037996360e+02
+BENDAHARM:PARS     H1_c    C4_o1    O2_cn  3.8303095993e+02  1.0849909051e+02
+BENDAHARM:PARS    N2_cn N3_c1_n1_o1    O2_cn  6.3851584565e+02  1.1884508816e+02
+
+# Torsional terms
+# ===============
+
+# The following mathemetical for is supported:
+#  - TORSION:   0.5*A*(1-COS(M*(PHI-PHI0)))
+#  - TORSCHARM: 0.5*A*(COS(PHI)-COS0)**2
+
+# The actual parameters and their units may depend on the kind.
+TORSION:UNIT A kjmol
+TORSION:UNIT PHI0 deg
+TORSCHARM:UNIT A kjmol
+TORSCHARM:UNIT COS0 au
+
+# -------------------------------------------------------------------------------------
+# KEY          ffatype0 ffatype1 ffatype2 ffatype4  M  A                 PHI0/COS0
+# -------------------------------------------------------------------------------------
+TORSION:PARS   C3_c2_n1    C3_c3 C3_c2_n1    C4_c1  2  4.1513670034e+01  0.0000000000e+00
+TORSION:PARS   C3_c2_n1    C3_c3 C3_c2_n1    N2_cn  2  1.5059430440e-13  0.0000000000e+00
+TORSION:PARS   C3_c2_n1    C3_c3 C3_c2_n1 N3_c1_n1_o1  2  1.3604993565e+02  0.0000000000e+00
+TORSION:PARS   C3_c2_n1    N2_cn N3_c1_n1_o1    O2_cn  2  3.6183655010e+01  0.0000000000e+00
+TORSION:PARS   C3_c2_n1 N3_c1_n1_o1    N2_cn C3_c2_n1  2  2.7093007638e+01  0.0000000000e+00
+TORSION:PARS   C3_c2_n1 N3_c1_n1_o1    O2_cn    C4_o1  3  3.4375469109e-14  0.0000000000e+00
+TORSION:PARS      C3_c3 C3_c2_n1    N2_cn N3_c1_n1_o1  2  1.5769459495e+02  0.0000000000e+00
+TORSION:PARS      C3_c3 C3_c2_n1 N3_c1_n1_o1    N2_cn  2  9.9718681837e-15  0.0000000000e+00
+TORSION:PARS      C3_c3 C3_c2_n1 N3_c1_n1_o1    O2_cn  2 -2.8329311549e-15  0.0000000000e+00
+TORSION:PARS      C4_c1 C3_c2_n1    N2_cn N3_c1_n1_o1  2  4.0378284083e+01  0.0000000000e+00
+TORSION:PARS      C4_c1 C3_c2_n1 N3_c1_n1_o1    N2_cn  2  1.2214185223e+01  0.0000000000e+00
+TORSION:PARS      C4_c1 C3_c2_n1 N3_c1_n1_o1    O2_cn  2 -3.8114040699e-14  0.0000000000e+00
+TORSION:PARS      C4_c1    C3_c3 C3_c2_n1    C4_c1  2  8.4059852723e+00  0.0000000000e+00
+TORSION:PARS      C4_c1    C3_c3 C3_c2_n1    N2_cn  2  6.2813715591e+01  0.0000000000e+00
+TORSION:PARS      C4_c1    C3_c3 C3_c2_n1 N3_c1_n1_o1  2  9.0716091729e-15  0.0000000000e+00
+TORSION:PARS      C4_o1    O2_cn N3_c1_n1_o1    N2_cn  3 -4.4454005654e-14  6.0000000000e+01
+TORSION:PARS       H1_c    C4_c1 C3_c2_n1    N2_cn  3  5.0768712637e+00  0.0000000000e+00
+TORSION:PARS       H1_c    C4_c1 C3_c2_n1 N3_c1_n1_o1  3  1.4327349888e+00  6.0000000000e+01
+TORSION:PARS       H1_c    C4_o1    O2_cn N3_c1_n1_o1  3  1.0704416728e+01  6.0000000000e+01
+
+# Out-of-plane terms
+# ===============
+
+# The following mathemetical for is supported:
+#  - OPDIST: 0.5*K*(d - d0)^2
+
+# The actual parameters and their units may depend on the kind.
+OOPDIST:UNIT K kjmol/angstrom**2
+OOPDIST:UNIT D0 angstrom
+
+# -------------------------------------------------------------------------------------
+# KEY        ffatype0 ffatype1 ffatype2 ffatype4  K                 D0
+# -------------------------------------------------------------------------------------
+OOPDIST:PARS C3_c2_n1 C3_c2_n1    C4_c1    C3_c3  3.2673710959e+02 -1.7988060454e-03
+OOPDIST:PARS C3_c2_n1    N2_cn    O2_cn N3_c1_n1_o1 -1.5166421095e-13  8.4044725410e-02
+OOPDIST:PARS    C3_c3    C4_c1    N2_cn C3_c2_n1  4.3848695666e+01  1.0865637056e-03
+OOPDIST:PARS    C3_c3    C4_c1 N3_c1_n1_o1 C3_c2_n1  3.9140146652e+02  4.4178685205e-03
+
+# Fixed charges
+# =============
+
+# Mathematical form: q_A = q_0A + sum'_B p_BA
+# where q0_A is the reference charge of atom A. It is mostly zero, sometimes a
+# non-zero integer. The total charge of a fragment is the sum of all reference
+# charges. The parameter p_BA is the charge transfered from B to A. Such charge
+# transfers are only carried out over bonds in the FF topology.
+# The charge on an atom is modeled as a Gaussian distribution. The spread on the
+# Gaussian is called the radius R. When the radius is set to zero, point charges
+# will be used instead of smeared charges.
+
+FIXQ:UNIT Q0 e
+FIXQ:UNIT P e
+FIXQ:UNIT R angstrom
+FIXQ:SCALE 1 1.0
+FIXQ:SCALE 2 1.0
+FIXQ:SCALE 3 1.0
+FIXQ:DIELECTRIC 1.0
+
+# Atomic parameters
+# ----------------------------------------------------
+# KEY        label  Q_0A              R_A
+# ----------------------------------------------------
+FIXQ:ATOM    O2_cn -0.2119876911  0.0000000000e+00
+FIXQ:ATOM N3_c1_n1_o1  0.3611799445  0.0000000000e+00
+FIXQ:ATOM    N2_cn -0.5049363913  0.0000000000e+00
+FIXQ:ATOM    C3_c3 -0.1022848731  0.0000000000e+00
+FIXQ:ATOM C3_c2_n1  0.1810195780  0.0000000000e+00
+FIXQ:ATOM    C4_c1 -0.1642306714  0.0000000000e+00
+FIXQ:ATOM    C4_o1  0.0346550846  0.0000000000e+00
+FIXQ:ATOM     H1_c  0.0461563028  0.0000000000e+00

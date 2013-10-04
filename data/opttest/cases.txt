@@ -32,7 +32,7 @@ case alpha_quartz_distorted_cartesian
     energy -16864.0
     gpos_rms 1e-6
 
-case merlonite_fragment_overboned
+case merlonite_fragment_overbonded
     system opttest/merlonite_fragment_overbonded.chk
     forcefield opttest/merlonite_debug.pot
     dof cartesian
@@ -47,3 +47,57 @@ case merlonite_fragment
     maxiter 835
     energy 31238
     gpos_rms 1e-5
+
+case steven-quickff-DUB
+    system opttest/DUBXXKHIPWMCDR-UHFFFAOYSA-N.chk
+    forcefield opttest/DUBXXKHIPWMCDR-UHFFFAOYSA-N-pars-quickff.txt
+    dof cartesian
+    maxiter 600
+    energy -374
+    gpos_rms 1e-8
+    neg_hessian_evals 0
+
+case steven-quickff-GZL
+    system opttest/GZLNXARBGMAZKZ-KVFPUHGPSA-N.chk
+    forcefield opttest/GZLNXARBGMAZKZ-KVFPUHGPSA-N-pars-quickff.txt
+    dof cartesian
+    maxiter 100
+    energy 148
+    gpos_rms 1e-8
+    neg_hessian_evals 1
+
+case steven-quickff-JQW
+    system opttest/JQWBTFGGAKGQPA-UHFFFAOYSA-N.chk
+    forcefield opttest/JQWBTFGGAKGQPA-UHFFFAOYSA-N-pars-quickff.txt
+    dof cartesian
+    maxiter 100
+    energy -1629
+    gpos_rms 1e-8
+    neg_hessian_evals 2
+
+case steven-quickff-QRM
+    system opttest/QRMPKOFEUHIBNM-ZKCHVHJHSA-N.chk
+    forcefield opttest/QRMPKOFEUHIBNM-ZKCHVHJHSA-N-pars-quickff.txt
+    dof cartesian
+    maxiter 100
+    energy -49
+    gpos_rms 1e-8
+    neg_hessian_evals 2
+
+case steven-quickff-WFZ
+    system opttest/WFZUBZAEFXETBF-UHFFFAOYSA-N.chk
+    forcefield opttest/WFZUBZAEFXETBF-UHFFFAOYSA-N-pars-quickff.txt
+    dof cartesian
+    maxiter 286
+    energy -447
+    gpos_rms 1e-8
+    neg_hessian_evals 0
+
+case steven-quickff-ZPJ
+    system opttest/ZPJJOVNASWLIRQ-UHFFFAOYSA-N.chk
+    forcefield opttest/ZPJJOVNASWLIRQ-UHFFFAOYSA-N-pars-quickff.txt
+    dof cartesian
+    maxiter 200
+    energy -352
+    gpos_rms 1e-8
+    neg_hessian_evals 1

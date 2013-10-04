@@ -24,7 +24,8 @@
 #--
 
 
-import sys, argparse, traceback
+import sys, argparse, traceback, numpy as np
+from fnmatch import fnmatch
 from yaff import *
 
 
@@ -55,6 +56,7 @@ fields = {
     'energy': (True, (lambda s: float(s)*kjmol)),
     'dof': (True, {'cartesian': CartesianDOF, 'strain': StrainCellDOF}),
     'gpos_rms': (False, float),
+    'neg_hessian_evals': (False, int),
 }
 
 
@@ -106,9 +108,9 @@ def load_cases(fn, select_title=None):
                 raise NotImplementedError
 
     if select_title is not None:
-        if select_title not in cases_data:
+        cases_data = dict((name, args) for name, args in cases_data.iteritems() if fnmatch(name, select_title))
+        if len(cases_data) == 0:
             raise ValueError('Could not find test case \'%s\'.' % select_title)
-        cases_data = {select_title: cases_data[select_title]}
 
     # 3) Make Case objects
     cases = []
@@ -125,28 +127,39 @@ def load_cases(fn, select_title=None):
         dof = args['dof'](ff, **dof_args)
         maxiter = args['maxiter']
         energy = args['energy']
-        case = Case(title, ff, dof, maxiter, energy)
+        neg_hessian_evals = args.get('neg_hessian_evals', None)
+        case = Case(title, ff, dof, maxiter, energy, neg_hessian_evals)
         cases.append(case)
 
     return cases
 
 
 class Case(object):
-    def __init__(self, title, ff, dof, maxiter, energy):
+    def __init__(self, title, ff, dof, maxiter, energy, neg_hessian_evals):
         self.title = title
         self.ff = ff
         self.dof = dof
         self.maxiter = maxiter
         self.energy = energy
+        self.neg_hessian_evals = neg_hessian_evals
 
     def run(self, verbose, xyz):
-        self._optimize(verbose, xyz)
-        self._report()
-
-    def _optimize(self, verbose, xyz):
         if not verbose:
             output = open('/dev/null', 'w')
             log.set_file(output)
+
+        self._optimize(verbose, xyz)
+        if self.neg_hessian_evals is not None:
+            self._check_hessian()
+
+        if not verbose:
+            log.set_file(sys.stdout)
+            output.close()
+
+        self._report()
+
+    def _optimize(self, verbose, xyz):
+        self.ff.system.pos *= np.random.uniform(0.99, 1.01, self.ff.system.pos.shape)
         try:
             hooks = []
             if xyz:
@@ -158,10 +171,45 @@ class Case(object):
             traceback.print_exc()
             self.error = True
             pass
-        if not verbose:
-            log.set_file(sys.stdout)
-            output.close()
+        self.energy = self.ff.energy
+        self.gpos = self.ff.gpos
         self.niter = opt.counter
+
+    def _check_hessian(self):
+        if self.ff.system.cell.nvec != 0:
+            # external rotations should be implemented properly for periodic systems.
+            # 1D -> one external rotation, 2D and 3D -> no external rotation
+            raise NotImplementedError('The hessian test is only working for isolated systems')
+        # compute hessian
+        hessian = estimate_cart_hessian(self.ff)
+        # construct basis of external/internal degrees (rows)
+        x, y, z = self.ff.system.pos.T
+        natom = self.ff.system.natom
+        ext_basis = np.array([
+            [1.0, 0.0, 0.0]*natom,
+            [0.0, 1.0, 0.0]*natom,
+            [0.0, 0.0, 1.0]*natom,
+            # TODO: this assumes geometry is centered for good conditioning
+            np.ravel(np.array([np.zeros(natom), z, -y]).T),
+            np.ravel(np.array([-z, np.zeros(natom), x]).T),
+            np.ravel(np.array([y, -x, np.zeros(natom)]).T),
+        ]).T
+        u, s, vt = np.linalg.svd(ext_basis, full_matrices=True)
+        rank = (s > s.max()*1e-10).sum() # for linear and
+        int_basis = u[:,rank:]
+        # project hessian
+        int_hessian = np.dot(int_basis.T, np.dot(hessian, int_basis))
+        evals = np.linalg.eigvalsh(int_hessian)
+        self.num_neg_evals = (evals < 0).sum()
+        # call tamkin as double check
+        import tamkin
+        system = self.ff.system
+        mol = tamkin.Molecule(system.numbers, system.pos, system.masses, self.energy, self.gpos, hessian)
+        nma = tamkin.NMA(mol, tamkin.ConstrainExt())
+        invcm = lightspeed/centimeter
+        #print nma.freqs/invcm
+        self.num_neg_evals = (nma.freqs < 0).sum()
+
 
     def _report(self):
         if self.error:
@@ -170,9 +218,16 @@ class Case(object):
             self.status = 'FAILED'
         elif self.ff.energy > self.energy:
             self.status = 'HIGH-ENERGY'
+        elif self.neg_hessian_evals is not None and self.num_neg_evals != self.neg_hessian_evals:
+            self.status = 'HESSIAN'
         else:
             self.status = 'SUCCESS'
-        log('%s %11s %5i %10s' % (self.title.ljust(43), self.status, self.niter, log.energy(self.ff.energy)))
+        log('%s %11s %5i %10s %3s' % (
+            self.title.ljust(39),
+            self.status, self.niter,
+            log.energy(self.energy),
+            '   ' if self.neg_hessian_evals is None else str(self.num_neg_evals),
+        ))
 
 
 def main():
@@ -180,7 +235,7 @@ def main():
     with log.section('LOAD'):
         cases = load_cases(context.get_fn('opttest/cases.txt'), args.test)
     with log.section('RUN'):
-        log('Case                                             Status #iter     Energy')
+        log('Case                                         Status #iter     Energy Neg')
         log.hline()
         niters = []
         status_counts = {}
