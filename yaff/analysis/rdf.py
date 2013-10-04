@@ -272,7 +272,6 @@ class RDF(AnalysisHook):
             if self.pairs_sr is not None:
                 self.outg['rdf_sr'][:] = self.rdf_sr
 
-
     def plot(self, fn_png='rdf.png'):
         import matplotlib.pyplot as pt
         pt.clf()
