@@ -69,6 +69,8 @@ def get_trajectory_datasets(tgrp, *fields):
     for name, row_shape in fields:
         if name in tgrp:
             ds = tgrp[name]
+            if ds.shape[1:] != row_shape:
+                raise TypeError('The shape of the existing dataset is not compatible with the new data.')
             if log.do_medium:
                 log('Found an existing dataset %s in group %s with %i rows.' % (name, tgrp.name, ds.shape[0]))
         else:
