@@ -30,23 +30,28 @@ from yaff import System, Cell, angstrom
 from common import get_system_water32, get_system_glycine, get_system_quartz, get_system_cyclopropene, get_system_peroxide
 
 
+def compare_water32(system0, system1, eps=0, xyz=False):
+    assert (system0.numbers == system1.numbers).all()
+    assert abs(system0.pos - system1.pos).max() <= eps
+    assert system0.scopes is None
+    assert system1.scopes is None
+    assert system0.scope_ids is None
+    assert system1.scope_ids is None
+    assert (system0.ffatypes == system1.ffatypes).all()
+    assert (system0.ffatype_ids == system1.ffatype_ids).all()
+    if not xyz:
+        assert (system0.bonds == system1.bonds).all()
+        assert abs(system0.cell.rvecs - system1.cell.rvecs).max() <= eps
+        assert abs(system0.charges - system1.charges).max() <= eps
+
+
 def test_chk():
     system0 = get_system_water32()
     dirname = tempfile.mkdtemp('yaff', 'test_chk')
     try:
         system0.to_file('%s/tmp.chk' % dirname)
         system1 = System.from_file('%s/tmp.chk' % dirname)
-        assert (system0.numbers == system1.numbers).all()
-        assert abs(system0.pos - system1.pos).max() < 1e-10
-        assert system0.scopes is None
-        assert system1.scopes is None
-        assert system0.scope_ids is None
-        assert system1.scope_ids is None
-        assert (system0.ffatypes == system1.ffatypes).all()
-        assert (system0.ffatype_ids == system1.ffatype_ids).all()
-        assert (system0.bonds == system1.bonds).all()
-        assert abs(system0.cell.rvecs - system1.cell.rvecs).max() < 1e-10
-        assert abs(system0.charges - system1.charges).max() < 1e-10
+        compare_water32(system0, system1, 1e-10)
     finally:
         shutil.rmtree(dirname)
 
@@ -57,16 +62,7 @@ def test_xyz():
     try:
         system0.to_file('%s/tmp.xyz' % dirname)
         system1 = System.from_file('%s/tmp.xyz' % dirname, rvecs=system0.cell.rvecs, ffatypes=system0.ffatypes, ffatype_ids=system0.ffatype_ids)
-        assert (system0.numbers == system1.numbers).all()
-        assert abs(system0.pos - system1.pos).max() < 1e-10
-        assert system0.scopes is None
-        assert system1.scopes is None
-        assert system0.scope_ids is None
-        assert system1.scope_ids is None
-        assert (system0.ffatypes == system1.ffatypes).all()
-        assert (system0.ffatype_ids == system1.ffatype_ids).all()
-        assert abs(system0.cell.rvecs - system1.cell.rvecs).max() < 1e-10
-        assert system1.charges is None
+        compare_water32(system0, system1, 1e-10, xyz=True)
     finally:
         shutil.rmtree(dirname)
 
@@ -75,11 +71,12 @@ def test_hdf5():
     system0 = get_system_water32()
     dirname = tempfile.mkdtemp('yaff', 'test_hdf5')
     try:
-        #from molmod import Molecule
         fn = '%s/tmp.h5' % dirname
         system0.to_file(fn)
         with h5.File(fn) as f:
             assert 'system' in f
+        system1 = System.from_file(fn)
+        compare_water32(system0, system1)
     finally:
         shutil.rmtree(dirname)
 

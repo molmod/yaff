@@ -422,12 +422,118 @@ class System(object):
                     for key, value in load_chk(fn).iteritems():
                         if key in allowed_keys:
                             kwargs.update({key: value})
+                elif fn.endswith('.h5'):
+                    with h5.File(fn, 'r') as f:
+                        return cls.from_hdf5(f)
                 else:
                     raise IOError('Can not read from file \'%s\'.' % fn)
                 if log.do_high:
                     log('Read system parameters from %s.' % fn)
             kwargs.update(user_kwargs)
         return cls(**kwargs)
+
+    @classmethod
+    def from_hdf5(cls, f):
+        '''Create a system from an HDF5 file/group containing a system group
+
+           **Arguments:**
+
+           f
+                An open h5.File object with a system group. The system group
+                must at least contain a numbers and pos dataset.
+        '''
+        sgrp = f['system']
+        kwargs = {
+            'numbers': sgrp['numbers'][:],
+            'pos': sgrp['pos'][:],
+        }
+        for key in 'scopes', 'scope_ids', 'ffatypes', 'ffatype_ids', 'bonds', 'rvecs', 'charges', 'masses':
+            if key in sgrp:
+                kwargs[key] = sgrp[key][:]
+        if log.do_high:
+            log('Read system parameters from %s.' % f.filename)
+        return cls(**kwargs)
+
+    def to_file(self, fn):
+        """Write the system to a file
+
+           **Arguments:**
+
+           fn
+                The file to write to.
+
+           Supported formats are:
+
+           chk
+                Internal human-readable checkpoint format. This format includes
+                all the information of a system object. All data are stored in
+                atomic units.
+
+           h5
+                Internal binary checkpoint format. This format includes
+                all the information of a system object. All data are stored in
+                atomic units.
+
+           xyz
+                A simple file with atomic positions and elements. Coordinates
+                are written in Angstroms.
+        """
+        if fn.endswith('.chk'):
+            from molmod.io import dump_chk
+            dump_chk(fn, {
+                'numbers': self.numbers,
+                'pos': self.pos,
+                'ffatypes': self.ffatypes,
+                'ffatype_ids': self.ffatype_ids,
+                'scopes': self.scopes,
+                'scope_ids': self.scope_ids,
+                'bonds': self.bonds,
+                'rvecs': self.cell.rvecs,
+                'charges': self.charges,
+                'masses': self.masses,
+            })
+        elif fn.endswith('.h5'):
+            with h5.File(fn, 'w') as f:
+                self.to_hdf5(f)
+        elif fn.endswith('.xyz'):
+            from molmod.io import XYZWriter
+            from molmod.periodic import periodic
+            xyz_writer = XYZWriter(fn, [periodic[n].symbol for n in self.numbers])
+            xyz_writer.dump(str(self), self.pos)
+        else:
+            raise NotImplementedError('The extension of %s does not correspond to any known format.' % fn)
+        if log.do_high:
+            with log.section('SYS'):
+                log('Wrote system to %s.' % fn)
+
+    def to_hdf5(self, f):
+        """Write the system to a HDF5 file.
+
+           **Arguments:**
+
+           f
+                A Writable h5.File object.
+        """
+        if 'system' in f:
+            raise ValueError('The HDF5 file already contains a system description.')
+        sgrp = f.create_group('system')
+        sgrp.create_dataset('numbers', data=self.numbers)
+        sgrp.create_dataset('pos', data=self.pos)
+        if self.scopes is not None:
+            sgrp.create_dataset('scopes', data=self.scopes, dtype='a22')
+            sgrp.create_dataset('scope_ids', data=self.scope_ids)
+        if self.ffatypes is not None:
+            sgrp.create_dataset('ffatypes', data=self.ffatypes, dtype='a22')
+            sgrp.create_dataset('ffatype_ids', data=self.ffatype_ids)
+        if self.bonds is not None:
+            sgrp.create_dataset('bonds', data=self.bonds)
+        if self.cell.nvec > 0:
+            sgrp.create_dataset('rvecs', data=self.cell.rvecs)
+        if self.charges is not None:
+            sgrp.create_dataset('charges', data=self.charges)
+        if self.masses is not None:
+            sgrp.create_dataset('masses', data=self.masses)
+
 
     def get_scope(self, index):
         """Return the of the scope (string) of atom with given index"""
