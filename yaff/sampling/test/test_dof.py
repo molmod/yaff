@@ -72,3 +72,15 @@ def test_check_delta_aniso_cell():
     dof.check_delta(zero=~zero)
     dof = AnisoCellDOF(ff, do_frozen=True)
     dof.check_delta()
+
+
+def test_check_delta_fixedbc_cell():
+    ff = get_ff_bks()
+    dof = FixedBCDOF(ff)
+    dof.check_delta()
+    zero = np.zeros(dof.ndof, dtype=bool)
+    zero[:1] = True
+    dof.check_delta(zero=zero)
+    dof.check_delta(zero=~zero)
+    dof = FixedBCDOF(ff, do_frozen=True)
+    dof.check_delta()

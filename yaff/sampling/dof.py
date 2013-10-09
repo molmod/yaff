@@ -38,7 +38,7 @@ from yaff.log import log
 __all__ = [
     'DOF', 'CartesianDOF', 'BaseCellDOF', 'FullCellDOF', 'StrainCellDOF',
     'FixedVolOrthCellDOF', 'IsoCellDOF', 'AnisoCellDOF', 'ACRatioCellDOF',
-    'ABRatioCellDOF',
+    'ABRatioCellDOF', 'FixedBCDOF',
 ]
 
 
@@ -404,6 +404,64 @@ class FullCellDOF(BaseCellDOF):
         return grvecs.ravel()*self._cell_scale
 
 
+class StrainCellDOF(BaseCellDOF):
+    def get_initial_cellvars(self):
+        cell = self.ff.system.cell
+        if cell.nvec == 0:
+            raise ValueError('A cell optimization requires a system that is periodic.')
+        self.rvecs0 = cell.rvecs.copy()
+        if cell.nvec == 3:
+            return np.array([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        elif cell.nvec == 2:
+            return np.array([1.0, 1.0, 0.0])
+        elif cell.nvec == 1:
+            return np.array([1.0])
+        else:
+            raise NotImplementedError
+
+    def x_to_rvecs(self, x):
+        nvec = self.ff.system.cell.nvec
+        index = (nvec*(nvec+1))/2
+        scales = x[:index]
+        if nvec == 3:
+            deform = np.array([
+                [    scales[0], 0.5*scales[5], 0.5*scales[4]],
+                [0.5*scales[5],     scales[1], 0.5*scales[3]],
+                [0.5*scales[4], 0.5*scales[3],     scales[2]],
+            ])
+        elif nvec == 2:
+            deform = np.array([
+                [    scales[0], 0.5*scales[2]],
+                [0.5*scales[2],     scales[1]],
+            ])
+        elif nvec == 1:
+            deform = np.array([[scales[0]]])
+        else:
+            raise NotImplementedError
+        return np.dot(self.rvecs0, deform), index
+
+    def grvecs_to_gx(self, grvecs):
+        nvec = self.ff.system.cell.nvec
+        gmat = np.dot(self.rvecs0.T, grvecs)
+        if nvec == 3:
+            gscales = np.array([
+                gmat[0, 0], gmat[1, 1], gmat[2, 2],
+                0.5*(gmat[1,2] + gmat[2,1]),
+                0.5*(gmat[2,0] + gmat[0,2]),
+                0.5*(gmat[0,1] + gmat[1,0]),
+            ])
+        elif nvec == 2:
+            gscales = np.array([
+                gmat[0, 0], gmat[1, 1],
+                0.5*(gmat[0,1] + gmat[1,0]),
+            ])
+        elif nvec == 1:
+            gscales = np.array([gmat[0, 0]])
+        else:
+            raise NotImplementedError
+        return gscales
+
+
 class FixedVolOrthCellDOF(BaseCellDOF):
     """
         Orthorombic cell optimizer with a fixed volume. These constraints are
@@ -502,64 +560,6 @@ class FixedVolOrthCellDOF(BaseCellDOF):
         self._last_cell[:] = self._cell[:]
 
 
-class StrainCellDOF(BaseCellDOF):
-    def get_initial_cellvars(self):
-        cell = self.ff.system.cell
-        if cell.nvec == 0:
-            raise ValueError('A cell optimization requires a system that is periodic.')
-        self.rvecs0 = cell.rvecs.copy()
-        if cell.nvec == 3:
-            return np.array([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-        elif cell.nvec == 2:
-            return np.array([1.0, 1.0, 0.0])
-        elif cell.nvec == 1:
-            return np.array([1.0])
-        else:
-            raise NotImplementedError
-
-    def x_to_rvecs(self, x):
-        nvec = self.ff.system.cell.nvec
-        index = (nvec*(nvec+1))/2
-        scales = x[:index]
-        if nvec == 3:
-            deform = np.array([
-                [    scales[0], 0.5*scales[5], 0.5*scales[4]],
-                [0.5*scales[5],     scales[1], 0.5*scales[3]],
-                [0.5*scales[4], 0.5*scales[3],     scales[2]],
-            ])
-        elif nvec == 2:
-            deform = np.array([
-                [    scales[0], 0.5*scales[2]],
-                [0.5*scales[2],     scales[1]],
-            ])
-        elif nvec == 1:
-            deform = np.array([[scales[0]]])
-        else:
-            raise NotImplementedError
-        return np.dot(self.rvecs0, deform), index
-
-    def grvecs_to_gx(self, grvecs):
-        nvec = self.ff.system.cell.nvec
-        gmat = np.dot(self.rvecs0.T, grvecs)
-        if nvec == 3:
-            gscales = np.array([
-                gmat[0, 0], gmat[1, 1], gmat[2, 2],
-                0.5*(gmat[1,2] + gmat[2,1]),
-                0.5*(gmat[2,0] + gmat[0,2]),
-                0.5*(gmat[0,1] + gmat[1,0]),
-            ])
-        elif nvec == 2:
-            gscales = np.array([
-                gmat[0, 0], gmat[1, 1],
-                0.5*(gmat[0,1] + gmat[1,0]),
-            ])
-        elif nvec == 1:
-            gscales = np.array([gmat[0, 0]])
-        else:
-            raise NotImplementedError
-        return gscales
-
-
 class AnisoCellDOF(BaseCellDOF):
     def get_initial_cellvars(self):
         cell = self.ff.system.cell
@@ -589,6 +589,37 @@ class IsoCellDOF(BaseCellDOF):
 
     def grvecs_to_gx(self, grvecs):
         return (grvecs*self.rvecs0).sum()
+
+
+class FixedBCDOF(BaseCellDOF):
+    """
+    This cell optimization constrains the cell in the y and z direction to the
+    original values, but allows expansion and contraction in the x direction.
+    The system should be rotated such that the initial cell vectors look like:
+        a = ( ax , 0  , 0  )
+        b = ( 0  , by , bz )
+        c = ( 0  , cy , cz )
+    During optimization, only ax will be allowed to change.
+    This type of constraint can be used when looking at a structure that is
+    periodic only in one dimension, but you have to fake a 3D structure to
+    be able to use Ewald summation
+    """
+    def get_initial_cellvars(self):
+        cell = self.ff.system.cell
+        if cell.nvec != 3:
+            raise ValueError('A FixedBC optimization requires a 3D periodic cell.')
+        self.rvecs0 = cell.rvecs.copy()
+        return np.ones(1, float)
+
+    def x_to_rvecs(self, x):
+        #Copy original rvecs
+        rvecs = self.rvecs0.copy()
+        #Update value for ax
+        rvecs[0,0] = x[0]*rvecs[0,0]
+        return rvecs, 1
+
+    def grvecs_to_gx(self, grvecs):
+        return (grvecs*self.rvecs0)[0,0]
 
 
 class ACRatioCellDOF(BaseCellDOF):
