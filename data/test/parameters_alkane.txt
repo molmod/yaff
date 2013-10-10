@@ -1,0 +1,18 @@
+# All numbers are just a guess!
+
+BONDFUES:UNIT K kjmol/angstrom**2
+BONDFUES:UNIT R0 angstrom
+BONDFUES:PARS C H  4000.0  1.1
+BONDFUES:PARS C C  3000.0  1.54
+
+BENDCHARM:UNIT K kjmol
+BENDCHARM:UNIT COS0 1
+BENDCHARM:PARS        H        C        H  300.0  -0.33
+BENDCHARM:PARS        C        C        H  300.0  -0.33
+BENDCHARM:PARS        C        C        C  300.0  -0.33
+
+TORSION:UNIT A kjmol
+TORSION:UNIT PHI0 deg
+TORSION:PARS C C C C 3 10.0 180.0
+TORSION:PARS H C C C 3  7.0 180.0
+TORSION:PARS H C C H 3  5.0 180.0

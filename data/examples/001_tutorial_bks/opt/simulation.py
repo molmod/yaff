@@ -108,14 +108,14 @@ hdf5 = HDF5Writer(f)
 #   of the nuclear gradient vector drops below this threshold, the optimization
 #   may be converged. (Several other criteria are also implicitly used.)
 #
-# gcell_rms=1e-6
+# grvecs_rms=1e-6
 #   Similar to previous, but now for the derivative of the energy towards the
 #   components of the cell vectors.
 #
 # hooks
 #   A list of extra 'things' that need to be done during the opmization. In this
 #   case, just the generation of trajectory files.
-opt = CGOptimizer(StrainCellDOF(ff, gpos_rms=1e-6, gcell_rms=1e-6), hooks=[xyz, hdf5])
+opt = CGOptimizer(StrainCellDOF(ff, gpos_rms=1e-6, grvecs_rms=1e-6), hooks=[xyz, hdf5])
 
 # Run the optimizer for at most 500 steps. (This should be enough.)
 opt.run(500)

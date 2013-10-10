@@ -37,9 +37,11 @@ from yaff.log import log
 
 __all__ = [
     'DOF', 'CartesianDOF', 'BaseCellDOF', 'FullCellDOF', 'StrainCellDOF',
-    'FixedVolOrthCellDOF', 'IsoCellDOF', 'AnisoCellDOF', 'ACRatioCellDOF',
-    'ABRatioCellDOF', 'FixedBCDOF',
+    'IsoCellDOF', 'AnisoCellDOF', 'FixedBCDOF', 'FixedVolOrthoCellDOF',
 ]
+
+
+# TODO: clearly separate public and private API
 
 
 class DOF(object):
@@ -56,6 +58,7 @@ class DOF(object):
         self._gx = np.zeros(self.ndof, float)
 
     def _init_initial(self):
+        """Set the initial value of the unknowns in x0"""
         raise NotImplementedError
 
     ndof = property(lambda self: len(self.x0))
@@ -80,7 +83,11 @@ class DOF(object):
 
 
 class CartesianDOF(DOF):
-    """Cartesian degrees of freedom for the optimizers"""
+    """Cartesian degrees of freedom
+
+       This DOF is also applicable to periodic systems. Cell parameters are not
+       modified when this DOF is used.
+    """
     def __init__(self, ff, gpos_rms=1e-5, dpos_rms=1e-3, select=None):
         """
            **Arguments:**
@@ -100,8 +107,8 @@ class CartesianDOF(DOF):
                 threshold, where N is the number of degrees of freedom.
 
            select
-                A selection of atoms for which the hessian must be computed. If not
-                given, the entire hessian is computed.
+                A selection of atoms whose degrees of freedom are included. If
+                not list is given, all atomic coordinates are included.
 
            **Convergence conditions:**
 
@@ -119,12 +126,14 @@ class CartesianDOF(DOF):
         self._last_pos = None
 
     def _init_initial(self):
-        """Return the initial value of the unknowns"""
+        """Set the initial value of the unknowns in x0"""
         if self.select is None:
             self.x0 = self.ff.system.pos.ravel().copy()
         else:
             self.x0 = self.ff.system.pos[self.select].ravel().copy()
+        # Keep a copy of the current positions for later use
         self._pos = self.ff.system.pos.copy()
+        # Allocate arrays for atomic displacements and gradients
         self._dpos = np.zeros(self.ff.system.pos.shape, float)
         self._gpos = np.zeros(self.ff.system.pos.shape, float)
 
@@ -202,8 +211,37 @@ class CartesianDOF(DOF):
 
 
 class BaseCellDOF(DOF):
-    """Fractional coordinates and cell parameters"""
-    def __init__(self, ff, gpos_rms=1e-5, dpos_rms=1e-3, gcell_rms=1e-5, dcell_rms=1e-3, do_frozen=False):
+    """Fractional coordinates and cell parameters
+
+       Several subclasses of BaseCellDOF are implemented below. Each one
+       considers a specific representation and subset of the cell parameters.
+
+       The following variable names are consistently used (also in subclasses):
+
+       cellvars
+            An array with all variables for the cell (specific for ja BaseCellDOF
+            subclass).
+
+       ncellvar
+            The number of cellvars (at most 9).
+
+       celldofs
+            A selection of the elements in cellvars, based on freemask.
+
+       ncelldof
+            The number of celldofs (less than or equal to ncellvar).
+
+       frac
+            Fractional coordinates.
+
+       x
+            All degrees of freedom, i.e. celldofs and frac (in that order, frac
+            is optional).
+
+       The suffix 0
+            Used for initial values of something.
+    """
+    def __init__(self, ff, gpos_rms=1e-5, dpos_rms=1e-3, grvecs_rms=1e-5, drvecs_rms=1e-3, do_frozen=False, freemask=None):
         """
            **Arguments:**
 
@@ -212,7 +250,7 @@ class BaseCellDOF(DOF):
 
            **Optional arguments:**
 
-           gpos_rms, dpos_rms, gcell_rms, dcell_rms
+           gpos_rms, dpos_rms, grvecs_rms, drvecs_rms
                 Thresholds that define the convergence. If all of the actual
                 values drop below these thresholds, the minimizer stops.
 
@@ -225,6 +263,10 @@ class BaseCellDOF(DOF):
                 When True, the fractional coordinates of the atoms are kept
                 fixed.
 
+           freemask
+                When given, this must be an array of booleans indicating which
+                cellvars are free. At least one cellvar must be free.
+
            **Convergence conditions:**
 
            gpos_rms
@@ -234,50 +276,101 @@ class BaseCellDOF(DOF):
                 The root-mean-square of the norm of the displacements of the
                 atoms.
 
-           gcell_rms
+           grvecs_rms
                 The root-mean-square of the norm of the gradients of the cell
                 vectors.
 
-           dcell_rms
+           drvecs_rms
                 The root-mean-square of the norm of the displacements of the
                 cell vectors.
         """
+        if freemask is not None:
+            if not (isinstance(freemask, np.ndarray) and
+                    issubclass(freemask.dtype.type, np.bool_) and
+                    len(freemask.shape)==1 and
+                    freemask.sum() > 0):
+                raise TypeError('When given, freemask must be a vector of booleans.')
         self.th_gpos_rms = gpos_rms
         self.th_dpos_rms = dpos_rms
-        self.th_gcell_rms = gcell_rms
-        self.th_dcell_rms = dcell_rms
+        self.th_grvecs_rms = grvecs_rms
+        self.th_drvecs_rms = drvecs_rms
         self.do_frozen = do_frozen
+        self.freemask = freemask
         DOF.__init__(self, ff)
         self._last_pos = None
-        self._last_cell = None
+        self._last_rvecs = None
+
+    def _get_ncellvar(self):
+        '''The number of cellvars'''
+        return len(self.cellvars0)
+
+    ncellvar = property(_get_ncellvar)
+
+    def _get_ncelldof(self):
+        '''The number of celldofs (free cellvars)'''
+        if self.freemask is None:
+            return len(self.cellvars0)
+        else:
+            return self.freemask.sum()
+
+    ncelldof = property(_get_ncelldof)
+
+    def _reduce_cellvars(self, cellvars):
+        if self.freemask is None:
+            return cellvars
+        else:
+            return cellvars[self.freemask]
+
+    def _expand_celldofs(self, celldofs):
+        if self.freemask is None:
+            return celldofs
+        else:
+            cellvars = self.cellvars0.copy()
+            cellvars[self.freemask] = celldofs
+            return cellvars
+
+    def _isfree(self, icellvar):
+        '''Returns a boolean indicating that a given cellvar is free (True) or not (False).'''
+        if self.freemask is None:
+            return True
+        else:
+            return self.freemask[icellvar]
 
     def _init_initial(self):
-        """Return the initial value of the unknowns"""
-        cellvars = self.get_initial_cellvars()
-        frac = np.dot(self.ff.system.pos, self.ff.system.cell.gvecs.T)
+        """Set the initial value of the unknowns in x0"""
+        self.cellvars0 = self._get_initial_cellvars()
+        if self.freemask is not None and len(self.freemask) != self.ncellvar:
+            raise TypeError('The length of the freemask vector (%i) does not '
+                            'match the number of cellvars (%i).' % (
+                            len(self.freemask), len(self.cellvars0)))
+        celldofs0 = self._reduce_cellvars(self.cellvars0)
+        gvecs_full = self.ff.system.cell._get_gvecs(full=True)
+        frac = np.dot(self.ff.system.pos, gvecs_full.T)
         if self.do_frozen:
-            self.x0 = cellvars
-            self.frac0 = frac
+            self.x0 = celldofs0
+            # keep the initial fractional coordinates for later use
+            self._frac0 = frac
         else:
-            self.x0 = np.concatenate([cellvars, frac.ravel()])
+            self.x0 = np.concatenate([celldofs0, frac.ravel()])
+        # Also allocate arrays for convergence testing
         self._pos = self.ff.system.pos.copy()
         self._dpos = np.zeros(self.ff.system.pos.shape, float)
         self._gpos = np.zeros(self.ff.system.pos.shape, float)
-        self._cell = self.ff.system.cell.rvecs.copy()
-        self._dcell = np.zeros(self._cell.shape, float)
-        self._vtens = np.zeros(self._cell.shape, float)
-        self._gcell = np.zeros(self._cell.shape, float)
+        self._rvecs = self.ff.system.cell.rvecs.copy()
+        self._dcell = np.zeros(self._rvecs.shape, float)
+        self._vtens = np.zeros((3, 3), float)
+        self._grvecs = np.zeros(self._rvecs.shape, float)
 
     def _update(self, x):
-        self._cell, index = self.x_to_rvecs(x)
+        self._rvecs = self._cellvars_to_rvecs(self._expand_celldofs(x[:self.ncelldof]))
+        self.ff.update_rvecs(self._rvecs[:])
+        rvecs_full = self.ff.system.cell._get_rvecs(full=True)
         if self.do_frozen:
-            frac = self.frac0
+            frac = self._frac0
         else:
-            frac = x[index:].reshape(-1,3)
-        self._pos[:] = np.dot(frac, self._cell)
+            frac = x[self.ncelldof:].reshape(-1,3)
+        self._pos[:] = np.dot(frac, rvecs_full)
         self.ff.update_pos(self._pos[:])
-        self.ff.update_rvecs(self._cell[:])
-        return index
 
     def fun(self, x, do_gradient=False):
         """Computes the energy and optionally the gradient.
@@ -285,31 +378,39 @@ class BaseCellDOF(DOF):
            **Arguments:**
 
            x
-                The degrees of freedom
+                All degrees of freedom
 
            **Optional arguments:**
 
            do_gradient
                 When True, the gradient is also returned.
         """
-        index = self._update(x)
+        self._update(x)
         if do_gradient:
             self._gpos[:] = 0.0
             self._vtens[:] = 0.0
             v = self.ff.compute(self._gpos, self._vtens)
-            self._gcell[:] = np.dot(self.ff.system.cell.gvecs, self._vtens)
-            self._gx[:index] = self.grvecs_to_gx(self._gcell)
+            # the derivatives of the energy toward the cell vector components
+            self._grvecs[:] = np.dot(self.ff.system.cell.gvecs, self._vtens)
+            # the derivative of the energy toward the celldofs
+            jacobian = self._get_celldofs_jacobian(x[:self.ncelldof])
+            assert jacobian.shape[0] == self._grvecs.size
+            assert jacobian.shape[1] == self.ncelldof
+            self._gx[:self.ncelldof] = np.dot(self._grvecs.ravel(), jacobian)
+            # project out components from grvecs that are not affected by gcelldofs
+            U, S, Vt = np.linalg.svd(jacobian, full_matrices=False)
+            self._grvecs[:] =  np.dot(U, np.dot(U.T, self._grvecs.ravel())).reshape(-1, 3)
             if not self.do_frozen:
-                self._gx[index:] = np.dot(self._gpos, self._cell.T).ravel()
+                self._gx[self.ncelldof:] = np.dot(self._gpos, self._rvecs.T).ravel()
             return v, self._gx.copy()
         else:
             return self.ff.compute()
 
     def check_convergence(self):
-        # When called for the first time, initialize _last_pos and _last_cell
+        # When called for the first time, initialize _last_pos and _last_rvecs
         if self._last_pos is None:
             self._last_pos = self._pos.copy()
-            self._last_cell = self._cell.copy()
+            self._last_rvecs = self._rvecs.copy()
             self.converged = False
             self.conv_val = 2
             self.conv_worst = 'first_step'
@@ -328,15 +429,15 @@ class BaseCellDOF(DOF):
         self.dpos_max = np.sqrt(dpossq.max())
         self.dpos_rms = np.sqrt(dpossq.mean())
         #
-        gcellsq = (self._gcell**2).sum(axis=1)
-        self.gcell_max = np.sqrt(gcellsq.max())
-        self.gcell_rms = np.sqrt(gcellsq.mean())
-        self._dcell[:] = self._cell
-        self._dcell -= self._last_cell
+        grvecssq = (self._grvecs**2).sum(axis=1)
+        self.grvecs_max = np.sqrt(grvecssq.max())
+        self.grvecs_rms = np.sqrt(grvecssq.mean())
+        self._dcell[:] = self._rvecs
+        self._dcell -= self._last_rvecs
         #
         dcellsq = (self._dcell**2).sum(axis=1)
-        self.dcell_max = np.sqrt(dcellsq.max())
-        self.dcell_rms = np.sqrt(dcellsq.mean())
+        self.drvecs_max = np.sqrt(dcellsq.max())
+        self.drvecs_rms = np.sqrt(dcellsq.mean())
         # Compute a general value that has to go below 1.0 to have convergence.
         conv_vals = []
         if not self.do_frozen and self.th_gpos_rms is not None:
@@ -345,28 +446,19 @@ class BaseCellDOF(DOF):
         if self.th_dpos_rms is not None:
             conv_vals.append((self.dpos_rms/self.th_dpos_rms, 'dpos_rms'))
             conv_vals.append((self.dpos_max/(self.th_dpos_rms*3), 'dpos_max'))
-        if self.th_gcell_rms is not None:
-            conv_vals.append((self.gcell_rms/self.th_gcell_rms, 'gcell_rms'))
-            conv_vals.append((self.gcell_max/(self.th_gcell_rms*3), 'gcell_max'))
-        if self.th_dcell_rms is not None:
-            conv_vals.append((self.dcell_rms/self.th_dcell_rms, 'dcell_rms'))
-            conv_vals.append((self.dcell_max/(self.th_dcell_rms*3), 'dcell_max'))
+        if self.th_grvecs_rms is not None:
+            conv_vals.append((self.grvecs_rms/self.th_grvecs_rms, 'grvecs_rms'))
+            conv_vals.append((self.grvecs_max/(self.th_grvecs_rms*3), 'grvecs_max'))
+        if self.th_drvecs_rms is not None:
+            conv_vals.append((self.drvecs_rms/self.th_drvecs_rms, 'drvecs_rms'))
+            conv_vals.append((self.drvecs_max/(self.th_drvecs_rms*3), 'drvecs_max'))
         if len(conv_vals) == 0:
             raise RuntimeError('At least one convergence criterion must be present.')
         self.conv_val, self.conv_worst = max(conv_vals)
         self.conv_count = sum(int(v>=1) for v, n in conv_vals)
         self.converged = (self.conv_count == 0)
         self._last_pos[:] = self._pos[:]
-        self._last_cell[:] = self._cell[:]
-
-    def get_initial_cellvars(self):
-        raise NotImplementedError
-
-    def x_to_rvecs(self, x):
-        raise NotImplementedError
-
-    def grvecs_to_gx(self, grvecs):
-        raise NotImplementedError
+        self._last_rvecs[:] = self._rvecs[:]
 
     def log(self):
         rvecs = self.ff.system.cell.rvecs
@@ -387,25 +479,84 @@ class BaseCellDOF(DOF):
             log("    %5s = %s" % (angle_names[i], log.angle(angles[i])))
         log("    volume = %s" % log.volume(self.ff.system.cell.volume) )
 
+    def _get_initial_cellvars(self):
+        '''Return the initial values of all cellvars'''
+        raise NotImplementedError
+
+    def _cellvars_to_rvecs(self, cellvars):
+        '''Convert cellvars to cell rvecs'''
+        raise NotImplementedError
+
+    def _get_celldofs_jacobian(self, x):
+        '''Return the jacobian of the function rvecs(celldofs)
+
+           Rows correspond to cell vector components. Collumns correspond to
+           celldofs. There should never be more columns than rows.
+        '''
+        raise NotImplementedError
+
 
 class FullCellDOF(BaseCellDOF):
-    def get_initial_cellvars(self):
+    '''DOF that includes all 9 components of the cell vectors
+
+       The degrees of freedom are rescaled cell vectors ordered in one row:
+
+       * 3D periodic: [a_x/s, a_y/s, a_z/s, b_x/s, b_y/s, b_z/s, c_x/s, c_y/s,
+         c_z/s] where s is the cube root of the initial cell volume such that
+         the cell DOFs become dimensionless.
+
+       * 2D periodic: [a_x/s, a_y/s, a_z/s, b_x/s, b_y/s, b_z/s] where s is the
+         square root of the initial cell surface such that the cell DOFs become
+         dimensionless.
+
+       * 1D periodic: [a_x/s, a_y/s, a_z/s] where s is the length of the initial
+         cell vector such that the cell DOFs become dimensionless.
+    '''
+    def _get_initial_cellvars(self):
         cell = self.ff.system.cell
         if cell.nvec == 0:
             raise ValueError('A cell optimization requires a system that is periodic.')
-        self._cell_scale = cell.volume**(1.0/cell.nvec)
-        return cell.rvecs.ravel()/self._cell_scale
+        self._rvecs_scale = cell.volume**(1.0/cell.nvec)
+        return cell.rvecs.ravel()/self._rvecs_scale
 
-    def x_to_rvecs(self, x):
-        index = self.ff.system.cell.nvec*3
-        return x[:index].reshape(-1,3)*self._cell_scale, index
+    def _cellvars_to_rvecs(self, cellvars):
+        return cellvars.reshape(-1, 3)*self._rvecs_scale
 
-    def grvecs_to_gx(self, grvecs):
-        return grvecs.ravel()*self._cell_scale
+    def _get_celldofs_jacobian(self, x):
+        result = np.identity(self.ncellvar)*self._rvecs_scale
+        if self.freemask is not None:
+            result = result[:,self.freemask]
+        return result
 
 
 class StrainCellDOF(BaseCellDOF):
-    def get_initial_cellvars(self):
+    '''Eliminates rotations of the unit cell. thus six cell parameters are free.
+
+       The degrees of freedom are coefficients in symmetrix matrix
+       transformation, A, that is applied to  the initial cell vectors.
+
+       * 3D periodic: [A_00, A_11, A_22, 2*A_12, 2*A_20, 2*A_01]
+
+       * 2D periodic: [A_00, A_11, 2*A_01]
+
+       * 1D periodic: [A_00]
+
+       Why does this work? Let R be the array with cell vectors as rows. It can
+       always be written as a product,
+
+            R = R_0.F,
+
+       where F is an arbitrary 3x3 matrix. Application of SVD to the matrix F
+       yields:
+
+            R = R_0.U.S.V^T = R_0.U.V^T.V.S.V^T
+
+       Then W=U.V^T is a orthonormal matrix and A=V.S.V^T is a symmetric matrix.
+       The orthonormal matrix W is merely a rotation of the cell vectors, which
+       can be omitted as the internal energy is invariant under such rotations.
+       The symmetric matrix actually deforms the cell and is the part of interest.
+    '''
+    def _get_initial_cellvars(self):
         cell = self.ff.system.cell
         if cell.nvec == 0:
             raise ValueError('A cell optimization requires a system that is periodic.')
@@ -419,10 +570,9 @@ class StrainCellDOF(BaseCellDOF):
         else:
             raise NotImplementedError
 
-    def x_to_rvecs(self, x):
+    def _cellvars_to_rvecs(self, x):
         nvec = self.ff.system.cell.nvec
-        index = (nvec*(nvec+1))/2
-        scales = x[:index]
+        scales = x[:(nvec*(nvec+1))/2]
         if nvec == 3:
             deform = np.array([
                 [    scales[0], 0.5*scales[5], 0.5*scales[4]],
@@ -438,393 +588,218 @@ class StrainCellDOF(BaseCellDOF):
             deform = np.array([[scales[0]]])
         else:
             raise NotImplementedError
-        return np.dot(self.rvecs0, deform), index
+        return np.dot(deform, self.rvecs0)
 
-    def grvecs_to_gx(self, grvecs):
+    def _get_celldofs_jacobian(self, x):
+        cols = []
         nvec = self.ff.system.cell.nvec
-        gmat = np.dot(self.rvecs0.T, grvecs)
         if nvec == 3:
-            gscales = np.array([
-                gmat[0, 0], gmat[1, 1], gmat[2, 2],
-                0.5*(gmat[1,2] + gmat[2,1]),
-                0.5*(gmat[2,0] + gmat[0,2]),
-                0.5*(gmat[0,1] + gmat[1,0]),
-            ])
+            if self._isfree(0):
+                cols.append([self.rvecs0[0,0], self.rvecs0[0,1], self.rvecs0[0,2],
+                             0.0, 0.0, 0.0,
+                             0.0, 0.0, 0.0])
+            if self._isfree(1):
+                cols.append([0.0, 0.0, 0.0,
+                             self.rvecs0[1,0], self.rvecs0[1,1], self.rvecs0[1,2],
+                             0.0, 0.0, 0.0])
+            if self._isfree(2):
+                cols.append([0.0, 0.0, 0.0,
+                             0.0, 0.0, 0.0,
+                             self.rvecs0[2,0], self.rvecs0[2,1], self.rvecs0[2,2]])
+            if self._isfree(3):
+                cols.append([0.0, 0.0, 0.0,
+                             self.rvecs0[2,0]/2, self.rvecs0[2,1]/2, self.rvecs0[2,2]/2,
+                             self.rvecs0[1,0]/2, self.rvecs0[1,1]/2, self.rvecs0[1,2]/2])
+            if self._isfree(4):
+                cols.append([self.rvecs0[2,0]/2, self.rvecs0[2,1]/2, self.rvecs0[2,2]/2,
+                             0.0, 0.0, 0.0,
+                             self.rvecs0[0,0]/2, self.rvecs0[0,1]/2, self.rvecs0[0,2]/2])
+            if self._isfree(5):
+                cols.append([self.rvecs0[1,0]/2, self.rvecs0[1,1]/2, self.rvecs0[1,2]/2,
+                             self.rvecs0[0,0]/2, self.rvecs0[0,1]/2, self.rvecs0[0,2]/2,
+                             0.0, 0.0, 0.0])
         elif nvec == 2:
-            gscales = np.array([
-                gmat[0, 0], gmat[1, 1],
-                0.5*(gmat[0,1] + gmat[1,0]),
-            ])
-        elif nvec == 1:
-            gscales = np.array([gmat[0, 0]])
+            if self._isfree(0):
+                cols.append([self.rvecs0[0,0], self.rvecs0[0,1], self.rvecs0[0,2],
+                             0.0, 0.0, 0.0])
+            if self._isfree(1):
+                cols.append([0.0, 0.0, 0.0,
+                             self.rvecs0[1,0], self.rvecs0[1,1], self.rvecs0[1,2]])
+            if self._isfree(2):
+                cols.append([self.rvecs0[1,0]/2, self.rvecs0[1,1]/2, self.rvecs0[1,2]/2,
+                             self.rvecs0[0,0]/2, self.rvecs0[0,1]/2, self.rvecs0[0,2]/2])
         else:
-            raise NotImplementedError
-        return gscales
-
-
-class FixedVolOrthCellDOF(BaseCellDOF):
-    """
-        Orthorombic cell optimizer with a fixed volume. These constraints are
-        implemented by using the following cell vectors:
-
-            a = (  s*a0*la  ,     0     ,      0         )
-            b = (     0     ,  s*b0*lb  ,      0         )
-            c = (     0     ,     0     ,  s*c0/(la*lb)  )
-
-            with s = (V/V0)^(1/3)
-
-    """
-    def __init__(self, ff, volume, gpos_rms=1e-5, dpos_rms=1e-3, gcell_rms=1e-5, dcell_rms=1e-3, do_frozen=False):
-        self.volume = volume
-        BaseCellDOF.__init__(self, ff, gpos_rms=gpos_rms, dpos_rms=dpos_rms, gcell_rms=gcell_rms, dcell_rms=dcell_rms, do_frozen=do_frozen)
-
-    def get_initial_cellvars(self):
-        cell = self.ff.system.cell
-        if cell.nvec != 3:
-            raise ValueError('An FixedVolOrthCell optimization currently requires a 3D periodic cell')
-        self.scale = (self.volume/cell.volume)**(1.0/cell.nvec)
-        self.rvecs0 = cell.rvecs
-        return np.array([1.0, 1.0])
-
-    def x_to_rvecs(self, x):
-        index = 2
-        self.x = x.copy()
-        rvecs = np.zeros([3,3], float)
-        rvecs[0,0] = self.rvecs0[0,0]*x[0]
-        rvecs[1,1] = self.rvecs0[1,1]*x[1]
-        rvecs[2,2] = self.rvecs0[2,2]/(x[0]*x[1])
-        return rvecs*self.scale, index
-
-    def grvecs_to_gx(self, grvecs):
-        gla = self.rvecs0[0,0]*grvecs[0,0] - self.rvecs0[2,2]*grvecs[2,2]/(self.x[0]**2*self.x[1])
-        glb = self.rvecs0[1,1]*grvecs[1,1] - self.rvecs0[2,2]*grvecs[2,2]/(self.x[0]*self.x[1]**2)
-        return np.array([gla, glb])*self.scale
-
-    def check_convergence(self):
-        # When called for the first time, initialize _last_pos and _last_cell
-        if self._last_pos is None:
-            self._last_pos = self._pos.copy()
-            self._last_cell = self._cell.copy()
-            self.converged = False
-            self.conv_val = 2
-            self.conv_worst = 'first_step'
-            self.conv_count = -1
-            return
-        # Compute the values that have to be compared to the thresholds
-        if not self.do_frozen:
-            gpossq = (self._gpos**2).sum(axis=1)
-            self.gpos_max = np.sqrt(gpossq.max())
-            self.gpos_rms = np.sqrt(gpossq.mean())
-            self.gpos_indmax = gpossq.argmax()
-            self._dpos[:] = self._pos
-            self._dpos -= self._last_pos
-            dpossq = (self._dpos**2).sum(axis=1)
-            self.dpos_max = np.sqrt(dpossq.max())
-            self.dpos_rms = np.sqrt(dpossq.mean())
-        #
-        dpossq = (self._dpos**2).sum(axis=1)
-        self.dpos_max = np.sqrt(dpossq.max())
-        self.dpos_rms = np.sqrt(dpossq.mean())
-        #
-        gla = self.rvecs0[0,0]*self._gcell[0,0] - self.rvecs0[2,2]*self._gcell[2,2]/(self.x[0]**2*self.x[1])
-        glb = self.rvecs0[1,1]*self._gcell[1,1] - self.rvecs0[2,2]*self._gcell[2,2]/(self.x[0]*self.x[1]**2)
-        gcellsq = (np.array([gla, glb])*self.scale)**2
-        self.gcell_max = np.sqrt(gcellsq.max())
-        self.gcell_rms = np.sqrt(gcellsq.mean())
-        self._dcell[:] = np.diag(self._cell)
-        self._dcell -= np.diag(self._last_cell)
-        #
-        dcellsq = (self._dcell**2).sum(axis=1)
-        self.dcell_max = np.sqrt(dcellsq.max())
-        self.dcell_rms = np.sqrt(dcellsq.mean())
-        # Compute a general value that has to go below 1.0 to have convergence.
-        conv_vals = []
-        if not self.do_frozen and self.th_gpos_rms is not None:
-            conv_vals.append((self.gpos_rms/self.th_gpos_rms, 'gpos_rms'))
-            conv_vals.append((self.gpos_max/(self.th_gpos_rms*3), 'gpos_max(%i)' %self.gpos_indmax))
-        if self.th_dpos_rms is not None:
-            conv_vals.append((self.dpos_rms/self.th_dpos_rms, 'dpos_rms'))
-            conv_vals.append((self.dpos_max/(self.th_dpos_rms*3), 'dpos_max'))
-        if self.th_gcell_rms is not None:
-            conv_vals.append((self.gcell_rms/self.th_gcell_rms, 'gcell_rms'))
-            conv_vals.append((self.gcell_max/(self.th_gcell_rms*3), 'gcell_max'))
-        if self.th_dcell_rms is not None:
-            conv_vals.append((self.dcell_rms/self.th_dcell_rms, 'dcell_rms'))
-            conv_vals.append((self.dcell_max/(self.th_dcell_rms*3), 'dcell_max'))
-        if len(conv_vals) == 0:
-            raise RuntimeError('At least one convergence criterion must be present.')
-        self.conv_val, self.conv_worst = max(conv_vals)
-        self.conv_count = sum(int(v>=1) for v, n in conv_vals)
-        self.converged = (self.conv_count == 0)
-        self._last_pos[:] = self._pos[:]
-        self._last_cell[:] = self._cell[:]
+            if self._isfree(0):
+                cols.append([self.rvecs0[0,0], self.rvecs0[0,1], self.rvecs0[0,2]])
+        return np.array(cols).T
 
 
 class AnisoCellDOF(BaseCellDOF):
-    def get_initial_cellvars(self):
+    '''Only the lengths of the cell vectors are free. angles are fixed.
+
+       The degrees of freedom are dimensionless scale factors for the cell
+       lengths, using the initial cell vectors as the reference point. (This is
+       one DOF per periodic dimension.)
+    '''
+    def _get_initial_cellvars(self):
         cell = self.ff.system.cell
         if cell.nvec == 0:
             raise ValueError('A cell optimization requires a system that is periodic.')
         self.rvecs0 = cell.rvecs.copy()
         return np.ones(cell.nvec, float)
 
-    def x_to_rvecs(self, x):
-        index = self.ff.system.cell.nvec
-        return self.rvecs0*x[:index].reshape(-1,1), index
+    def _cellvars_to_rvecs(self, x):
+        nvec = self.ff.system.cell.nvec
+        return self.rvecs0*x[:nvec, None]
 
-    def grvecs_to_gx(self, grvecs):
-        return (grvecs*self.rvecs0).sum(axis=1)
+    def _get_celldofs_jacobian(self, x):
+        cols = []
+        nvec = self.ff.system.cell.nvec
+        if nvec == 3:
+            if self._isfree(0):
+                cols.append([self.rvecs0[0,0], self.rvecs0[0,1], self.rvecs0[0,2],
+                             0.0, 0.0, 0.0,
+                             0.0, 0.0, 0.0])
+            if self._isfree(1):
+                cols.append([0.0, 0.0, 0.0,
+                             self.rvecs0[1,0], self.rvecs0[1,1], self.rvecs0[1,2],
+                             0.0, 0.0, 0.0])
+            if self._isfree(2):
+                cols.append([0.0, 0.0, 0.0,
+                             0.0, 0.0, 0.0,
+                             self.rvecs0[2,0], self.rvecs0[2,1], self.rvecs0[2,2]])
+        elif nvec == 2:
+            if self._isfree(0):
+                cols.append([self.rvecs0[0,0], self.rvecs0[0,1], self.rvecs0[0,2],
+                             0.0, 0.0, 0.0])
+            if self._isfree(1):
+                cols.append([0.0, 0.0, 0.0,
+                             self.rvecs0[1,0], self.rvecs0[1,1], self.rvecs0[1,2]])
+        else:
+            if self._isfree(0):
+                cols.append([self.rvecs0[0,0], self.rvecs0[0,1], self.rvecs0[0,2]])
+        return np.array(cols).T
+
 
 
 class IsoCellDOF(BaseCellDOF):
-    def get_initial_cellvars(self):
+    '''The cell is only allowed to undergo isotropic scaling
+
+       The only degree of freedom is an isotropic scaling factor, using the
+       initial cell vectors as a reference.
+    '''
+    def _get_initial_cellvars(self):
         cell = self.ff.system.cell
         if cell.nvec == 0:
             raise ValueError('A cell optimization requires a system that is periodic.')
         self.rvecs0 = cell.rvecs.copy()
         return np.ones(1, float)
 
-    def x_to_rvecs(self, x):
-        return self.rvecs0*x[0], 1
+    def _cellvars_to_rvecs(self, x):
+        return self.rvecs0*x[0]
 
-    def grvecs_to_gx(self, grvecs):
-        return (grvecs*self.rvecs0).sum()
+    def _get_celldofs_jacobian(self, x):
+        cols = []
+        nvec = self.ff.system.cell.nvec
+        if nvec == 3:
+            if self._isfree(0):
+                cols.append([self.rvecs0[0,0], self.rvecs0[0,1], self.rvecs0[0,2],
+                             self.rvecs0[1,0], self.rvecs0[1,1], self.rvecs0[1,2],
+                             self.rvecs0[2,0], self.rvecs0[2,1], self.rvecs0[2,2]])
+        elif nvec == 2:
+            if self._isfree(0):
+                cols.append([self.rvecs0[0,0], self.rvecs0[0,1], self.rvecs0[0,2],
+                             self.rvecs0[1,0], self.rvecs0[1,1], self.rvecs0[1,2]])
+        else:
+            if self._isfree(0):
+                cols.append([self.rvecs0[0,0], self.rvecs0[0,1], self.rvecs0[0,2]])
+        return np.array(cols).T
 
 
 class FixedBCDOF(BaseCellDOF):
+    """A rectangular cell that can only stretch along one axis
+
+       This cell optimization constrains the cell in the y and z direction to the
+       original values, but allows expansion and contraction in the x direction.
+       The system should be rotated such that the initial cell vectors look like::
+
+            a = ( ax , 0  , 0  )
+            b = ( 0  , by , bz )
+            c = ( 0  , cy , cz )
+
+       During optimization, only ax will be allowed to change.
+
+       This type of constraint can be used when looking at a structure that is
+       periodic only in one dimension, but you have to fake a 3D structure to
+       be able to use Ewald summation
     """
-    This cell optimization constrains the cell in the y and z direction to the
-    original values, but allows expansion and contraction in the x direction.
-    The system should be rotated such that the initial cell vectors look like:
-        a = ( ax , 0  , 0  )
-        b = ( 0  , by , bz )
-        c = ( 0  , cy , cz )
-    During optimization, only ax will be allowed to change.
-    This type of constraint can be used when looking at a structure that is
-    periodic only in one dimension, but you have to fake a 3D structure to
-    be able to use Ewald summation
-    """
-    def get_initial_cellvars(self):
+    def _get_initial_cellvars(self):
         cell = self.ff.system.cell
         if cell.nvec != 3:
-            raise ValueError('A FixedBC optimization requires a 3D periodic cell.')
+            raise ValueError('FixedBCDOF requires a 3D periodic cell.')
         self.rvecs0 = cell.rvecs.copy()
+        if not (self.rvecs0[1, 0] == 0.0 and self.rvecs0[0, 1] == 0.0 and
+                self.rvecs0[2, 0] == 0.0 and self.rvecs0[0, 2] == 0.0):
+            raise ValueError('FixedBCDOF requires the follow cell vector components to be zero: ay, az, bx and cx.')
         return np.ones(1, float)
 
-    def x_to_rvecs(self, x):
-        #Copy original rvecs
+    def _cellvars_to_rvecs(self, x):
+        # Copy original rvecs
         rvecs = self.rvecs0.copy()
-        #Update value for ax
+        # Update value for ax
         rvecs[0,0] = x[0]*rvecs[0,0]
-        return rvecs, 1
+        return rvecs
 
-    def grvecs_to_gx(self, grvecs):
-        return (grvecs*self.rvecs0)[0,0]
+    def _get_celldofs_jacobian(self, x):
+        return np.array([[self.rvecs0[0,0], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]).T
 
 
-class ACRatioCellDOF(BaseCellDOF):
+class FixedVolOrthoCellDOF(BaseCellDOF):
+    """Orthorombic cell optimizer with a fixed volume.
+
+       These constraints are implemented by using the following cell vectors::
+
+           a = (  s*a0*la  ,     0     ,      0         )
+           b = (     0     ,  s*b0*lb  ,      0         )
+           c = (     0     ,     0     ,  s*c0/(la*lb)  )
+
+       with s = (V/V0)^(1/3)
     """
-        This is a special constrained cell optimization in which the a and c
-        cell vectors are orthogonal and their length ratio is kept constant.
-        The b cell vector is completely free. These constraints are implemented
-        by using following cell vectors:
+    def __init__(self, ff, volume=None, gpos_rms=1e-5, dpos_rms=1e-3, grvecs_rms=1e-5, drvecs_rms=1e-3, do_frozen=False, freemask=None):
+        '''
+           **Optional arguments (in addition to those of BaseCellDOF):**
 
-            a = (2*D*cos(theta/2) , 0  ,        0         )
-            b = (       bx        , by ,        bz        )
-            c = (       0         , 0  , 2*D*sin(theta/2) )
+           volume
+                The desired volume of the cell. (When not given, the current
+                volume of the system is not altered.)
+        '''
+        self.volume = volume
+        BaseCellDOF.__init__(self, ff, gpos_rms, dpos_rms, grvecs_rms, drvecs_rms, do_frozen, freemask)
 
-        Herein, D is half the length of the diagonal of the ac plane of the unit
-        cell and theta is the angle between the 2 diagonals in the same ac
-        plane. By keeping theta fixed to a user specified value, the ratio of a
-        and c is kept constant.
-    """
-    def __init__(self, ff, theta, gpos_rms=1e-5, dpos_rms=1e-3, gcell_rms=1e-5, dcell_rms=1e-3, do_frozen=False):
-        self.theta = theta
-        BaseCellDOF.__init__(self, ff, gpos_rms=gpos_rms, dpos_rms=dpos_rms, gcell_rms=gcell_rms, dcell_rms=dcell_rms, do_frozen=do_frozen)
-
-    def get_initial_cellvars(self):
+    def _get_initial_cellvars(self):
         cell = self.ff.system.cell
         if cell.nvec != 3:
-            raise ValueError('An ACRatioCell optimization requires a 3D periodic cell')
-        D = np.sqrt(cell.rvecs[0,0]**2 + cell.rvecs[2,2]**2)/2.0
-        self._cell_scale = cell.volume**(1.0/cell.nvec)
-        return np.array([D, cell.rvecs[1,0], cell.rvecs[1,1], cell.rvecs[1,2]])/self._cell_scale
+            raise ValueError('FixedVolOrthCellDOF requires a 3D periodic cell')
+        self.rvecs0 = cell.rvecs.copy()
+        if not (self.rvecs0[1, 0] == 0.0 and self.rvecs0[0, 1] == 0.0 and
+                self.rvecs0[2, 0] == 0.0 and self.rvecs0[0, 2] == 0.0 and
+                self.rvecs0[1, 2] == 0.0 and self.rvecs0[2, 1] == 0.0):
+            raise ValueError('FixedVolOrthCellDOF requires the follow cell vector components to be zero: ay, az, bx, bz, cx and cy.')
+        if self.volume is not None:
+            self.rvecs0 *= (self.volume/cell.volume)**(1.0/3.0)
+        return np.array([1.0, 1.0])
 
-    def x_to_rvecs(self, x):
-        index = 4
-        rvecs_scaled = np.zeros([3,3], float)
-        rvecs_scaled[0,0] = 2.0*x[0]*np.cos(self.theta/2.0)
-        rvecs_scaled[1,:] = x[1:4]
-        rvecs_scaled[2,2] = 2.0*x[0]*np.sin(self.theta/2.0)
-        return rvecs_scaled*self._cell_scale, index
+    def _cellvars_to_rvecs(self, x):
+        rvecs = np.zeros([3,3], float)
+        rvecs[0,0] = self.rvecs0[0,0]*x[0]
+        rvecs[1,1] = self.rvecs0[1,1]*x[1]
+        rvecs[2,2] = self.rvecs0[2,2]/(x[0]*x[1])
+        return rvecs
 
-    def grvecs_to_gx(self, grvecs):
-        gD = 2.0*np.cos(self.theta/2.0)*grvecs[0,0] + 2.0*np.sin(self.theta/2.0)*grvecs[2,2]
-        return np.array([gD, grvecs[1,0], grvecs[1,1], grvecs[1,2]])*self._cell_scale
-
-    def check_convergence(self):
-        # When called for the first time, initialize _last_pos and _last_cell
-        if self._last_pos is None:
-            self._last_pos = self._pos.copy()
-            self._last_cell = self._cell.copy()
-            self.converged = False
-            self.conv_val = 2
-            self.conv_worst = 'first_step'
-            self.conv_count = -1
-            return
-        # Compute the values that have to be compared to the thresholds
-        if not self.do_frozen:
-            gpossq = (self._gpos**2).sum(axis=1)
-            self.gpos_max = np.sqrt(gpossq.max())
-            self.gpos_rms = np.sqrt(gpossq.mean())
-            self.gpos_indmax = gpossq.argmax()
-            self._dpos[:] = self._pos
-            self._dpos -= self._last_pos
-            dpossq = (self._dpos**2).sum(axis=1)
-            self.dpos_max = np.sqrt(dpossq.max())
-            self.dpos_rms = np.sqrt(dpossq.mean())
-        #
-        gD = 2.0*np.cos(self.theta/2.0)*self._gcell[0,0] + 2.0*np.sin(self.theta/2.0)*self._gcell[2,2]
-        gcellsq = np.array([gD**2, self._gcell[1,0]**2, self._gcell[1,1]**2, self._gcell[1,2]**2])
-        self.gcell_max = np.sqrt(gcellsq.max())
-        self.gcell_rms = np.sqrt(gcellsq.mean())
-        self._dcell[:] = self._cell
-        self._dcell -= self._last_cell
-        #
-        dcellsq = (self._dcell**2).sum(axis=1)
-        self.dcell_max = np.sqrt(dcellsq.max())
-        self.dcell_rms = np.sqrt(dcellsq.mean())
-        # Compute a general value that has to go below 1.0 to have convergence.
-        conv_vals = []
-        if not self.do_frozen and self.th_gpos_rms is not None:
-            conv_vals.append((self.gpos_rms/self.th_gpos_rms, 'gpos_rms'))
-            conv_vals.append((self.gpos_max/(self.th_gpos_rms*3), 'gpos_max(%i)' %self.gpos_indmax))
-        if self.th_dpos_rms is not None:
-            conv_vals.append((self.dpos_rms/self.th_dpos_rms, 'dpos_rms'))
-            conv_vals.append((self.dpos_max/(self.th_dpos_rms*3), 'dpos_max'))
-        if self.th_gcell_rms is not None:
-            conv_vals.append((self.gcell_rms/self.th_gcell_rms, 'gcell_rms'))
-            conv_vals.append((self.gcell_max/(self.th_gcell_rms*3), 'gcell_max'))
-        if self.th_dcell_rms is not None:
-            conv_vals.append((self.dcell_rms/self.th_dcell_rms, 'dcell_rms'))
-            conv_vals.append((self.dcell_max/(self.th_dcell_rms*3), 'dcell_max'))
-        if len(conv_vals) == 0:
-            raise RuntimeError('At least one convergence criterion must be present.')
-        self.conv_val, self.conv_worst = max(conv_vals)
-        self.conv_count = sum(int(v>=1) for v, n in conv_vals)
-        self.converged = (self.conv_count == 0)
-        self._last_pos[:] = self._pos[:]
-        self._last_cell[:] = self._cell[:]
-
-    def log(self):
-        lengths, angles = self.ff.system.cell.parameters
-        diag = np.sqrt(lengths[0]**2 + lengths[2]**2)
-        BaseCellDOF.log(self)
-        log(" ")
-        log("- AC plane properties:")
-        log("    AC diagonal length     = %s" % log.length(diag) )
-        log("    AC interdiagonal angle = %s" % log.angle(self.theta) )
-
-class ABRatioCellDOF(BaseCellDOF):
-    """
-        This is a special constrained cell optimization in which the a and b
-        cell vectors are orthogonal and their length ratio is kept constant.
-        The c cell vector is completely free. These constraints are implemented
-        by using following cell vectors:
-
-            a = (2*D*cos(theta/2) ,        0         , 0  )
-            b = (       0         , 2*D*sin(theta/2) , 0  )
-            c = (       cx        ,        cy        , cz )
-
-        Herein, D is half the length of the diagonal of the ab plane of the unit
-        cell and theta is the angle between the 2 diagonals in the same ab
-        plane. By keeping theta fixed to a user specified value, the ratio of a
-        and b is kept constant.
-    """
-    def __init__(self, ff, theta, gpos_rms=1e-5, dpos_rms=1e-3, gcell_rms=1e-5, dcell_rms=1e-3, do_frozen=False):
-        self.theta = theta
-        BaseCellDOF.__init__(self, ff, gpos_rms=gpos_rms, dpos_rms=dpos_rms, gcell_rms=gcell_rms, dcell_rms=dcell_rms, do_frozen=do_frozen)
-
-    def get_initial_cellvars(self):
-        cell = self.ff.system.cell
-        if cell.nvec != 3:
-            raise ValueError('An ABRatioCell optimization requires a 3D periodic cell')
-        D = np.sqrt(cell.rvecs[0,0]**2 + cell.rvecs[1,1]**2)/2.0
-        self._cell_scale = cell.volume**(1.0/cell.nvec)
-        return np.array([D, cell.rvecs[2,0], cell.rvecs[2,1], cell.rvecs[2,2]])/self._cell_scale
-
-    def x_to_rvecs(self, x):
-        index = 4
-        rvecs_scaled = np.zeros([3,3], float)
-        rvecs_scaled[0,0] = 2.0*x[0]*np.sin(self.theta/2.0)
-        rvecs_scaled[1,1] = 2.0*x[0]*np.cos(self.theta/2.0)
-        rvecs_scaled[2,:] = x[1:4]
-        return rvecs_scaled*self._cell_scale, index
-
-    def grvecs_to_gx(self, grvecs):
-        gD = 2.0*np.sin(self.theta/2.0)*grvecs[0,0] + 2.0*np.cos(self.theta/2.0)*grvecs[1,1]
-        return np.array([gD, grvecs[2,0], grvecs[2,1], grvecs[2,2]])*self._cell_scale
-
-    def check_convergence(self):
-        # When called for the first time, initialize _last_pos and _last_cell
-        if self._last_pos is None:
-            self._last_pos = self._pos.copy()
-            self._last_cell = self._cell.copy()
-            self.converged = False
-            self.conv_val = 2
-            self.conv_worst = 'first_step'
-            self.conv_count = -1
-            return
-        # Compute the values that have to be compared to the thresholds
-        if not self.do_frozen:
-            gpossq = (self._gpos**2).sum(axis=1)
-            self.gpos_max = np.sqrt(gpossq.max())
-            self.gpos_rms = np.sqrt(gpossq.mean())
-            self.gpos_indmax = gpossq.argmax()
-            self._dpos[:] = self._pos
-            self._dpos -= self._last_pos
-            dpossq = (self._dpos**2).sum(axis=1)
-            self.dpos_max = np.sqrt(dpossq.max())
-            self.dpos_rms = np.sqrt(dpossq.mean())
-        #
-        gD = 2.0*np.sin(self.theta/2.0)*self._gcell[0,0] + 2.0*np.cos(self.theta/2.0)*self._gcell[1,1]
-        gcellsq = np.array([gD**2, self._gcell[2,0]**2, self._gcell[2,1]**2, self._gcell[2,2]**2])
-        self.gcell_max = np.sqrt(gcellsq.max())
-        self.gcell_rms = np.sqrt(gcellsq.mean())
-        self._dcell[:] = self._cell
-        self._dcell -= self._last_cell
-        #
-        dcellsq = (self._dcell**2).sum(axis=1)
-        self.dcell_max = np.sqrt(dcellsq.max())
-        self.dcell_rms = np.sqrt(dcellsq.mean())
-        # Compute a general value that has to go below 1.0 to have convergence.
-        conv_vals = []
-        if not self.do_frozen and self.th_gpos_rms is not None:
-            conv_vals.append((self.gpos_rms/self.th_gpos_rms, 'gpos_rms'))
-            conv_vals.append((self.gpos_max/(self.th_gpos_rms*3), 'gpos_max(%i)' %self.gpos_indmax))
-        if self.th_dpos_rms is not None:
-            conv_vals.append((self.dpos_rms/self.th_dpos_rms, 'dpos_rms'))
-            conv_vals.append((self.dpos_max/(self.th_dpos_rms*3), 'dpos_max'))
-        if self.th_gcell_rms is not None:
-            conv_vals.append((self.gcell_rms/self.th_gcell_rms, 'gcell_rms'))
-            conv_vals.append((self.gcell_max/(self.th_gcell_rms*3), 'gcell_max'))
-        if self.th_dcell_rms is not None:
-            conv_vals.append((self.dcell_rms/self.th_dcell_rms, 'dcell_rms'))
-            conv_vals.append((self.dcell_max/(self.th_dcell_rms*3), 'dcell_max'))
-        if len(conv_vals) == 0:
-            raise RuntimeError('At least one convergence criterion must be present.')
-        self.conv_val, self.conv_worst = max(conv_vals)
-        self.conv_count = sum(int(v>=1) for v, n in conv_vals)
-        self.converged = (self.conv_count == 0)
-        self._last_pos[:] = self._pos[:]
-        self._last_cell[:] = self._cell[:]
-
-    def log(self):
-        lengths, angles = self.ff.system.cell.parameters
-        diag = np.sqrt(lengths[0]**2 + lengths[1]**2)
-        theta = 2.0*np.arctan(lengths[0]/lengths[1])
-        BaseCellDOF.log(self)
-        log(" ")
-        log("- AB plane properties:")
-        log("    AB diagonal length     = %s" % log.length(diag) )
-        log("    AB interdiagonal angle = %s" % log.angle(theta) )
+    def _get_celldofs_jacobian(self, x):
+        cols = []
+        if self._isfree(0):
+            cols.append([self.rvecs0[0,0], 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -self.rvecs0[0,0]/x[1]/x[0]**2])
+        if self._isfree(1):
+            cols.append([0.0, 0.0, 0.0, 0.0, self.rvecs0[1,1], 0.0, 0.0, 0.0, -self.rvecs0[0,0]/x[0]/x[1]**2])
+        return np.array(cols).T

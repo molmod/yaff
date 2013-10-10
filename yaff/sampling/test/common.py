@@ -23,29 +23,62 @@
 #--
 
 
+import numpy as np
+
 from yaff import *
 from yaff.test.common import get_system_water32, get_system_water, \
-    get_system_quartz
+    get_system_quartz, get_system_graphene8, get_system_polyethylene4, \
+    get_system_nacl_cubic
 
 
-__all__ = ['get_ff_water32', 'get_ff_water', 'get_ff_bks']
+__all__ = [
+    'get_ff_water32', 'get_ff_water', 'get_ff_bks', 'get_ff_graphene',
+    'get_ff_polyethylene', 'get_ff_nacl',
+]
 
 
 def get_ff_water32():
     system = get_system_water32()
     fn_pars = context.get_fn('test/parameters_water.txt')
     return ForceField.generate(system, fn_pars, skin=2)
-    return ff
 
 
 def get_ff_water():
     system = get_system_water()
     fn_pars = context.get_fn('test/parameters_water.txt')
     return ForceField.generate(system, fn_pars)
-    return ff
 
 
 def get_ff_bks(**kwargs):
     system = get_system_quartz()
+    if kwargs.pop('align_ax', False):
+        system.align_cell(np.array([[1, 0, 0], [0, 1, 1]]), True)
+        rvecs = system.cell.rvecs.copy()
+        rvecs[1, 0] = 0.0
+        rvecs[2, 0] = 0.0
+        rvecs[0, 1] = 0.0
+        rvecs[0, 2] = 0.0
+        system.cell.update_rvecs(rvecs)
     fn_pars = context.get_fn('test/parameters_bks.txt')
+    return ForceField.generate(system, fn_pars, **kwargs)
+
+
+def get_ff_graphene(**kwargs):
+    system = get_system_graphene8()
+    system = system.supercell(2, 2)
+    fn_pars = context.get_fn('test/parameters_polyene.txt')
+    return ForceField.generate(system, fn_pars, **kwargs)
+
+
+def get_ff_polyethylene(**kwargs):
+    system = get_system_polyethylene4()
+    system = system.supercell(2)
+    fn_pars = context.get_fn('test/parameters_alkane.txt')
+    return ForceField.generate(system, fn_pars, **kwargs)
+
+
+def get_ff_nacl(**kwargs):
+    kwargs.setdefault('rcut', 5.0*angstrom)
+    system = get_system_nacl_cubic()
+    fn_pars = context.get_fn('test/parameters_nacl.txt')
     return ForceField.generate(system, fn_pars, **kwargs)
