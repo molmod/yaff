@@ -29,7 +29,7 @@ import numpy as np
 from molmod import boltzmann, femtosecond
 
 from yaff.log import log
-from yaff.sampling.utils import get_random_vel, remove_com_vel
+from yaff.sampling.utils import get_random_vel, clean_momenta
 from yaff.sampling.verlet import VerletHook
 
 
@@ -201,7 +201,8 @@ class NHCThermostat(VerletHook):
         VerletHook.__init__(self, start, 1)
 
     def init(self, iterative):
-        remove_com_vel(iterative.vel, iterative.masses)
+        # It is mandatory to zero the external momenta.
+        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
         self.chain.timestep = iterative.timestep
         self.chain.set_ndof(iterative.pos.size)
 

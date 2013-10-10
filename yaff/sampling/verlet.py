@@ -31,8 +31,7 @@ from yaff.log import log, timer
 from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
     PosStateItem, DipoleStateItem, DipoleVelStateItem, VolumeStateItem, \
     CellStateItem, EPotContribStateItem, Hook
-from yaff.sampling.utils import get_random_vel, remove_com_vel
-
+from yaff.sampling.utils import get_random_vel, clean_momenta
 
 __all__ = [
     'VerletIntegrator', 'VerletHook', 'VerletScreenLog', 'ConsErrTracker',
@@ -113,10 +112,10 @@ class VerletIntegrator(Iterative):
             ff.system.set_standard_masses()
         self.masses = ff.system.masses
 
-        # Either use the provided initial velocities or weighted ones
+        # Either use the provided initial velocities or generate random ones
         if vel0 is None:
             self.vel = get_random_vel(temp0, scalevel0, self.masses)
-            remove_com_vel(self.vel, self.masses)
+            clean_momenta(self.pos, self.vel, self.masses, ff.system.cell)
         else:
             if vel.shape != self.pos.shape:
                 raise TypeError('The vel0 argument does not have the right shape.')
@@ -217,7 +216,6 @@ class VerletIntegrator(Iterative):
                         hook.post(self)
                     else:
                         raise NotImplementedError
-
 
 
 class VerletHook(Hook):
