@@ -154,7 +154,7 @@ class FFArgs(object):
             self.parts.append(part_valence)
         return part_valence
 
-    def add_electrostatic_parts(self, system, scalings):
+    def add_electrostatic_parts(self, system, scalings, dielectric):
         if self.get_part_pair(PairPotEI) is not None:
             return
         nlist = self.get_nlist(system)
@@ -168,9 +168,9 @@ class FFArgs(object):
             raise NotImplementedError('Only zero- and three-dimensional electrostatics are supported.')
         # Real-space electrostatics
         if self.smooth_ei:
-            pair_pot_ei = PairPotEI(system.charges, alpha, self.rcut, tr=self.tr, radii=system.radii)
+            pair_pot_ei = PairPotEI(system.charges, alpha, dielectric, self.rcut, tr=self.tr, radii=system.radii)
         else:
-            pair_pot_ei = PairPotEI(system.charges, alpha, self.rcut, radii=system.radii)
+            pair_pot_ei = PairPotEI(system.charges, alpha, dielectric, self.rcut, radii=system.radii)
         part_pair_ei = ForcePartPair(system, nlist, scalings, pair_pot_ei)
         self.parts.append(part_pair_ei)
         if self.reci_ei == 'ignore':
@@ -179,13 +179,13 @@ class FFArgs(object):
         elif self.reci_ei == 'ewald':
             if system.cell.nvec == 3:
                 # Reciprocal-space electrostatics
-                part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=self.gcut_scale*alpha)
+                part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, dielectric, gcut=self.gcut_scale*alpha)
                 self.parts.append(part_ewald_reci)
                 # Ewald corrections
-                part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
+                part_ewald_corr = ForcePartEwaldCorrection(system, alpha, dielectric, scalings)
                 self.parts.append(part_ewald_corr)
                 # Neutralizing background
-                part_ewald_neut = ForcePartEwaldNeutralizing(system, alpha)
+                part_ewald_neut = ForcePartEwaldNeutralizing(system, dielectric, alpha)
                 self.parts.append(part_ewald_neut)
             elif system.cell.nvec != 0:
                 raise NotImplementedError('The ewald summation is only available for 3D periodic systems.')
@@ -1196,11 +1196,8 @@ class FixedChargeGenerator(NonbondedGenerator):
         # prepare other parameters
         scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
 
-        if dielectric != 1.0:
-            raise NotImplementedError('Only a relative dielectric constant of 1 is supported.')
-
         # Setup the electrostatic pars
-        ff_args.add_electrostatic_parts(system, scalings)
+        ff_args.add_electrostatic_parts(system, scalings, dielectric)
 
 
 def apply_generators(system, parameters, ff_args):

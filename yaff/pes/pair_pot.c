@@ -402,8 +402,7 @@ double pair_fn_dampdisp(void *pair_data, long center_index, long other_index, do
 }
 
 
-
-void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha, double *radii) {
+void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha, double dielectric, double *radii) {
   pair_data_ei_type *pair_data;
   pair_data = malloc(sizeof(pair_data_ei_type));
   (*pair_pot).pair_data = pair_data;
@@ -411,6 +410,7 @@ void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha, d
     (*pair_pot).pair_fn = pair_fn_ei;
     (*pair_data).charges = charges;
     (*pair_data).alpha = alpha;
+    (*pair_data).dielectric = dielectric;
     (*pair_data).radii = radii;
   }
 }
@@ -420,7 +420,7 @@ double pair_fn_ei(void *pair_data, long center_index, long other_index, double d
   qprod = (
     (*(pair_data_ei_type*)pair_data).charges[center_index]*
     (*(pair_data_ei_type*)pair_data).charges[other_index]
-  );
+  ) / (*(pair_data_ei_type*)pair_data).dielectric;
   //Averaged atomic radius needed to compute EI interaction between Gaussian charge distributions
   //TODO: store square of atomic radii
   //TODO: deal with missing radii
@@ -460,6 +460,11 @@ double pair_fn_ei(void *pair_data, long center_index, long other_index, double d
 double pair_data_ei_get_alpha(pair_pot_type *pair_pot) {
   return (*(pair_data_ei_type*)((*pair_pot).pair_data)).alpha;
 }
+
+double pair_data_ei_get_dielectric(pair_pot_type *pair_pot) {
+  return (*(pair_data_ei_type*)((*pair_pot).pair_data)).dielectric;
+}
+
 
 void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipoles, double alpha, double *radii, double *radii2) {
   pair_data_eidip_type *pair_data;

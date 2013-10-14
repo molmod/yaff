@@ -1198,6 +1198,10 @@ cdef class PairPotEI(PairPot):
             set to zero, the interaction between point charges is computed
             without any long-range screening.
 
+        dielectric
+            A relative dielectric permitivity that just scales the Coulomb
+            interaction.
+
         rcut
             The cutoff radius
 
@@ -1221,13 +1225,14 @@ cdef class PairPotEI(PairPot):
     name = 'ei'
 
     def __cinit__(self, np.ndarray[double, ndim=1] charges, double alpha,
-                  double rcut, Truncation tr=None, np.ndarray[double, ndim=1] radii=None):
+                  double dielectric, double rcut, Truncation tr=None,
+                  np.ndarray[double, ndim=1] radii=None):
         assert charges.flags['C_CONTIGUOUS']
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
         self.set_truncation(tr)
         #No atomic radii specified, set to point charges
         if radii is None: radii = np.zeros( np.shape(charges) )
-        pair_pot.pair_data_ei_init(self._c_pair_pot, <double*>charges.data, alpha, <double*>radii.data)
+        pair_pot.pair_data_ei_init(self._c_pair_pot, <double*>charges.data, alpha, dielectric, <double*>radii.data)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
         self._c_charges = charges
@@ -1261,6 +1266,12 @@ cdef class PairPotEI(PairPot):
         return pair_pot.pair_data_ei_get_alpha(self._c_pair_pot)
 
     alpha = property(_get_alpha)
+
+    def _get_dielectric(self):
+        '''The scalar relative permittivity'''
+        return pair_pot.pair_data_ei_get_dielectric(self._c_pair_pot)
+
+    dielectric = property(_get_dielectric)
 
 
 cdef class PairPotEIDip(PairPot):
@@ -1373,7 +1384,7 @@ cdef class PairPotEIDip(PairPot):
 
 def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
                        np.ndarray[double, ndim=1] charges,
-                       Cell unitcell, double alpha,
+                       Cell unitcell, double alpha, double dielectric,
                        np.ndarray[long, ndim=1] jmax, double kcut,
                        np.ndarray[double, ndim=2] gpos,
                        np.ndarray[double, ndim=1] work,
@@ -1394,6 +1405,9 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
 
        alpha
             The :math:`\\alpha` parameter from the Ewald summation scheme.
+
+       dielectric
+            The scalar relative permittivity of the system.
 
        jmax
             The maximum range of periodic images in reciprocal space to be
@@ -1428,6 +1442,7 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
     assert charges.shape[0] == pos.shape[0]
     assert unitcell.nvec == 3
     assert alpha > 0
+    assert dielectric >= 1.0
     assert jmax.flags['C_CONTIGUOUS']
     assert jmax.shape[0] == 3
 
@@ -1453,7 +1468,7 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
 
     return ewald.compute_ewald_reci(<double*>pos.data, len(pos),
                                     <double*>charges.data,
-                                    unitcell._c_cell, alpha,
+                                    unitcell._c_cell, alpha, dielectric,
                                     <long*>jmax.data, kcut, my_gpos, my_work,
                                     my_vtens)
 
@@ -1554,7 +1569,7 @@ def compute_ewald_reci_dd(np.ndarray[double, ndim=2] pos,
 
 def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
                        np.ndarray[double, ndim=1] charges,
-                       Cell unitcell, double alpha,
+                       Cell unitcell, double alpha, double dielectric,
                        np.ndarray[pair_pot.scaling_row_type, ndim=1] stab,
                        np.ndarray[double, ndim=2] gpos,
                        np.ndarray[double, ndim=2] vtens):
@@ -1575,6 +1590,9 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
 
        alpha
             The :math:`\\alpha` parameter from the Ewald summation scheme.
+
+       dielectric
+            The scalar relative permittivity of the system.
 
        stab
             The table with (sorted) pairs of atoms whose electrostatic
@@ -1619,8 +1637,8 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
 
     return ewald.compute_ewald_corr(
         <double*>pos.data, <double*>charges.data, unitcell._c_cell, alpha,
-        <pair_pot.scaling_row_type*>stab.data, len(stab), my_gpos,
-        my_vtens, len(pos)
+        dielectric, <pair_pot.scaling_row_type*>stab.data, len(stab),
+        my_gpos, my_vtens, len(pos)
     )
 
 def compute_ewald_corr_dd(np.ndarray[double, ndim=2] pos,

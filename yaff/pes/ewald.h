@@ -29,15 +29,15 @@
 #include "cell.h"
 
 double compute_ewald_reci(double *pos, long natom, double *charges,
-                          cell_type* unitcell, double alpha, long *gmax,
-                          double gcut, double *gpos, double *work,
+                          cell_type* unitcell, double alpha, double dielectric,
+                          long *gmax, double gcut, double *gpos, double *work,
                           double* vtens);
 double compute_ewald_reci_dd(double *pos, long natom, double *charges, double *dipoles,
                           cell_type* unitcell, double alpha, long *gmax,
                           double gcut, double *gpos, double *work,
                           double* vtens);
 double compute_ewald_corr(double *pos, double *charges,
-                          cell_type *unitcell, double alpha,
+                          cell_type *unitcell, double alpha, double dielectric,
                           scaling_row_type *stab, long stab_size,
                           double *gpos, double *vtens, long natom);
 double compute_ewald_corr_dd(double *pos, double *charges, double *dipoles,

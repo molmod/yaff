@@ -30,8 +30,8 @@
 #include <stdio.h>
 
 double compute_ewald_reci(double *pos, long natom, double *charges,
-                          cell_type* cell, double alpha, long *gmax,
-                          double gcut, double *gpos, double *work,
+                          cell_type* cell, double alpha, double dielectric,
+                          long *gmax, double gcut, double *gpos, double *work,
                           double* vtens) {
   long g0, g1, g2, i;
   double energy, k[3], ksq, cosfac, sinfac, x, c, s, fac1, fac2;
@@ -60,8 +60,8 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
         sinfac = 0.0;
         for (i=0; i<natom; i++) {
           x = k[0]*pos[3*i] + k[1]*pos[3*i+1] + k[2]*pos[3*i+2];
-          c = charges[i]*cos(x);
-          s = charges[i]*sin(x);
+          c = charges[i]*cos(x)/sqrt(dielectric);
+          s = charges[i]*sin(x)/sqrt(dielectric);
           cosfac += c;
           sinfac += s;
           if (gpos != NULL) {
@@ -209,7 +209,7 @@ double compute_ewald_reci_dd(double *pos, long natom, double *charges, double *d
 }
 
 double compute_ewald_corr(double *pos, double *charges,
-                          cell_type *unitcell, double alpha,
+                          cell_type *unitcell, double alpha, double dielectric,
                           scaling_row_type *stab, long nstab,
                           double *gpos, double *vtens, long natom) {
   long i, center_index, other_index;
@@ -219,7 +219,7 @@ double compute_ewald_corr(double *pos, double *charges,
   // Self-interaction correction (no gpos or vtens contribution)
   x = alpha/M_SQRT_PI;
   for (i = 0; i < natom; i++) {
-    energy -= x*charges[i]*charges[i];
+    energy -= x*charges[i]*charges[i]/dielectric;
   }
   // Scaling corrections
   for (i = 0; i < nstab; i++) {
@@ -232,7 +232,7 @@ double compute_ewald_corr(double *pos, double *charges,
     d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
     x = alpha*d;
     pot = erf(x)/d;
-    fac = (1-stab[i].scale)*charges[other_index]*charges[center_index];
+    fac = (1-stab[i].scale)*charges[other_index]*charges[center_index]/dielectric;
     if ((gpos != NULL) || (vtens != NULL)) {
       g = -fac*(M_TWO_DIV_SQRT_PI*alpha*exp(-x*x) - pot)/d/d;
     }
