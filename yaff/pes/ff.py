@@ -540,7 +540,7 @@ class ForcePartEwaldNeutralizing(ForcePart):
 
        This term is only required of the system is not neutral.
     '''
-    def __init__(self, system, alpha):
+    def __init__(self, system, alpha, dielectric):
         '''
            **Arguments:**
 

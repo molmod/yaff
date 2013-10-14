@@ -273,10 +273,11 @@ def get_part_water32_14A_ei(radii=None):
     system = get_system_water32()
     nlist = NeighborList(system)
     scalings = Scalings(system, 0.0, 0.5, 1.0)
+    dielectric = 1.0
     # Create the pair_pot and part_pair
     rcut = 14*angstrom
     alpha = 5.5/rcut
-    pair_pot = PairPotEI(system.charges, alpha, rcut, radii=radii)
+    pair_pot = PairPotEI(system.charges, alpha, dielectric, rcut, radii=radii)
     part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d, delta):
@@ -809,13 +810,14 @@ def get_part_caffeine_ei1_10A():
     system = get_system_caffeine()
     nlist = NeighborList(system)
     scalings = Scalings(system, 0.0, 1.0, 0.5)
+    dielectric = 1.0
     # Initialize (random) parameters
     system.charges = np.random.uniform(0, 1, system.natom)
     system.charges -= system.charges.sum()
     # Construct the pair potential and part
     rcut = 10*angstrom
     alpha = 3.5/rcut
-    pair_pot = PairPotEI(system.charges, alpha, rcut)
+    pair_pot = PairPotEI(system.charges, alpha, dielectric, rcut)
     part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
@@ -833,13 +835,14 @@ def get_part_caffeine_ei2_10A():
     system = get_system_caffeine()
     nlist = NeighborList(system)
     scalings = Scalings(system, 0.0, 1.0, 0.5)
+    dielectric = 1.0
     # Initialize (random) parameters
     system.charges = np.random.uniform(0, 1, system.natom)
     system.charges -= system.charges.sum()
     # Construct the pair potential and part
     rcut = 10*angstrom
     alpha = 0.0
-    pair_pot = PairPotEI(system.charges, alpha, rcut)
+    pair_pot = PairPotEI(system.charges, alpha, dielectric, rcut)
     part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):

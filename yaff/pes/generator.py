@@ -185,7 +185,7 @@ class FFArgs(object):
                 part_ewald_corr = ForcePartEwaldCorrection(system, alpha, dielectric, scalings)
                 self.parts.append(part_ewald_corr)
                 # Neutralizing background
-                part_ewald_neut = ForcePartEwaldNeutralizing(system, dielectric, alpha)
+                part_ewald_neut = ForcePartEwaldNeutralizing(system, alpha, dielectric)
                 self.parts.append(part_ewald_neut)
             elif system.cell.nvec != 0:
                 raise NotImplementedError('The ewald summation is only available for 3D periodic systems.')
