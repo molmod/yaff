@@ -34,7 +34,7 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
                           long *gmax, double gcut, double *gpos, double *work,
                           double* vtens) {
   long g0, g1, g2, i;
-  double energy, k[3], ksq, cosfac, sinfac, x, c, s, fac1, fac2;
+  double energy, k[3], ksq, cosfac, sinfac, x, c, s, fac1, fac2, dielectric_factor;
   double kvecs[9];
   for (i=0; i<9; i++) {
     kvecs[i] = M_TWO_PI*(*cell).gvecs[i];
@@ -60,8 +60,8 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
         sinfac = 0.0;
         for (i=0; i<natom; i++) {
           x = k[0]*pos[3*i] + k[1]*pos[3*i+1] + k[2]*pos[3*i+2];
-          c = charges[i]*cos(x)/sqrt(dielectric);
-          s = charges[i]*sin(x)/sqrt(dielectric);
+          c = charges[i]*cos(x);
+          s = charges[i]*sin(x);
           cosfac += c;
           sinfac += s;
           if (gpos != NULL) {
@@ -106,6 +106,19 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
     vtens[4] -= energy;
     vtens[8] -= energy;
   }
+  //Corrections for dielectric constant
+  dielectric_factor = 1.0/dielectric;
+  if (gpos != NULL) {
+    for (i=0; i<(3*natom); i++) {
+      gpos[i] *= dielectric_factor;
+    }
+  }
+  if (vtens != NULL) {
+    for (i=0; i<9; i++) {
+    vtens[i] *= dielectric_factor;
+    }
+  }
+  energy *= dielectric_factor;
   return energy;
 }
 
@@ -213,13 +226,13 @@ double compute_ewald_corr(double *pos, double *charges,
                           scaling_row_type *stab, long nstab,
                           double *gpos, double *vtens, long natom) {
   long i, center_index, other_index;
-  double energy, delta[3], d, x, g, pot, fac;
+  double energy, delta[3], d, x, g, pot, fac, dielectric_factor;
   energy = 0.0;
   g = 0.0;
   // Self-interaction correction (no gpos or vtens contribution)
   x = alpha/M_SQRT_PI;
   for (i = 0; i < natom; i++) {
-    energy -= x*charges[i]*charges[i]/dielectric;
+    energy -= x*charges[i]*charges[i];
   }
   // Scaling corrections
   for (i = 0; i < nstab; i++) {
@@ -232,7 +245,7 @@ double compute_ewald_corr(double *pos, double *charges,
     d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
     x = alpha*d;
     pot = erf(x)/d;
-    fac = (1-stab[i].scale)*charges[other_index]*charges[center_index]/dielectric;
+    fac = (1-stab[i].scale)*charges[other_index]*charges[center_index];
     if ((gpos != NULL) || (vtens != NULL)) {
       g = -fac*(M_TWO_DIV_SQRT_PI*alpha*exp(-x*x) - pot)/d/d;
     }
@@ -263,6 +276,19 @@ double compute_ewald_corr(double *pos, double *charges,
     }
     energy -= fac*pot;
   }
+  //Corrections for dielectric constant
+  dielectric_factor = 1.0/dielectric;
+  if (gpos != NULL) {
+    for (i=0; i<(3*natom); i++) {
+      gpos[i] *= dielectric_factor;
+    }
+  }
+  if (vtens != NULL) {
+    for (i=0; i<9; i++) {
+    vtens[i] *= dielectric_factor;
+    }
+  }
+  energy *= dielectric_factor;
   return energy;
 }
 

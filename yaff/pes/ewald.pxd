@@ -39,8 +39,7 @@ cdef extern from "ewald.h":
 
     double compute_ewald_corr(double *pos, double *charges,
                               cell.cell_type *unitcell, double alpha,
-                              double dielectric,
-                              pair_pot.scaling_row_type *stab,
+                              double dielectric,pair_pot.scaling_row_type *stab,
                               long stab_size, double *gpos, double *vtens,
                               long natom)
 
