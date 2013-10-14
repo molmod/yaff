@@ -154,7 +154,7 @@ def plot_pressure(f, fn_png='pressure.png', **kwargs):
     pt.savefig(fn_png)
 
 
-def plot_temp_dist(f, fn_png='temp_dist.png', select=None, **kwargs):
+def plot_temp_dist(f, fn_png='temp_dist.png', ndof0 = None, select = None, **kwargs):
     """Plots the distribution of the weighted atomic velocities
 
        **Arguments:**
@@ -170,6 +170,10 @@ def plot_temp_dist(f, fn_png='temp_dist.png', select=None, **kwargs):
        select
             A list of atom indexes that should be considered for the analysis.
             By default, information from all atoms is combined.
+
+       ndof0
+            The number of degrees of freedom. If not specified, this is chosen
+            to be 3*(number of atoms)
 
        start, end, step, max_sample
            The optional arguments of the ``get_slice`` function are also
@@ -239,10 +243,12 @@ def plot_temp_dist(f, fn_png='temp_dist.png', select=None, **kwargs):
 
 
     # B) SYSTEM
-    if select is None:
-        ndof = 3*f['system/numbers'].shape[0]
-    else:
-        ndof = 3*len(select)
+    if ndof0 is None:
+        if select is None:
+            ndof = 3*f['system/numbers'].shape[0]
+        else:
+            ndof = 3*len(select)
+    else: ndof = ndof0
     sigma = temp_mean*np.sqrt(2.0/ndof)
     temp_step = sigma/5
 
