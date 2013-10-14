@@ -41,6 +41,7 @@ def test_ewald_water32():
     # 1.00  -1.9121203e-05   8.2930717e+00  -9.0156717e+00
     system = get_system_water32()
     check_alpha_depedence(system)
+    check_dielectric(system)
 
 
 def test_ewald_quartz():
@@ -79,6 +80,35 @@ def check_alpha_depedence(system):
     gposs = np.array(gposs)
     vtenss = np.array(vtenss)
     print energies
+    assert abs(energies - energies.mean()).max() < 1e-8
+    assert abs(gposs - gposs.mean(axis=0)).max() < 1e-8
+    assert abs(vtenss - vtenss.mean(axis=0)).max() < 1e-8
+
+
+def check_dielectric(system):
+    # Idea: Using a relative permittivity epsilon (!=1) should give the same
+    # results as epsilon==1 with all charges scaled by 1.0/sqrt(epsilon)
+    # Initialize
+    original_charges = system.charges.copy()
+    energies = []
+    gposs = []
+    vtenss = []
+    dielectric = 1.44
+    # Use scaled charges and epsilon=1
+    system.charges = original_charges/np.sqrt(dielectric)
+    energy, gpos, vtens = get_electrostatic_energy(0.2, system)
+    energies.append(energy)
+    gposs.append(gpos)
+    vtenss.append(vtens)
+    # Use original charges and epsilon=dielectric
+    system.charges = original_charges
+    energy, gpos, vtens = get_electrostatic_energy(0.2, system, dielectric=dielectric)
+    energies.append(energy)
+    gposs.append(gpos)
+    vtenss.append(vtens)
+    energies = np.array(energies)
+    gposs = np.array(gposs)
+    vtenss = np.array(vtenss)
     assert abs(energies - energies.mean()).max() < 1e-8
     assert abs(gposs - gposs.mean(axis=0)).max() < 1e-8
     assert abs(vtenss - vtenss.mean(axis=0)).max() < 1e-8

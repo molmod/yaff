@@ -477,6 +477,7 @@ def test_pair_pot_eidip_water_setdipoles():
     with assert_raises(AttributeError):
         pair_pot.dipoles = dipoles1
 
+
 def test_pair_pot_eidip_water():
     #Setup system and force part
     system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip()
@@ -493,6 +494,7 @@ def test_pair_pot_eidip_water():
     check_pair_pot_water(system, nlist, scalings, part_pair, pair_pot, pair_fn, 1.0e-12)
     check_gpos_part(system, part_pair, nlist)
     check_vtens_part(system, part_pair, nlist, symm_vtens=False)
+
 
 def make_system_finite_dipoles(system, dipoles, eps=0.05*angstrom):
     '''
@@ -541,6 +543,37 @@ def make_system_finite_dipoles(system, dipoles, eps=0.05*angstrom):
         charges=newsystem['charges'],
         radii=newsystem['radii'],
         masses=newsystem['masses'] )
+
+
+def test_pair_pot_ei_water32_dielectric():
+    #Using a relative permittivity epsilon (!=1) should give the same results
+    #as epsilon==1 with all charges scaled by 1.0/sqrt(epsilon)
+    # Initialize system, nlist, scaling, ...
+    system = get_system_water32()
+    nlist = NeighborList(system)
+    scalings = Scalings(system, 0.0, 0.5, 1.0)
+    rcut = 14*angstrom
+    alpha = 5.5/rcut
+    dielectric = 1.44
+    #Compute energy with epsilon 1 and scaled charges
+    pair_pot = PairPotEI(system.charges/np.sqrt(dielectric), alpha, 1.0, rcut)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    ff = ForceField(system, [part_pair], nlist)
+    ff.update_pos(system.pos)
+    gpos0 = np.zeros(system.pos.shape, float)
+    vtens0 = np.zeros((3, 3), float)
+    energy0 = ff.compute(gpos0, vtens0)
+    #Compute energy with epsilon=dielctric and original charges
+    pair_pot = PairPotEI(system.charges, alpha, dielectric, rcut)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    ff = ForceField(system, [part_pair], nlist)
+    ff.update_pos(system.pos)
+    gpos1 = np.zeros(system.pos.shape, float)
+    vtens1 = np.zeros((3, 3), float)
+    energy1 = ff.compute(gpos1, vtens1)
+    assert np.abs(energy0-energy1) < 1.0e-10
+    assert np.all(np.abs(gpos0-gpos1)) < 1.0e-10
+    assert np.all(np.abs(vtens0-vtens1) < 1.0e-10 )
 
 
 #

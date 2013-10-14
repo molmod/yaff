@@ -574,6 +574,26 @@ def test_generator_glycine_fixq():
     assert abs(energy - energy2) < 1e-3
 
 
+def test_generator_water32_fixq_dielectric():
+    system = get_system_water32()
+    fn_pars = context.get_fn('test/parameters_water_fixq_dielectric.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert len(ff.parts) == 4
+    part_pair_ei = ff.part_pair_ei
+    part_ewald_reci = ff.part_ewald_reci
+    part_ewald_cor = ff.part_ewald_cor
+    part_ewald_neut = ff.part_ewald_neut
+    # check part settings
+    print part_pair_ei.pair_pot.dielectric
+    print part_ewald_reci.dielectric
+    print part_ewald_cor.dielectric
+    print part_ewald_neut.dielectric
+    assert part_pair_ei.pair_pot.dielectric == 1.44
+    assert part_pair_ei.pair_pot.dielectric == part_ewald_reci.dielectric
+    assert part_pair_ei.pair_pot.dielectric == part_ewald_cor.dielectric
+    assert part_pair_ei.pair_pot.dielectric == part_ewald_neut.dielectric
+
+
 def test_generator_water32():
     system = get_system_water32()
     fn_pars = context.get_fn('test/parameters_water.txt')
