@@ -1242,6 +1242,7 @@ cdef class PairPotEI(PairPot):
         '''Print suitable initialization info on screen.'''
         if log.do_medium:
             log('  alpha:             %s' % log.invlength(self.alpha))
+            log('  relative permittivity:   %5.3f' % self.dielectric )
         if log.do_high:
             log.hline()
             log('   Atom     Charge     Radius')

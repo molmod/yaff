@@ -640,10 +640,9 @@ When :math:`R_i=0`, the distribution becomes a point charge:
   ``R``. See :ref:`sub_sub_sec_general_commands`.
 * ``SCALE`` (may repeat): Specify the scaling of short-ranged interactions. See
   :ref:`sub_sub_sec_general_commands`.
-* ``DIELECTRIC``: Must be 1.0.
+* ``DIELECTRIC``: Specify scalar relative permittivity, must be at least 1.0.
 * ``ATOM`` (may repeat): Specify the pre-charge and radius for a given atom type.
   Three data fields must be given: ``ffatype``, ``Q0``, ``R``.
-
 * ``BOND`` (may repeat): Specify a bond charge increment for a given combination of atom types.
   Three data fields must be given: ``ffatype0``, ``ffatype1`` and ``P``.
 
