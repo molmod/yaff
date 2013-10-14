@@ -56,7 +56,7 @@ class HDF5Writer(Hook):
         tgrp = self.f['trajectory']
         # determine the row to write the current iteration to. If a previous
         # iterations was not completely written, then the last row is reused.
-        row = min(tgrp[key].shape[0] for key in iterative.state)
+        row = min(tgrp[key].shape[0] for key in iterative.state if key in tgrp.keys())
         for key, item in iterative.state.iteritems():
             if item.value is None:
                 continue
