@@ -185,6 +185,7 @@ def test_detect_bonds_water_exceptions():
     system.detect_bonds({(1,1): 2.0*angstrom})
     assert system.nbond >= 96
 
+
 def test_detect_bonds_cyclopropene_exceptions():
     system = get_system_cyclopropene()
     # create system without bonds
@@ -192,6 +193,14 @@ def test_detect_bonds_cyclopropene_exceptions():
     # Add bonds between all hydrogen and carbon atoms (unrealistic but useful for testing)
     system.detect_bonds({(1,6): 8.0*angstrom})
     assert system.nbond == 3+4*3
+
+
+def test_iter_bonds_empty():
+    system = get_system_cyclopropene()
+    system.bonds = None
+    assert len(list(system.iter_bonds())) == 0
+    assert len(list(system.iter_angles())) == 0
+    assert len(list(system.iter_dihedrals())) == 0
 
 
 def check_detect_ffatypes(system, rules):

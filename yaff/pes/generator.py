@@ -1082,7 +1082,7 @@ class FixedChargeGenerator(NonbondedGenerator):
                 radii[i] = radius
             elif log.do_warning:
                 log.warn('No charge defined for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
-        for i0, i1 in system.bonds:
+        for i0, i1 in system.iter_bonds():
             ffatype0 = system.get_ffatype(i0)
             ffatype1 = system.get_ffatype(i1)
             if ffatype0 == ffatype1:

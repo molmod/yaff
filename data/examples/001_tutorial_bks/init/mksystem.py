@@ -22,7 +22,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-#!/usr/bin/env python
+
 
 # This is a python script! Lines like these, starting with a '#' are ignored
 # in the python language and are used to explain what this script does.
@@ -78,10 +78,6 @@ system.set_standard_masses()
 
 # Detect the atom types
 system.detect_ffatypes(ffatype_rules)
-
-# Define the bonded atoms, based on the inter-atomic distances and tabulated
-# covalent radii.
-system.detect_bonds()
 
 # Optionally, if you like, create a 2x2x2 super cell. When this line is
 # uncommented, the system variable is overwritten by its super cell.

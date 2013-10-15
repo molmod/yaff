@@ -436,32 +436,35 @@ class System(object):
 
     def iter_bonds(self):
         """Iterate over all bonds."""
-        for i1, i2 in self.bonds:
-            yield i1, i2
+        if self.bonds is not None:
+            for i1, i2 in self.bonds:
+                yield i1, i2
 
     def iter_angles(self):
         """Iterative over all possible valence angles.
 
            This routine is based on the attribute ``bonds``.
         """
-        for i1 in xrange(self.natom):
-            for i0 in self.neighs1[i1]:
-                for i2 in self.neighs1[i1]:
-                    if i0 > i2:
-                        yield i0, i1, i2
+        if self.bonds is not None:
+            for i1 in xrange(self.natom):
+                for i0 in self.neighs1[i1]:
+                    for i2 in self.neighs1[i1]:
+                        if i0 > i2:
+                            yield i0, i1, i2
 
     def iter_dihedrals(self):
         """Iterative over all possible dihedral angles.
 
            This routine is based on the attribute ``bonds``.
         """
-        for i1, i2 in self.bonds:
-            for i0 in self.neighs1[i1]:
-                if i0==i2: continue
-                for i3 in self.neighs1[i2]:
-                    if i1==i3: continue
-                    if i0==i3: continue
-                    yield i0, i1, i2, i3
+        if self.bonds is not None:
+            for i1, i2 in self.bonds:
+                for i0 in self.neighs1[i1]:
+                    if i0==i2: continue
+                    for i3 in self.neighs1[i2]:
+                        if i1==i3: continue
+                        if i0==i3: continue
+                        yield i0, i1, i2, i3
 
     def detect_bonds(self, exceptions=None):
         """Initialize the ``bonds`` attribute based on inter-atomic distances
