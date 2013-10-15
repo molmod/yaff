@@ -64,5 +64,9 @@ def test_example_002_external_trajectory():
     run_example('examples/002_external_trajectory', './rdf.py')
 
 
+def test_example_003_water_thermostat():
+    run_example('examples/003_water_thermostat', './md.py')
+
+
 def test_example_999_back_propagation():
     run_example('examples/999_back_propagation', './bp.py')

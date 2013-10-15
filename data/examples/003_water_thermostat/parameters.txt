@@ -1,0 +1,28 @@
+# Bond stretch
+# ============
+
+# Mathematical form depends on the kind selected below. Few kinds are supported:
+# - BONDHARM: 0.5*K*(r-R0)**2
+# - BONDFUES: 0.5*K*R0**2*(1+(R0/r)*((R0/r)-2.0))
+# The actual parameters and their units may depend on the kind.
+BONDFUES:UNIT K kjmol/angstrom**2
+BONDFUES:UNIT R0 angstrom
+# -----------------------------------------------------------------
+# KEY           label0   label1  K                 R0
+# -----------------------------------------------------------------
+BONDFUES:PARS        O        H  4.0088096730e+03  1.0238240000e+00
+
+
+# Angle bending
+# =============
+
+# Mathematical form depends on the kind selected below. Few kinds are supported:
+# - BENDAHARM: 0.5*K*(theta-THETA0)**2
+# - BENDCHARM: 0.5*K*(cos(theta)-cos(COS0))**2
+# The actual parameters and their units may depend on the kind.
+BENDCHARM:UNIT K kjmol
+BENDCHARM:UNIT COS0 1
+# ---------------------------------------------------------------------------
+# KEY            label0   label1   label2  K                 THETA0/COS0
+# ---------------------------------------------------------------------------
+BENDCHARM:PARS        H        O        H  3.0230353700e+02  2.7892000007e-02
