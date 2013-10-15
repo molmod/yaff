@@ -154,7 +154,7 @@ def plot_pressure(f, fn_png='pressure.png', **kwargs):
     pt.savefig(fn_png)
 
 
-def plot_temp_dist(f, fn_png='temp_dist.png', ndof0 = None, select = None, **kwargs):
+def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
     """Plots the distribution of the weighted atomic velocities
 
        **Arguments:**
@@ -171,7 +171,7 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof0 = None, select = None, **kwa
             A list of atom indexes that should be considered for the analysis.
             By default, information from all atoms is combined.
 
-       ndof0
+       ndof
             The number of degrees of freedom. If not specified, this is chosen
             to be 3*(number of atoms)
 
@@ -213,7 +213,6 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof0 = None, select = None, **kwa
     temp_mean = temps.mean()
 
     # A) ATOMS
-    ndof = 3
     temp_step = temp_mean/10
 
     # setup the temperature grid
@@ -236,19 +235,18 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof0 = None, select = None, **kwa
     emp_atom_cdf = counts.cumsum()/total
 
     # the analytical form
-    rv = chi2(ndof, 0, temp_mean/ndof)
+    rv = chi2(3, 0, temp_mean/3)
     x_atom = temp_grid[:-1]+0.5*temp_step
     ana_atom_pdf = rv.pdf(x_atom)
     ana_atom_cdf = rv.cdf(x_atom)
 
 
     # B) SYSTEM
-    if ndof0 is None:
+    if ndof is None:
         if select is None:
             ndof = 3*f['system/numbers'].shape[0]
         else:
             ndof = 3*len(select)
-    else: ndof = ndof0
     sigma = temp_mean*np.sqrt(2.0/ndof)
     temp_step = sigma/5
 
