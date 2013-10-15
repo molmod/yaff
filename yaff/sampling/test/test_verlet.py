@@ -26,6 +26,7 @@
 import h5py as h5, numpy as np
 
 from yaff import *
+from yaff.test.common import get_system_water
 from yaff.sampling.test.common import get_ff_water32, get_ff_water
 
 def test_basic_water32():
@@ -40,14 +41,14 @@ def test_basic_water():
     assert nve.counter == 5
 
 
-def check_hdf5_common(f):
+def check_hdf5_common(f, isolated=False):
     assert 'system' in f
     assert 'numbers' in f['system']
     assert 'ffatypes' in f['system']
     assert 'ffatype_ids' in f['system']
     assert 'pos' in f['system']
     assert 'bonds' in f['system']
-    assert 'rvecs' in f['system']
+    assert ('rvecs' in f['system']) ^ isolated
     assert 'charges' in f['system']
     assert 'trajectory' in f
     assert 'counter' in f['trajectory']
@@ -105,6 +106,23 @@ def test_hdf5_step():
         check_hdf5_common(hdf5.f)
         assert get_last_trajectory_row(f['trajectory']) == 3
         assert f['trajectory/counter'][2] == 4
+    finally:
+        f.close()
+
+
+def test_hdf5_simple():
+    # This test does not write all possible outputs
+    sys = get_system_water()
+    ff = ForceField.generate(sys, context.get_fn('test/parameters_water_bondharm.txt'))
+    f = h5.File('yaff.sampling.test.test_verlet.test_hdf5_simple.h5', driver='core', backing_store=False)
+    try:
+        hdf5 = HDF5Writer(f)
+        nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=hdf5)
+        nve.run(15)
+        assert nve.counter == 15
+        check_hdf5_common(hdf5.f, isolated=True)
+        assert get_last_trajectory_row(f['trajectory']) == 16
+        assert f['trajectory/counter'][15] == 15
     finally:
         f.close()
 
