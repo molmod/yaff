@@ -155,7 +155,7 @@ def plot_pressure(f, fn_png='pressure.png', **kwargs):
     pt.savefig(fn_png)
 
 
-def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
+def plot_temp_dist(f, fn_png='temp_dist.png', temp=None, ndof=None, select=None, **kwargs):
     """Plots the distribution of the weighted atomic velocities
 
        **Arguments:**
@@ -171,6 +171,10 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
        select
             A list of atom indexes that should be considered for the analysis.
             By default, information from all atoms is combined.
+
+       temp
+            The (expected) average temperature used to plot the theoretical
+            distributions.
 
        ndof
             The number of degrees of freedom. If not specified, this is chosen
@@ -211,7 +215,9 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
              temps.append(temp)
         temps = np.array(temps)
 
-    temp_mean = temps.mean()
+    if temp is None:
+        temp = temps.mean()
+
 
     # A) SYSTEM
     if select is None:
@@ -221,11 +227,11 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
     if ndof is None:
         ndof = 3*natom
     do_atom = ndof == 3*natom
-    sigma = temp_mean*np.sqrt(2.0/ndof)
+    sigma = temp*np.sqrt(2.0/ndof)
     temp_step = sigma/5
 
     # setup the temperature grid and make the histogram
-    temp_grid = np.arange(max(0, temp_mean-3*sigma), temp_mean+5*sigma, temp_step)
+    temp_grid = np.arange(max(0, temp-3*sigma), temp+5*sigma, temp_step)
     counts = np.histogram(temps.ravel(), bins=temp_grid)[0]
     total = float(len(temps))
 
@@ -234,17 +240,17 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
     emp_sys_cdf = counts.cumsum()/total
 
     # the analytical form
-    rv = chi2(ndof, 0, temp_mean/ndof)
+    rv = chi2(ndof, 0, temp/ndof)
     x_sys = temp_grid[:-1]
     ana_sys_pdf = rv.cdf(temp_grid[1:]) - rv.cdf(temp_grid[:-1])
     ana_sys_cdf = rv.cdf(temp_grid[1:])
 
     if do_atom:
         # B) ATOMS
-        temp_step = temp_mean/10
+        temp_step = temp/10
 
         # setup the temperature grid
-        temp_grid = np.arange(0, temp_mean*5 + 0.5*temp_step, temp_step)
+        temp_grid = np.arange(0, temp*5 + 0.5*temp_step, temp_step)
 
         # build up the distribution for the atoms
         counts = np.zeros(len(temp_grid)-1, int)
@@ -263,7 +269,7 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
         emp_atom_cdf = counts.cumsum()/total
 
         # the analytical form
-        rv = chi2(3, 0, temp_mean/3)
+        rv = chi2(3, 0, temp/3)
         x_atom = temp_grid[:-1]
         ana_atom_pdf = rv.cdf(temp_grid[1:]) - rv.cdf(temp_grid[:-1])
         ana_atom_cdf = rv.cdf(temp_grid[1:])
@@ -271,14 +277,13 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
     # C) Make the plots
     pt.clf()
     xconv = log.temperature.conversion
-    pt.suptitle('Mean T=%.0f [%s]' % (temp_mean, log.temperature.notation))
 
     pt.subplot(2, 1+do_atom, 1)
     pt.title('System (k=%i)' % ndof)
     scale = 1/emp_sys_pdf.max()
-    pt.plot(x_sys/xconv, emp_sys_pdf*scale, 'k-', drawstyle='steps-pre', label='Sim')
-    pt.plot(x_sys/xconv, ana_sys_pdf*scale, 'r-', drawstyle='steps-pre', label='Theo')
-    pt.axvline(temp_mean, color='k', ls='--')
+    pt.plot(x_sys/xconv, emp_sys_pdf*scale, 'k-', drawstyle='steps-pre', label='Sim (%.0f)' % (temps.mean()))
+    pt.plot(x_sys/xconv, ana_sys_pdf*scale, 'r-', drawstyle='steps-pre', label='Exact (%.0f)' % temp)
+    pt.axvline(temp, color='k', ls='--')
     pt.ylim(ymin=0)
     pt.xlim(x_sys[0]/xconv, x_sys[-1]/xconv)
     pt.ylabel('Recaled PDF')
@@ -288,7 +293,7 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
     pt.subplot(2, 1+do_atom, 2+do_atom)
     pt.plot(x_sys/xconv, emp_sys_cdf, 'k-', drawstyle='steps-pre')
     pt.plot(x_sys/xconv, ana_sys_cdf, 'r-', drawstyle='steps-pre')
-    pt.axvline(temp_mean, color='k', ls='--')
+    pt.axvline(temp, color='k', ls='--')
     pt.xlim(x_sys[0]/xconv, x_sys[-1]/xconv)
     pt.ylim(0, 1)
     pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
@@ -301,7 +306,7 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
         scale = 1/emp_atom_pdf.max()
         pt.plot(x_atom/xconv, emp_atom_pdf*scale, 'k-', drawstyle='steps-pre')
         pt.plot(x_atom/xconv, ana_atom_pdf*scale, 'r-', drawstyle='steps-pre')
-        pt.axvline(temp_mean, color='k', ls='--')
+        pt.axvline(temp, color='k', ls='--')
         pt.xlim(x_atom[0]/xconv, x_atom[-1]/xconv)
         pt.ylim(ymin=0)
         pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
@@ -309,7 +314,7 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
         pt.subplot(2, 2, 4)
         pt.plot(x_atom/xconv, emp_atom_cdf, 'k-', drawstyle='steps-pre')
         pt.plot(x_atom/xconv, ana_atom_cdf, 'r-', drawstyle='steps-pre')
-        pt.axvline(temp_mean, color='k', ls='--')
+        pt.axvline(temp, color='k', ls='--')
         pt.xlim(x_atom[0]/xconv, x_atom[-1]/xconv)
         pt.ylim(0, 1)
         pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
