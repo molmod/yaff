@@ -229,14 +229,14 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
     total = float(len(temps))
 
     # transform into empirical pdf and cdf
-    emp_sys_pdf = counts/total/temp_step
+    emp_sys_pdf = counts/total
     emp_sys_cdf = counts.cumsum()/total
 
     # the analytical form
     rv = chi2(ndof, 0, temp_mean/ndof)
-    x_sys = temp_grid[:-1]+0.5*temp_step
-    ana_sys_pdf = rv.pdf(x_sys)
-    ana_sys_cdf = rv.cdf(x_sys)
+    x_sys = temp_grid[:-1]
+    ana_sys_pdf = rv.cdf(temp_grid[1:]) - rv.cdf(temp_grid[:-1])
+    ana_sys_cdf = rv.cdf(temp_grid[1:])
 
     if do_atom:
         # B) ATOMS
@@ -258,14 +258,14 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
 
 
         # transform into empirical pdf and cdf
-        emp_atom_pdf = counts/total/temp_step
+        emp_atom_pdf = counts/total
         emp_atom_cdf = counts.cumsum()/total
 
         # the analytical form
         rv = chi2(3, 0, temp_mean/3)
-        x_atom = temp_grid[:-1]+0.5*temp_step
-        ana_atom_pdf = rv.pdf(x_atom)
-        ana_atom_cdf = rv.cdf(x_atom)
+        x_atom = temp_grid[:-1]
+        ana_atom_pdf = rv.cdf(temp_grid[1:]) - rv.cdf(temp_grid[:-1])
+        ana_atom_cdf = rv.cdf(temp_grid[1:])
 
     # C) Make the plots
     pt.clf()
@@ -275,17 +275,18 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
     pt.subplot(2, 1+do_atom, 1)
     pt.title('System (k=%i)' % ndof)
     scale = 1/emp_sys_pdf.max()
-    pt.plot(x_sys/xconv, emp_sys_pdf*scale, 'k-', drawstyle='steps-mid')
-    pt.plot(x_sys/xconv, ana_sys_pdf*scale, 'r-')
+    pt.plot(x_sys/xconv, emp_sys_pdf*scale, 'k-', drawstyle='steps-pre', label='Sim')
+    pt.plot(x_sys/xconv, ana_sys_pdf*scale, 'r-', drawstyle='steps-pre', label='Theo')
     pt.axvline(temp_mean, color='k', ls='--')
     pt.ylim(ymin=0)
     pt.xlim(x_sys[0]/xconv, x_sys[-1]/xconv)
     pt.ylabel('Recaled PDF')
+    pt.legend(loc=0)
     pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
 
     pt.subplot(2, 1+do_atom, 2+do_atom)
-    pt.plot(x_sys/xconv, emp_sys_cdf, 'k-', drawstyle='steps-mid')
-    pt.plot(x_sys/xconv, ana_sys_cdf, 'r-')
+    pt.plot(x_sys/xconv, emp_sys_cdf, 'k-', drawstyle='steps-pre')
+    pt.plot(x_sys/xconv, ana_sys_cdf, 'r-', drawstyle='steps-pre')
     pt.axvline(temp_mean, color='k', ls='--')
     pt.xlim(x_sys[0]/xconv, x_sys[-1]/xconv)
     pt.ylim(0, 1)
@@ -297,16 +298,16 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
         pt.subplot(2, 2, 2)
         pt.title('Atom (k=3)')
         scale = 1/emp_atom_pdf.max()
-        pt.plot(x_atom/xconv, emp_atom_pdf*scale, 'k-', drawstyle='steps-mid')
-        pt.plot(x_atom/xconv, ana_atom_pdf*scale, 'r-')
+        pt.plot(x_atom/xconv, emp_atom_pdf*scale, 'k-', drawstyle='steps-pre')
+        pt.plot(x_atom/xconv, ana_atom_pdf*scale, 'r-', drawstyle='steps-pre')
         pt.axvline(temp_mean, color='k', ls='--')
         pt.xlim(x_atom[0]/xconv, x_atom[-1]/xconv)
         pt.ylim(ymin=0)
         pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
 
         pt.subplot(2, 2, 4)
-        pt.plot(x_atom/xconv, emp_atom_cdf, 'k-', drawstyle='steps-mid')
-        pt.plot(x_atom/xconv, ana_atom_cdf, 'r-')
+        pt.plot(x_atom/xconv, emp_atom_cdf, 'k-', drawstyle='steps-pre')
+        pt.plot(x_atom/xconv, ana_atom_cdf, 'r-', drawstyle='steps-pre')
         pt.axvline(temp_mean, color='k', ls='--')
         pt.xlim(x_atom[0]/xconv, x_atom[-1]/xconv)
         pt.ylim(0, 1)
