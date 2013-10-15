@@ -21,6 +21,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''Cost functions for the calibration of FF parameters'''
 
 
 import numpy as np

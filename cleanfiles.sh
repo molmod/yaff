@@ -5,7 +5,7 @@ for d in data/examples/*; do (cd $d; ./clean.sh); done
 
 rm -vr doctrees
 rm -v yaff/pes/ext.c
-rm -rv doc/_build
+(cd doc; make clean)
 rm -v MANIFEST
 rm -vr dist
 rm -vr build

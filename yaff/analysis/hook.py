@@ -21,6 +21,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''Abstract hook implementation for trajectory analysis'''
 
 
 from yaff.log import log

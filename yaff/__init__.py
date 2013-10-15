@@ -21,6 +21,14 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''YAFF - Yet another force field
+
+   The ``yaff`` package contains the subpackages that define the main
+   functionalities in yaff: force field models (:mod:`yaff.pes`), sampling
+   (:mod:`yaff.sampling`), trajectory analysis (:mod:`yaff.analysis`) and
+   parameter tuning (:mod:`yaff.tune`). These major subpackages are discusses in
+   the following sections.
+'''
 
 
 __version__ = '1.0'

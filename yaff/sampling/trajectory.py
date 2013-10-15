@@ -21,6 +21,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''Computations on a reference trajectory'''
 
 
 import numpy as np, time, h5py

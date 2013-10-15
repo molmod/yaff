@@ -21,8 +21,10 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-"""Short-range neighbor lists, called Delta lists, for the covalent energy
-   terms that do not allow for bond breaking.
+"""Short-range neighbor lists for covalent energy terms
+
+   The short-range neighbor lits are called Delta lists. They are used for the
+   covalent energy terms that do not allow for bond breaking.
 
    The delta list contains all relative vectors that are needed to evaluate
    the covalent energy terms. The minimum image convention (MIC) is used to make

@@ -21,7 +21,9 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-"""The ATSELECT language is a single-line language that can be used to define
+"""The ATSELECT language
+
+   The ATSELECT language is a single-line language that can be used to define
    atom types in Yaff, or to construct a list of atoms in a system that match an
    ATSELECT rule.
 """

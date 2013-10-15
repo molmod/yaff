@@ -21,6 +21,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''Conversion of external trajectory data'''
 
 
 from yaff.conversion.common import *

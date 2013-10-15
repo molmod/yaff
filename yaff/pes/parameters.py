@@ -21,8 +21,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-'''Object-oriented representation of parameter files.
-'''
+'''Object-oriented representation of parameter files'''
 
 
 __all__ = ['Complain', 'Parameters', 'ParameterSection', 'ParameterDefinition']

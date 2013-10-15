@@ -21,8 +21,10 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-'''Half neighbor lists with relative vector information and with support for
-   Verlet skin.
+'''Neighbor lists for pairwise (non-bonding) interactions
+
+   Yaff works with half neighbor lists with relative vector information and with
+   support for Verlet skin.
 
    Yaff supports only one neighbor list, which is used to evaluate all
    non-bonding interactions. The neighbor list is used by the ``ForcePartPair``

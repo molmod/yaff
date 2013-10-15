@@ -21,6 +21,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''CP2K Files'''
 
 
 from molmod import femtosecond

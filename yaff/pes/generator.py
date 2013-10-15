@@ -21,7 +21,9 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-"""This module contains all the machinery needed to support the
+"""Automatically generate force field models
+
+   This module contains all the machinery needed to support the
    :meth:`yaff.pes.ff.ForceField.generate` method.
 """
 

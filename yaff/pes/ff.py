@@ -21,7 +21,9 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-'''This module contains the force field computation interface that is used by
+'''Force field models
+
+   This module contains the force field computation interface that is used by
    the :mod:`yaff.sampling` package.
 
    The ``ForceField`` class is the main item in this module. It acts as

@@ -21,7 +21,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-"""Module for the complete list of internal coordinates used in a covalent FF.
+"""Internal-coordinate lists for covalent energy terms
 
    An ``InternalCoordinateList`` object contains a table, where each row
    corresponds to one internal coordinate. This object also contains a

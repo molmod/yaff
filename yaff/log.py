@@ -21,7 +21,9 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-"""This module holds the main screen loging object of Yaff. The ``log`` object
+"""Screen logger
+
+   This module holds the main screen loging object of Yaff. The ``log`` object
    is an instance off the ``ScreenLog`` class in the module ``molmod.log``.
    The logger also comes with a timer infrastructure, which is also implemented
    in the ``molmod.log`` module.

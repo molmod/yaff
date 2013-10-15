@@ -21,6 +21,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''DLPOLY Files'''
 
 
 from molmod import angstrom, amu, picosecond

@@ -21,6 +21,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''Generic Verlet integrator'''
 
 
 import numpy as np, time

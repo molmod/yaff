@@ -21,6 +21,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''Auxiliary routines for initial velocities'''
 
 
 from molmod import boltzmann

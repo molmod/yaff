@@ -21,6 +21,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''Basic trajectory analysis routines'''
 
 
 import h5py as h5

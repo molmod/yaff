@@ -21,7 +21,9 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-"""This packages provides the machinery to evaluate to force-field energy and
+"""Force-field potential energy surfaces (PESs)
+
+   This packages provides the machinery to evaluate to force-field energy and
    its derivatives, like Cartesian gradient (=minus forces) and virial tensor,
    for a given set of atomic coordinates and 0, 1, 2 or 3 cell vectors.
 

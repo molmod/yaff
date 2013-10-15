@@ -21,6 +21,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''Trajectory writers'''
 
 
 from yaff.sampling.iterative import Hook

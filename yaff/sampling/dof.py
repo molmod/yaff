@@ -21,10 +21,11 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-"""Convenient Wrappers for the ForceField object
+"""Abstraction layer for degrees of freedom
 
    All these classes are called DOF classes, because they specify a set of
-   degrees of freedom.
+   degrees of freedom. These DOF classes are used for geometry/cell optimization
+   and harmonic approximations.
 """
 
 

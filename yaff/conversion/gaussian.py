@@ -21,6 +21,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''Gaussian09 BOMD log Files'''
 
 
 import numpy as np

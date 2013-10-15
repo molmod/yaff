@@ -21,8 +21,11 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-"""Support for scaling or exclusion of short-range non-bonding pairwise
-   interactions for atom pairs that are involved in covalent energy terms.
+"""Short-range scaling of pairwise interactions
+
+   The ``Scalings`` class describe scaling or exclusion of short-range
+   non-bonding pairwise interactions for atom pairs that are involved in
+   covalent energy terms.
 
    A ``Scaling`` object can be attached to any ``ForcePartPair`` class and,
    as a special case, also to the ``ForcePartEwaldCorrection``. A ``Scaling``

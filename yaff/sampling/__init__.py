@@ -21,6 +21,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
+'''Phase-space sampling'''
 
 
 from yaff.sampling.dof import *

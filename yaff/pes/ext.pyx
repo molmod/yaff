@@ -21,10 +21,10 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-'''Low-level C routines for an efficient implementation of the force field
-   energy and its derivatives.
+#cython: embedsignature=True
+'''Low-level C routines
 
-   This extension module is used by various modules of the ``yaff.pess``
+   This extension module is used by various modules of the ``yaff.pes``
    package.
 '''
 
@@ -87,9 +87,7 @@ cdef class Cell:
         self.update_rvecs(rvecs)
 
     def update_rvecs(self, np.ndarray[double, ndim=2] rvecs):
-        '''update_rvecs(rvecs)
-
-           Change the cell vectors and recompute the reciprocal cell vectors.
+        '''Change the cell vectors and recompute the reciprocal cell vectors.
 
            rvecs
                 A numpy array with at most three cell vectors, layed out as
@@ -200,18 +198,12 @@ cdef class Cell:
     parameters = property(_get_parameters)
 
     def mic(self, np.ndarray[double, ndim=1] delta):
-        """mic(delta)
-
-           Apply the minimum image convention to delta in-place
-        """
+        """Apply the minimum image convention to delta in-place"""
         assert delta.size == 3
         cell.cell_mic(<double*> delta.data, self._c_cell)
 
     def to_center(self, np.ndarray[double, ndim=1] pos):
-        '''to_center(pos)
-
-           Return the corresponding position in the central cell
-        '''
+        '''Return the corresponding position in the central cell'''
         assert pos.size == 3
         cdef np.ndarray[long, ndim=1] result
         result = np.zeros(self.nvec, int)
@@ -219,9 +211,7 @@ cdef class Cell:
         return result
 
     def add_vec(self, np.ndarray[double, ndim=1] delta, np.ndarray[long, ndim=1] r):
-        """add_vec(delta, r)
-
-           Add a linear combination of cell vectors, ``r``, to ``delta`` in-place
+        """Add a linear combination of cell vectors, ``r``, to ``delta`` in-place
         """
         assert delta.size == 3
         assert r.size == self.nvec
@@ -371,9 +361,7 @@ def nlist_build(np.ndarray[double, ndim=2] pos, double rcut,
                 np.ndarray[long, ndim=1] rmax,
                 Cell unitcell, np.ndarray[long, ndim=1] status,
                 np.ndarray[nlist.neigh_row_type, ndim=1] neighs):
-    '''nlist_build(pos, rcut, rmax, unitcell, status, neighs)
-
-       Scan the system for all pairs that have a distance smaller than rcut until the neighs array is filled or all pairs are considered
+    '''Scan the system for all pairs that have a distance smaller than rcut until the neighs array is filled or all pairs are considered
 
        **Arguments:**
 
@@ -420,9 +408,7 @@ def nlist_build(np.ndarray[double, ndim=2] pos, double rcut,
 
 
 def nlist_status_finish(status):
-    '''nlist_status_finish(status)
-
-       status
+    '''status
             The status array, either obtained from ``nlist_status_init``, or
             as it was modified by the last call to this function
 
@@ -435,9 +421,7 @@ def nlist_recompute(np.ndarray[double, ndim=2] pos,
                     np.ndarray[double, ndim=2] pos_old,
                     Cell unitcell,
                     np.ndarray[nlist.neigh_row_type, ndim=1] neighs):
-    '''nlist_recompute(pos, pos_old, unitcell, neighs)
-
-       Recompute all relative vectors and distances in the neighbor list.
+    '''Recompute all relative vectors and distances in the neighbor list.
 
        **Arguments:**
 
@@ -470,9 +454,7 @@ def nlist_recompute(np.ndarray[double, ndim=2] pos,
 
 
 def nlist_inc_r(Cell unitcell, np.ndarray[long, ndim=1] r, np.ndarray[long, ndim=1] rmax):
-    '''nlist_inc_r(unitcell, r, rmax)
-
-       Increment the vector ``r`` to the location of the `next` periodic image.
+    '''Increment the vector ``r`` to the location of the `next` periodic image.
 
        **Arguments:**
 
@@ -570,7 +552,7 @@ cdef class Hammer(Truncation):
 
 
 cdef class Switch3(Truncation):
-    r'''An simple and good truncation scheme.
+    r'''A simple and good truncation scheme.
 
        **Arguments:**
 
@@ -641,19 +623,14 @@ cdef class PairPot:
             pair_pot.pair_pot_set_trunc_scheme(self._c_pair_pot, tr._c_trunc_scheme)
 
     def get_truncation(self):
-        '''get_truncation()
-
-           Returns the current truncation scheme are ``None``.
-        '''
+        '''Returns the current truncation scheme'''
         return self.tr
 
     def compute(self, np.ndarray[nlist.neigh_row_type, ndim=1] neighs,
                 np.ndarray[pair_pot.scaling_row_type, ndim=1] stab,
                 np.ndarray[double, ndim=2] gpos,
                 np.ndarray[double, ndim=2] vtens, long nneigh):
-        '''compute(neighs, stab, gpos, vtens, nneigh)
-
-           Compute the pairwise interactions
+        '''Compute the pairwise interactions
 
            **Arguments:**
 
@@ -676,9 +653,7 @@ cdef class PairPot:
            nneigh
                 The number of records to consider in the neighbor list.
 
-           **Returns:**
-
-           The energy.
+           **Returns:** the energy.
         '''
         cdef double *my_gpos
         cdef double *my_vtens
