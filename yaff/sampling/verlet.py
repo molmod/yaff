@@ -201,7 +201,7 @@ class VerletIntegrator(Iterative):
             log.hline()
 
     def call_verlet_hooks(self, kind):
-        # In this calls, the state items are not updated. The pre and post calls
+        # In this call, the state items are not updated. The pre and post calls
         # of the verlet hooks can rely on the specific implementation of the
         # VerletIntegrator and need not to rely on the generic state item
         # interface.
