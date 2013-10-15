@@ -34,7 +34,7 @@ units.
 Molecular Dynacmis
 ==================
 
-The NVE (microcanonical) ensemble
+Overview of the Verlet algorithms
 ---------------------------------
 
 The equations of motion in the NVE ensemble can be integrated as follows::
@@ -172,6 +172,29 @@ hooks, we refer to the reference documentation:
   support for the NpT ensemble.
 * :class:`yaff.sampling.verlet.KineticAnnealing`: simulated annealing based on
   slow dissipation of the kinetic energy.
+
+
+Initial atomic velocities
+-------------------------
+
+When no initial velocities are given to the constructor of the
+``VerletIntegrator`` constructor, these velocities are randomly sampled from a
+Poisson-Boltzmann distribution. The temperature of the distribution is
+controlled by the ``temp0`` argument and if needed, the velocities can be
+rescaled by using the ``scalevel0=True`` argument.
+
+The default behavior is to not remove center-of-mass and global angular momenta.
+However, for the Nose-Hoover thermostat, this is mandatory and done
+automatically. For the computation of the instantanuous temperature, one must
+know the number of degrees of freedom (``ndof``) in which the kinetic energy is
+distributed. The default value for ``ndof`` is in line with the default initial
+velocities. ``ndof`` is always set to 3N, except for the Nose-Hoover thermostat,
+where ndof is set to the number of internal degrees of freedom.
+
+One may specify custom initial velocities and ndof by using the ``vel0`` and
+``ndof`` arguments of the ``VerletIntegrator`` constructor. The module
+:mod:`yaff.samplling.utils` contains various functions to set up initial
+velocities.
 
 
 Geometry optimization

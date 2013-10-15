@@ -31,7 +31,7 @@ from yaff.log import log, timer
 from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
     PosStateItem, DipoleStateItem, DipoleVelStateItem, VolumeStateItem, \
     CellStateItem, EPotContribStateItem, Hook
-from yaff.sampling.utils import get_random_vel, clean_momenta
+from yaff.sampling.utils import get_random_vel
 
 __all__ = [
     'VerletIntegrator', 'VerletHook', 'VerletScreenLog', 'ConsErrTracker',
@@ -63,7 +63,8 @@ class VerletIntegrator(Iterative):
 
     log_name = 'VERLET'
 
-    def __init__(self, ff, timestep, state=None, hooks=None, vel0=None, temp0=300, scalevel0=True, time0=0.0, counter0=0):
+    def __init__(self, ff, timestep, state=None, hooks=None, vel0=None,
+                 temp0=300, scalevel0=True, time0=0.0, ndof=None, counter0=0):
         """
            **Arguments:**
 
@@ -99,6 +100,15 @@ class VerletIntegrator(Iterative):
            time0
                 The time associated with the initial state.
 
+           ndof
+                When given, this option overrides the number of degrees of
+                freedom determined from internal heuristics. When ndof is not
+                given, its default value depends on the thermostat used. In most
+                cases it is 3*natom, except for the NHC thermostat where the
+                number if internal degrees of freedom is counted. The ndof
+                attribute is used to derive the temperature from the kinetic
+                energy.
+
            counter0
                 The counter value associated with the initial state.
         """
@@ -106,19 +116,17 @@ class VerletIntegrator(Iterative):
         self.pos = ff.system.pos.copy()
         self.timestep = timestep
         self.time = time0
+        self.ndof = ndof
 
         # The integrator needs masses. If not available, take default values.
         if ff.system.masses is None:
             ff.system.set_standard_masses()
         self.masses = ff.system.masses
 
-        # Either use the provided initial velocities or generate random ones
+        # Set random initial velocities if needed.
         if vel0 is None:
             self.vel = get_random_vel(temp0, scalevel0, self.masses)
-            clean_momenta(self.pos, self.vel, self.masses, ff.system.cell)
         else:
-            if vel.shape != self.pos.shape:
-                raise TypeError('The vel0 argument does not have the right shape.')
             self.vel = vel0.copy()
 
         # Working arrays
@@ -144,6 +152,10 @@ class VerletIntegrator(Iterative):
 
         # Allow for specialized initializations by the Verlet hooks.
         self.call_verlet_hooks('init')
+
+        # Configure the number of degrees of freedom if needed
+        if self.ndof is None:
+            self.ndof = self.pos.size
 
         # Common post-processing of the initialization
         self.compute_properties()
@@ -176,7 +188,7 @@ class VerletIntegrator(Iterative):
     def _compute_ekin(self):
         '''Auxiliary routine to compute the kinetic energy
 
-           This is used internally and often by the Verlet hooks.
+           This is used internally and often also by the Verlet hooks.
         '''
         return 0.5*(self.vel**2*self.masses.reshape(-1,1)).sum()
 
@@ -184,7 +196,7 @@ class VerletIntegrator(Iterative):
         self.rmsd_gpos = np.sqrt((self.gpos**2).mean())
         self.rmsd_delta = np.sqrt((self.delta**2).mean())
         self.ekin = self._compute_ekin()
-        self.temp = self.ekin/self.ff.system.natom/3.0*2.0/boltzmann
+        self.temp = self.ekin/self.ndof*2.0/boltzmann
         self.etot = self.ekin + self.epot
         self.econs = self.etot
         for hook in self.hooks:

@@ -29,7 +29,8 @@ import numpy as np
 from molmod import boltzmann, femtosecond
 
 from yaff.log import log
-from yaff.sampling.utils import get_random_vel, clean_momenta
+from yaff.sampling.utils import get_random_vel, clean_momenta, \
+    get_ndof_internal_md
 from yaff.sampling.verlet import VerletHook
 
 
@@ -164,7 +165,7 @@ class NHChain(object):
 
 
 class NHCThermostat(VerletHook):
-    def __init__(self, temp, start=0, timecon=100*femtosecond, chainlength=3, ndof=None):
+    def __init__(self, temp, start=0, timecon=100*femtosecond, chainlength=3):
         """
            This hook implements the Nose-Hoover-Chain thermostat. The equations
            are derived in:
@@ -193,20 +194,8 @@ class NHCThermostat(VerletHook):
 
            chainlength
                 The number of beads in the Nose-Hoover chain.
-
-           ndof
-                The effective number of degrees of freedom in the NHC
-                thermostat. When not given, this is determined according to the
-                following rules. {0D: 3N-6 or 3N-5, 1D: 3N-4, 2D: 3N-3, 3D:
-                3N-3} There is no test for linear isolated molecules. For most
-                linear molecules 3N-6 is fine as there will be deviations from
-                linearity at finite temperature. One exception is a
-                diatomic molecule, for which 3N-5 is the default. Another
-                (silly) exception is a single atom, for which a NHC thermostat
-                is meaningless.
         """
         self.temp = temp
-        self.ndof = ndof
         # At this point, the timestep and the number of degrees of freedom are
         # not known yet.
         self.chain = NHChain(chainlength, 0.0, temp, 0, timecon)
@@ -215,25 +204,12 @@ class NHCThermostat(VerletHook):
     def init(self, iterative):
         # It is mandatory to zero the external momenta.
         clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
+        # If needed, determine the number of _internal_ degrees of freedom.
+        if iterative.ndof is None:
+            iterative.ndof = get_ndof_internal_md(iterative.pos.shape[0], iterative.ff.system.cell.nvec)
+        # Configure the chain.
         self.chain.timestep = iterative.timestep
-        # Determine the number of internal degrees of freedom.
-        if self.ndof is None:
-            nvec = iterative.ff.system.cell.nvec
-            natom = iterative.ff.system.natom
-            if nvec == 0:
-                if natom == 1:
-                    raise RuntimeError('The NHC thermostat makes no sense for a single-atom system.')
-                elif natom == 2:
-                    ndof = 1
-                else:
-                    ndof = 3*natom - 6
-            elif nvec == 1:
-                ndof = 3*natom - 4
-            else:
-                ndof = 3*natom - 3
-        else:
-            ndof = self.ndof
-        self.chain.set_ndof(ndof)
+        self.chain.set_ndof(iterative.ndof)
 
     def pre(self, iterative):
         iterative.ekin = self.chain(iterative.ekin, iterative.vel)

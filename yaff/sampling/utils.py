@@ -30,7 +30,7 @@ import numpy as np
 
 __all__ = [
     'get_random_vel', 'remove_com_moment', 'remove_angular_moment',
-    'clean_momenta', 'angular_moment'
+    'clean_momenta', 'angular_moment', 'get_ndof_internal_md',
 ]
 
 
@@ -250,3 +250,34 @@ def rigid_body_angular_velocities(pos, ang_vel):
     vel[:,1] = (ang_vel[2]*pos[:,0] - ang_vel[0]*pos[:,2])
     vel[:,2] = (ang_vel[0]*pos[:,1] - ang_vel[1]*pos[:,0])
     return vel
+
+
+def get_ndof_internal_md(natom, nper):
+    '''Return the effective number of internal degrees of freedom for MD simulations
+
+       **Arguments:**
+
+       natom
+            The number of atoms
+
+       nper
+            The number of periodic boundary conditions. (0 for isolated systems)
+    '''
+    if nper == 0:
+        # isolated systems
+        if natom == 1:
+            # single atom
+            return 0
+        elif natom == 2:
+            # the diatomic case
+            return 1
+        else:
+            # No distinction is made between linear and non-linear molecules
+            # because a vibrating linear molecule is non-linear.
+            return 3*natom - 6
+    elif nper == 1:
+        # 1D periodic: three translations and one rotation about the cell vector.
+        return 3*natom - 4
+    else:
+        # 2D and 3D periodic
+        return 3*natom - 3
