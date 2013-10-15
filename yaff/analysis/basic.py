@@ -212,46 +212,19 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
 
     temp_mean = temps.mean()
 
-    # A) ATOMS
-    temp_step = temp_mean/10
-
-    # setup the temperature grid
-    temp_grid = np.arange(0, temp_mean*5 + 0.5*temp_step, temp_step)
-
-    # build up the distribution for the atoms
-    counts = np.zeros(len(temp_grid)-1, int)
-    total = 0.0
-    for i in xrange(start, end, step):
-        if select is None:
-            atom_temps = (f['trajectory/vel'][i]**2).mean(axis=1)*weights
-        else:
-            atom_temps = (f['trajectory/vel'][i,select]**2).mean(axis=1)*weights
-        counts += np.histogram(atom_temps.ravel(), bins=temp_grid)[0]
-        total += atom_temps.size
-
-
-    # transform into empirical pdf and cdf
-    emp_atom_pdf = counts/total/temp_step
-    emp_atom_cdf = counts.cumsum()/total
-
-    # the analytical form
-    rv = chi2(3, 0, temp_mean/3)
-    x_atom = temp_grid[:-1]+0.5*temp_step
-    ana_atom_pdf = rv.pdf(x_atom)
-    ana_atom_cdf = rv.cdf(x_atom)
-
-
-    # B) SYSTEM
+    # A) SYSTEM
+    if select is None:
+        natom = f['system/numbers'].shape[0]
+    else:
+        natom = 3*len(select)
     if ndof is None:
-        if select is None:
-            ndof = 3*f['system/numbers'].shape[0]
-        else:
-            ndof = 3*len(select)
+        ndof = 3*natom
+    do_atom = ndof == 3*natom
     sigma = temp_mean*np.sqrt(2.0/ndof)
     temp_step = sigma/5
 
     # setup the temperature grid and make the histogram
-    temp_grid = np.arange(temp_mean-3*sigma, temp_mean+3*sigma, temp_step)
+    temp_grid = np.arange(max(0, temp_mean-3*sigma), temp_mean+5*sigma, temp_step)
     counts = np.histogram(temps.ravel(), bins=temp_grid)[0]
     total = float(len(temps))
 
@@ -265,24 +238,41 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
     ana_sys_pdf = rv.pdf(x_sys)
     ana_sys_cdf = rv.cdf(x_sys)
 
+    if do_atom:
+        # B) ATOMS
+        temp_step = temp_mean/10
+
+        # setup the temperature grid
+        temp_grid = np.arange(0, temp_mean*5 + 0.5*temp_step, temp_step)
+
+        # build up the distribution for the atoms
+        counts = np.zeros(len(temp_grid)-1, int)
+        total = 0.0
+        for i in xrange(start, end, step):
+            if select is None:
+                atom_temps = (f['trajectory/vel'][i]**2).mean(axis=1)*weights
+            else:
+                atom_temps = (f['trajectory/vel'][i,select]**2).mean(axis=1)*weights
+            counts += np.histogram(atom_temps.ravel(), bins=temp_grid)[0]
+            total += atom_temps.size
+
+
+        # transform into empirical pdf and cdf
+        emp_atom_pdf = counts/total/temp_step
+        emp_atom_cdf = counts.cumsum()/total
+
+        # the analytical form
+        rv = chi2(3, 0, temp_mean/3)
+        x_atom = temp_grid[:-1]+0.5*temp_step
+        ana_atom_pdf = rv.pdf(x_atom)
+        ana_atom_cdf = rv.cdf(x_atom)
 
     # C) Make the plots
     pt.clf()
     xconv = log.temperature.conversion
     pt.suptitle('Mean T=%.0f [%s]' % (temp_mean, log.temperature.notation))
 
-    pt.subplot(2,2,1)
-    pt.title('Atom (k=3)')
-    scale = 1/emp_atom_pdf.max()
-    pt.plot(x_atom/xconv, emp_atom_pdf*scale, 'k-', drawstyle='steps-mid')
-    pt.plot(x_atom/xconv, ana_atom_pdf*scale, 'r-')
-    pt.axvline(temp_mean, color='k', ls='--')
-    pt.xlim(x_atom[0]/xconv, x_atom[-1]/xconv)
-    pt.ylim(ymin=0)
-    pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
-    pt.ylabel('Recaled PDF')
-
-    pt.subplot(2,2,2)
+    pt.subplot(2, 1+do_atom, 1)
     pt.title('System (k=%i)' % ndof)
     scale = 1/emp_sys_pdf.max()
     pt.plot(x_sys/xconv, emp_sys_pdf*scale, 'k-', drawstyle='steps-mid')
@@ -290,26 +280,38 @@ def plot_temp_dist(f, fn_png='temp_dist.png', ndof=None, select=None, **kwargs):
     pt.axvline(temp_mean, color='k', ls='--')
     pt.ylim(ymin=0)
     pt.xlim(x_sys[0]/xconv, x_sys[-1]/xconv)
+    pt.ylabel('Recaled PDF')
     pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
 
-    pt.subplot(2,2,3)
-    pt.plot(x_atom/xconv, emp_atom_cdf, 'k-', drawstyle='steps-mid')
-    pt.plot(x_atom/xconv, ana_atom_cdf, 'r-')
-    pt.axvline(temp_mean, color='k', ls='--')
-    pt.xlim(x_atom[0]/xconv, x_atom[-1]/xconv)
-    pt.ylim(0, 1)
-    pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
-    pt.ylabel('CDF')
-    pt.xlabel('Temperature [%s]' % log.temperature.notation)
-
-    pt.subplot(2,2,4)
+    pt.subplot(2, 1+do_atom, 2+do_atom)
     pt.plot(x_sys/xconv, emp_sys_cdf, 'k-', drawstyle='steps-mid')
     pt.plot(x_sys/xconv, ana_sys_cdf, 'r-')
     pt.axvline(temp_mean, color='k', ls='--')
     pt.xlim(x_sys[0]/xconv, x_sys[-1]/xconv)
     pt.ylim(0, 1)
     pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
+    pt.ylabel('CDF')
     pt.xlabel('Temperature [%s]' % log.temperature.notation)
+
+    if do_atom:
+        pt.subplot(2, 2, 2)
+        pt.title('Atom (k=3)')
+        scale = 1/emp_atom_pdf.max()
+        pt.plot(x_atom/xconv, emp_atom_pdf*scale, 'k-', drawstyle='steps-mid')
+        pt.plot(x_atom/xconv, ana_atom_pdf*scale, 'r-')
+        pt.axvline(temp_mean, color='k', ls='--')
+        pt.xlim(x_atom[0]/xconv, x_atom[-1]/xconv)
+        pt.ylim(ymin=0)
+        pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
+
+        pt.subplot(2, 2, 4)
+        pt.plot(x_atom/xconv, emp_atom_cdf, 'k-', drawstyle='steps-mid')
+        pt.plot(x_atom/xconv, ana_atom_cdf, 'r-')
+        pt.axvline(temp_mean, color='k', ls='--')
+        pt.xlim(x_atom[0]/xconv, x_atom[-1]/xconv)
+        pt.ylim(0, 1)
+        pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
+        pt.xlabel('Temperature [%s]' % log.temperature.notation)
 
     pt.savefig(fn_png)
 
