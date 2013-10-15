@@ -34,10 +34,23 @@ from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
     CellStateItem, EPotContribStateItem, Hook
 from yaff.sampling.utils import get_random_vel
 
+
 __all__ = [
-    'VerletIntegrator', 'VerletHook', 'VerletScreenLog', 'ConsErrTracker',
-    'KineticAnnealing',
+    'VerletIntegrator', 'TemperatureStateItem', 'VerletHook', 'VerletScreenLog',
+    'ConsErrTracker', 'KineticAnnealing',
 ]
+
+
+class TemperatureStateItem(StateItem):
+    def __init__(self):
+        StateItem.__init__(self, 'temp')
+
+    def get_value(self, iterative):
+        return getattr(iterative, 'temp', None)
+
+    def iter_attrs(self, iterative):
+        yield 'ndof', iterative.ndof
+
 
 class VerletIntegrator(Iterative):
     default_state = [
@@ -49,7 +62,7 @@ class VerletIntegrator(Iterative):
         AttributeStateItem('rmsd_delta'),
         AttributeStateItem('rmsd_gpos'),
         AttributeStateItem('ekin'),
-        AttributeStateItem('temp'),
+        TemperatureStateItem(),
         AttributeStateItem('etot'),
         AttributeStateItem('econs'),
         AttributeStateItem('cons_err'),

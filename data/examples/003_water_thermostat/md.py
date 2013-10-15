@@ -52,5 +52,5 @@ with h5.File('output.h5', mode='w') as f:
     verlet.run(500)
 
     # 4) analyze md
-    plot_temp_dist(f, temp=300, ndof=verlet.ndof)
+    plot_temp_dist(f, temp=300)
     plot_energies(f)

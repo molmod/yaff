@@ -225,6 +225,8 @@ def plot_temp_dist(f, fn_png='temp_dist.png', temp=None, ndof=None, select=None,
     else:
         natom = 3*len(select)
     if ndof is None:
+        ndof = f['trajectory'].attrs.get('ndof')
+    if ndof is None:
         ndof = 3*natom
     do_atom = ndof == 3*natom
     sigma = temp*np.sqrt(2.0/ndof)
@@ -279,7 +281,7 @@ def plot_temp_dist(f, fn_png='temp_dist.png', temp=None, ndof=None, select=None,
     xconv = log.temperature.conversion
 
     pt.subplot(2, 1+do_atom, 1)
-    pt.title('System (k=%i)' % ndof)
+    pt.title('System (ndof=%i)' % ndof)
     scale = 1/emp_sys_pdf.max()
     pt.plot(x_sys/xconv, emp_sys_pdf*scale, 'k-', drawstyle='steps-pre', label='Sim (%.0f)' % (temps.mean()))
     pt.plot(x_sys/xconv, ana_sys_pdf*scale, 'r-', drawstyle='steps-pre', label='Exact (%.0f)' % temp)
@@ -302,7 +304,7 @@ def plot_temp_dist(f, fn_png='temp_dist.png', temp=None, ndof=None, select=None,
 
     if do_atom:
         pt.subplot(2, 2, 2)
-        pt.title('Atom (k=3)')
+        pt.title('Atom (ndof=3)')
         scale = 1/emp_atom_pdf.max()
         pt.plot(x_atom/xconv, emp_atom_pdf*scale, 'k-', drawstyle='steps-pre')
         pt.plot(x_atom/xconv, ana_atom_pdf*scale, 'r-', drawstyle='steps-pre')
