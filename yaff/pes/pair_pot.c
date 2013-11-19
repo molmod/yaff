@@ -147,18 +147,18 @@ double pair_pot_compute(neigh_row_type *neighs,
             gpos[3*center_index +2] -= h + vg_cart[2];
           }
           if (vtens!=NULL) {
-            vtens[0] += neighs[i].dx*neighs[i].dx*vg;
-            vtens[4] += neighs[i].dy*neighs[i].dy*vg;
-            vtens[8] += neighs[i].dz*neighs[i].dz*vg;
-            h = neighs[i].dx*neighs[i].dy*vg;
-            vtens[1] += h;
-            vtens[3] += h;
-            h = neighs[i].dx*neighs[i].dz*vg;
-            vtens[2] += h;
-            vtens[6] += h;
-            h = neighs[i].dy*neighs[i].dz*vg;
-            vtens[5] += h;
-            vtens[7] += h;
+            vtens[0] += neighs[i].dx*(neighs[i].dx*vg+vg_cart[0]);
+            vtens[4] += neighs[i].dy*(neighs[i].dy*vg+vg_cart[1]);
+            vtens[8] += neighs[i].dz*(neighs[i].dz*vg+vg_cart[2]);
+            //h = neighs[i].dx*(neighs[i].dy*vg+vg_cart[1]);
+            vtens[1] += neighs[i].dx*(neighs[i].dy*vg+vg_cart[1]);
+            vtens[3] += neighs[i].dy*(neighs[i].dx*vg+vg_cart[0]);
+            //h = neighs[i].dx*(neighs[i].dz*vg+vg_cart[2]);
+            vtens[2] += neighs[i].dx*(neighs[i].dz*vg+vg_cart[2]);
+            vtens[6] += neighs[i].dz*(neighs[i].dx*vg+vg_cart[0]);
+            //h = neighs[i].dy*(neighs[i].dz*vg+vg_cart[2]);
+            vtens[5] += neighs[i].dy*(neighs[i].dz*vg+vg_cart[2]);
+            vtens[7] += neighs[i].dz*(neighs[i].dy*vg+vg_cart[1]);
           }
         }
         energy += s*v;

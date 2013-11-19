@@ -56,7 +56,11 @@ def check_gpos_part(system, part, nlists=None):
     check_delta(fn, x, dxs)
 
 
-def check_vtens_part(system, part, nlists=None):
+def check_vtens_part(system, part, nlists=None, symm_vtens=True):
+    '''
+        * symm_vtens: Check if the virial tensor is a symmetric matrix.
+                      For instance for dipole interactions, this is not true
+    '''
     # define some rvecs and gvecs
     if system.cell.nvec == 3:
         gvecs = system.cell.gvecs
@@ -67,7 +71,8 @@ def check_vtens_part(system, part, nlists=None):
 
     # Get the reduced coordinates
     reduced = np.dot(system.pos, gvecs.transpose())
-    assert abs(np.dot(reduced, rvecs) - system.pos).max() < 1e-10
+    if symm_vtens:
+        assert abs(np.dot(reduced, rvecs) - system.pos).max() < 1e-10
 
     def fn(x, do_gradient=False):
         rvecs = x.reshape(3, 3)
@@ -84,7 +89,8 @@ def check_vtens_part(system, part, nlists=None):
             assert np.isfinite(e)
             assert np.isfinite(vtens).all()
             assert np.isfinite(grvecs).all()
-            assert abs(vtens - vtens.transpose()).max() < 1e-10
+            if symm_vtens:
+                assert abs(vtens - vtens.transpose()).max() < 1e-10
             return e, grvecs.ravel()
         else:
             e = part.compute()

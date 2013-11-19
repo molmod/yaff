@@ -297,7 +297,7 @@ def get_part_water_eidip():
     # Initialize system, nlist and scaling
     system = get_system_water()
     nlist = NeighborList(system)
-    scalings = Scalings(system, 0.11, 1.0, 1.0)
+    scalings = Scalings(system, 0.1, 1.0, 1.0)
     # Set dipoles
     dipoles = np.array( [[1.0,2.0,3.0],[4.0,5.0,6.0],[7.0,8.0,9.0 ]] ) # natom x 3
     # Create the pair_pot and part_pair
@@ -380,6 +380,7 @@ def test_pair_pot_eidip_water():
     #Check energy from Yaff with manually computed energy
     check_pair_pot_water(system, nlist, scalings, part_pair, pair_pot, pair_fn, 1.0e-12)
     check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist, symm_vtens=False)
 
 
 #
