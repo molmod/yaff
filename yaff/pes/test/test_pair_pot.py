@@ -352,7 +352,7 @@ def test_pair_pot_eidip_water_setdipoles():
     '''Test if we can modify dipoles of PairPotEIDip object'''
     #Setup simple system
     system = get_system_water()
-    rcut = 20.0*angstrom
+    rcut = 50.0*angstrom
     #Some arrays representing dipoles
     dipoles0 = np.array( [[1.0,2.0,3.0],[4.0,5.0,6.0],[7.0,8.0,9.0 ]] ) # natom x 3
     dipoles1 = np.array( [[9.0,8.0,7.0],[6.0,5.0,4.0],[3.0,2.0,1.0 ]] ) # natom x 3

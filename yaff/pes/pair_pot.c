@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include "constants.h"
 #include "pair_pot.h"
+#include <stdio.h>
 
 pair_pot_type* pair_pot_new(void) {
   pair_pot_type* result;
@@ -457,6 +458,8 @@ double pair_fn_eidip(void *pair_data, long center_index, long other_index, doubl
   djx = (*(pair_data_eidip_type*)pair_data).dipoles[ 3*other_index   + 0 ];
   djy = (*(pair_data_eidip_type*)pair_data).dipoles[ 3*other_index   + 1 ];
   djz = (*(pair_data_eidip_type*)pair_data).dipoles[ 3*other_index   + 2 ];
+  //printf("Dipoles in C code, %f %f %f %f %f %f \n",dix,diy,diz,djx,djy,djz);
+
 
   //C-C interaction
   pot_cc = qi*qj/d;
@@ -503,9 +506,10 @@ void pair_data_eidip_set_dipoles(pair_pot_type *pair_pot, double *dipoles, long 
   in dipole matrix (natoms x 3)
   */
   long i;
+
   for (i=0; i<ndipoles; i++) {
-    *(*(pair_data_eidip_type*)((*pair_pot).pair_data)).dipoles = *dipoles;
-    (*(pair_data_eidip_type*)((*pair_pot).pair_data)).dipoles++;
-    dipoles++;
+    (*(pair_data_eidip_type*)((*pair_pot).pair_data)).dipoles[i] = dipoles[i];
+    //(*(pair_data_eidip_type*)((*pair_pot).pair_data)).dipoles++;
+    //dipoles++;
   }
 }

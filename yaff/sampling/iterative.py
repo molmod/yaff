@@ -28,6 +28,8 @@ import numpy as np
 
 from molmod.units import *
 
+from yaff import *
+
 from yaff.log import log, timer
 from yaff.pes.ff import ForcePartValence, ForcePartPair
 from yaff.pes.ext import PairPotEI

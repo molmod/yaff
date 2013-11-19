@@ -1307,6 +1307,8 @@ cdef class PairPotEIDip(PairPot):
                        (np.shape(self.dipoles)[0],3,np.shape(newdipoles)[0],np.shape(newdipoles)[1])
             #Call C code
             self.set_dipoles(newdipoles)
+            #self._c_dipoles=newdipoles
+            print "Updated dipoles to ", self.dipoles
 
 
 #

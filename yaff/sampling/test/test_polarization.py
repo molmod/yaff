@@ -21,17 +21,26 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-'''Phase-space sampling'''
 
 
-from yaff.sampling.dof import *
-from yaff.sampling.harmonic import *
-from yaff.sampling.io import *
-from yaff.sampling.iterative import *
-from yaff.sampling.nvt import *
-from yaff.sampling.npt import *
-from yaff.sampling.opt import *
-from yaff.sampling.utils import *
-from yaff.sampling.verlet import *
-from yaff.sampling.trajectory import *
-from yaff.sampling.polarization import *
+import numpy as np
+
+from molmod import kcalmol, angstrom, rad, deg, femtosecond, boltzmann
+from molmod.periodic import periodic
+from molmod.io import XYZWriter
+
+from yaff import *
+
+from yaff.test.common import get_system_water
+from yaff.pes.test.common import check_gpos_ff, check_vtens_ff
+from yaff.pes.test.test_pair_pot import get_part_water_eidip
+from yaff.sampling.polarization import RelaxDipoles
+
+
+def test1():
+    system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip()
+    ff = ForceField(system, [part_pair], nlist)
+    poltens = np.tile( np.diag([1,1,1]) , np.array([system.natom, 1]) )
+
+    opt = CGOptimizer(CartesianDOF(ff), hooks=RelaxDipoles(poltens))
+    opt.run(2)
