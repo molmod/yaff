@@ -326,6 +326,7 @@ def check_pair_pot_water(system, nlist, scalings, part_pair, pair_pot, pair_fn, 
     energy1 = part_pair.compute()
     gpos = np.zeros(system.pos.shape, float)
     energy2 = part_pair.compute(gpos)
+    print gpos
     # Compute the energy manually
     check_energy = 0.0
     srow = 0
@@ -379,6 +380,7 @@ def test_pair_pot_eidip_water():
     system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip()
     #Check energy from Yaff with manually computed energy
     check_pair_pot_water(system, nlist, scalings, part_pair, pair_pot, pair_fn, 1.0e-12)
+    check_gpos_part(system, part_pair, nlist)
 
 
 #

@@ -1245,7 +1245,7 @@ cdef class PairPotEI(PairPot):
 
 cdef class PairPotEIDip(PairPot):
     r'''Short-range contribution to the electrostatic interaction between point charges
-        and point dipoles. Only works for non-periodic systems
+        and point dipoles. Only works for non-periodic systems and without truncation scheme
 
         **Arguments:**
 
