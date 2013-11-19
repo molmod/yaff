@@ -119,4 +119,12 @@ double pair_fn_ei(void *pair_data, long center_index, long other_index, double d
 double pair_data_ei_get_alpha(pair_pot_type *pair_pot);
 
 
+typedef struct {
+  double *charges;
+  double *dipoles;
+} pair_data_eidip_type;
+
+void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipoles);
+double pair_fn_eidip(void *pair_data, long center_index, long other_index, double d, double *g);
+void pair_data_eidip_set_dipoles(pair_pot_type *pair_pot, double *dipoles, long ndipoles);
 #endif

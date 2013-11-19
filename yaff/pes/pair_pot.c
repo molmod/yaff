@@ -27,7 +27,6 @@
 #include "constants.h"
 #include "pair_pot.h"
 
-
 pair_pot_type* pair_pot_new(void) {
   pair_pot_type* result;
   result = malloc(sizeof(pair_pot_type));
@@ -59,7 +58,6 @@ void pair_pot_set_rcut(pair_pot_type *pair_pot, double rcut) {
 void pair_pot_set_trunc_scheme(pair_pot_type *pair_pot, trunc_scheme_type *trunc_scheme) {
   (*pair_pot).trunc_scheme = trunc_scheme;
 }
-
 
 double get_scaling(scaling_row_type *stab, long a, long b, long *row, long size) {
   if (*row >= size) return 1.0;
@@ -418,4 +416,34 @@ double pair_fn_ei(void *pair_data, long center_index, long other_index, double d
 
 double pair_data_ei_get_alpha(pair_pot_type *pair_pot) {
   return (*(pair_data_ei_type*)((*pair_pot).pair_data)).alpha;
+}
+
+
+void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipoles) {
+  pair_data_eidip_type *pair_data;
+  pair_data = malloc(sizeof(pair_data_eidip_type));
+  (*pair_pot).pair_data = pair_data;
+  if (pair_data != NULL) {
+    (*pair_pot).pair_fn = pair_fn_ei;
+    (*pair_data).charges = charges;
+    (*pair_data).dipoles = dipoles;
+  }
+}
+
+double pair_fn_eidip(void *pair_data, long center_index, long other_index, double d, double *g) {
+  //Fill in formulas here!
+  return 0.0;
+}
+
+void pair_data_eidip_set_dipoles(pair_pot_type *pair_pot, double *dipoles, long ndipoles) {
+  /*
+  Update the dipoles array of pair_data with given values, ndipoles = the number of elements
+  in dipole matrix (natoms x 3)
+  */
+  long i;
+  for (i=0; i<ndipoles; i++) {
+    *(*(pair_data_eidip_type*)((*pair_pot).pair_data)).dipoles = *dipoles;
+    (*(pair_data_eidip_type*)((*pair_pot).pair_data)).dipoles++;
+    dipoles++;
+  }
 }

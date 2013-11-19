@@ -25,11 +25,12 @@
 
 import numpy as np
 from scipy.special import erfc
+from nose.tools import assert_raises
 
 from molmod import angstrom, kcalmol
 
 from yaff.test.common import get_system_water32, get_system_caffeine, \
-    get_system_2atoms, get_system_quartz
+    get_system_2atoms, get_system_quartz, get_system_water
 from yaff.pes.test.common import check_gpos_part, check_vtens_part
 
 from yaff import *
@@ -287,6 +288,32 @@ def test_pair_pot_ei_water32_14A():
     system, nlist, scalings, part_pair, pair_fn = get_part_water32_14A_ei()
     check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, 1e-12, rmax=1)
 
+
+def test_pair_pot_eidip_water_setdipoles():
+    '''Test if we can modify dipoles of PairPotEIDip object'''
+    #Setup simple system
+    system = get_system_water()
+    rcut = 20.0*angstrom
+    #Some arrays representing dipoles
+    dipoles0 = np.array( [[1.0,2.0,3.0],[4.0,5.0,6.0],[7.0,8.0,9.0 ]] ) # natom x 3
+    dipoles1 = np.array( [[9.0,8.0,7.0],[6.0,5.0,4.0],[3.0,2.0,1.0 ]] ) # natom x 3
+    dipoles2 = np.array( [[9.0,8.0],[6.0,5.0],[3.0,2.0 ]] ) # natom x 2
+    dipoles3 = np.array( [[9.0,8.0,7.0],[6.0,5.0,4.0]] ) # natom x 2
+    #Initialize pair potential
+    pair_pot = PairPotEIDip(system.charges,dipoles0,rcut)
+    #Check if dipoles are initialized correctly
+    assert np.all( pair_pot.dipoles == dipoles0 )
+    #Update the dipoles to new values
+    pair_pot.dipoles = dipoles1
+    assert np.all( pair_pot.dipoles == dipoles1 )
+    #Downdate to old values, but different way of setting values
+    pair_pot.dipoles[:] = dipoles0
+    assert np.all( pair_pot.dipoles == dipoles0 )
+    #Try to update with matrix of wrong shapes, this should raise an assertion error
+    with assert_raises(AssertionError):
+        pair_pot.dipoles = dipoles2
+    with assert_raises(AssertionError):
+        pair_pot.dipoles = dipoles3
 
 #
 # Caffeine tests

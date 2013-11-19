@@ -48,9 +48,9 @@ __all__ = [
     'Cell', 'nlist_status_init', 'nlist_build', 'nlist_status_finish',
     'nlist_recompute', 'nlist_inc_r', 'Hammer', 'Switch3', 'PairPot',
     'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep',
-    'PairPotDampDisp', 'PairPotEI', 'compute_ewald_reci', 'compute_ewald_corr',
-    'dlist_forward', 'dlist_back', 'iclist_forward', 'iclist_back',
-    'vlist_forward', 'vlist_back', 'compute_grid3d'
+    'PairPotDampDisp', 'PairPotEI', 'PairPotEIDip' ,'compute_ewald_reci',
+    'compute_ewald_corr', 'dlist_forward', 'dlist_back', 'iclist_forward',
+    'iclist_back', 'vlist_forward', 'vlist_back', 'compute_grid3d'
 ]
 
 
@@ -1242,6 +1242,73 @@ cdef class PairPotEI(PairPot):
 
     alpha = property(_get_alpha)
 
+
+cdef class PairPotEIDip(PairPot):
+    r'''Short-range contribution to the electrostatic interaction between point charges
+        and point dipoles. Only works for non-periodic systems
+
+        **Arguments:**
+
+        charges
+            An array of atomic charges, shape = (natom,)
+
+        dipoles
+            An array of atomic point dipoles, shape = (natom,3)
+
+        **Optional arguments:**
+
+        tr
+            The truncation scheme, an instance of a subclass of ``Truncation``.
+            When not given, no truncation is applied
+    '''
+    cdef np.ndarray _c_charges
+    cdef np.ndarray _c_dipoles
+    name = 'eidip'
+
+    def __cinit__(self, np.ndarray[double, ndim=1] charges,
+                  np.ndarray[double, ndim=2] dipoles, double rcut):
+        assert charges.flags['C_CONTIGUOUS']
+        assert dipoles.flags['C_CONTIGUOUS']
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        pair_pot.pair_data_eidip_init(self._c_pair_pot, <double*>charges.data, <double*>dipoles.data)
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_charges = charges
+        self._c_dipoles = dipoles
+
+    def log(self):
+        '''Print suitable initialization info on screen.'''
+        if log.do_medium:
+            log('  alpha:             %s' % log.invlength(self.alpha))
+        if log.do_high:
+            log.hline()
+            log('   Atom     Charge')
+            log.hline()
+            for i in xrange(self._c_charges.shape[0]):
+                log('%7i %s' % (i, log.charge(self._c_charges[i])))
+
+    def _get_charges(self):
+        '''The atomic charges'''
+        return self._c_charges.view()
+
+    charges = property(_get_charges)
+
+    #TODO: check if this is a proper way to set values of C array
+    cdef set_dipoles(self, np.ndarray[double, ndim=2] newdipoles):
+        '''Set the atomic dipole values in C array of pair_data'''
+        pair_pot.pair_data_eidip_set_dipoles(self._c_pair_pot, <double*>newdipoles.data, <long> np.product(np.shape(newdipoles)))
+
+    property dipoles:
+        '''Make dipoles accessible to Python code'''
+        def __get__(self):
+            return self._c_dipoles.view()
+        def __set__(self, newdipoles):
+            #Check if the newdipoles array has correct shape, otherwise things will go berserk
+            assert (np.shape(newdipoles)[0] == np.shape(self.dipoles)[0]) and (np.shape(newdipoles)[1]==3),\
+                       "Dipole array should have dimensions %d x %d, got %d x %d" % \
+                       (np.shape(self.dipoles)[0],3,np.shape(newdipoles)[0],np.shape(newdipoles)[1])
+            #Call C code
+            self.set_dipoles(newdipoles)
 
 
 #
