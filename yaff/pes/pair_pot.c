@@ -84,6 +84,7 @@ double pair_pot_compute(neigh_row_type *neighs,
                         double *gpos, double* vtens) {
   long i, srow, center_index, other_index;
   double s, energy, v, vg, h, hg;
+  double delta[3];
   energy = 0.0;
   // Reset the row counter for the scaling.
   srow = 0;
@@ -100,9 +101,13 @@ double pair_pot_compute(neigh_row_type *neighs,
       }
       // If the scale is non-zero, compute the contribution.
       if (s > 0.0) {
+        //Construct vector of distances, needed for some pair potentials
+        delta[0] = neighs[i].dx;
+        delta[1] = neighs[i].dy;
+        delta[2] = neighs[i].dz;
         if ((gpos==NULL) && (vtens==NULL)) {
           // Call the potential function without g argument.
-          v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, neighs[i].d, NULL);
+          v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, neighs[i].d, delta, NULL);
           // If a truncation scheme is defined, apply it.
           if (((*pair_pot).trunc_scheme!=NULL) && (v!=0.0)) {
             v *= (*(*pair_pot).trunc_scheme).trunc_fn(neighs[i].d, (*pair_pot).rcut, (*(*pair_pot).trunc_scheme).par, NULL);
@@ -110,11 +115,11 @@ double pair_pot_compute(neigh_row_type *neighs,
         } else {
           // Call the potential function with vg argument.
           // vg is the derivative of the pair potential divided by the distance.
-          v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, neighs[i].d, &vg);
+          v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, neighs[i].d, delta, &vg);
           // If a truncation scheme is defined, apply it.
           if (((*pair_pot).trunc_scheme!=NULL) && ((v!=0.0) || (vg!=0.0))) {
             // hg is (a pointer to) the derivative of the truncation function.
-            h = (*(*pair_pot).trunc_scheme).trunc_fn(neighs[i].d, (*pair_pot).rcut, (*(*pair_pot).trunc_scheme).par, &hg);
+            h = (*(*pair_pot).trunc_scheme).trunc_fn(neighs[i].d,    (*pair_pot).rcut, (*(*pair_pot).trunc_scheme).par, &hg);
             // chain rule:
             vg = vg*h + v*hg/neighs[i].d;
             v *= h;
@@ -173,7 +178,7 @@ void pair_data_lj_init(pair_pot_type *pair_pot, double *sigma, double *epsilon) 
   }
 }
 
-double pair_fn_lj(void *pair_data, long center_index, long other_index, double d, double *g) {
+double pair_fn_lj(void *pair_data, long center_index, long other_index, double d, double *delta, double *g) {
   double sigma, epsilon, x;
   sigma = 0.5*(
     (*(pair_data_lj_type*)pair_data).sigma[center_index]+
@@ -214,7 +219,7 @@ void pair_data_mm3_init(pair_pot_type *pair_pot, double *sigma, double *epsilon,
   }
 }
 
-double pair_fn_mm3(void *pair_data, long center_index, long other_index, double d, double *g) {
+double pair_fn_mm3(void *pair_data, long center_index, long other_index, double d, double *delta, double *g) {
 // E = epsilon*[1.84e5*exp(-12.0*R/sigma) - 2.25(sigma/R)^6]
   double sigma, epsilon, x, exponent;
   int onlypauli;
@@ -260,7 +265,7 @@ void pair_data_grimme_init(pair_pot_type *pair_pot, double *r0, double *c6) {
   }
 }
 
-double pair_fn_grimme(void *pair_data, long center_index, long other_index, double d, double *g) {
+double pair_fn_grimme(void *pair_data, long center_index, long other_index, double d, double *delta, double *g) {
 // E = -1.1*damp(r)*c6/r**6 met damp(r)=1.0/(1.0+exp(-20*(r/r0-1.0))) [Grimme2006]
   double r0, c6, exponent, f, d6, e;
   r0 = (
@@ -297,7 +302,7 @@ void pair_data_exprep_init(pair_pot_type *pair_pot, long nffatype, long* ffatype
   }
 }
 
-double pair_fn_exprep(void *pair_data, long center_index, long other_index, double d, double *g) {
+double pair_fn_exprep(void *pair_data, long center_index, long other_index, double d, double *delta, double *g) {
   long i;
   double amp, b, e;
   pair_data_exprep_type *pd;
@@ -350,7 +355,7 @@ double tang_toennies(double x, int order, double *g){
   return 1.0 - poly*e;
 }
 
-double pair_fn_dampdisp(void *pair_data, long center_index, long other_index, double d, double *g) {
+double pair_fn_dampdisp(void *pair_data, long center_index, long other_index, double d, double *delta, double *g) {
   long i;
   double b, disp, damp, c6;
   // Load parameters from data structure and mix
@@ -396,7 +401,7 @@ void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha) {
   }
 }
 
-double pair_fn_ei(void *pair_data, long center_index, long other_index, double d, double *g) {
+double pair_fn_ei(void *pair_data, long center_index, long other_index, double d, double *delta, double *g) {
   double pot, alpha, qprod, x;
   qprod = (
     (*(pair_data_ei_type*)pair_data).charges[center_index]*
@@ -424,15 +429,39 @@ void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipo
   pair_data = malloc(sizeof(pair_data_eidip_type));
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
-    (*pair_pot).pair_fn = pair_fn_ei;
+    (*pair_pot).pair_fn = pair_fn_eidip;
     (*pair_data).charges = charges;
     (*pair_data).dipoles = dipoles;
   }
 }
 
-double pair_fn_eidip(void *pair_data, long center_index, long other_index, double d, double *g) {
-  //Fill in formulas here!
-  return 0.0;
+double pair_fn_eidip(void *pair_data, long center_index, long other_index, double d, double *delta, double *g) {
+  double pot, qi, qj, dix, diy, diz, djx, djy, djz;
+  //Straightforward implementation of energy expressions, code can be further optimized
+  //Charges
+  qi = (*(pair_data_eidip_type*)pair_data).charges[center_index];
+  qj = (*(pair_data_eidip_type*)pair_data).charges[other_index];
+  //Dipole components
+  dix = (*(pair_data_eidip_type*)pair_data).dipoles[ 3*center_index  + 0 ];
+  diy = (*(pair_data_eidip_type*)pair_data).dipoles[ 3*center_index  + 1 ];
+  diz = (*(pair_data_eidip_type*)pair_data).dipoles[ 3*center_index  + 2 ];
+  djx = (*(pair_data_eidip_type*)pair_data).dipoles[ 3*other_index   + 0 ];
+  djy = (*(pair_data_eidip_type*)pair_data).dipoles[ 3*other_index   + 1 ];
+  djz = (*(pair_data_eidip_type*)pair_data).dipoles[ 3*other_index   + 2 ];
+
+  //C-C interaction
+  pot = qi*qj/d;
+
+  //C-D interaction
+  pot += qi/(d*d*d)*( delta[0]*djx + delta[1]*djy + delta[2]*djz  );
+
+  //D-C interaction
+  pot -= qj/(d*d*d)*( delta[0]*dix + delta[1]*diy + delta[2]*diz  );
+
+  //D-D interaction
+  pot += ( dix*djx + diy*djy + diz*djz ) / (d*d*d) - 3/(d*d*d*d*d)*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
+
+  return pot;
 }
 
 void pair_data_eidip_set_dipoles(pair_pot_type *pair_pot, double *dipoles, long ndipoles) {

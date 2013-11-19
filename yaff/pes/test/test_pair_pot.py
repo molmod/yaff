@@ -289,6 +289,65 @@ def test_pair_pot_ei_water32_14A():
     check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, 1e-12, rmax=1)
 
 
+def get_part_water_eidip():
+    '''
+    Make a system with one water molecule with a point dipole on every atom,
+    setup a ForcePart...
+    '''
+    # Initialize system, nlist and scaling
+    system = get_system_water()
+    nlist = NeighborList(system)
+    scalings = Scalings(system, 1.0, 1.0, 1.0)
+    # Set dipoles
+    dipoles = np.array( [[1.0,2.0,3.0],[4.0,5.0,6.0],[7.0,8.0,9.0 ]] ) # natom x 3
+    # Create the pair_pot and part_pair
+    rcut = 14*angstrom
+    pair_pot = PairPotEIDip(system.charges, dipoles, rcut)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    # The pair function
+    def pair_fn(i, j, d, delta):
+        energy = 0.0
+        #Charge-Charge
+        energy += system.charges[i]*system.charges[j]/d
+        #Charge-Dipole
+        energy += system.charges[i]*np.dot(delta, pair_pot.dipoles[j,:])/d**3
+        #Dipole-Charge
+        energy -= system.charges[j]*np.dot(delta, pair_pot.dipoles[i,:])/d**3
+        #Dipole-Dipole
+        energy += np.dot( pair_pot.dipoles[i,:] , pair_pot.dipoles[j,:] )/d**3 - \
+                         3*np.dot(pair_pot.dipoles[i,:],delta)*np.dot(delta,pair_pot.dipoles[j,:])/d**5
+        return energy
+    return system, nlist, scalings, part_pair, pair_pot, pair_fn
+
+
+def check_pair_pot_water(system, nlist, scalings, part_pair, pair_pot, pair_fn, eps):
+    nlist.update() # update the neighborlists, once the rcuts are known.
+    # Compute the energy using yaff.
+    energy1 = part_pair.compute()
+    gpos = np.zeros(system.pos.shape, float)
+    energy2 = part_pair.compute(gpos)
+    # Compute the energy manually
+    check_energy = 0.0
+    srow = 0
+    for a in xrange(system.natom):
+        # compute the distances in the neighborlist manually and check.
+        for b in xrange(a):
+            delta = system.pos[b] - system.pos[a]
+            # find the scaling
+            srow, fac = get_scaling(scalings, srow, a, b)
+            # continue if scaled to zero
+            if fac == 0.0:
+                continue
+            d = np.linalg.norm(delta)
+            if d < nlist.rcut:
+                energy = fac*pair_fn(a, b, d, delta)
+                check_energy += energy
+    print "energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy)
+    print "energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy)
+    assert abs(energy1 - check_energy) < eps
+    assert abs(energy2 - check_energy) < eps
+
+
 def test_pair_pot_eidip_water_setdipoles():
     '''Test if we can modify dipoles of PairPotEIDip object'''
     #Setup simple system
@@ -314,6 +373,13 @@ def test_pair_pot_eidip_water_setdipoles():
         pair_pot.dipoles = dipoles2
     with assert_raises(AssertionError):
         pair_pot.dipoles = dipoles3
+
+def test_pair_pot_eidip_water():
+    #Setup system and force part
+    system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip()
+    #Check energy from Yaff with manually computed energy
+    check_pair_pot_water(system, nlist, scalings, part_pair, pair_pot, pair_fn, 1.0e-12)
+
 
 #
 # Caffeine tests

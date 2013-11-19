@@ -1278,8 +1278,6 @@ cdef class PairPotEIDip(PairPot):
 
     def log(self):
         '''Print suitable initialization info on screen.'''
-        if log.do_medium:
-            log('  alpha:             %s' % log.invlength(self.alpha))
         if log.do_high:
             log.hline()
             log('   Atom     Charge')
