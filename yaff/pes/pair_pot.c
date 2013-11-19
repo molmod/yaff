@@ -132,6 +132,9 @@ double pair_pot_compute(neigh_row_type *neighs,
           }
           //printf("C %3i %3i (% 3i % 3i % 3i) %10.7f %3.1f %10.3e\n", center_index, other_index, neighs[i].r0, neighs[i].r1, neighs[i].r2, neighs[i].d, s, s*v);
           vg *= s;
+          vg_cart[0] *= s;
+          vg_cart[1] *= s;
+          vg_cart[2] *= s;
           if (gpos!=NULL) {
             h = neighs[i].dx*vg;
             gpos[3*other_index  ] += h + vg_cart[0];

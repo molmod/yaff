@@ -297,7 +297,7 @@ def get_part_water_eidip():
     # Initialize system, nlist and scaling
     system = get_system_water()
     nlist = NeighborList(system)
-    scalings = Scalings(system, 1.0, 1.0, 1.0)
+    scalings = Scalings(system, 0.11, 1.0, 1.0)
     # Set dipoles
     dipoles = np.array( [[1.0,2.0,3.0],[4.0,5.0,6.0],[7.0,8.0,9.0 ]] ) # natom x 3
     # Create the pair_pot and part_pair
@@ -326,7 +326,6 @@ def check_pair_pot_water(system, nlist, scalings, part_pair, pair_pot, pair_fn, 
     energy1 = part_pair.compute()
     gpos = np.zeros(system.pos.shape, float)
     energy2 = part_pair.compute(gpos)
-    print gpos
     # Compute the energy manually
     check_energy = 0.0
     srow = 0
