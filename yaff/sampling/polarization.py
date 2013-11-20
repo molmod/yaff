@@ -26,6 +26,7 @@
 
 import numpy as np
 
+from yaff.log import log
 from yaff.sampling import Hook
 
 __all__ = ['RelaxDipoles','DipolSCPicard']
@@ -65,7 +66,7 @@ class RelaxDipoles(Hook):
         iterative.ff.part_pair_eidip.pair_pot.dipoles = newdipoles
 
 
-def DipolSCPicard(pos, charges, poltens, natom, init=None, conv_crit=1e-5):
+def DipolSCPicard(pos, charges, poltens, natom, init=None, conv_crit=1e-10):
     """
     Determine point dipoles that minimize the electrostatic energy using self-
     consistent method with Picard update (following Wang-Skeel 2005).
@@ -108,15 +109,27 @@ def DipolSCPicard(pos, charges, poltens, natom, init=None, conv_crit=1e-5):
         d = np.zeros( (3*natom,) )
 
     converged = False
+    steps = 0
+    if log.do_high:
+        log.hline()
+        log('Starting Picard algorithm to determine dipoles')
+        log('   Step     RMSD')
+        log.hline()
     #Take Picard steps until convergence is achieved
     while not converged:
         d_new = - np.dot( D , ( np.dot(G_1,charges) + np.dot(G_2,d)     ) )
         #Compute the RMSD between new and old dipoles
         rmsd_dipoles = np.sqrt(((d-d_new)**2).mean())
-        print "Current RMSD", rmsd_dipoles
+        if log.do_high:
+            log('%7i %20.15f' % (steps, rmsd_dipoles) )
         if rmsd_dipoles < conv_crit:
             converged = True
         d = d_new
+        steps += 1
+    if log.do_high:
+        log.hline()
+        log('Picard algorithm converged after %d steps'%steps)
+        log.hline()
 
     #Reshape dipoles to [natom x 3] matrix
     dipoles = np.reshape( d , (natom,3) )

@@ -1280,10 +1280,11 @@ cdef class PairPotEIDip(PairPot):
         '''Print suitable initialization info on screen.'''
         if log.do_high:
             log.hline()
-            log('   Atom     Charge')
+            log('   Atom     Charge   Dipole_x   Dipole_y   Dipole_z')
             log.hline()
             for i in xrange(self._c_charges.shape[0]):
-                log('%7i %s' % (i, log.charge(self._c_charges[i])))
+                log('%7i %s %s %s %s' % (i, log.charge(self._c_charges[i]),log.charge(self._c_dipoles[i,0]),\
+                            log.charge(self._c_dipoles[i,1]),log.charge(self._c_dipoles[i,2])))
 
     def _get_charges(self):
         '''The atomic charges'''
@@ -1307,8 +1308,11 @@ cdef class PairPotEIDip(PairPot):
                        (np.shape(self.dipoles)[0],3,np.shape(newdipoles)[0],np.shape(newdipoles)[1])
             #Call C code
             self.set_dipoles(newdipoles)
-            #self._c_dipoles=newdipoles
-            print "Updated dipoles to ", self.dipoles
+            if log.do_high:
+                log.hline()
+                log('The point dipole values were updated')
+                self.log()
+                log.hline()
 
 
 #
