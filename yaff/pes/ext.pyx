@@ -1255,6 +1255,11 @@ cdef class PairPotEIDip(PairPot):
         dipoles
             An array of atomic point dipoles, shape = (natom,3)
 
+        poltens_i
+            An array that gives the inverse atomic polarizabilities, shape = (3natom, 3)
+        TODO: What about other parameters, for example from EEM? More general way
+        to include necessary parameters.
+
         **Optional arguments:**
 
         tr
@@ -1263,10 +1268,11 @@ cdef class PairPotEIDip(PairPot):
     '''
     cdef np.ndarray _c_charges
     cdef np.ndarray _c_dipoles
+    cdef np.ndarray _c_poltens_i
     name = 'eidip'
 
     def __cinit__(self, np.ndarray[double, ndim=1] charges,
-                  np.ndarray[double, ndim=2] dipoles, double rcut):
+                  np.ndarray[double, ndim=2] dipoles, np.ndarray[double, ndim=2] poltens_i, double rcut):
         assert charges.flags['C_CONTIGUOUS']
         assert dipoles.flags['C_CONTIGUOUS']
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
@@ -1275,6 +1281,21 @@ cdef class PairPotEIDip(PairPot):
             raise MemoryError()
         self._c_charges = charges
         self._c_dipoles = dipoles
+        #Put the polarizability tensors in a matrix with shape that is more convenient for energy calculation
+        self._c_poltens_i = np.zeros( (np.shape(poltens_i)[0],np.shape(poltens_i)[0]) )
+        for i in xrange(np.shape(poltens_i)[0]/3):
+            self.poltens_i[3*i:3*(i+1) , 3*i:3*(i+1)] = poltens_i[3*i:3*(i+1),:]
+
+    def compute(self, np.ndarray[nlist.neigh_row_type, ndim=1] neighs,
+                np.ndarray[pair_pot.scaling_row_type, ndim=1] stab,
+                np.ndarray[double, ndim=2] gpos,
+                np.ndarray[double, ndim=2] vtens, long nneigh):
+        #Override parents method to add dipole creation energy
+        #This does not contribute to gpos or vtens
+        E = PairPot.compute(self, neighs, stab, gpos, vtens, nneigh)
+        E += 0.5*np.dot( np.transpose(np.reshape( self._c_dipoles, (-1,) )) , np.dot( self.poltens_i, np.reshape( self._c_dipoles, (-1,) ) ) )
+        return E
+
 
     def log(self):
         '''Print suitable initialization info on screen.'''
@@ -1291,6 +1312,13 @@ cdef class PairPotEIDip(PairPot):
         return self._c_charges.view()
 
     charges = property(_get_charges)
+
+    def _get_poltens_i(self):
+        '''The atomic charges'''
+        return self._c_poltens_i.view()
+
+    poltens_i = property(_get_poltens_i)
+
 
     #TODO: check if this is a proper way to set values of C array
     cdef set_dipoles(self, np.ndarray[double, ndim=2] newdipoles):

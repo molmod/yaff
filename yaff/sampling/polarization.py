@@ -32,12 +32,9 @@ from yaff.sampling import Hook
 __all__ = ['RelaxDipoles','DipolSCPicard','get_ei_tensors']
 
 class RelaxDipoles(Hook):
-    def __init__(self, poltens, start=0, step=1):
+    def __init__(self, start=0, step=1):
         """
            **Arguments:**
-
-           poltens
-                Tensor that gives the atomic polarizabilities (3natom x 3 )
 
            **Optional arguments:**
 
@@ -47,7 +44,6 @@ class RelaxDipoles(Hook):
            step
                 The hook will be called every `step` iterations.
         """
-        self.poltens = poltens
         Hook.__init__(self, start, step)
 
     def __call__(self, iterative):
@@ -59,14 +55,17 @@ class RelaxDipoles(Hook):
         #Check there is a pair_pot for dipoles present in the forcefield
         part_names = [part.name for part in iterative.ff.parts]
         assert 'pair_eidip' in part_names, "ff has to contain pair_eidip when using dipoles"
+        #Get array containing polarizability tensors
+        poltens_i = iterative.ff.part_pair_eidip.pair_pot.poltens_i
+
         #Compute the dipoles
-        newdipoles = DipolSCPicard( iterative.ff.system.pos, iterative.ff.system.charges, self.poltens,
+        newdipoles = DipolSCPicard( iterative.ff.system.pos, iterative.ff.system.charges, poltens_i,
                                             iterative.ff.system.natom)
         #Set the new dipoles
         iterative.ff.part_pair_eidip.pair_pot.dipoles = newdipoles
 
 
-def DipolSCPicard(pos, charges, poltens, natom, init=None, conv_crit=1e-10):
+def DipolSCPicard(pos, charges, poltens_i, natom, init=None, conv_crit=1e-10):
     """
     Determine point dipoles that minimize the electrostatic energy using self-
     consistent method with Picard update (following Wang-Skeel 2005).
@@ -84,8 +83,8 @@ def DipolSCPicard(pos, charges, poltens, natom, init=None, conv_crit=1e-10):
         charges
             Atomic point charges at atomic positions
 
-       poltens
-            Tensor that gives the atomic polarizabilities (3natom x 3 )
+       poltens_i
+            Tensor that gives the inverse of atomic polarizabilities (3natom x 3 )
             Creation of point dipoles contributes to the electrostatic energy,
             this creation energy depends on the atomic polarizabilities.
 
@@ -100,7 +99,7 @@ def DipolSCPicard(pos, charges, poltens, natom, init=None, conv_crit=1e-10):
 
     """
     #Get tensors that describe electrostatic energy
-    G_0, G_1, G_2, D = get_ei_tensors( pos, poltens, natom)
+    G_0, G_1, G_2, D = get_ei_tensors( pos, poltens_i, natom)
     #d contains the current guess for the dipoles in following form:
     # [d0x,d0y,d0z,d1x,d1y,d1z,...]
     if init is not None:
@@ -135,7 +134,7 @@ def DipolSCPicard(pos, charges, poltens, natom, init=None, conv_crit=1e-10):
     dipoles = np.reshape( d , (natom,3) )
     return dipoles
 
-def get_ei_tensors( pos, poltens, natom ):
+def get_ei_tensors( pos, poltens_i, natom ):
     """
     Compute tensors that help in evaluating electrostatic energy of charges and
     dipoles.
@@ -186,7 +185,6 @@ def get_ei_tensors( pos, poltens, natom ):
 
     #D, a [3*natom x 3*natom] matrix describing the atomic polarizabilities.
     #This will be a block diagonal matrix if polarizabilities are not coupled.
-    D = np.zeros( (3*natom,3*natom) )
-    for i in xrange(natom):
-        D[3*i:3*(i+1) , 3*i:3*(i+1)] = poltens[3*i:3*(i+1),:]
+    #We still need to invert the given poltens_i
+    D = np.linalg.inv(poltens_i)
     return G_0, G_1, G_2, D
