@@ -22,12 +22,13 @@
 #
 #--
 '''Polarizable forcefields'''
+#TODO: in which subpackage does this belong?
 
 import numpy as np
 
 from yaff.sampling import Hook
 
-__all__ = ['RelaxDipoles']
+__all__ = ['RelaxDipoles','DipolSCPicard']
 
 class RelaxDipoles(Hook):
     def __init__(self, poltens, start=0, step=1):
@@ -57,10 +58,122 @@ class RelaxDipoles(Hook):
         #Check there is a pair_pot for dipoles present in the forcefield
         part_names = [part.name for part in iterative.ff.parts]
         assert 'pair_eidip' in part_names, "ff has to contain pair_eidip when using dipoles"
-        #print iterative.ff.parts[0].name
-        #print "Relaxing Dipoles"
-        #print "Positions", iterative.ff.system.pos
-        #print "Dipoles", iterative.ff.part_pair_eidip.pair_pot.dipoles
-        #newdipoles = np.random.rand(np.shape( iterative.ff.part_pair_eidip.pair_pot.dipoles ) [0] , 3)
-        #print "Next dipoles", newdipoles
-        #iterative.ff.part_pair_eidip.pair_pot.dipoles = newdipoles
+        #Compute the dipoles
+        newdipoles = DipolSCPicard( iterative.ff.system.pos, iterative.ff.system.charges, self.poltens,
+                                            iterative.ff.system.natom)
+        #Set the new dipoles
+        iterative.ff.part_pair_eidip.pair_pot.dipoles = newdipoles
+
+
+def DipolSCPicard(pos, charges, poltens, natom, init=None, conv_crit=1e-5):
+    """
+    Determine point dipoles that minimize the electrostatic energy using self-
+    consistent method with Picard update (following Wang-Skeel 2005).
+    Initial guess is zero
+    Only for non-periodic systems!
+
+    Right now focus on code readability, not on speed.
+    TODO: Put this step in c code?
+
+        **Arguments:**
+
+        pos
+            Atomic positions (also the positions of point dipoles)
+
+        charges
+            Atomic point charges at atomic positions
+
+       poltens
+            Tensor that gives the atomic polarizabilities (3natom x 3 )
+            Creation of point dipoles contributes to the electrostatic energy,
+            this creation energy depends on the atomic polarizabilities.
+
+
+       **Optional arguments:**
+
+       init
+            Initial guess for the dipoles
+        conv_crit
+            The self-consistent method is considered to be converged as soon
+            as the RMSD of a dipole update falls between this value.
+
+    """
+    #Get tensors that describe electrostatic energy
+    G_0, G_1, G_2, D = get_ei_tensors( pos, poltens, natom)
+    #d contains the current guess for the dipoles in following form:
+    # [d0x,d0y,d0z,d1x,d1y,d1z,...]
+    if init is not None:
+        d = init #Set or compute initial guess
+    else:
+        d = np.zeros( (3*natom,) )
+
+    converged = False
+    #Take Picard steps until convergence is achieved
+    while not converged:
+        d_new = - np.dot( D , ( np.dot(G_1,charges) + np.dot(G_2,d)     ) )
+        #Compute the RMSD between new and old dipoles
+        rmsd_dipoles = np.sqrt(((d-d_new)**2).mean())
+        print "Current RMSD", rmsd_dipoles
+        if rmsd_dipoles < conv_crit:
+            converged = True
+        d = d_new
+
+    #Reshape dipoles to [natom x 3] matrix
+    dipoles = np.reshape( d , (natom,3) )
+    return dipoles
+
+def get_ei_tensors( pos, poltens, natom ):
+    """
+    Compute tensors that help in evaluating electrostatic energy of charges and
+    dipoles.
+    """
+    #Construct tensors, notation from Wang-Skeel 2005
+    #G_0,  a [natom x natom] matrix describing the interaction between point charges and point charges
+    G_0 = np.zeros( (natom,natom) )
+    #Loop over first charge
+    for i in xrange(natom):
+        #Loop over second charge
+        for j in xrange(natom):
+            if j==i: continue #Exclude self-interaction
+            delta = pos[i,:] - pos[j,:]     #Interatomic distance vector
+            r = np.linalg.norm( delta )  #Interatomic distance
+            G_0[i,j] = 1.0/r
+
+    #G_1, a [3*natom x natom] matrix describing the interaction between point charges and point dipoles
+    G_1 = np.zeros( (3*natom,natom) )
+    #Loop over dipoles
+    for i in xrange(natom):
+        #Loop over charges
+        for j in xrange(natom):
+            if j==i: continue #Exclude self-interaction
+            delta = pos[i,:] - pos[j,:]     #Interatomic distance vector
+            r = np.linalg.norm( delta )  #Interatomic distance
+            r3 = 1.0/r**3
+            #Loop over x,y and z component of dipole
+            for k in xrange(3):
+                G_1[3*i+k,j] = delta[k]*r3
+
+    #G_2, a [3*natom x 3*natom] matrix describing the interaction between point dipoles and point dipoles
+    G_2 = np.zeros( (3*natom,3*natom) )
+    #First loop over dipoles
+    for i in xrange(natom):
+        #Second loop over dipoles
+        for j in xrange(natom):
+            if j==i: continue #Exclude self-interaction
+            delta = pos[i,:] - pos[j,:]     #Interatomic distance vector
+            r = np.linalg.norm( delta )  #Interatomic distance
+            r3 = 1.0/r**3
+            r5 = 1.0/r**5
+            #Loop over x,y and z component of first dipole
+            for k in xrange(3):
+                #Loop over x,y and z component of second dipole
+                for l in xrange(3):
+                    G_2[3*i+k,3*j+l] = -3.0*delta[k]*delta[l]*r5
+                    if k==l: G_2[3*i+k,3*j+l] += r3
+
+    #D, a [3*natom x 3*natom] matrix describing the atomic polarizabilities.
+    #This will be a block diagonal matrix if polarizabilities are not coupled.
+    D = np.zeros( (3*natom,3*natom) )
+    for i in xrange(natom):
+        D[3*i:3*(i+1) , 3*i:3*(i+1)] = poltens[3*i:3*(i+1),:]
+    return G_0, G_1, G_2, D
