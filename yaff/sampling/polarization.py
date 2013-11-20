@@ -29,7 +29,7 @@ import numpy as np
 from yaff.log import log
 from yaff.sampling import Hook
 
-__all__ = ['RelaxDipoles','DipolSCPicard']
+__all__ = ['RelaxDipoles','DipolSCPicard','get_ei_tensors']
 
 class RelaxDipoles(Hook):
     def __init__(self, poltens, start=0, step=1):
@@ -72,7 +72,7 @@ def DipolSCPicard(pos, charges, poltens, natom, init=None, conv_crit=1e-10):
     consistent method with Picard update (following Wang-Skeel 2005).
     Initial guess is zero
     Only for non-periodic systems!
-
+    No scalings are applied!
     Right now focus on code readability, not on speed.
     TODO: Put this step in c code?
 

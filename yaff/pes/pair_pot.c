@@ -496,7 +496,6 @@ double pair_fn_eidip(void *pair_data, long center_index, long other_index, doubl
     g_cart[1] += - 3/(d*d*d*d*d)*(diy*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djy*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
     g_cart[2] += - 3/(d*d*d*d*d)*(diz*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djz*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
   }
-
   return (pot_cc+pot_cd+pot_dc+pot_dd);
 }
 

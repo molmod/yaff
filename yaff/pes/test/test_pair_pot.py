@@ -289,7 +289,7 @@ def test_pair_pot_ei_water32_14A():
     check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, 1e-12, rmax=1)
 
 
-def get_part_water_eidip():
+def get_part_water_eidip(scalings = [0.5,1.0,1.0]):
     '''
     Make a system with one water molecule with a point dipole on every atom,
     setup a ForcePart...
@@ -297,7 +297,7 @@ def get_part_water_eidip():
     # Initialize system, nlist and scaling
     system = get_system_water()
     nlist = NeighborList(system)
-    scalings = Scalings(system, 0.1, 1.0, 1.0)
+    scalings = Scalings(system, scalings[0], scalings[1], scalings[2])
     # Set dipoles
     dipoles = np.array( [[1.0,2.0,3.0],[4.0,5.0,6.0],[7.0,8.0,9.0 ]] ) # natom x 3
     # Create the pair_pot and part_pair
