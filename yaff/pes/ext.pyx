@@ -1292,6 +1292,7 @@ cdef class PairPotEIDip(PairPot):
                 np.ndarray[double, ndim=2] vtens, long nneigh):
         #Override parents method to add dipole creation energy
         #This does not contribute to gpos or vtens
+        log("Computing PairPotEIDip energy and gradient")
         E = PairPot.compute(self, neighs, stab, gpos, vtens, nneigh)
         E += 0.5*np.dot( np.transpose(np.reshape( self._c_dipoles, (-1,) )) , np.dot( self.poltens_i, np.reshape( self._c_dipoles, (-1,) ) ) )
         return E
