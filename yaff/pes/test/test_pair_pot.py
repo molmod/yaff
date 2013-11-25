@@ -289,7 +289,7 @@ def test_pair_pot_ei_water32_14A():
     check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, 1e-12, rmax=1)
 
 
-def get_part_water_eidip(scalings = [0.5,1.0,1.0]):
+def get_part_water_eidip(scalings = [0.5,1.0,1.0],rcut=14.0*angstrom,switch_width=0.0*angstrom):
     '''
     Make a system with one water molecule with a point dipole on every atom,
     setup a ForcePart...
@@ -303,8 +303,7 @@ def get_part_water_eidip(scalings = [0.5,1.0,1.0]):
     # Set poltens
     poltens_i = np.tile( np.diag([1.0,1.0,1.0]) , np.array([system.natom, 1]) )
     # Create the pair_pot and part_pair
-    rcut = 14*angstrom
-    pair_pot = PairPotEIDip(system.charges, dipoles, poltens_i, rcut)
+    pair_pot = PairPotEIDip(system.charges, dipoles, poltens_i, rcut, Switch3(switch_width))
     part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d, delta):
@@ -318,6 +317,9 @@ def get_part_water_eidip(scalings = [0.5,1.0,1.0]):
         #Dipole-Dipole
         energy += np.dot( pair_pot.dipoles[i,:] , pair_pot.dipoles[j,:] )/d**3 - \
                          3*np.dot(pair_pot.dipoles[i,:],delta)*np.dot(delta,pair_pot.dipoles[j,:])/d**5
+        if d > rcut - switch_width:
+            x = (rcut - d)/switch_width
+            energy *= (3-2*x)*x*x
         return energy
     return system, nlist, scalings, part_pair, pair_pot, pair_fn
 
@@ -387,6 +389,17 @@ def test_pair_pot_eidip_water():
     check_pair_pot_water(system, nlist, scalings, part_pair, pair_pot, pair_fn, 1.0e-12)
     check_gpos_part(system, part_pair, nlist)
     check_vtens_part(system, part_pair, nlist, symm_vtens=False)
+    #Again, but with a truncation scheme (truncation scheme settings are ridiculous,
+    #but this is needed to see an effect for water)
+
+    #Setup system and force part
+    system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(rcut=2.0*angstrom,switch_width=1.5*angstrom)
+    #Check energy from Yaff with manually computed energy
+    check_pair_pot_water(system, nlist, scalings, part_pair, pair_pot, pair_fn, 1.0e-12)
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist, symm_vtens=False)
+
+
 
 
 #

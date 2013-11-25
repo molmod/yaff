@@ -123,12 +123,15 @@ double pair_pot_compute(neigh_row_type *neighs,
           vg_cart[1] = 0.0;
           vg_cart[2] = 0.0;
           v = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, neighs[i].d, delta, &vg, vg_cart);
-          // If a truncation scheme is defined, apply it. TODO: include vg_cart
+          // If a truncation scheme is defined, apply it.
           if (((*pair_pot).trunc_scheme!=NULL) && ((v!=0.0) || (vg!=0.0))) {
             // hg is (a pointer to) the derivative of the truncation function.
             h = (*(*pair_pot).trunc_scheme).trunc_fn(neighs[i].d,    (*pair_pot).rcut, (*(*pair_pot).trunc_scheme).par, &hg);
             // chain rule:
             vg = vg*h + v*hg/neighs[i].d;
+            vg_cart[0] = vg_cart[0]*h;
+            vg_cart[1] = vg_cart[1]*h;
+            vg_cart[2] = vg_cart[2]*h;
             v *= h;
           }
           //printf("C %3i %3i (% 3i % 3i % 3i) %10.7f %3.1f %10.3e\n", center_index, other_index, neighs[i].r0, neighs[i].r1, neighs[i].r2, neighs[i].d, s, s*v);

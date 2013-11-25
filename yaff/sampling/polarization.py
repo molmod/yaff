@@ -60,7 +60,7 @@ class RelaxDipoles(Hook):
         #Get array containing polarizability tensors
         poltens_i = iterative.ff.part_pair_eidip.pair_pot.poltens_i
 
-        #Compute the dipoles
+        #Compute the dipoles, TODO: let user choose how dipoles are computed
         #newdipoles = DipolSCPicard( iterative.ff.system.pos, iterative.ff.system.charges, poltens_i,
         #                                    iterative.ff.system.natom, system=iterative.ff.system)
         newdipoles = DipolRules( iterative.ff.system.pos, iterative.ff.system.charges,
@@ -72,6 +72,9 @@ class RelaxDipoles(Hook):
 
 
 def DipolRules( pos,charges,natom,system):
+    '''
+    Determine dipoles based on some simple geometric rules, only valid for some specific testcases...
+    '''
     dipoles = np.zeros ( (natom,3) )
     for i, atom in enumerate(system.numbers):
         #Oxygen atom

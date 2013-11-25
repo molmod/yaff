@@ -1272,10 +1272,12 @@ cdef class PairPotEIDip(PairPot):
     name = 'eidip'
 
     def __cinit__(self, np.ndarray[double, ndim=1] charges,
-                  np.ndarray[double, ndim=2] dipoles, np.ndarray[double, ndim=2] poltens_i, double rcut):
+                  np.ndarray[double, ndim=2] dipoles, np.ndarray[double, ndim=2] poltens_i, double rcut,
+                  Truncation tr=None):
         assert charges.flags['C_CONTIGUOUS']
         assert dipoles.flags['C_CONTIGUOUS']
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        self.set_truncation(tr)
         pair_pot.pair_data_eidip_init(self._c_pair_pot, <double*>charges.data, <double*>dipoles.data)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
