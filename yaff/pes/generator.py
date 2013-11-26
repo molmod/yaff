@@ -166,9 +166,9 @@ class FFArgs(object):
             raise NotImplementedError('Only zero- and three-dimensional electrostatics are supported.')
         # Real-space electrostatics
         if self.smooth_ei:
-            pair_pot_ei = PairPotEI(system.charges, alpha, self.rcut, self.tr)
+            pair_pot_ei = PairPotEI(system.charges, alpha, self.rcut, tr=self.tr, radii=system.radii)
         else:
-            pair_pot_ei = PairPotEI(system.charges, alpha, self.rcut)
+            pair_pot_ei = PairPotEI(system.charges, alpha, self.rcut, radii=system.radii)
         part_pair_ei = ForcePartPair(system, nlist, scalings, pair_pot_ei)
         self.parts.append(part_pair_ei)
         if self.reci_ei == 'ignore':
@@ -1167,17 +1167,15 @@ class FixedChargeGenerator(NonbondedGenerator):
         elif log.do_warning and abs(system.charges).max() != 0:
             log.warn('Overwriting charges in system.')
         system.charges[:] = 0.0
-        radii = np.zeros(system.natom)
+        system.radii = np.zeros(system.natom)
 
         # compute the charges
         for i in xrange(system.natom):
             pars = atom_table.get(system.get_ffatype(i))
             if pars is not None:
                 charge, radius = pars
-                if radius > 0:
-                    raise NotImplementedError
                 system.charges[i] += charge
-                radii[i] = radius
+                system.radii[i] = radius
             elif log.do_warning:
                 log.warn('No charge defined for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
         for i0, i1 in system.iter_bonds():
@@ -1198,6 +1196,12 @@ class FixedChargeGenerator(NonbondedGenerator):
 
         if dielectric != 1.0:
             raise NotImplementedError('Only a relative dielectric constant of 1 is supported.')
+
+        # we cannot (yet) use distributed charges with non-periodic systems
+        # check if user tries to do this
+        if system.cell.nvec != 0:
+            if not np.all( system.radii == 0.0 ):
+                raise NotImplementedError('Distributed charges are not supported for non-periodic systems!')
 
         # Setup the electrostatic pars
         ff_args.add_electrostatic_parts(system, scalings)

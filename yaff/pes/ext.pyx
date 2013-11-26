@@ -1238,10 +1238,10 @@ cdef class PairPotEI(PairPot):
             log('  alpha:             %s' % log.invlength(self.alpha))
         if log.do_high:
             log.hline()
-            log('   Atom     Charge')
+            log('   Atom     Charge     Radius')
             log.hline()
             for i in xrange(self._c_charges.shape[0]):
-                log('%7i %s' % (i, log.charge(self._c_charges[i])))
+                log('%7i %s %s' % (i, log.charge(self._c_charges[i]), log.length(self._c_radii[i])))
 
     def _get_charges(self):
         '''The atomic charges'''

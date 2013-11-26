@@ -516,12 +516,14 @@ def test_generator_water32_fixq():
     assert part_pair_ei.pair_pot.alpha == part_ewald_reci.alpha
     assert part_pair_ei.pair_pot.alpha == part_ewald_cor.alpha
     assert part_pair_ei.pair_pot.alpha == part_ewald_neut.alpha
-    # check charges
+    # check charges and atomic radii
     for i in xrange(system.natom):
         if system.numbers[i] == 1:
             assert abs(system.charges[i] - 0.417) < 1e-5
+            assert abs(system.radii[i] - 0.0*angstrom) < 1e-5
         else:
             assert abs(system.charges[i] + 2*0.417) < 1e-5
+            assert abs(system.radii[i] - 0.0*angstrom) < 1e-5
 
     system = get_system_water32()
     log.set_level(log.silent)
@@ -534,6 +536,37 @@ def test_generator_water32_fixq():
             assert abs(system.charges[i] - 0.417) < 1e-5
         else:
             assert abs(system.charges[i] + 2*0.417) < 1e-5
+    energy = ff.compute()
+    energy2 = ff2.compute()
+    assert abs(energy - energy2) < 1e-3
+
+
+def test_generator_glycine_fixq():
+    system = get_system_glycine()
+    fn_pars = context.get_fn('test/parameters_glycine_fixq.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert len(ff.parts) == 1 #Non-periodic, so only one part
+    part_pair_ei = ff.part_pair_ei
+    # check part settings
+    assert part_pair_ei.pair_pot.alpha == 0.0
+    # check charges and atomic radii
+    ac = {1:0.2, 6:0.5, 7:-1.0, 8:-0.5 } #Charges
+    ar = {1:1.2*angstrom, 6: 1.7*angstrom, 7: 1.55*angstrom, 8: 1.50*angstrom} #Radii
+    for i in xrange(system.natom):
+        assert abs(system.charges[i] - ac[system.numbers[i]]) < 1e-5
+        assert abs(system.radii[i] - ar[system.numbers[i]]) < 1e-5
+
+    system = get_system_glycine()
+    log.set_level(log.silent)
+    fn_pars = context.get_fn('test/parameters_glycine_fixq.txt')
+    ff2 = ForceField.generate(system, fn_pars)
+    log.set_level(log.debug)
+    # check charges and atomic radii
+    ac = {1:0.2, 6:0.5, 7:-1.0, 8:-0.5 } #Charges
+    ar = {1:1.2*angstrom, 6: 1.7*angstrom, 7: 1.55*angstrom, 8: 1.50*angstrom} #Radii
+    for i in xrange(system.natom):
+        assert abs(system.charges[i] - ac[system.numbers[i]]) < 1e-5
+        assert abs(system.radii[i] - ar[system.numbers[i]]) < 1e-5
     energy = ff.compute()
     energy2 = ff2.compute()
     assert abs(energy - energy2) < 1e-3
