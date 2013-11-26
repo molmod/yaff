@@ -473,7 +473,7 @@ void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipo
 }
 
 double pair_fn_eidip(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
-  double pot_cc, pot_cd, pot_dc, pot_dd, qi, qj, dix, diy, diz, djx, djy, djz;
+  double pot_cc, pot_cd, pot_dc, pot_dd, qi, qj, dix, diy, diz, djx, djy, djz, d_2, d_3;
   //Straightforward implementation of energy expressions, code can be further optimized
   //Charges
   qi = (*(pair_data_eidip_type*)pair_data).charges[center_index];
@@ -486,41 +486,44 @@ double pair_fn_eidip(void *pair_data, long center_index, long other_index, doubl
   djy = (*(pair_data_eidip_type*)pair_data).dipoles[ 3*other_index   + 1 ];
   djz = (*(pair_data_eidip_type*)pair_data).dipoles[ 3*other_index   + 2 ];
   //printf("Dipoles in C code, %f %f %f %f %f %f \n",dix,diy,diz,djx,djy,djz);
+  //Some useful definitions
+  d_2 = 1.0/(d*d);
+  d_3 = d_2/d;
 
   //C-C interaction
   pot_cc = qi*qj/d;
   if (g != NULL ){
-    *g = -pot_cc/(d*d);
+    *g = -pot_cc*d_2;
     g_cart[0] = 0.0;
     g_cart[1] = 0.0;
     g_cart[2] = 0.0;
   }
 
   //C-D interaction
-  pot_cd = qi/(d*d*d)*( delta[0]*djx + delta[1]*djy + delta[2]*djz  );
+  pot_cd = qi*d_3*( delta[0]*djx + delta[1]*djy + delta[2]*djz  );
   if (g != NULL ){
-    *g += -3.0*pot_cd/(d*d);
-    g_cart[0] += qi/(d*d*d)*djx;
-    g_cart[1] += qi/(d*d*d)*djy;
-    g_cart[2] += qi/(d*d*d)*djz;
+    *g += -3.0*pot_cd*d_2;
+    g_cart[0] += qi*d_3*djx;
+    g_cart[1] += qi*d_3*djy;
+    g_cart[2] += qi*d_3*djz;
   }
 
   //D-C interaction
-  pot_dc = -qj/(d*d*d)*( delta[0]*dix + delta[1]*diy + delta[2]*diz  );
+  pot_dc = -qj*d_3*( delta[0]*dix + delta[1]*diy + delta[2]*diz  );
   if (g != NULL ){
-    *g += -3.0*pot_dc/(d*d);
-    g_cart[0] += -qj/(d*d*d)*dix;
-    g_cart[1] += -qj/(d*d*d)*diy;
-    g_cart[2] += -qj/(d*d*d)*diz;
+    *g += -3.0*pot_dc*d_2;
+    g_cart[0] += -qj*d_3*dix;
+    g_cart[1] += -qj*d_3*diy;
+    g_cart[2] += -qj*d_3*diz;
   }
 
   //D-D interaction
-  pot_dd = ( dix*djx + diy*djy + diz*djz ) / (d*d*d) - 3/(d*d*d*d*d)*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
+  pot_dd = ( dix*djx + diy*djy + diz*djz ) * d_3 - 3*d_3*d_2*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
   if (g != NULL){
-    *g += -3.0*( dix*djx + diy*djy + diz*djz ) / (d*d*d*d*d) + 15.0/(d*d*d*d*d*d*d)*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
-    g_cart[0] += - 3/(d*d*d*d*d)*(dix*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djx*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
-    g_cart[1] += - 3/(d*d*d*d*d)*(diy*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djy*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
-    g_cart[2] += - 3/(d*d*d*d*d)*(diz*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djz*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
+    *g += -3.0*( dix*djx + diy*djy + diz*djz ) * d_2 * d_3 + 15.0*d_3*d_2*d_2*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
+    g_cart[0] += - 3*d_3*d_2*(dix*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djx*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
+    g_cart[1] += - 3*d_3*d_2*(diy*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djy*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
+    g_cart[2] += - 3*d_3*d_2*(diz*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djz*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
   }
 
   return (pot_cc+pot_cd+pot_dc+pot_dd);

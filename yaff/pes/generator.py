@@ -161,6 +161,8 @@ class FFArgs(object):
         if system.cell.nvec == 0:
             alpha = 0.0
         elif system.cell.nvec == 3:
+            #TODO: the choice of alpha should depend on the radii of the
+            #charge distributions. Following expression is OK for point charges.
             alpha = self.alpha_scale/self.rcut
         else:
             raise NotImplementedError('Only zero- and three-dimensional electrostatics are supported.')
@@ -1196,12 +1198,6 @@ class FixedChargeGenerator(NonbondedGenerator):
 
         if dielectric != 1.0:
             raise NotImplementedError('Only a relative dielectric constant of 1 is supported.')
-
-        # we cannot (yet) use distributed charges with non-periodic systems
-        # check if user tries to do this
-        #if system.cell.nvec != 0:
-        #    if not np.all( system.radii == 0.0 ):
-        #        raise NotImplementedError('Distributed charges are not supported for non-periodic systems!')
 
         # Setup the electrostatic pars
         ff_args.add_electrostatic_parts(system, scalings)
