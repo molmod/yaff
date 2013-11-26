@@ -155,7 +155,7 @@ def DipolSCPicard(pos, charges, poltens_i, natom, init=None, conv_crit=1e-10, te
     if init is not None:
         d = init #Set or compute initial guess
     else:
-        d = np.ones( (3*natom,) )
+        d = np.zeros( (3*natom,) )
 
     converged = False
     steps = 0
@@ -165,7 +165,7 @@ def DipolSCPicard(pos, charges, poltens_i, natom, init=None, conv_crit=1e-10, te
         log('   Step     RMSD')
         log.hline()
     #Take Picard steps until convergence is achieved
-    while (not converged and steps<20):
+    while (not converged and steps<100):
         d_new = - np.dot( D , ( np.dot(G_1,charges) + np.dot(G_2,d) + chi    ) )
         #Compute the RMSD between new and old dipoles
         rmsd_dipoles = np.sqrt(((d-d_new)**2).mean())
@@ -179,9 +179,6 @@ def DipolSCPicard(pos, charges, poltens_i, natom, init=None, conv_crit=1e-10, te
         log.hline()
         log('Picard algorithm converged after %d steps'%steps)
         log.hline()
-
-
-
     #Reshape dipoles to [natom x 3] matrix
     dipoles = np.reshape( d , (natom,3) )
     return dipoles
