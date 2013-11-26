@@ -403,7 +403,7 @@ double pair_fn_dampdisp(void *pair_data, long center_index, long other_index, do
 
 
 
-void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha) {
+void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha, double *radii) {
   pair_data_ei_type *pair_data;
   pair_data = malloc(sizeof(pair_data_ei_type));
   (*pair_pot).pair_data = pair_data;
@@ -411,23 +411,35 @@ void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha) {
     (*pair_pot).pair_fn = pair_fn_ei;
     (*pair_data).charges = charges;
     (*pair_data).alpha = alpha;
+    (*pair_data).radii = radii;
   }
 }
 
 double pair_fn_ei(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
-  double pot, alpha, qprod, x;
+  double pot, alpha, qprod, x, r_ab;
   qprod = (
     (*(pair_data_ei_type*)pair_data).charges[center_index]*
     (*(pair_data_ei_type*)pair_data).charges[other_index]
   );
+  //Averaged atomic radius needed to compute EI interaction between Gaussian charge distributions
+  //TODO: store square of atomic radii
+  r_ab = sqrt( (*(pair_data_ei_type*)pair_data).radii[center_index] * (*(pair_data_ei_type*)pair_data).radii[center_index] +
+               (*(pair_data_ei_type*)pair_data).radii[other_index] * (*(pair_data_ei_type*)pair_data).radii[other_index] );
   alpha = (*(pair_data_ei_type*)pair_data).alpha;
   if (alpha > 0) {
     x = alpha*d;
     pot = qprod*erfc(x)/d;
     if (g != NULL) *g = (-M_TWO_DIV_SQRT_PI*alpha*exp(-x*x)*qprod - pot)/(d*d);
   } else {
-    pot = qprod/d;
-    if (g != NULL) *g = -pot/(d*d);
+    if (r_ab > 0) {//Gaussian charge distributions
+         x = d/r_ab;
+         pot = qprod/d*erf(x);
+         if (g != NULL) *g = (M_TWO_DIV_SQRT_PI/r_ab*exp(-x*x)*qprod-pot)/(d*d);
+     }
+     else{ //Treat as monopole
+         pot = qprod/d;
+         if (g != NULL) *g = -pot/(d*d);
+     }
   }
   return pot;
 }

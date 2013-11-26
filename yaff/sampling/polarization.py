@@ -140,7 +140,6 @@ def DipolSCPicard(pos, charges, poltens_i, natom, init=None, conv_crit=1e-10, te
         conv_crit
             The self-consistent method is considered to be converged as soon
             as the RMSD of a dipole update falls between this value.
-
     """
     #Get tensors that describe electrostatic energy
     if tensors is None:

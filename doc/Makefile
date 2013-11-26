@@ -3,7 +3,7 @@
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINXBUILD   = YAFFDATA=../data PYTHONPATH=../ sphinx-build
+SPHINXBUILD   = YAFFDATA=../data PYTHONPATH=../:$(PYTHONPATH) sphinx-build
 PAPER         =
 BUILDDIR      = _build
 
@@ -36,7 +36,7 @@ help:
 autogendoc:
 	cd ..; python setup.py build_ext -i
 	mkdir -p lib
-	YAFFDATA=../data PYTHONPATH=../ python updatelibdoc.py
+	YAFFDATA=../data PYTHONPATH=../:$(PYTHONPATH) python updatelibdoc.py
 
 clean:
 	-rm -rf $(BUILDDIR)/*

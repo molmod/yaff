@@ -1205,19 +1205,32 @@ cdef class PairPotEI(PairPot):
         tr
             The truncation scheme, an instance of a subclass of ``Truncation``.
             When not given, no truncation is applied
+
+        radii
+            An array of atomic radii, shape = (natom,). The charge distribution
+            of atom :math:`i` with radius :math:`r_i` centered at :math:`\mathbf{R}_i`
+            is of a Gaussian shape (s-type orbital):
+            :math:`\rho_i (\mathbf{r}) = q_i\left(\frac{1}{\pi r_i^2}\right)^{3/2} \exp{-\frac{|\mathbf{r} -\mathbf{R}_i |^2}{r_i^2}}`
+            When the atomic radius equals zero, the charge distribution becomes a
+            point monopole.
+            Only implemented for non-periodic systems
     '''
     cdef np.ndarray _c_charges
+    cdef np.ndarray _c_radii
     name = 'ei'
 
     def __cinit__(self, np.ndarray[double, ndim=1] charges, double alpha,
-                  double rcut, Truncation tr=None):
+                  double rcut, Truncation tr=None, np.ndarray[double, ndim=1] radii=None):
         assert charges.flags['C_CONTIGUOUS']
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
         self.set_truncation(tr)
-        pair_pot.pair_data_ei_init(self._c_pair_pot, <double*>charges.data, alpha)
+        #Not atomic radii specified, set to point charges
+        if radii is None: radii = np.zeros( np.shape(charges) )
+        pair_pot.pair_data_ei_init(self._c_pair_pot, <double*>charges.data, alpha, <double*>radii.data)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
         self._c_charges = charges
+        self._c_radii = radii
 
     def log(self):
         '''Print suitable initialization info on screen.'''
@@ -1235,6 +1248,12 @@ cdef class PairPotEI(PairPot):
         return self._c_charges.view()
 
     charges = property(_get_charges)
+
+    def _get_radii(self):
+        '''The atomic radii'''
+        return self._c_radii.view()
+
+    radii = property(_get_radii)
 
     def _get_alpha(self):
         '''The alpha parameter in the Ewald summation method'''

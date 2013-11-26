@@ -24,7 +24,7 @@
 
 
 import numpy as np
-from scipy.special import erfc
+from scipy.special import erfc, erf
 from nose.tools import assert_raises
 
 from molmod import angstrom, kcalmol
@@ -711,6 +711,34 @@ def test_pair_pot_ei2_caffeine_10A():
     system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_ei2_10A()
     check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, 1e-8)
 
+
+def get_part_caffeine_ei3_10A():
+    # Get a system and define scalings
+    system = get_system_caffeine()
+    nlist = NeighborList(system)
+    scalings = Scalings(system, 0.0, 1.0, 0.5)
+    # Initialize (random) parameters
+    system.charges = np.random.uniform(0, 1, system.natom)
+    system.charges -= system.charges.sum()
+    #Set the atomic radii
+    radii = np.random.uniform(0,1,system.natom)
+    # Construct the pair potential and part
+    rcut = 10*angstrom
+    alpha = 0.0
+    pair_pot = PairPotEI(system.charges, alpha, rcut, radii=radii)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    # The pair function
+    def pair_fn(i, j, d):
+        r_ij = np.sqrt( pair_pot.radii[i]**2 + pair_pot.radii[j]**2 )
+        return system.charges[i]*system.charges[j]*erf(d/r_ij)/d
+    return system, nlist, scalings, part_pair, pair_fn
+
+
+def test_pair_pot_ei3_caffeine_10A():
+    system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_ei3_10A()
+    check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, 1e-9)
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist)
 
 #
 # Water derivative tests
