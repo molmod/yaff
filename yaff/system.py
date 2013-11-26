@@ -47,7 +47,7 @@ def _unravel_triangular(i):
 
 class System(object):
     def __init__(self, numbers, pos, scopes=None, scope_ids=None, ffatypes=None,
-                 ffatype_ids=None, bonds=None, rvecs=None, charges=None,
+                 ffatype_ids=None, bonds=None, rvecs=None, charges=None, radii=None,
                  masses=None):
         '''
            **Arguments:**
@@ -95,6 +95,10 @@ class System(object):
            charges
                 An array of atomic charges
 
+           radii
+                An array of atomic radii that determine shape of charge
+                distribution
+
            masses
                 The atomic masses (in atomic units, i.e. m_e)
 
@@ -123,6 +127,7 @@ class System(object):
         self.bonds = bonds
         self.cell = Cell(rvecs)
         self.charges = charges
+        self.radii = radii
         self.masses = masses
         with log.section('SYS'):
             # report some stuff
@@ -400,7 +405,8 @@ class System(object):
                     from molmod.io import load_chk
                     allowed_keys = [
                         'numbers', 'pos', 'scopes', 'scope_ids', 'ffatypes',
-                        'ffatype_ids', 'bonds', 'rvecs', 'charges', 'masses',
+                        'ffatype_ids', 'bonds', 'rvecs', 'charges', 'radii',
+                        'masses',
                     ]
                     for key, value in load_chk(fn).iteritems():
                         if key in allowed_keys:
@@ -675,7 +681,7 @@ class System(object):
 
         # B) Simple repetitions
         rep_all = np.product(reps)
-        for attrname in 'numbers', 'ffatype_ids', 'scope_ids', 'charges', 'masses':
+        for attrname in 'numbers', 'ffatype_ids', 'scope_ids', 'charges', 'radii', 'masses':
             value = getattr(self, attrname)
             if value is not None:
                 new_args[attrname] = np.tile(value, rep_all)
@@ -810,6 +816,7 @@ class System(object):
         scope_ids = reduce_int_array(self.scope_ids)
         ffatype_ids = reduce_int_array(self.ffatype_ids)
         charges = reduce_float_array(self.charges)
+        radii = reduce_float_array(self.radii)
         masses = reduce_float_array(self.masses)
 
         # create averaged positions
@@ -877,6 +884,7 @@ class System(object):
             bonds=reduce_bonds(self.bonds),
             rvecs=self.cell.rvecs,
             charges=reduce_array(self.charges),
+            radii=reduce_array(self.radii),
             masses=reduce_array(self.masses),
         )
 
@@ -931,6 +939,7 @@ class System(object):
                 'bonds': self.bonds,
                 'rvecs': self.cell.rvecs,
                 'charges': self.charges,
+                'radii': self.radii,
                 'masses': self.masses,
             })
         elif fn.endswith('.h5'):
@@ -972,5 +981,7 @@ class System(object):
             sgrp.create_dataset('rvecs', data=self.cell.rvecs)
         if self.charges is not None:
             sgrp.create_dataset('charges', data=self.charges)
+        if self.radii is not None:
+            sgrp.create_dataset('radii', data=self.radii)
         if self.masses is not None:
             sgrp.create_dataset('masses', data=self.masses)

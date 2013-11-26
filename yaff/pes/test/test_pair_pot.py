@@ -737,8 +737,6 @@ def get_part_caffeine_ei3_10A():
 def test_pair_pot_ei3_caffeine_10A():
     system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_ei3_10A()
     check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, 1e-9)
-    check_gpos_part(system, part_pair, nlist)
-    check_vtens_part(system, part_pair, nlist)
 
 #
 # Water derivative tests
@@ -800,6 +798,12 @@ def test_gpos_vtens_pair_pot_caffeine_ei1_10A():
 
 def test_gpos_vtens_pair_pot_caffeine_ei2_10A():
     system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_ei2_10A()
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist)
+
+
+def test_gpos_vtens_pair_pot_caffeine_ei2_10A():
+    system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_ei3_10A()
     check_gpos_part(system, part_pair, nlist)
     check_vtens_part(system, part_pair, nlist)
 
