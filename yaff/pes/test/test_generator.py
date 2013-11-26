@@ -520,10 +520,10 @@ def test_generator_water32_fixq():
     for i in xrange(system.natom):
         if system.numbers[i] == 1:
             assert abs(system.charges[i] - 0.417) < 1e-5
-            assert abs(system.radii[i] - 0.0*angstrom) < 1e-5
+            assert abs(system.radii[i] - 1.2*angstrom) < 1e-5
         else:
             assert abs(system.charges[i] + 2*0.417) < 1e-5
-            assert abs(system.radii[i] - 0.0*angstrom) < 1e-5
+            assert abs(system.radii[i] - 1.5*angstrom) < 1e-5
 
     system = get_system_water32()
     log.set_level(log.silent)
@@ -534,8 +534,10 @@ def test_generator_water32_fixq():
     for i in xrange(system.natom):
         if system.numbers[i] == 1:
             assert abs(system.charges[i] - 0.417) < 1e-5
+            assert abs(system.radii[i] - 1.2*angstrom) < 1e-5
         else:
             assert abs(system.charges[i] + 2*0.417) < 1e-5
+            assert abs(system.radii[i] - 1.5*angstrom) < 1e-5
     energy = ff.compute()
     energy2 = ff2.compute()
     assert abs(energy - energy2) < 1e-3

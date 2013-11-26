@@ -268,7 +268,7 @@ def test_pair_pot_exprep_water32_4A_case2():
     check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, 1e-12)
 
 
-def get_part_water32_14A_ei():
+def get_part_water32_14A_ei(radii=None):
     # Initialize system, nlist and scaling
     system = get_system_water32()
     nlist = NeighborList(system)
@@ -276,16 +276,25 @@ def get_part_water32_14A_ei():
     # Create the pair_pot and part_pair
     rcut = 14*angstrom
     alpha = 5.5/rcut
-    pair_pot = PairPotEI(system.charges, alpha, rcut)
+    pair_pot = PairPotEI(system.charges, alpha, rcut, radii=radii)
     part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
     # The pair function
     def pair_fn(i, j, d):
-        return system.charges[i]*system.charges[j]*erfc(alpha*d)/d
+        r_ij = np.sqrt( pair_pot.radii[i]**2 + pair_pot.radii[j]**2 )
+        if r_ij == 0.0: pot = 1.0
+        else: pot = erf(d/r_ij)
+        return system.charges[i]*system.charges[j]*(pot-erf(alpha*d))/d
     return system, nlist, scalings, part_pair, pair_fn
 
 
 def test_pair_pot_ei_water32_14A():
     system, nlist, scalings, part_pair, pair_fn = get_part_water32_14A_ei()
+    check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, 1e-12, rmax=1)
+
+
+def test_pair_pot_ei_water32_14A_gaussiancharges():
+    radii = np.array( [1.50, 1.20, 1.20]*32 ) * angstrom
+    system, nlist, scalings, part_pair, pair_fn = get_part_water32_14A_ei(radii=radii)
     check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, 1e-12, rmax=1)
 
 
@@ -738,6 +747,7 @@ def test_pair_pot_ei3_caffeine_10A():
     system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_ei3_10A()
     check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, 1e-9)
 
+
 #
 # Water derivative tests
 #
@@ -745,6 +755,13 @@ def test_pair_pot_ei3_caffeine_10A():
 
 def test_gpos_vtens_pair_pot_water_lj_9A():
     system, nlist, scalings, part_pair, pair_fn = get_part_water32_9A_lj()
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist)
+
+
+def test_gpos_vtens_pair_pot_ei_water32_14A_gaussiancharges():
+    radii = np.array( [1.50, 1.20, 1.20]*32 ) * angstrom
+    system, nlist, scalings, part_pair, pair_fn = get_part_water32_14A_ei(radii=radii)
     check_gpos_part(system, part_pair, nlist)
     check_vtens_part(system, part_pair, nlist)
 

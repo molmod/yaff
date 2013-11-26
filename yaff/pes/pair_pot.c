@@ -416,7 +416,7 @@ void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha, d
 }
 
 double pair_fn_ei(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
-  double pot, alpha, qprod, x, r_ab;
+  double pot, alpha, qprod, x, y, r_ab;
   qprod = (
     (*(pair_data_ei_type*)pair_data).charges[center_index]*
     (*(pair_data_ei_type*)pair_data).charges[other_index]
@@ -426,17 +426,29 @@ double pair_fn_ei(void *pair_data, long center_index, long other_index, double d
   r_ab = sqrt( (*(pair_data_ei_type*)pair_data).radii[center_index] * (*(pair_data_ei_type*)pair_data).radii[center_index] +
                (*(pair_data_ei_type*)pair_data).radii[other_index] * (*(pair_data_ei_type*)pair_data).radii[other_index] );
   alpha = (*(pair_data_ei_type*)pair_data).alpha;
+
+  //Original minus gaussian charge distribution
   if (alpha > 0) {
-    x = alpha*d;
-    pot = qprod*erfc(x)/d;
-    if (g != NULL) *g = (-M_TWO_DIV_SQRT_PI*alpha*exp(-x*x)*qprod - pot)/(d*d);
-  } else {
+    if (r_ab > 0 ){ //Original as Gaussian charge distributions
+      x = alpha*d;
+      y = d/r_ab;
+      pot = qprod/d*(erf(y) - erf(x) );
+      if (g != NULL) *g = ( M_TWO_DIV_SQRT_PI*(exp(-y*y)/r_ab - exp(-x*x)*alpha)*qprod - pot)/(d*d);
+    }
+    else{ //Original as point monopoles
+      x = alpha*d;
+      pot = qprod*erfc(x)/d;
+      if (g != NULL) *g = (-M_TWO_DIV_SQRT_PI*alpha*exp(-x*x)*qprod - pot)/(d*d);
+    }
+  }
+  //Original only
+  else {
     if (r_ab > 0) {//Gaussian charge distributions
-         x = d/r_ab;
-         pot = qprod/d*erf(x);
-         if (g != NULL) *g = (M_TWO_DIV_SQRT_PI/r_ab*exp(-x*x)*qprod-pot)/(d*d);
+         y = d/r_ab;
+         pot = qprod/d*erf(y);
+         if (g != NULL) *g = (M_TWO_DIV_SQRT_PI/r_ab*exp(-y*y)*qprod-pot)/(d*d);
      }
-     else{ //Treat as monopole
+     else{ //Treat as point monopole
          pot = qprod/d;
          if (g != NULL) *g = -pot/(d*d);
      }

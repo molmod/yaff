@@ -1199,9 +1199,9 @@ class FixedChargeGenerator(NonbondedGenerator):
 
         # we cannot (yet) use distributed charges with non-periodic systems
         # check if user tries to do this
-        if system.cell.nvec != 0:
-            if not np.all( system.radii == 0.0 ):
-                raise NotImplementedError('Distributed charges are not supported for non-periodic systems!')
+        #if system.cell.nvec != 0:
+        #    if not np.all( system.radii == 0.0 ):
+        #        raise NotImplementedError('Distributed charges are not supported for non-periodic systems!')
 
         # Setup the electrostatic pars
         ff_args.add_electrostatic_parts(system, scalings)
