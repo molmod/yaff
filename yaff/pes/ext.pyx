@@ -1209,7 +1209,7 @@ cdef class PairPotEI(PairPot):
         radii
             An array of atomic radii, shape = (natom,). The charge distribution
             of atom :math:`i` with radius :math:`r_i` centered at :math:`\mathbf{R}_i`
-            is of a Gaussian shape (s-type orbital):
+            is of a Gaussian shape:
             :math:`\rho_i (\mathbf{r}) = q_i\left(\frac{1}{\pi r_i^2}\right)^{3/2} \exp{-\frac{|\mathbf{r} -\mathbf{R}_i |^2}{r_i^2}}`
             When the atomic radius equals zero, the charge distribution becomes a
             point monopole.
@@ -1291,13 +1291,14 @@ cdef class PairPotEIDip(PairPot):
     name = 'eidip'
 
     def __cinit__(self, np.ndarray[double, ndim=1] charges,
-                  np.ndarray[double, ndim=2] dipoles, np.ndarray[double, ndim=2] poltens_i, double rcut,
+                  np.ndarray[double, ndim=2] dipoles, np.ndarray[double, ndim=2] poltens_i,
+                    double alpha, double rcut,
                   Truncation tr=None):
         assert charges.flags['C_CONTIGUOUS']
         assert dipoles.flags['C_CONTIGUOUS']
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
         self.set_truncation(tr)
-        pair_pot.pair_data_eidip_init(self._c_pair_pot, <double*>charges.data, <double*>dipoles.data)
+        pair_pot.pair_data_eidip_init(self._c_pair_pot, <double*>charges.data, <double*>dipoles.data, alpha)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
         self._c_charges = charges
@@ -1363,6 +1364,12 @@ cdef class PairPotEIDip(PairPot):
                 log('The point dipole values were updated')
                 self.log()
                 log.hline()
+
+    def _get_alpha(self):
+        '''The alpha parameter in the Ewald summation method'''
+        return pair_pot.pair_data_eidip_get_alpha(self._c_pair_pot)
+
+    alpha = property(_get_alpha)
 
 
 #

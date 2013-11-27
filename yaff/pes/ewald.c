@@ -109,6 +109,86 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
   return energy;
 }
 
+double compute_ewald_reci_dd(double *pos, long natom, double *charges,
+                          cell_type* cell, double alpha, long *gmax,
+                          double gcut, double *gpos, double *work,
+                          double* vtens) {
+  long g0, g1, g2, i;
+  double energy, k[3], ksq, cosfac, sinfac, x, c, s, fac1, fac2;
+  double kvecs[9];
+  for (i=0; i<9; i++) {
+    kvecs[i] = M_TWO_PI*(*cell).gvecs[i];
+  }
+  energy = 0.0;
+  fac1 = M_FOUR_PI/(*cell).volume;
+  fac2 = 0.25/alpha/alpha;
+  gcut *= M_TWO_PI;
+  gcut *= gcut;
+  for (g0=-gmax[0]; g0 <= gmax[0]; g0++) {
+    for (g1=-gmax[1]; g1 <= gmax[1]; g1++) {
+      for (g2=0; g2 <= gmax[2]; g2++) {
+        if (g2==0) {
+          if (g1<0) continue;
+          if ((g1==0)&&(g0<=0)) continue;
+        }
+        k[0] = (g0*kvecs[0] + g1*kvecs[3] + g2*kvecs[6]);
+        k[1] = (g0*kvecs[1] + g1*kvecs[4] + g2*kvecs[7]);
+        k[2] = (g0*kvecs[2] + g1*kvecs[5] + g2*kvecs[8]);
+        ksq = k[0]*k[0] + k[1]*k[1] + k[2]*k[2];
+        if (ksq > gcut) continue;
+        cosfac = 0.0;
+        sinfac = 0.0;
+        for (i=0; i<natom; i++) {
+          x = k[0]*pos[3*i] + k[1]*pos[3*i+1] + k[2]*pos[3*i+2];
+          c = charges[i]*cos(x);
+          s = charges[i]*sin(x);
+          cosfac += c;
+          sinfac += s;
+          if (gpos != NULL) {
+            work[2*i] = c;
+            work[2*i+1] = -s;
+          }
+        }
+        c = fac1*exp(-ksq*fac2)/ksq;
+        s = (cosfac*cosfac+sinfac*sinfac);
+        energy += c*s;
+        if (gpos != NULL) {
+          x = 2.0*c;
+          cosfac *= x;
+          sinfac *= x;
+          for (i=0; i<natom; i++) {
+            x = cosfac*work[2*i+1] + sinfac*work[2*i];
+            gpos[3*i] += k[0]*x;
+            gpos[3*i+1] += k[1]*x;
+            gpos[3*i+2] += k[2]*x;
+          }
+        }
+        if (vtens != NULL) {
+          c *= 2.0*(1.0/ksq+fac2)*s;
+          vtens[0] += c*k[0]*k[0];
+          vtens[4] += c*k[1]*k[1];
+          vtens[8] += c*k[2]*k[2];
+          x = c*k[1]*k[0];
+          vtens[1] += x;
+          vtens[3] += x;
+          x = c*k[2]*k[0];
+          vtens[2] += x;
+          vtens[6] += x;
+          x = c*k[2]*k[1];
+          vtens[5] += x;
+          vtens[7] += x;
+        }
+      }
+    }
+  }
+  if (vtens != NULL) {
+    vtens[0] -= energy;
+    vtens[4] -= energy;
+    vtens[8] -= energy;
+  }
+  return energy;
+}
+
 double compute_ewald_corr(double *pos, double *charges,
                           cell_type *unitcell, double alpha,
                           scaling_row_type *stab, long nstab,

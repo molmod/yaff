@@ -432,7 +432,7 @@ double pair_fn_ei(void *pair_data, long center_index, long other_index, double d
     if (r_ab > 0 ){ //Original as Gaussian charge distributions
       x = alpha*d;
       y = d/r_ab;
-      pot = qprod/d*(erf(y) - erf(x) );
+      pot = qprod/d*(erfc(x) - erfc(y) );
       if (g != NULL) *g = ( M_TWO_DIV_SQRT_PI*(exp(-y*y)/r_ab - exp(-x*x)*alpha)*qprod - pot)/(d*d);
     }
     else{ //Original as point monopoles
@@ -461,7 +461,7 @@ double pair_data_ei_get_alpha(pair_pot_type *pair_pot) {
 }
 
 
-void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipoles) {
+void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipoles, double alpha) {
   pair_data_eidip_type *pair_data;
   pair_data = malloc(sizeof(pair_data_eidip_type));
   (*pair_pot).pair_data = pair_data;
@@ -469,11 +469,12 @@ void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipo
     (*pair_pot).pair_fn = pair_fn_eidip;
     (*pair_data).charges = charges;
     (*pair_data).dipoles = dipoles;
+    (*pair_data).alpha = alpha;
   }
 }
 
 double pair_fn_eidip(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
-  double pot_cc, pot_cd, pot_dc, pot_dd, qi, qj, dix, diy, diz, djx, djy, djz, d_2, d_3;
+  double pot_cc, pot_cd, pot_dc, pot_dd, qi, qj, dix, diy, diz, djx, djy, djz, d_2, d_3, alpha, fac1, fac2, fac1g, fac2g;
   //Straightforward implementation of energy expressions, code can be further optimized
   //Charges
   qi = (*(pair_data_eidip_type*)pair_data).charges[center_index];
@@ -489,6 +490,7 @@ double pair_fn_eidip(void *pair_data, long center_index, long other_index, doubl
   //Some useful definitions
   d_2 = 1.0/(d*d);
   d_3 = d_2/d;
+  alpha = (*(pair_data_eidip_type*)pair_data).alpha;
 
   //C-C interaction
   pot_cc = qi*qj/d;
@@ -518,12 +520,27 @@ double pair_fn_eidip(void *pair_data, long center_index, long other_index, doubl
   }
 
   //D-D interaction
-  pot_dd = ( dix*djx + diy*djy + diz*djz ) * d_3 - 3*d_3*d_2*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
-  if (g != NULL){
-    *g += -3.0*( dix*djx + diy*djy + diz*djz ) * d_2 * d_3 + 15.0*d_3*d_2*d_2*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
-    g_cart[0] += - 3*d_3*d_2*(dix*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djx*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
-    g_cart[1] += - 3*d_3*d_2*(diy*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djy*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
-    g_cart[2] += - 3*d_3*d_2*(diz*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djz*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
+  //With screened charges
+  if (alpha>0){
+      fac1 = erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d);
+      fac2 = 3.0*erfc(alpha*d) + M_TWO_DIV_SQRT_PI*2.0*alpha*alpha/d_3*exp(-alpha*alpha*d*d) + 3.0*M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d);
+      pot_dd = fac1*( dix*djx + diy*djy + diz*djz ) * d_3 - fac2*d_3*d_2*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
+    if (g != NULL){
+      fac1g = 0.0;
+      fac2g = 0.0;
+
+    }
+
+  }
+  //Wihout screened charges
+  else {
+      pot_dd = ( dix*djx + diy*djy + diz*djz ) * d_3 - 3*d_3*d_2*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
+      if (g != NULL){
+        *g += -3.0*( dix*djx + diy*djy + diz*djz ) * d_2 * d_3 + 15.0*d_3*d_2*d_2*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
+        g_cart[0] += - 3*d_3*d_2*(dix*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djx*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
+        g_cart[1] += - 3*d_3*d_2*(diy*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djy*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
+        g_cart[2] += - 3*d_3*d_2*(diz*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djz*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
+      }
   }
 
   return (pot_cc+pot_cd+pot_dc+pot_dd);
@@ -541,4 +558,9 @@ void pair_data_eidip_set_dipoles(pair_pot_type *pair_pot, double *dipoles, long 
     //(*(pair_data_eidip_type*)((*pair_pot).pair_data)).dipoles++;
     //dipoles++;
   }
+}
+
+
+double pair_data_eidip_get_alpha(pair_pot_type *pair_pot) {
+  return (*(pair_data_eidip_type*)((*pair_pot).pair_data)).alpha;
 }
