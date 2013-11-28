@@ -115,7 +115,7 @@ double compute_ewald_reci_dd(double *pos, long natom, double *dipoles,
                           double gcut, double *gpos, double *work,
                           double* vtens) {
   long g0, g1, g2, i;
-  double energy, k[3], ksq, cosfac, sinfac, x, c, s, fac1, fac2;
+  double energy, k[3], ksq, cosfac[3], sinfac[3], x, c, s, fac1, fac2;
   double kvecs[9];
   for (i=0; i<9; i++) {
     kvecs[i] = M_TWO_PI*(*cell).gvecs[i];
@@ -137,34 +137,48 @@ double compute_ewald_reci_dd(double *pos, long natom, double *dipoles,
         k[2] = (g0*kvecs[2] + g1*kvecs[5] + g2*kvecs[8]);
         ksq = k[0]*k[0] + k[1]*k[1] + k[2]*k[2];
         if (ksq > gcut) continue;
-        cosfac = 0.0;
-        sinfac = 0.0;
+        cosfac[0] = 0.0;
+        cosfac[1] = 0.0;
+        cosfac[2] = 0.0;
+        sinfac[0] = 0.0;
+        sinfac[1] = 0.0;
+        sinfac[2] = 0.0;
         for (i=0; i<natom; i++) {
           x = k[0]*pos[3*i] + k[1]*pos[3*i+1] + k[2]*pos[3*i+2];
-          c = charges[i]*cos(x);
-          s = charges[i]*sin(x);
-          cosfac += c;
-          sinfac += s;
+          c = cos(x);
+          s = sin(x);
+          cosfac[0] += dipoles[3*i+0]*c;
+          cosfac[1] += dipoles[3*i+1]*c;
+          cosfac[2] += dipoles[3*i+2]*c;
+          sinfac[0] += dipoles[3*i+0]*s;
+          sinfac[1] += dipoles[3*i+1]*s;
+          sinfac[2] += dipoles[3*i+2]*s;
           if (gpos != NULL) {
-            work[2*i] = c;
-            work[2*i+1] = -s;
+            work[2*i+0] = k[0]*dipoles[3*i+0]*c + k[1]*dipoles[3*i+1]*c + k[2]*dipoles[3*i+2]*c;
+            work[2*i+1] = -k[0]*dipoles[3*i+0]*s- k[0]*dipoles[3*i+1]*s - k[0]*dipoles[3*i+2]*s;
           }
         }
         c = fac1*exp(-ksq*fac2)/ksq;
-        s = (cosfac*cosfac+sinfac*sinfac);
+        s = ( (k[0]*cosfac[0]+k[1]*cosfac[1]+k[2]*cosfac[2]) * (k[0]*cosfac[0]+k[1]*cosfac[1]+k[2]*cosfac[2])
+             +(k[0]*sinfac[0]+k[1]*sinfac[1]+k[2]*sinfac[2]) * (k[0]*sinfac[0]+k[1]*sinfac[1]+k[2]*sinfac[2]) );
         energy += c*s;
         if (gpos != NULL) {
           x = 2.0*c;
-          cosfac *= x;
-          sinfac *= x;
+          cosfac[0] *= x;
+          cosfac[1] *= x;
+          cosfac[2] *= x;
+          sinfac[0] *= x;
+          sinfac[1] *= x;
+          sinfac[2] *= x;
           for (i=0; i<natom; i++) {
-            x = cosfac*work[2*i+1] + sinfac*work[2*i];
+            x = (k[0]*cosfac[0]+k[1]*cosfac[1]+k[2]*cosfac[2])*work[2*i+1] + (k[0]*sinfac[0]+k[1]*sinfac[1]+k[2]*sinfac[2])*work[2*i];
             gpos[3*i] += k[0]*x;
             gpos[3*i+1] += k[1]*x;
             gpos[3*i+2] += k[2]*x;
           }
         }
         if (vtens != NULL) {
+          //TODO: Term still missing here
           c *= 2.0*(1.0/ksq+fac2)*s;
           vtens[0] += c*k[0]*k[0];
           vtens[4] += c*k[1]*k[1];
@@ -244,6 +258,23 @@ double compute_ewald_corr(double *pos, double *charges,
       vtens[7] += x;
     }
     energy -= fac*pot;
+  }
+  return energy;
+}
+
+double compute_ewald_corr_dd(double *pos, double *dipoles,
+                          cell_type *unitcell, double alpha,
+                          scaling_row_type *stab, long nstab,
+                          double *gpos, double *vtens, long natom) {
+  long i, center_index, other_index;
+  double energy, delta[3], d, x, g, pot, fac;
+  energy = 0.0;
+  g = 0.0;
+  //TODO: scalings
+  // Self-interaction correction (no gpos or vtens contribution)
+  x = alpha*alpha*alpha/M_SQRT_PI*2.0/3.0;
+  for (i = 0; i < natom; i++) {
+    energy -= x*( dipoles[3*i+0]*dipoles[3*i+0] + dipoles[3*i+1]*dipoles[3*i+1] + dipoles[3*i+2]*dipoles[3*i+2] );
   }
   return energy;
 }

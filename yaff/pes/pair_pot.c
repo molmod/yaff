@@ -523,7 +523,7 @@ double pair_fn_eidip(void *pair_data, long center_index, long other_index, doubl
   //With screened charges
   if (alpha>0){
       fac1 = erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d);
-      fac2 = 3.0*erfc(alpha*d) + M_TWO_DIV_SQRT_PI*2.0*alpha*alpha/d_3*exp(-alpha*alpha*d*d) + 3.0*M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d);
+      fac2 = 3.0*erfc(alpha*d) + M_TWO_DIV_SQRT_PI*2.0*alpha*alpha*alpha/d_3*exp(-alpha*alpha*d*d) + 3.0*M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d);
       pot_dd = fac1*( dix*djx + diy*djy + diz*djz ) * d_3 - fac2*d_3*d_2*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
     if (g != NULL){
       fac1g = 0.0;

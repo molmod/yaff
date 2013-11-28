@@ -40,5 +40,8 @@ double compute_ewald_corr(double *pos, double *charges,
                           cell_type *unitcell, double alpha,
                           scaling_row_type *stab, long stab_size,
                           double *gpos, double *vtens, long natom);
-
+double compute_ewald_corr_dd(double *pos, double *dipoles,
+                          cell_type *unitcell, double alpha,
+                          scaling_row_type *stab, long stab_size,
+                          double *gpos, double *vtens, long natom);
 #endif

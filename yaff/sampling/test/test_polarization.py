@@ -45,6 +45,7 @@ def test_polarization_DipolSCPicard():
 def test_tmp():
     #This is not really a test yet, just check if everything runs
     system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(scalings=[0.0,1.0,1.0])
+    system.dipoles = np.zeros( (system.natom,3) )
     ff = ForceField(system, [part_pair], nlist)
     opt = CGOptimizer(CartesianDOF(ff), hooks=RelaxDipoles())
     opt.run(2)

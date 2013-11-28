@@ -54,16 +54,10 @@ def test_ewald_quartz():
     system = get_system_quartz().supercell(2, 2, 2)
     check_alpha_depedence(system)
 
-
 def test_ewald_dd_quartz():
-    # These are the energy contributions that one should get:
-    # alpha           REAL            RECI            CORR
-    # 0.05  -3.5696637e-02   6.8222205e-29  -2.5814534e-01
-    # 0.10   1.3948043e-01   2.2254505e-08  -4.3332242e-01
-    # 0.20   1.7482393e-01   2.9254105e-03  -4.7159132e-01
-    # 0.50   5.6286111e-04   7.7869316e-01  -1.0730980e+00
-    # 1.00   2.6807119e-12   4.6913539e+00  -4.9851959e+00
     system = get_system_quartz().supercell(2, 2, 2)
+    dipoles = np.random.rand( system.natom, 3 )
+    system.dipoles = dipoles
     #Set charges to zero
     system.charges *= 0
     check_alpha_dependence_dd(system)
@@ -121,8 +115,7 @@ def check_alpha_dependence_dd(system):
     gposs = []
     vtenss = []
     assert abs(system.charges.sum()) < 1e-10
-    #for alpha in 0.05, 0.1, 0.2, 0.5, 1.0:
-    for alpha in [1.0]:
+    for alpha in 0.05, 0.1, 0.2, 0.5, 1.0:
         energy, gpos, vtens = get_electrostatic_energy_dd(alpha, system)
         energies.append(energy)
         gposs.append(gpos)
@@ -137,28 +130,27 @@ def check_alpha_dependence_dd(system):
 
 
 def get_electrostatic_energy_dd(alpha, system):
-    dipoles = np.random.rand( system.natom, 3 )
     poltens_i = np.tile( np.diag([0.0,0.0,0.0]) , np.array([system.natom, 1]) )
     # Create tools needed to evaluate the energy
     nlist = NeighborList(system)
     scalings = Scalings(system, 1.0, 1.0, 1.0)
     # Construct the ewald real-space potential and part
-    ewald_real_pot = PairPotEIDip(system.charges, dipoles, poltens_i, alpha, rcut=5.5/alpha)
+    ewald_real_pot = PairPotEIDip(system.charges, system.dipoles, poltens_i, alpha, rcut=5.5/alpha)
     part_pair_ewald_real = ForcePartPair(system, nlist, scalings, ewald_real_pot)
     assert part_pair_ewald_real.pair_pot.alpha == alpha
     # Construct the ewald reciprocal and correction part
-    part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=2.0*alpha)
+    part_ewald_reci = ForcePartEwaldReciprocalDD(system, alpha, gcut=2.0*alpha)
     assert part_ewald_reci.alpha == alpha
-    part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
+    part_ewald_corr = ForcePartEwaldCorrectionDD(system, alpha, scalings)
     assert part_ewald_corr.alpha == alpha
     # Construct the force field
-    #ff = ForceField(system, [part_pair_ewald_real, part_ewald_reci, part_ewald_corr], nlist)
-    ff = ForceField(system, [part_pair_ewald_real], nlist)
+    ff = ForceField(system, [part_pair_ewald_real, part_ewald_reci, part_ewald_corr], nlist)
     ff.update_pos(system.pos)
     ff.update_rvecs(system.cell.rvecs)
     gpos = np.zeros(system.pos.shape, float)
     vtens = np.zeros((3, 3), float)
     energy = ff.compute(gpos, vtens)
+    print gpos
     print '    # %4.2f' % alpha, ' '.join('%15.7e' % part.energy for part in ff.parts)
     return energy, gpos, vtens
 

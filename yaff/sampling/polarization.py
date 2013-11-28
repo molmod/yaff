@@ -67,7 +67,7 @@ class RelaxDipoles(Hook):
                                             iterative.ff.system.natom, system=iterative.ff.system)
 
         #Set the new dipoles
-        iterative.ff.part_pair_eidip.pair_pot.dipoles = newdipoles
+        iterative.ff.system.dipoles[:] = newdipoles
 
 
 

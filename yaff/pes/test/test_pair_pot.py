@@ -321,7 +321,7 @@ def get_part_water32_14A_eidip():
         energy = 0.0
         #Dipole-Dipole (only term for this test)
         fac1 = erfc(alpha*d) + 2.0*alpha*d/np.sqrt(np.pi)*np.exp(-alpha**2*d**2)
-        fac2 = 3.0*erfc(alpha*d) + 4.0*alpha**2*d**3/np.sqrt(np.pi)*np.exp(-alpha**2*d**2) \
+        fac2 = 3.0*erfc(alpha*d) + 4.0*alpha**3*d**3/np.sqrt(np.pi)*np.exp(-alpha**2*d**2) \
                 + 6.0*alpha*d/np.sqrt(np.pi)*np.exp(-alpha**2*d**2)
         energy += np.dot( pair_pot.dipoles[i,:] , pair_pot.dipoles[j,:] )*fac1/d**3 - \
                          1.0*np.dot(pair_pot.dipoles[i,:],delta)*np.dot(delta,pair_pot.dipoles[j,:])*fac2/d**5
@@ -402,6 +402,8 @@ def test_pair_pot_eidip_water_finite():
     system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(scalings=[1.0,1.0,1.0],finite=False)
     energy2 = part_pair.compute()
     #Finite difference approximation is not very accurate...
+    print energy1
+    print energy2
     assert np.abs(energy1 - energy2) < 1.0e-5
 
 
@@ -448,21 +450,17 @@ def test_pair_pot_eidip_water_setdipoles():
     dipoles3 = np.array( [[9.0,8.0,7.0],[6.0,5.0,4.0]] ) # natom x 2
     #Array representing atomic polarizability tensors
     poltens_i = np.tile( np.diag([1.0,1.0,1.0]) , np.array([system.natom, 1]) )
+    system.dipoles = dipoles0
     #Initialize pair potential
-    pair_pot = PairPotEIDip(system.charges,dipoles0,poltens_i,0.0,rcut)
+    pair_pot = PairPotEIDip(system.charges,system.dipoles,poltens_i,0.0,rcut)
     #Check if dipoles are initialized correctly
     assert np.all( pair_pot.dipoles == dipoles0 )
     #Update the dipoles to new values
-    pair_pot.dipoles = dipoles1
+    system.dipoles[:] = dipoles1
     assert np.all( pair_pot.dipoles == dipoles1 )
-    #Downdate to old values, but different way of setting values
-    pair_pot.dipoles[:] = dipoles0
-    assert np.all( pair_pot.dipoles == dipoles0 )
-    #Try to update with matrix of wrong shapes, this should raise an assertion error
-    with assert_raises(AssertionError):
-        pair_pot.dipoles = dipoles2
-    with assert_raises(AssertionError):
-        pair_pot.dipoles = dipoles3
+    #Try to update dipoles of PairPot directly, this should raise an attribute error
+    with assert_raises(AttributeError):
+        pair_pot.dipoles = dipoles1
 
 def test_pair_pot_eidip_water():
     #Setup system and force part

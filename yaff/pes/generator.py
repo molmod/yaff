@@ -184,7 +184,7 @@ class FFArgs(object):
                 # Ewald corrections
                 part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
                 self.parts.append(part_ewald_corr)
-                # Neutralizing background
+                # Neutralizing background #TODO: also depends on atomic radii
                 part_ewald_neut = ForcePartEwaldNeutralizing(system, alpha)
                 self.parts.append(part_ewald_neut)
             elif system.cell.nvec != 0:

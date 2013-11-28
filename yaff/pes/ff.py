@@ -42,13 +42,14 @@ import numpy as np
 
 
 from yaff.log import log, timer
-from yaff.pes.ext import compute_ewald_reci, compute_ewald_corr, PairPotEI, \
-    PairPotLJ, PairPotMM3, PairPotGrimme, compute_grid3d
+from yaff.pes.ext import compute_ewald_reci, compute_ewald_reci_dd, compute_ewald_corr, \
+    compute_ewald_corr_dd, PairPotEI, PairPotLJ, PairPotMM3, PairPotGrimme, compute_grid3d
 from yaff.pes.dlist import DeltaList
 from yaff.pes.iclist import InternalCoordinateList
 from yaff.pes.vlist import ValenceList
 __all__ = [
     'ForcePart', 'ForceField', 'ForcePartPair', 'ForcePartEwaldReciprocal',
+    'ForcePartEwaldReciprocalDD', 'ForcePartEwaldCorrectionDD',
     'ForcePartEwaldCorrection', 'ForcePartEwaldNeutralizing',
     'ForcePartValence', 'ForcePartPressure', 'ForcePartGrid',
 ]
@@ -376,6 +377,64 @@ class ForcePartEwaldReciprocal(ForcePart):
             )
 
 
+class ForcePartEwaldReciprocalDD(ForcePart):
+    '''The long-range contribution to the dipole-dipole
+       electrostatic interaction in 3D periodic systems.
+    '''
+    def __init__(self, system, alpha, gcut=0.35):
+        '''
+           **Arguments:**
+
+           system
+                The system to which this interaction applies.
+
+           alpha
+                The alpha parameter in the Ewald summation method.
+
+           gcut
+                The cutoff in reciprocal space.
+        '''
+        ForcePart.__init__(self, 'ewald_reci', system)
+        if not system.cell.nvec == 3:
+            raise TypeError('The system must have a 3D periodic cell.')
+        if system.charges is None:
+            raise ValueError('The system does not have charges.')
+        if system.dipoles is None:
+            raise ValueError('The system does not have dipoles.')
+        self.system = system
+        self.alpha = alpha
+        self.gcut = gcut
+        self.update_gmax()
+        self.work = np.empty(system.natom*2)
+        if log.do_medium:
+            with log.section('FPINIT'):
+                log('Force part: %s' % self.name)
+                log.hline()
+                log('  alpha:             %s' % log.invlength(self.alpha))
+                log('  gcut:              %s' % log.invlength(self.gcut))
+                log.hline()
+
+
+    def update_gmax(self):
+        '''This routine must be called after the attribute self.gmax is modified.'''
+        self.gmax = np.ceil(self.gcut/self.system.cell.gspacings-0.5).astype(int)
+        if log.do_debug:
+            with log.section('EWALD'):
+                log('gmax a,b,c   = %i,%i,%i' % tuple(self.gmax))
+
+    def update_rvecs(self, rvecs):
+        '''See :meth:`yaff.pes.ff.ForcePart.update_rvecs`'''
+        ForcePart.update_rvecs(self, rvecs)
+        self.update_gmax()
+
+    def _internal_compute(self, gpos, vtens):
+        with timer.section('Ewald reci.'):
+            return compute_ewald_reci_dd(
+                self.system.pos, self.system.dipoles, self.system.cell, self.alpha,
+                self.gmax, self.gcut, gpos, self.work, vtens
+            )
+
+
 class ForcePartEwaldCorrection(ForcePart):
     '''Correction for the double counting in the long-range term of the Ewald sum.
 
@@ -421,6 +480,51 @@ class ForcePartEwaldCorrection(ForcePart):
                 self.alpha, self.scalings.stab, gpos, vtens
             )
 
+
+class ForcePartEwaldCorrectionDD(ForcePart):
+    '''Correction for the double counting in the long-range term of the Ewald sum.
+
+       This correction is only needed if scaling rules apply to the short-range
+       electrostatics.
+    '''
+    def __init__(self, system, alpha, scalings):
+        '''
+           **Arguments:**
+
+           system
+                The system to which this interaction applies.
+
+           alpha
+                The alpha parameter in the Ewald summation method.
+
+           scalings
+                A ``Scalings`` object. This object contains all the information
+                about the energy scaling of pairwise contributions that are
+                involved in covalent interactions. See
+                :class:`yaff.pes.scalings.Scalings` for more details.
+        '''
+        ForcePart.__init__(self, 'ewald_cor', system)
+        if not system.cell.nvec == 3:
+            raise TypeError('The system must have a 3D periodic cell')
+        if system.charges is None:
+            raise ValueError('The system does not have charges.')
+        self.system = system
+        self.alpha = alpha
+        self.scalings = scalings
+        if log.do_medium:
+            with log.section('FPINIT'):
+                log('Force part: %s' % self.name)
+                log.hline()
+                log('  alpha:             %s' % log.invlength(self.alpha))
+                log('  scalings:          %5.3f %5.3f %5.3f' % (scalings.scale1, scalings.scale2, scalings.scale3))
+                log.hline()
+
+    def _internal_compute(self, gpos, vtens):
+        with timer.section('Ewald corr.'):
+            return compute_ewald_corr_dd(
+                self.system.pos, self.system.dipoles, self.system.cell,
+                self.alpha, self.scalings.stab, gpos, vtens
+            )
 
 class ForcePartEwaldNeutralizing(ForcePart):
     '''Neutralizing background correction for 3D periodic systems that are
