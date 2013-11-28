@@ -31,7 +31,7 @@ cdef extern from "ewald.h":
                               cell.cell_type *unitcell, double alpha,
                               long *gmax, double gcut, double *gpos,
                               double *work, double* vtens)
-    double compute_ewald_reci_dd(double *pos, long natom, double *charges,
+    double compute_ewald_reci_dd(double *pos, long natom, double *dipoles,
                               cell.cell_type *unitcell, double alpha,
                               long *gmax, double gcut, double *gpos,
                               double *work, double* vtens)

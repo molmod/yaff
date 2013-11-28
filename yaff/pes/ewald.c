@@ -109,7 +109,8 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
   return energy;
 }
 
-double compute_ewald_reci_dd(double *pos, long natom, double *charges,
+//TODO: lot of code overlap with original Ewald
+double compute_ewald_reci_dd(double *pos, long natom, double *dipoles,
                           cell_type* cell, double alpha, long *gmax,
                           double gcut, double *gpos, double *work,
                           double* vtens) {

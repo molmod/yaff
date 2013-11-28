@@ -48,7 +48,7 @@ def _unravel_triangular(i):
 class System(object):
     def __init__(self, numbers, pos, scopes=None, scope_ids=None, ffatypes=None,
                  ffatype_ids=None, bonds=None, rvecs=None, charges=None, radii=None,
-                 masses=None):
+                 dipoles=None, masses=None):
         '''
            **Arguments:**
 
@@ -99,6 +99,9 @@ class System(object):
                 An array of atomic radii that determine shape of charge
                 distribution
 
+           dipoles
+                An array of atomic dipoles
+
            masses
                 The atomic masses (in atomic units, i.e. m_e)
 
@@ -128,6 +131,7 @@ class System(object):
         self.cell = Cell(rvecs)
         self.charges = charges
         self.radii = radii
+        self.dipoles = dipoles
         self.masses = masses
         with log.section('SYS'):
             # report some stuff
@@ -685,6 +689,7 @@ class System(object):
             value = getattr(self, attrname)
             if value is not None:
                 new_args[attrname] = np.tile(value, rep_all)
+        new_args['dipoles'] = np.tile( getattr(self, 'dipoles') , (rep_all,1) )
 
         # C) Cell vectors
         new_args['rvecs'] = self.cell.rvecs*np.reshape(reps, (3,1))
@@ -817,6 +822,7 @@ class System(object):
         ffatype_ids = reduce_int_array(self.ffatype_ids)
         charges = reduce_float_array(self.charges)
         radii = reduce_float_array(self.radii)
+        dipoles = reduce_float_array(self.dipoles)
         masses = reduce_float_array(self.masses)
 
         # create averaged positions
@@ -940,6 +946,7 @@ class System(object):
                 'rvecs': self.cell.rvecs,
                 'charges': self.charges,
                 'radii': self.radii,
+                'dipoles': self.dipoles,
                 'masses': self.masses,
             })
         elif fn.endswith('.h5'):
