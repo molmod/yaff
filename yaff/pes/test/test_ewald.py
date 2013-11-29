@@ -136,7 +136,7 @@ def get_electrostatic_energy_dd(alpha, system):
     poltens_i = np.tile( np.diag([0.0,0.0,0.0]) , np.array([system.natom, 1]) )
     # Create tools needed to evaluate the energy
     nlist = NeighborList(system)
-    scalings = Scalings(system, 1.0, 1.0, 1.0)
+    scalings = Scalings(system, 0.0, 1.0, 1.0)
     # Construct the ewald real-space potential and part
     ewald_real_pot = PairPotEIDip(system.charges, system.dipoles, poltens_i, alpha, rcut=5.5/alpha)
     part_pair_ewald_real = ForcePartPair(system, nlist, scalings, ewald_real_pot)

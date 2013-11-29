@@ -265,14 +265,79 @@ double compute_ewald_corr_dd(double *pos, double *dipoles,
                           scaling_row_type *stab, long nstab,
                           double *gpos, double *vtens, long natom) {
   long i, center_index, other_index;
-  double energy, delta[3], d, x, g, pot, fac;
+  double energy, delta[3], d, x, g, pot, fac0, fac1, fac2, dix, diy, diz, djx, djy, djz, d_2, d_3,e_scale,fac1g, fac2g, g_cart[3];
   energy = 0.0;
   g = 0.0;
-  //TODO: scalings
+  e_scale = 0.0;
+
+
+
+
+  //TODO: scalings gpos and vtens
   // Self-interaction correction (no gpos or vtens contribution)
   x = alpha*alpha*alpha/M_SQRT_PI*2.0/3.0;
   for (i = 0; i < natom; i++) {
     energy -= x*( dipoles[3*i+0]*dipoles[3*i+0] + dipoles[3*i+1]*dipoles[3*i+1] + dipoles[3*i+2]*dipoles[3*i+2] );
+  }
+  // Scaling corrections
+  for (i = 0; i < nstab; i++) {
+    center_index = stab[i].a;
+    other_index = stab[i].b;
+    delta[0] = pos[3*other_index    ] - pos[3*center_index    ];
+    delta[1] = pos[3*other_index + 1] - pos[3*center_index + 1];
+    delta[2] = pos[3*other_index + 2] - pos[3*center_index + 2];
+    cell_mic(delta, unitcell);
+    //Dipole components
+    dix =dipoles[ 3*center_index  + 0 ];
+    diy =dipoles[ 3*center_index  + 1 ];
+    diz =dipoles[ 3*center_index  + 2 ];
+    djx =dipoles[ 3*other_index   + 0 ];
+    djy =dipoles[ 3*other_index   + 1 ];
+    djz =dipoles[ 3*other_index   + 2 ];
+    d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
+    //Some useful definitions
+    d_2 = 1.0/(d*d);
+    d_3 = d_2/d;
+    x = alpha*d;
+    fac0 = (1-stab[i].scale);
+    fac1 = erf(alpha*d) - M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d);
+    fac2 = 3.0*erf(alpha*d) - M_TWO_DIV_SQRT_PI*2.0*alpha*alpha*alpha/d_3*exp(-alpha*alpha*d*d) - 3.0*M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d);
+    pot = fac1*( dix*djx + diy*djy + diz*djz ) * d_3 - fac2*d_3*d_2*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
+    energy -= fac0*pot;
+    e_scale += fac0*pot;
+    if ((gpos != NULL) || (vtens != NULL)) {
+      fac1g = -3.0*d_2*fac1*d_3 + 2.0*alpha*alpha*alpha*M_TWO_DIV_SQRT_PI*exp(-alpha*alpha*d*d)*d_2;
+      fac2g = 5.0*fac2*d_3*d_2*d_2 - 4.0*alpha*alpha*alpha*alpha*alpha*M_TWO_DIV_SQRT_PI*exp(-alpha*alpha*d*d)*d_2;
+      g = fac1g*( dix*djx + diy*djy + diz*djz ) + fac2g*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
+      g *= -fac0;
+      g_cart[0] =  fac2*d_3*d_2*(dix*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djx*(dix*delta[0] + diy*delta[1] + diz*delta[2]) )*fac0;
+      g_cart[1] =  fac2*d_3*d_2*(diy*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djy*(dix*delta[0] + diy*delta[1] + diz*delta[2]) )*fac0;
+      g_cart[2] =  fac2*d_3*d_2*(diz*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djz*(dix*delta[0] + diy*delta[1] + diz*delta[2]) )*fac0;
+    }
+    if (gpos != NULL) {
+      x = delta[0]*g;
+      gpos[3*other_index  ] += x + g_cart[0];
+      gpos[3*center_index   ] -= x+ g_cart[0] ;
+      x = delta[1]*g;
+      gpos[3*other_index+1] += x+ g_cart[1];
+      gpos[3*center_index +1] -= x+ g_cart[1];
+      x = delta[2]*g;
+      gpos[3*other_index+2] += x+ g_cart[2];
+      gpos[3*center_index +2] -= x+ g_cart[2];
+    }
+    if (vtens != NULL) {
+      vtens[0] += delta[0]*(delta[0]*g+g_cart[0]);
+      vtens[4] += delta[1]*(delta[1]*g+g_cart[1]);
+      vtens[8] += delta[2]*(delta[2]*g+g_cart[2]);
+      vtens[1] += delta[0]*(delta[1]*g+g_cart[1]);
+      vtens[3] += delta[1]*(delta[0]*g+g_cart[0]);
+      vtens[2] += delta[0]*(delta[2]*g+g_cart[2]);
+      vtens[6] += delta[2]*(delta[0]*g+g_cart[0]);
+      vtens[5] += delta[1]*(delta[2]*g+g_cart[2]);
+      vtens[7] += delta[2]*(delta[1]*g+g_cart[1]);
+    }
+
+
   }
   return energy;
 }
