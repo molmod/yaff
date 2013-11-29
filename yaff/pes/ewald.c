@@ -28,7 +28,6 @@
 #include "ewald.h"
 #include "cell.h"
 
-
 double compute_ewald_reci(double *pos, long natom, double *charges,
                           cell_type* cell, double alpha, long *gmax,
                           double gcut, double *gpos, double *work,
@@ -115,7 +114,7 @@ double compute_ewald_reci_dd(double *pos, long natom, double *dipoles,
                           double gcut, double *gpos, double *work,
                           double* vtens) {
   long g0, g1, g2, i;
-  double energy, k[3], ksq, cosfac[3], sinfac[3], x, c, s, fac1, fac2;
+  double energy, k[3], ksq, cosfac[3], sinfac[3], x, c, c2, s, fac1, fac2;
   double kvecs[9];
   for (i=0; i<9; i++) {
     kvecs[i] = M_TWO_PI*(*cell).gvecs[i];
@@ -155,7 +154,7 @@ double compute_ewald_reci_dd(double *pos, long natom, double *dipoles,
           sinfac[2] += dipoles[3*i+2]*s;
           if (gpos != NULL) {
             work[2*i+0] = k[0]*dipoles[3*i+0]*c + k[1]*dipoles[3*i+1]*c + k[2]*dipoles[3*i+2]*c;
-            work[2*i+1] = -k[0]*dipoles[3*i+0]*s- k[0]*dipoles[3*i+1]*s - k[0]*dipoles[3*i+2]*s;
+            work[2*i+1] = -k[0]*dipoles[3*i+0]*s- k[1]*dipoles[3*i+1]*s - k[2]*dipoles[3*i+2]*s;
           }
         }
         c = fac1*exp(-ksq*fac2)/ksq;
@@ -172,26 +171,25 @@ double compute_ewald_reci_dd(double *pos, long natom, double *dipoles,
           sinfac[2] *= x;
           for (i=0; i<natom; i++) {
             x = (k[0]*cosfac[0]+k[1]*cosfac[1]+k[2]*cosfac[2])*work[2*i+1] + (k[0]*sinfac[0]+k[1]*sinfac[1]+k[2]*sinfac[2])*work[2*i];
-            gpos[3*i] += k[0]*x;
+            gpos[3*i+0] += k[0]*x;
             gpos[3*i+1] += k[1]*x;
             gpos[3*i+2] += k[2]*x;
           }
         }
         if (vtens != NULL) {
-          //TODO: Term still missing here
-          c *= 2.0*(1.0/ksq+fac2)*s;
-          vtens[0] += c*k[0]*k[0];
-          vtens[4] += c*k[1]*k[1];
-          vtens[8] += c*k[2]*k[2];
-          x = c*k[1]*k[0];
-          vtens[1] += x;
-          vtens[3] += x;
-          x = c*k[2]*k[0];
-          vtens[2] += x;
-          vtens[6] += x;
-          x = c*k[2]*k[1];
-          vtens[5] += x;
-          vtens[7] += x;
+          c2 = c*2.0*(1.0/ksq+fac2)*s;
+          vtens[0] += c2*k[0]*k[0] - 0.5*( (k[0]*cosfac[0]+k[1]*cosfac[1]+k[2]*cosfac[2]) * cosfac[0] + (k[0]*sinfac[0]+k[1]*sinfac[1]+k[2]*sinfac[2]) * sinfac[0])*k[0]/c;
+          vtens[4] += c2*k[1]*k[1] - 0.5*( (k[0]*cosfac[0]+k[1]*cosfac[1]+k[2]*cosfac[2]) * cosfac[1] + (k[0]*sinfac[0]+k[1]*sinfac[1]+k[2]*sinfac[2]) * sinfac[1])*k[1]/c;
+          vtens[8] += c2*k[2]*k[2] - 0.5*( (k[0]*cosfac[0]+k[1]*cosfac[1]+k[2]*cosfac[2]) * cosfac[2] + (k[0]*sinfac[0]+k[1]*sinfac[1]+k[2]*sinfac[2]) * sinfac[2])*k[2]/c;
+          x = c2*k[1]*k[0];
+          vtens[1] += x - 0.5*( (k[0]*cosfac[0]+k[1]*cosfac[1]+k[2]*cosfac[2]) * cosfac[0] + (k[0]*sinfac[0]+k[1]*sinfac[1]+k[2]*sinfac[2]) * sinfac[0])*k[1]/c;
+          vtens[3] += x - 0.5*( (k[0]*cosfac[0]+k[1]*cosfac[1]+k[2]*cosfac[2]) * cosfac[1] + (k[0]*sinfac[0]+k[1]*sinfac[1]+k[2]*sinfac[2]) * sinfac[1])*k[0]/c;
+          x = c2*k[2]*k[0];
+          vtens[2] += x - 0.5*( (k[0]*cosfac[0]+k[1]*cosfac[1]+k[2]*cosfac[2]) * cosfac[0] + (k[0]*sinfac[0]+k[1]*sinfac[1]+k[2]*sinfac[2]) * sinfac[0])*k[2]/c;
+          vtens[6] += x - 0.5*( (k[0]*cosfac[0]+k[1]*cosfac[1]+k[2]*cosfac[2]) * cosfac[2] + (k[0]*sinfac[0]+k[1]*sinfac[1]+k[2]*sinfac[2]) * sinfac[2])*k[0]/c;
+          x = c2*k[2]*k[1];
+          vtens[5] += x - 0.5*( (k[0]*cosfac[0]+k[1]*cosfac[1]+k[2]*cosfac[2]) * cosfac[1] + (k[0]*sinfac[0]+k[1]*sinfac[1]+k[2]*sinfac[2]) * sinfac[1])*k[2]/c;
+          vtens[7] += x -  0.5*( (k[0]*cosfac[0]+k[1]*cosfac[1]+k[2]*cosfac[2]) * cosfac[2] + (k[0]*sinfac[0]+k[1]*sinfac[1]+k[2]*sinfac[2]) * sinfac[2])*k[1]/c;
         }
       }
     }

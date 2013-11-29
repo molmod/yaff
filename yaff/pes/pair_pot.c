@@ -526,9 +526,12 @@ double pair_fn_eidip(void *pair_data, long center_index, long other_index, doubl
       fac2 = 3.0*erfc(alpha*d) + M_TWO_DIV_SQRT_PI*2.0*alpha*alpha*alpha/d_3*exp(-alpha*alpha*d*d) + 3.0*M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d);
       pot_dd = fac1*( dix*djx + diy*djy + diz*djz ) * d_3 - fac2*d_3*d_2*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
     if (g != NULL){
-      fac1g = 0.0;
-      fac2g = 0.0;
-
+      fac1g = -3.0*d_2*fac1*d_3 - 2.0*alpha*alpha*alpha*M_TWO_DIV_SQRT_PI*exp(-alpha*alpha*d*d)*d_2;
+      fac2g = 5.0*fac2*d_3*d_2*d_2 + 4.0*alpha*alpha*alpha*alpha*alpha*M_TWO_DIV_SQRT_PI*exp(-alpha*alpha*d*d)*d_2;
+      *g += fac1g*( dix*djx + diy*djy + diz*djz ) + fac2g*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
+        g_cart[0] += - fac2*d_3*d_2*(dix*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djx*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
+        g_cart[1] += - fac2*d_3*d_2*(diy*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djy*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
+        g_cart[2] += - fac2*d_3*d_2*(diz*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djz*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
     }
 
   }
