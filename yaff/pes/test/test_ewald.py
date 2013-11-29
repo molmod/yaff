@@ -56,12 +56,13 @@ def test_ewald_quartz():
 
 def test_ewald_dd_quartz():
     system = get_system_quartz().supercell(2, 2, 2)
-    system = get_system_quartz()
+    #system = get_system_quartz()
     np.random.seed(20)
     dipoles = np.random.rand( system.natom, 3 )
     system.dipoles = dipoles
     #Set charges to zero
-    system.charges *= 0
+    #system.charges *= 0.0
+    #system.dipoles *= 0.0
     check_alpha_dependence_dd(system)
 
 
@@ -125,8 +126,8 @@ def check_alpha_dependence_dd(system):
     energies = np.array(energies)
     gposs = np.array(gposs)
     vtenss = np.array(vtenss)
-    print vtenss
     print energies
+    print gposs
     assert abs(energies - energies.mean()).max() < 1e-8
     assert abs(gposs - gposs.mean(axis=0)).max() < 1e-8
     assert abs(vtenss - vtenss.mean(axis=0)).max() < 1e-8
@@ -136,7 +137,7 @@ def get_electrostatic_energy_dd(alpha, system):
     poltens_i = np.tile( np.diag([0.0,0.0,0.0]) , np.array([system.natom, 1]) )
     # Create tools needed to evaluate the energy
     nlist = NeighborList(system)
-    scalings = Scalings(system, 0.0, 1.0, 1.0)
+    scalings = Scalings(system, 0.8, 0.4, 1.0)
     # Construct the ewald real-space potential and part
     ewald_real_pot = PairPotEIDip(system.charges, system.dipoles, poltens_i, alpha, rcut=5.5/alpha)
     part_pair_ewald_real = ForcePartPair(system, nlist, scalings, ewald_real_pot)

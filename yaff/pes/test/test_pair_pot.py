@@ -334,7 +334,7 @@ def test_pair_pot_eidip_water32_14A():
     check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, 1e-12, rmax=1)
 
 
-def get_part_water_eidip(scalings = [0.5,1.0,1.0],rcut=14.0*angstrom,switch_width=0.0*angstrom, finite=False):
+def get_part_water_eidip(scalings = [0.5,1.0,1.0],rcut=14.0*angstrom,switch_width=0.0*angstrom, finite=False, alpha=0.0):
     '''
     Make a system with one water molecule with a point dipole on every atom,
     setup a ForcePart...
@@ -352,9 +352,9 @@ def get_part_water_eidip(scalings = [0.5,1.0,1.0],rcut=14.0*angstrom,switch_widt
     poltens_i = np.tile( 0.0*np.diag([1.0,1.0,1.0]) , np.array([system.natom, 1]) )
     # Create the pair_pot and part_pair
     if finite:
-        pair_pot = PairPotEI(system.charges, 0.0, rcut, Switch3(switch_width))
+        pair_pot = PairPotEI(system.charges,alpha, rcut, Switch3(switch_width))
     else:
-        pair_pot = PairPotEIDip(system.charges, dipoles, poltens_i, 0.0, rcut, Switch3(switch_width))
+        pair_pot = PairPotEIDip(system.charges, dipoles, poltens_i, alpha, rcut, Switch3(switch_width))
     part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
     nlist.update()
     #Make a different nlist in case we approximate the point dipoles with charges
@@ -395,15 +395,22 @@ def get_part_water_eidip(scalings = [0.5,1.0,1.0],rcut=14.0*angstrom,switch_widt
 
 
 def test_pair_pot_eidip_water_finite():
+    alpha = 1.6
     #Get the electrostatic energy of a water molecule with atomic point dipoles approximated by two charges
-    system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(scalings=[1.0,1.0,1.0],finite=True)
-    energy1 = part_pair.compute()
+    system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(scalings=[1.0,1.0,1.0],finite=True,alpha=alpha)
+    gpos1 = np.zeros(system.pos.shape, float)
+    energy1 = part_pair.compute(gpos1)
+    #Reshape gpos1
+    gpos1 = np.asarray([ np.sum( gpos1[i::3], axis=0 ) for i in xrange(system.natom/3)])
     #Get the electrostatic energy of a water molecule with atomic point dipoles
-    system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(scalings=[1.0,1.0,1.0],finite=False)
-    energy2 = part_pair.compute()
+    system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(scalings=[1.0,1.0,1.0],finite=False,alpha=alpha)
+    gpos2 = np.zeros(system.pos.shape, float)
+    energy2 = part_pair.compute(gpos2)
     #Finite difference approximation is not very accurate...
     print energy1
     print energy2
+    print gpos1
+    print gpos2
     assert np.abs(energy1 - energy2) < 1.0e-5
 
 
@@ -507,6 +514,7 @@ def make_system_finite_dipoles(system, dipoles, eps=0.05*angstrom):
     ac[2*system.natom:3*system.natom] = -d_norms/eps*0.5
     newsystem['charges'] = ac
     #Positions
+    d_norms[d_norms==0.0] = 1.0
     pos = np.zeros( (system.natom*ncharges,3 ))
     pos[0*system.natom:1*system.natom,:] = system.pos
     pos[1*system.natom:2*system.natom,:] = system.pos - eps*dipoles/np.transpose(np.reshape( np.tile(d_norms,3), (3,-1) ))

@@ -493,15 +493,37 @@ double pair_fn_eidip(void *pair_data, long center_index, long other_index, doubl
   alpha = (*(pair_data_eidip_type*)pair_data).alpha;
 
   //C-C interaction
-  pot_cc = qi*qj/d;
-  if (g != NULL ){
-    *g = -pot_cc*d_2;
-    g_cart[0] = 0.0;
-    g_cart[1] = 0.0;
-    g_cart[2] = 0.0;
+  if (alpha > 0){
+      pot_cc = qi*qj*erfc(alpha*d)/d;
+      if (g != NULL){
+      *g = (-M_TWO_DIV_SQRT_PI*alpha*exp(-alpha*alpha*d*d)*qi*qj - pot_cc)/(d*d);
+      g_cart[0] = 0.0;
+      g_cart[1] = 0.0;
+      g_cart[2] = 0.0;
+      }
+  }
+  else{
+    pot_cc = qi*qj/d;
+    if (g != NULL ){
+      *g = -pot_cc*d_2;
+      g_cart[0] = 0.0;
+      g_cart[1] = 0.0;
+      g_cart[2] = 0.0;
+    }
   }
 
   //C-D interaction
+  if (alpha>0){
+     pot_cd = d_3*(erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d) )*qi*( delta[0]*djx + delta[1]*djy + delta[2]*djz  );
+     if ( g != NULL ){
+        *g += -3.0*pot_cd*d_2 - 2.0*M_TWO_DIV_SQRT_PI*alpha*alpha*alpha*exp(-alpha*alpha*d*d)*d_2*qi*( delta[0]*djx + delta[1]*djy + delta[2]*djz  );
+    g_cart[0] += qi*d_3*djx*(erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d) );
+    g_cart[1] += qi*d_3*djy*(erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d) );
+    g_cart[2] += qi*d_3*djz*(erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d) );
+     }
+  }
+  else{
+
   pot_cd = qi*d_3*( delta[0]*djx + delta[1]*djy + delta[2]*djz  );
   if (g != NULL ){
     *g += -3.0*pot_cd*d_2;
@@ -509,8 +531,19 @@ double pair_fn_eidip(void *pair_data, long center_index, long other_index, doubl
     g_cart[1] += qi*d_3*djy;
     g_cart[2] += qi*d_3*djz;
   }
+  }
 
   //D-C interaction
+  if (alpha>0){
+     pot_dc = -d_3*(erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d) )*qj*( delta[0]*dix + delta[1]*diy + delta[2]*diz  );
+     if ( g != NULL ){
+    *g += -3.0*pot_dc*d_2 + 2.0*M_TWO_DIV_SQRT_PI*alpha*alpha*alpha*exp(-alpha*alpha*d*d)*d_2*qj*( delta[0]*dix + delta[1]*diy + delta[2]*diz  );
+    g_cart[0] += -qj*d_3*dix*(erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d) );
+    g_cart[1] += -qj*d_3*diy*(erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d) );
+    g_cart[2] += -qj*d_3*diz*(erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d) );
+     }
+  }
+  else{
   pot_dc = -qj*d_3*( delta[0]*dix + delta[1]*diy + delta[2]*diz  );
   if (g != NULL ){
     *g += -3.0*pot_dc*d_2;
@@ -518,7 +551,7 @@ double pair_fn_eidip(void *pair_data, long center_index, long other_index, doubl
     g_cart[1] += -qj*d_3*diy;
     g_cart[2] += -qj*d_3*diz;
   }
-
+  }
   //D-D interaction
   //With screened charges
   if (alpha>0){

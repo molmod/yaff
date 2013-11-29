@@ -262,6 +262,13 @@ class ForceField(ForcePart):
         if self.needs_nlist_update:
             self.nlist.update()
             self.needs_nlist_update = False
+        # gpos2 = gpos.copy()
+        #for part in self.parts:
+        #    gpos_prev = gpos2.copy()
+        #    part.compute(gpos2,vtens)
+        #    print part.name
+        #    print gpos2-gpos_prev
+
         result = sum([part.compute(gpos, vtens) for part in self.parts])
         return result
 
@@ -430,7 +437,7 @@ class ForcePartEwaldReciprocalDD(ForcePart):
     def _internal_compute(self, gpos, vtens):
         with timer.section('Ewald reci.'):
             return compute_ewald_reci_dd(
-                self.system.pos, self.system.dipoles, self.system.cell, self.alpha,
+                self.system.pos, self.system.charges, self.system.dipoles, self.system.cell, self.alpha,
                 self.gmax, self.gcut, gpos, self.work, vtens
             )
 
@@ -522,7 +529,7 @@ class ForcePartEwaldCorrectionDD(ForcePart):
     def _internal_compute(self, gpos, vtens):
         with timer.section('Ewald corr.'):
             return compute_ewald_corr_dd(
-                self.system.pos, self.system.dipoles, self.system.cell,
+                self.system.pos, self.system.charges, self.system.dipoles, self.system.cell,
                 self.alpha, self.scalings.stab, gpos, vtens
             )
 
@@ -559,6 +566,8 @@ class ForcePartEwaldNeutralizing(ForcePart):
     def _internal_compute(self, gpos, vtens):
         with timer.section('Ewald neut.'):
             fac = self.system.charges.sum()**2*np.pi/(2.0*self.system.cell.volume*self.alpha**2)
+            if self.system.radii is not None:
+                fac -= self.system.charges.sum()*np.pi/(2.0*self.system.cell.volume)*np.sum( self.system.charges*self.system.radii**2 )
             if vtens is not None:
                 vtens.ravel()[::4] -= fac
             return fac
