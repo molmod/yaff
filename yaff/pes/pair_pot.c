@@ -423,6 +423,7 @@ double pair_fn_ei(void *pair_data, long center_index, long other_index, double d
   );
   //Averaged atomic radius needed to compute EI interaction between Gaussian charge distributions
   //TODO: store square of atomic radii
+  //TODO: deal with missing radii
   r_ab = sqrt( (*(pair_data_ei_type*)pair_data).radii[center_index] * (*(pair_data_ei_type*)pair_data).radii[center_index] +
                (*(pair_data_ei_type*)pair_data).radii[other_index] * (*(pair_data_ei_type*)pair_data).radii[other_index] );
   alpha = (*(pair_data_ei_type*)pair_data).alpha;
@@ -460,7 +461,7 @@ double pair_data_ei_get_alpha(pair_pot_type *pair_pot) {
   return (*(pair_data_ei_type*)((*pair_pot).pair_data)).alpha;
 }
 
-void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipoles, double alpha) {
+void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipoles, double alpha, double *radii, double *radii2) {
   pair_data_eidip_type *pair_data;
   pair_data = malloc(sizeof(pair_data_eidip_type));
   (*pair_pot).pair_data = pair_data;
@@ -469,6 +470,8 @@ void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipo
     (*pair_data).charges = charges;
     (*pair_data).dipoles = dipoles;
     (*pair_data).alpha = alpha;
+    (*pair_data).radii = radii;
+    (*pair_data).radii2 = radii2;
   }
 }
 
@@ -477,6 +480,21 @@ double pair_fn_eidip(void *pair_data, long center_index, long other_index, doubl
   double qi, qj, dix, diy, diz, djx, djy, djz;
   double x, d_2, alpha, fac0, fac1, fac2, fac3;
   double mui_dot_delta, muj_dot_delta, mui_dot_muj;
+  double r_qq, r_qd, r_dq, r_dd;
+  double fac0_qq, fac1_qq, fac1_qd, fac2_qd, fac1_dq, fac2_dq, fac1_dd, fac2_dd, fac3_dd;
+
+  //Averaged atomic radius needed to compute EI interaction between Gaussian charge distributions
+  //TODO: store square of atomic radii
+  //TODO: deal with missing radii
+  r_qq = sqrt( (*(pair_data_eidip_type*)pair_data).radii[center_index] * (*(pair_data_eidip_type*)pair_data).radii[center_index] +
+               (*(pair_data_eidip_type*)pair_data).radii[other_index ] * (*(pair_data_eidip_type*)pair_data).radii[other_index] );
+  r_qd = sqrt( (*(pair_data_eidip_type*)pair_data).radii[center_index] * (*(pair_data_eidip_type*)pair_data).radii[center_index] +
+               (*(pair_data_eidip_type*)pair_data).radii2[other_index ] * (*(pair_data_eidip_type*)pair_data).radii2[other_index] );
+  r_dq = sqrt( (*(pair_data_eidip_type*)pair_data).radii2[center_index] * (*(pair_data_eidip_type*)pair_data).radii2[center_index] +
+               (*(pair_data_eidip_type*)pair_data).radii[other_index ] * (*(pair_data_eidip_type*)pair_data).radii[other_index] );
+  r_dd = sqrt( (*(pair_data_eidip_type*)pair_data).radii2[center_index] * (*(pair_data_eidip_type*)pair_data).radii2[center_index] +
+               (*(pair_data_eidip_type*)pair_data).radii2[other_index ] * (*(pair_data_eidip_type*)pair_data).radii2[other_index] );
+
   //Charges
   qi = (*(pair_data_eidip_type*)pair_data).charges[center_index];
   qj = (*(pair_data_eidip_type*)pair_data).charges[other_index];
@@ -510,21 +528,53 @@ double pair_fn_eidip(void *pair_data, long center_index, long other_index, doubl
     if (g != NULL ){
        fac3 = 5.0*fac2*d_2;}
   }
-  pot = qi*qj*fac0; //CC interaction
+
+    if (r_qq > 0) { //Correction for gaussian charge distribution
+       x = d/r_qq;
+       fac0_qq = erfc(x)/d;
+       fac1_qq = ( fac0_qq + M_TWO_DIV_SQRT_PI/r_qq*exp(-x*x))*d_2;
+    }else{fac0_qq = 0.0; fac1_qq = 0;}
+
+    if (r_qd > 0) { //Correction for gaussian charge distribution
+       x = d/r_qd;
+       fac1_qd = ( erfc(x)/d + M_TWO_DIV_SQRT_PI/r_qd*exp(-x*x))*d_2;
+       fac2_qd = (3.0*fac1_qd + 2.0*M_TWO_DIV_SQRT_PI/r_qd/r_qd/r_qd*exp(-x*x))*d_2;
+    }else{fac1_qd = 0.0; fac2_qd = 0;}
+
+    if (r_dq > 0) { //Correction for gaussian charge distribution
+       x = d/r_dq;
+       fac1_dq = ( erfc(x)/d + M_TWO_DIV_SQRT_PI/r_dq*exp(-x*x))*d_2;
+       fac2_dq = (3.0*fac1_dq + 2.0*M_TWO_DIV_SQRT_PI/r_dq/r_dq/r_dq*exp(-x*x))*d_2;
+    }else{fac1_dq = 0.0; fac2_dq = 0;}
+
+    if (r_dd > 0) { //Correction for gaussian charge distribution
+       x = d/r_dd;
+       fac1_dd = ( erfc(x)/d + M_TWO_DIV_SQRT_PI/r_dd*exp(-x*x))*d_2;
+       fac2_dd = (3.0*fac1_dd + 2.0*M_TWO_DIV_SQRT_PI/r_dd/r_dd/r_dd*exp(-x*x))*d_2;
+       fac3_dd = (5.0*fac2_dd + 4.0*M_TWO_DIV_SQRT_PI/r_dd/r_dd/r_dd/r_dd/r_dd*exp(-x*x))*d_2;
+    }else{fac1_dd = 0.0; fac2_dd = 0; fac3_dd = 0.0;}
+
+
+  pot = qi*qj*(fac0-fac0_qq); //CC interaction
   pot += fac1*(qi*muj_dot_delta-qj*mui_dot_delta); //CD and DC interaction
-  pot += fac1*mui_dot_muj  - fac2*muj_dot_delta*mui_dot_delta; //DD interaction
+  pot += -fac1_qd*qi*muj_dot_delta + fac1_dq*qj*mui_dot_delta; //CD and DC interaction
+  pot += (fac1-fac1_dd)*mui_dot_muj  - (fac2-fac2_dd)*muj_dot_delta*mui_dot_delta; //DD interaction
   if (g != NULL ){
-      *g  = -qi*qj*fac1; //CC interaction
+      *g  = -qi*qj*(fac1-fac1_qq); //CC interaction
       *g += -fac2*(qi*muj_dot_delta - qj*mui_dot_delta); //CD and DC interaction
-      *g += -fac2*mui_dot_muj + fac3*muj_dot_delta*mui_dot_delta; //DD interaction
+      *g += fac2_qd*qi*muj_dot_delta - fac2_dq*qj*mui_dot_delta; //CD and DC interaction
+      *g += -(fac2-fac2_dd)*mui_dot_muj + (fac3-fac3_dd)*muj_dot_delta*mui_dot_delta; //DD interaction
       //CC and DC interaction
       g_cart[0] = fac1*(qi*djx-qj*dix);
+      g_cart[0] += -fac1_qd*qi*djx + fac1_dq*qj*dix;
       g_cart[1] = fac1*(qi*djy-qj*diy);
+      g_cart[1] += -fac1_qd*qi*djy + fac1_dq*qj*diy;
       g_cart[2] = fac1*(qi*djz-qj*diz);
+      g_cart[2] += -fac1_qd*qi*djz + fac1_dq*qj*diz;
       //DD interaction
-      g_cart[0] += - fac2*(dix*muj_dot_delta + djx*mui_dot_delta );
-      g_cart[1] += - fac2*(diy*muj_dot_delta + djy*mui_dot_delta );
-      g_cart[2] += - fac2*(diz*muj_dot_delta + djz*mui_dot_delta );
+      g_cart[0] += - (fac2-fac2_dd)*(dix*muj_dot_delta + djx*mui_dot_delta );
+      g_cart[1] += - (fac2-fac2_dd)*(diy*muj_dot_delta + djy*mui_dot_delta );
+      g_cart[2] += - (fac2-fac2_dd)*(diz*muj_dot_delta + djz*mui_dot_delta );
   }
   return pot;
 }

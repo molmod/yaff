@@ -334,7 +334,7 @@ def test_pair_pot_eidip_water32_14A():
     check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, 1e-12, rmax=1)
 
 
-def get_part_water_eidip(scalings = [0.5,1.0,1.0],rcut=14.0*angstrom,switch_width=0.0*angstrom, finite=False, alpha=0.0):
+def get_part_water_eidip(scalings = [0.5,1.0,1.0],rcut=14.0*angstrom,switch_width=0.0*angstrom, finite=False, alpha=0.0, do_radii=False):
     '''
     Make a system with one water molecule with a point dipole on every atom,
     setup a ForcePart...
@@ -343,18 +343,24 @@ def get_part_water_eidip(scalings = [0.5,1.0,1.0],rcut=14.0*angstrom,switch_widt
     dipoles = np.array( [[1.0,2.0,3.0],[4.0,5.0,6.0],[7.0,8.0,9.0 ]] ) # natom x 3
     # Initialize system, nlist and scaling
     system = get_system_water()
+    #TODO make radii2 system attribute
+    system.radii = np.array( [ 1.5,1.2,1.2] ) * angstrom
+    system.radii2 = np.array( [1.6,1.3,1.2] ) * angstrom
     if finite:
         #Make a system with point dipoles approximated by two charges
         system = make_system_finite_dipoles(system, dipoles, eps=0.0001*angstrom)
+    if not do_radii:
+        system.radii *= 0.0
+        if not finite:system.radii2 *= 0.0
     nlist = NeighborList(system)
     scalings = Scalings(system, scalings[0], scalings[1], scalings[2])
     # Set poltens
     poltens_i = np.tile( 0.0*np.diag([1.0,1.0,1.0]) , np.array([system.natom, 1]) )
     # Create the pair_pot and part_pair
     if finite:
-        pair_pot = PairPotEI(system.charges,alpha, rcut, Switch3(switch_width))
+        pair_pot = PairPotEI(system.charges,alpha, rcut, tr= Switch3(switch_width), radii=system.radii)
     else:
-        pair_pot = PairPotEIDip(system.charges, dipoles, poltens_i, alpha, rcut, Switch3(switch_width))
+        pair_pot = PairPotEIDip(system.charges, dipoles, poltens_i, alpha, rcut, tr = Switch3(switch_width),radii=system.radii, radii2=system.radii2)
     part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
     nlist.update()
     #Make a different nlist in case we approximate the point dipoles with charges
@@ -398,20 +404,22 @@ def test_pair_pot_eidip_water_finite():
     #Compare the electrostatic energy of a system with point dipoles with the
     #energy of a system with these dipoles approximated by two point charges
     #TODO: what happens to the virial tensor in this case?
-    for alpha in 0.0, 2.0:
-        #Get the electrostatic energy of a water molecule with atomic point dipoles approximated by two charges
-        system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(scalings=[1.0,1.0,1.0],finite=True,alpha=alpha)
-        gpos1 = np.zeros(system.pos.shape, float)
-        energy1 = part_pair.compute(gpos1)
-        #Reshape gpos1
-        gpos1 = np.asarray([ np.sum( gpos1[i::3], axis=0 ) for i in xrange(system.natom/3)])
-        #Get the electrostatic energy of a water molecule with atomic point dipoles
-        system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(scalings=[1.0,1.0,1.0],finite=False,alpha=alpha)
-        gpos2 = np.zeros(system.pos.shape, float)
-        energy2 = part_pair.compute(gpos2)
-        #Finite difference approximation is not very accurate...
-        assert np.abs(energy1 - energy2) < 1.0e-5
-        assert abs(gpos1 - gpos2).max() < 1e-5
+    #TODO: handle scalings in this test
+    for do_radii in True, False:
+        for alpha in 0.0, 2.0:
+            #Get the electrostatic energy of a water molecule with atomic point dipoles approximated by two charges
+            system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(scalings=[1.0,1.0,1.0],finite=True,alpha=alpha, do_radii=do_radii)
+            gpos1 = np.zeros(system.pos.shape, float)
+            energy1 = part_pair.compute(gpos1)
+            #Reshape gpos1
+            gpos1 = np.asarray([ np.sum( gpos1[i::3], axis=0 ) for i in xrange(system.natom/3)])
+            #Get the electrostatic energy of a water molecule with atomic point dipoles
+            system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(scalings=[1.0,1.0,1.0],finite=False,alpha=alpha, do_radii=do_radii)
+            gpos2 = np.zeros(system.pos.shape, float)
+            energy2 = part_pair.compute(gpos2)
+            #Finite difference approximation is not very accurate...
+            assert np.abs(energy1 - energy2) < 1.0e-5
+            assert abs(gpos1 - gpos2).max() < 1e-5
 
 
 def check_pair_pot_water(system, nlist, scalings, part_pair, pair_pot, pair_fn, eps):
@@ -500,7 +508,11 @@ def make_system_finite_dipoles(system, dipoles, eps=0.05*angstrom):
     newsystem['bonds'] = system.bonds #No new connections are introduced
     #Three repetitions
     newsystem['numbers'] = np.tile( system.numbers, ncharges)
-    newsystem['radii'] = np.tile( system.radii, ncharges)
+    if system.radii is None and system.radii2 is None: newsystem['radii'] = None
+    else:
+        if system.radii is None: system.radii = np.zeros( (natom,1) )
+        if system.radii2 is None: system.radii2 = np.zeros( (natom,1) )
+    newsystem['radii'] = np.reshape( np.asarray([system.radii,system.radii2, system.radii2]), (-1,) )
     newsystem['masses'] = np.tile( system.masses, ncharges)
     newsystem['ffatype_ids'] = np.tile( system.ffatype_ids, ncharges)
     #Cell vectors

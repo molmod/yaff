@@ -558,6 +558,7 @@ class ForcePartEwaldNeutralizing(ForcePart):
 
     def _internal_compute(self, gpos, vtens):
         with timer.section('Ewald neut.'):
+            #TODO: interaction of dipoles with background? I think this is zero, need proof...
             fac = self.system.charges.sum()**2*np.pi/(2.0*self.system.cell.volume*self.alpha**2)
             if self.system.radii is not None:
                 fac -= self.system.charges.sum()*np.pi/(2.0*self.system.cell.volume)*np.sum( self.system.charges*self.system.radii**2 )

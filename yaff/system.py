@@ -46,9 +46,10 @@ def _unravel_triangular(i):
 
 
 class System(object):
+    #TODO check attributes radii, dipoles and radii2
     def __init__(self, numbers, pos, scopes=None, scope_ids=None, ffatypes=None,
                  ffatype_ids=None, bonds=None, rvecs=None, charges=None, radii=None,
-                 dipoles=None, masses=None):
+                 dipoles=None, radii2=None, masses=None):
         '''
            **Arguments:**
 
@@ -102,6 +103,10 @@ class System(object):
            dipoles
                 An array of atomic dipoles
 
+           radii2
+                An array of atomic radii that determine shape of dipole
+                distribution
+
            masses
                 The atomic masses (in atomic units, i.e. m_e)
 
@@ -132,6 +137,7 @@ class System(object):
         self.charges = charges
         self.radii = radii
         self.dipoles = dipoles
+        self.radii2 = radii2
         self.masses = masses
         with log.section('SYS'):
             # report some stuff
@@ -685,7 +691,7 @@ class System(object):
 
         # B) Simple repetitions
         rep_all = np.product(reps)
-        for attrname in 'numbers', 'ffatype_ids', 'scope_ids', 'charges', 'radii', 'masses':
+        for attrname in 'numbers', 'ffatype_ids', 'scope_ids', 'charges', 'radii', 'radii2', 'masses':
             value = getattr(self, attrname)
             if value is not None:
                 new_args[attrname] = np.tile(value, rep_all)
@@ -825,8 +831,8 @@ class System(object):
         ffatype_ids = reduce_int_array(self.ffatype_ids)
         charges = reduce_float_array(self.charges)
         radii = reduce_float_array(self.radii)
-        print self.dipoles
         dipoles = reduce_float_array(self.dipoles)
+        radii2 = reduce_float_array(self.radii2)
         masses = reduce_float_array(self.masses)
 
         # create averaged positions
@@ -895,6 +901,7 @@ class System(object):
             rvecs=self.cell.rvecs,
             charges=reduce_array(self.charges),
             radii=reduce_array(self.radii),
+            radii2=reduce_array(self.radii2),
             masses=reduce_array(self.masses),
         )
 
@@ -951,6 +958,7 @@ class System(object):
                 'charges': self.charges,
                 'radii': self.radii,
                 'dipoles': self.dipoles,
+                'radii2': self.radii2,
                 'masses': self.masses,
             })
         elif fn.endswith('.h5'):

@@ -1289,21 +1289,30 @@ cdef class PairPotEIDip(PairPot):
     cdef np.ndarray _c_charges
     cdef np.ndarray _c_dipoles
     cdef np.ndarray _c_poltens_i
+    cdef np.ndarray _c_radii
+    cdef np.ndarray _c_radii2
     name = 'eidip'
 
     def __cinit__(self, np.ndarray[double, ndim=1] charges,
                   np.ndarray[double, ndim=2] dipoles, np.ndarray[double, ndim=2] poltens_i,
                     double alpha, double rcut,
-                  Truncation tr=None):
+                  Truncation tr=None, np.ndarray[double, ndim=1] radii=None, np.ndarray[double, ndim=1] radii2=None):
         assert charges.flags['C_CONTIGUOUS']
         assert dipoles.flags['C_CONTIGUOUS']
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
         self.set_truncation(tr)
-        pair_pot.pair_data_eidip_init(self._c_pair_pot, <double*>charges.data, <double*>dipoles.data, alpha)
+        #No atomic radii specified, set to point charges
+        if radii is None: radii = np.zeros( np.shape(charges) )
+        #No dipole radii specified, set to point charges
+        if radii2 is None: radii2 = np.zeros( np.shape(charges) )
+        pair_pot.pair_data_eidip_init(self._c_pair_pot, <double*>charges.data, <double*>dipoles.data, alpha,
+                      <double*>radii.data, <double*>radii2.data)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
         self._c_charges = charges
         self._c_dipoles = dipoles
+        self._c_radii = radii
+        self._c_radii2 = radii2
         #Put the polarizability tensors in a matrix with shape that is more convenient for energy calculation
         self._c_poltens_i = np.zeros( (np.shape(poltens_i)[0],np.shape(poltens_i)[0]) )
         for i in xrange(np.shape(poltens_i)[0]/3):
