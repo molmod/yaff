@@ -262,13 +262,6 @@ class ForceField(ForcePart):
         if self.needs_nlist_update:
             self.nlist.update()
             self.needs_nlist_update = False
-        # gpos2 = gpos.copy()
-        #for part in self.parts:
-        #    gpos_prev = gpos2.copy()
-        #    part.compute(gpos2,vtens)
-        #    print part.name
-        #    print gpos2-gpos_prev
-
         result = sum([part.compute(gpos, vtens) for part in self.parts])
         return result
 

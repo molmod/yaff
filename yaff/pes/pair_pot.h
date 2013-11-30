@@ -129,5 +129,4 @@ typedef struct {
 void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipoles, double alpha);
 double pair_fn_eidip(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
 double pair_data_eidip_get_alpha(pair_pot_type *pair_pot);
-void pair_data_eidip_set_dipoles(pair_pot_type *pair_pot, double *dipoles, long ndipoles);
 #endif

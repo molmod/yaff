@@ -395,24 +395,23 @@ def get_part_water_eidip(scalings = [0.5,1.0,1.0],rcut=14.0*angstrom,switch_widt
 
 
 def test_pair_pot_eidip_water_finite():
-    alpha = 1.6
-    #Get the electrostatic energy of a water molecule with atomic point dipoles approximated by two charges
-    system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(scalings=[1.0,1.0,1.0],finite=True,alpha=alpha)
-    gpos1 = np.zeros(system.pos.shape, float)
-    energy1 = part_pair.compute(gpos1)
-    #Reshape gpos1
-    gpos1 = np.asarray([ np.sum( gpos1[i::3], axis=0 ) for i in xrange(system.natom/3)])
-    #Get the electrostatic energy of a water molecule with atomic point dipoles
-    system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(scalings=[1.0,1.0,1.0],finite=False,alpha=alpha)
-    gpos2 = np.zeros(system.pos.shape, float)
-    energy2 = part_pair.compute(gpos2)
-    #Finite difference approximation is not very accurate...
-    print energy1
-    print energy2
-    print gpos1
-    print gpos2
-    assert np.abs(energy1 - energy2) < 1.0e-5
-
+    #Compare the electrostatic energy of a system with point dipoles with the
+    #energy of a system with these dipoles approximated by two point charges
+    #TODO: what happens to the virial tensor in this case?
+    for alpha in 0.0, 2.0:
+        #Get the electrostatic energy of a water molecule with atomic point dipoles approximated by two charges
+        system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(scalings=[1.0,1.0,1.0],finite=True,alpha=alpha)
+        gpos1 = np.zeros(system.pos.shape, float)
+        energy1 = part_pair.compute(gpos1)
+        #Reshape gpos1
+        gpos1 = np.asarray([ np.sum( gpos1[i::3], axis=0 ) for i in xrange(system.natom/3)])
+        #Get the electrostatic energy of a water molecule with atomic point dipoles
+        system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(scalings=[1.0,1.0,1.0],finite=False,alpha=alpha)
+        gpos2 = np.zeros(system.pos.shape, float)
+        energy2 = part_pair.compute(gpos2)
+        #Finite difference approximation is not very accurate...
+        assert np.abs(energy1 - energy2) < 1.0e-5
+        assert abs(gpos1 - gpos2).max() < 1e-5
 
 
 def check_pair_pot_water(system, nlist, scalings, part_pair, pair_pot, pair_fn, eps):

@@ -427,15 +427,15 @@ double pair_fn_ei(void *pair_data, long center_index, long other_index, double d
                (*(pair_data_ei_type*)pair_data).radii[other_index] * (*(pair_data_ei_type*)pair_data).radii[other_index] );
   alpha = (*(pair_data_ei_type*)pair_data).alpha;
 
-  //Original minus gaussian charge distribution
+  //Original minus gaussian screening charge distribution
   if (alpha > 0) {
-    if (r_ab > 0 ){ //Original as Gaussian charge distributions
+    if (r_ab > 0 ){ //Original is a Gaussian charge distribution
       x = alpha*d;
       y = d/r_ab;
       pot = qprod/d*(erfc(x) - erfc(y) );
       if (g != NULL) *g = ( M_TWO_DIV_SQRT_PI*(exp(-y*y)/r_ab - exp(-x*x)*alpha)*qprod - pot)/(d*d);
     }
-    else{ //Original as point monopoles
+    else{ //Original is a point monopole
       x = alpha*d;
       pot = qprod*erfc(x)/d;
       if (g != NULL) *g = (-M_TWO_DIV_SQRT_PI*alpha*exp(-x*x)*qprod - pot)/(d*d);
@@ -443,12 +443,12 @@ double pair_fn_ei(void *pair_data, long center_index, long other_index, double d
   }
   //Original only
   else {
-    if (r_ab > 0) {//Gaussian charge distributions
+    if (r_ab > 0) {//Original is a gaussian charge distribution
          y = d/r_ab;
          pot = qprod/d*erf(y);
          if (g != NULL) *g = (M_TWO_DIV_SQRT_PI/r_ab*exp(-y*y)*qprod-pot)/(d*d);
      }
-     else{ //Treat as point monopole
+     else{ //Original is a point monopole
          pot = qprod/d;
          if (g != NULL) *g = -pot/(d*d);
      }
@@ -459,7 +459,6 @@ double pair_fn_ei(void *pair_data, long center_index, long other_index, double d
 double pair_data_ei_get_alpha(pair_pot_type *pair_pot) {
   return (*(pair_data_ei_type*)((*pair_pot).pair_data)).alpha;
 }
-
 
 void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipoles, double alpha) {
   pair_data_eidip_type *pair_data;
@@ -474,8 +473,10 @@ void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipo
 }
 
 double pair_fn_eidip(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
-  double pot_cc, pot_cd, pot_dc, pot_dd, qi, qj, dix, diy, diz, djx, djy, djz, d_2, d_3, alpha, fac1, fac2, fac1g, fac2g;
-  //Straightforward implementation of energy expressions, code can be further optimized
+  double pot;
+  double qi, qj, dix, diy, diz, djx, djy, djz;
+  double x, d_2, alpha, fac0, fac1, fac2, fac3;
+  double mui_dot_delta, muj_dot_delta, mui_dot_muj;
   //Charges
   qi = (*(pair_data_eidip_type*)pair_data).charges[center_index];
   qj = (*(pair_data_eidip_type*)pair_data).charges[other_index];
@@ -486,116 +487,47 @@ double pair_fn_eidip(void *pair_data, long center_index, long other_index, doubl
   djx = (*(pair_data_eidip_type*)pair_data).dipoles[ 3*other_index   + 0 ];
   djy = (*(pair_data_eidip_type*)pair_data).dipoles[ 3*other_index   + 1 ];
   djz = (*(pair_data_eidip_type*)pair_data).dipoles[ 3*other_index   + 2 ];
-  //printf("Dipoles in C code, %f %f %f %f %f %f \n",dix,diy,diz,djx,djy,djz);
   //Some useful definitions
   d_2 = 1.0/(d*d);
-  d_3 = d_2/d;
   alpha = (*(pair_data_eidip_type*)pair_data).alpha;
-
-  //C-C interaction
+  mui_dot_delta = dix*delta[0] + diy*delta[1] + diz*delta[2];
+  muj_dot_delta = djx*delta[0] + djy*delta[1] + djz*delta[2];
+  mui_dot_muj = dix*djx + diy*djy + diz*djz;
+  //Original minus gaussian screening charge distribution
   if (alpha > 0){
-      pot_cc = qi*qj*erfc(alpha*d)/d;
-      if (g != NULL){
-      *g = (-M_TWO_DIV_SQRT_PI*alpha*exp(-alpha*alpha*d*d)*qi*qj - pot_cc)/(d*d);
-      g_cart[0] = 0.0;
-      g_cart[1] = 0.0;
-      g_cart[2] = 0.0;
-      }
-  }
-  else{
-    pot_cc = qi*qj/d;
-    if (g != NULL ){
-      *g = -pot_cc*d_2;
-      g_cart[0] = 0.0;
-      g_cart[1] = 0.0;
-      g_cart[2] = 0.0;
-    }
-  }
-
-  //C-D interaction
-  if (alpha>0){
-     pot_cd = d_3*(erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d) )*qi*( delta[0]*djx + delta[1]*djy + delta[2]*djz  );
-     if ( g != NULL ){
-        *g += -3.0*pot_cd*d_2 - 2.0*M_TWO_DIV_SQRT_PI*alpha*alpha*alpha*exp(-alpha*alpha*d*d)*d_2*qi*( delta[0]*djx + delta[1]*djy + delta[2]*djz  );
-    g_cart[0] += qi*d_3*djx*(erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d) );
-    g_cart[1] += qi*d_3*djy*(erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d) );
-    g_cart[2] += qi*d_3*djz*(erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d) );
-     }
-  }
-  else{
-
-  pot_cd = qi*d_3*( delta[0]*djx + delta[1]*djy + delta[2]*djz  );
-  if (g != NULL ){
-    *g += -3.0*pot_cd*d_2;
-    g_cart[0] += qi*d_3*djx;
-    g_cart[1] += qi*d_3*djy;
-    g_cart[2] += qi*d_3*djz;
-  }
-  }
-
-  //D-C interaction
-  if (alpha>0){
-     pot_dc = -d_3*(erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d) )*qj*( delta[0]*dix + delta[1]*diy + delta[2]*diz  );
-     if ( g != NULL ){
-    *g += -3.0*pot_dc*d_2 + 2.0*M_TWO_DIV_SQRT_PI*alpha*alpha*alpha*exp(-alpha*alpha*d*d)*d_2*qj*( delta[0]*dix + delta[1]*diy + delta[2]*diz  );
-    g_cart[0] += -qj*d_3*dix*(erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d) );
-    g_cart[1] += -qj*d_3*diy*(erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d) );
-    g_cart[2] += -qj*d_3*diz*(erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d) );
-     }
-  }
-  else{
-  pot_dc = -qj*d_3*( delta[0]*dix + delta[1]*diy + delta[2]*diz  );
-  if (g != NULL ){
-    *g += -3.0*pot_dc*d_2;
-    g_cart[0] += -qj*d_3*dix;
-    g_cart[1] += -qj*d_3*diy;
-    g_cart[2] += -qj*d_3*diz;
-  }
-  }
-  //D-D interaction
-  //With screened charges
-  if (alpha>0){
-      fac1 = erfc(alpha*d) + M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d);
-      fac2 = 3.0*erfc(alpha*d) + M_TWO_DIV_SQRT_PI*2.0*alpha*alpha*alpha/d_3*exp(-alpha*alpha*d*d) + 3.0*M_TWO_DIV_SQRT_PI*alpha*d*exp(-alpha*alpha*d*d);
-      pot_dd = fac1*( dix*djx + diy*djy + diz*djz ) * d_3 - fac2*d_3*d_2*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
+    x = alpha*d;
+    fac0 = erfc(x)/d;
+    fac1 = ( fac0 + M_TWO_DIV_SQRT_PI*alpha*exp(-x*x))*d_2;
+    fac2 = (3.0*fac1 + 2.0*M_TWO_DIV_SQRT_PI*alpha*alpha*alpha*exp(-x*x))*d_2;
     if (g != NULL){
-      fac1g = -3.0*d_2*fac1*d_3 - 2.0*alpha*alpha*alpha*M_TWO_DIV_SQRT_PI*exp(-alpha*alpha*d*d)*d_2;
-      fac2g = 5.0*fac2*d_3*d_2*d_2 + 4.0*alpha*alpha*alpha*alpha*alpha*M_TWO_DIV_SQRT_PI*exp(-alpha*alpha*d*d)*d_2;
-      *g += fac1g*( dix*djx + diy*djy + diz*djz ) + fac2g*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
-        g_cart[0] += - fac2*d_3*d_2*(dix*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djx*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
-        g_cart[1] += - fac2*d_3*d_2*(diy*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djy*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
-        g_cart[2] += - fac2*d_3*d_2*(diz*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djz*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
-    }
-
+      fac3 = (5.0*fac2 + 4.0*M_TWO_DIV_SQRT_PI*alpha*alpha*alpha*alpha*alpha*exp(-x*x))*d_2;}
   }
-  //Wihout screened charges
-  else {
-      pot_dd = ( dix*djx + diy*djy + diz*djz ) * d_3 - 3*d_3*d_2*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
-      if (g != NULL){
-        *g += -3.0*( dix*djx + diy*djy + diz*djz ) * d_2 * d_3 + 15.0*d_3*d_2*d_2*(dix*delta[0] + diy*delta[1] + diz*delta[2])*(djx*delta[0] + djy*delta[1] + djz*delta[2]);
-        g_cart[0] += - 3*d_3*d_2*(dix*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djx*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
-        g_cart[1] += - 3*d_3*d_2*(diy*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djy*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
-        g_cart[2] += - 3*d_3*d_2*(diz*(djx*delta[0] + djy*delta[1] + djz*delta[2]) + djz*(dix*delta[0] + diy*delta[1] + diz*delta[2]) );
-      }
+  //Original only
+  else{
+    fac0 = 1.0/d;
+    fac1 = fac0*d_2;
+    fac2 = 3.0*fac1*d_2;
+    if (g != NULL ){
+       fac3 = 5.0*fac2*d_2;}
   }
-
-  return (pot_cc+pot_cd+pot_dc+pot_dd);
+  pot = qi*qj*fac0; //CC interaction
+  pot += fac1*(qi*muj_dot_delta-qj*mui_dot_delta); //CD and DC interaction
+  pot += fac1*mui_dot_muj  - fac2*muj_dot_delta*mui_dot_delta; //DD interaction
+  if (g != NULL ){
+      *g  = -qi*qj*fac1; //CC interaction
+      *g += -fac2*(qi*muj_dot_delta - qj*mui_dot_delta); //CD and DC interaction
+      *g += -fac2*mui_dot_muj + fac3*muj_dot_delta*mui_dot_delta; //DD interaction
+      //CC and DC interaction
+      g_cart[0] = fac1*(qi*djx-qj*dix);
+      g_cart[1] = fac1*(qi*djy-qj*diy);
+      g_cart[2] = fac1*(qi*djz-qj*diz);
+      //DD interaction
+      g_cart[0] += - fac2*(dix*muj_dot_delta + djx*mui_dot_delta );
+      g_cart[1] += - fac2*(diy*muj_dot_delta + djy*mui_dot_delta );
+      g_cart[2] += - fac2*(diz*muj_dot_delta + djz*mui_dot_delta );
+  }
+  return pot;
 }
-
-void pair_data_eidip_set_dipoles(pair_pot_type *pair_pot, double *dipoles, long ndipoles) {
-  /*
-  Update the dipoles array of pair_data with given values, ndipoles = the number of elements
-  in dipole matrix (natoms x 3)
-  */
-  long i;
-
-  for (i=0; i<ndipoles; i++) {
-    (*(pair_data_eidip_type*)((*pair_pot).pair_data)).dipoles[i] = dipoles[i];
-    //(*(pair_data_eidip_type*)((*pair_pot).pair_data)).dipoles++;
-    //dipoles++;
-  }
-}
-
 
 double pair_data_eidip_get_alpha(pair_pot_type *pair_pot) {
   return (*(pair_data_eidip_type*)((*pair_pot).pair_data)).alpha;
