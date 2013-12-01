@@ -291,6 +291,36 @@ def test_supercell_nobonds():
     sys333 = sys111.supercell(3,3,3)
 
 
+def test_supercell_charges():
+    cellpar = 2.867*angstrom
+    sys111 = System(
+        numbers=np.array([26, 26]),
+        pos=np.array([[0.0, 0.0, 0.0], [0.5, 0.5, 0.5]])*cellpar,
+        ffatypes=['Fe', 'Fe'],
+        charges=np.array([0.1,1.0]),
+        radii=np.array([0.0,2.0]),
+        rvecs=np.identity(3)*cellpar,
+    )
+    sys333 = sys111.supercell(3,3,3)
+    assert np.all(sys333.charges==np.repeat(np.array([0.1,1.0]),9))==0.0
+    assert np.all(sys333.radii==np.repeat(np.array([0.0,2.0]),9))==0.0
+
+
+def test_supercell_dipoles():
+    cellpar = 2.867*angstrom
+    sys111 = System(
+        numbers=np.array([26, 26]),
+        pos=np.array([[0.0, 0.0, 0.0], [0.5, 0.5, 0.5]])*cellpar,
+        ffatypes=['Fe', 'Fe'],
+        dipoles=np.array([[0.1,1.0,2.0],[0.5,0.7,0.9]]),
+        radii2=np.array([0.0,2.0]),
+        rvecs=np.identity(3)*cellpar,
+    )
+    sys333 = sys111.supercell(3,3,3)
+    assert np.all(sys333.charges==np.tile(np.array([[0.1,1.0,2.0],[0.5,0.7,0.9]]),(9,1)))==0.0
+    assert np.all(sys333.radii==np.repeat(np.array([0.0,2.0]),9))==0.0
+
+
 def test_remove_duplicate1():
     system1 = get_system_quartz()
     system2 = system1.remove_duplicate()
@@ -314,8 +344,29 @@ def test_remove_duplicate2():
     assert system1.ffatype_ids.sum() == system3.ffatype_ids.sum()
 
 
+def test_remove_duplicate_dipoles():
+    cellpar = 2.867*angstrom
+    system1 = System(
+        numbers=np.array([26, 27]),
+        pos=np.array([[0.0, 0.0, 0.0], [0.5, 0.5, 0.5]])*cellpar,
+        ffatypes=['A', 'B'],
+        dipoles=np.array([[0.1,1.0,2.0],[0.5,0.7,0.9]]),
+        radii2=np.array([0.0,2.0]),
+        rvecs=np.identity(3)*cellpar,
+    )
+    system2 = system1.supercell(1, 2, 1)
+    system2.cell = system1.cell
+    system3 = system2.remove_duplicate()
+    for j, number in enumerate([26, 27]):
+        #By removing duplicates, atoms might be reordered
+        i = np.where( system3.numbers == number)[0]
+        assert system1.radii2[j] == system3.radii2[i]
+        assert np.all( system1.dipoles[j] == system3.dipoles[i] )
+
+
 def test_subsystem():
     system1 = get_system_quartz()
+    system1.dipoles = np.random.rand( system1.natom , 3 )
     system2 = system1.subsystem((system1.numbers == 8).nonzero()[0])
     assert system2.natom == 6
     assert (system2.numbers == 8).all()
@@ -324,6 +375,7 @@ def test_subsystem():
     assert system2.get_ffatype(0) == 'O'
     assert (system2.charges == -0.9).all()
     assert (system1.cell.rvecs == system2.cell.rvecs).all()
+    assert np.shape(system2.dipoles)[1] == 3
 
 
 def test_cut_bonds():

@@ -46,7 +46,6 @@ def _unravel_triangular(i):
 
 
 class System(object):
-    #TODO check attributes radii, dipoles and radii2
     def __init__(self, numbers, pos, scopes=None, scope_ids=None, ffatypes=None,
                  ffatype_ids=None, bonds=None, rvecs=None, charges=None, radii=None,
                  dipoles=None, radii2=None, masses=None):
@@ -99,6 +98,7 @@ class System(object):
            radii
                 An array of atomic radii that determine shape of charge
                 distribution
+                rho[i]=charges[i]/(sqrt(pi)radii[i]**3)*exp(-(|r-pos[i]|/radii[i])**2)
 
            dipoles
                 An array of atomic dipoles
@@ -106,6 +106,7 @@ class System(object):
            radii2
                 An array of atomic radii that determine shape of dipole
                 distribution
+                rho[i]=-(dipoles[i] dot r-pos[i])*2.0/(sqrt(pi)radii2[i]**5)*exp(-(|r-pos[i]|/radii[i])**2)
 
            masses
                 The atomic masses (in atomic units, i.e. m_e)
@@ -416,7 +417,7 @@ class System(object):
                     allowed_keys = [
                         'numbers', 'pos', 'scopes', 'scope_ids', 'ffatypes',
                         'ffatype_ids', 'bonds', 'rvecs', 'charges', 'radii',
-                        'masses',
+                        'dipoles','radii2','masses',
                     ]
                     for key, value in load_chk(fn).iteritems():
                         if key in allowed_keys:
@@ -825,13 +826,23 @@ class System(object):
                     new[inew] = old[iolds].mean()
                 return new
 
+        def reduce_float_matrix(old):
+            '''Reduce array with dim=2'''
+            if old is None:
+                return None
+            else:
+                new = np.zeros((natom,np.shape(old)[1]), old.dtype)
+                for inew, iolds in newold.iteritems():
+                    new[inew] = old[iolds].mean(axis=0)
+                return new
+
         # trivial cases
         numbers = reduce_int_array(self.numbers)
         scope_ids = reduce_int_array(self.scope_ids)
         ffatype_ids = reduce_int_array(self.ffatype_ids)
         charges = reduce_float_array(self.charges)
         radii = reduce_float_array(self.radii)
-        dipoles = reduce_float_array(self.dipoles)
+        dipoles = reduce_float_matrix(self.dipoles)
         radii2 = reduce_float_array(self.radii2)
         masses = reduce_float_array(self.masses)
 
@@ -856,7 +867,7 @@ class System(object):
             bonds = set((oldnew[ia], oldnew[ib]) for ia, ib in self.bonds)
             bonds = np.array([bond for bond in bonds])
 
-        return self.__class__(numbers, pos, self.scopes, scope_ids, self.ffatypes, ffatype_ids, bonds, self.cell.rvecs, charges, masses)
+        return self.__class__(numbers, pos, self.scopes, scope_ids, self.ffatypes, ffatype_ids, bonds, self.cell.rvecs, charges, radii, dipoles, radii2, masses)
 
     def subsystem(self, indexes):
         '''Return a System instance in which only the given atom are retained.'''
@@ -901,6 +912,7 @@ class System(object):
             rvecs=self.cell.rvecs,
             charges=reduce_array(self.charges),
             radii=reduce_array(self.radii),
+            dipoles=reduce_array(self.dipoles),
             radii2=reduce_array(self.radii2),
             masses=reduce_array(self.masses),
         )
@@ -1002,5 +1014,9 @@ class System(object):
             sgrp.create_dataset('charges', data=self.charges)
         if self.radii is not None:
             sgrp.create_dataset('radii', data=self.radii)
+        if self.dipoles is not None:
+            sgrp.create_dataset('dipoles', data=self.dipoles)
+        if self.radii2 is not None:
+            sgrp.create_dataset('radii2', data=self.radii2)
         if self.masses is not None:
             sgrp.create_dataset('masses', data=self.masses)

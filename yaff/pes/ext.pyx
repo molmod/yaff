@@ -1323,7 +1323,7 @@ cdef class PairPotEIDip(PairPot):
                 np.ndarray[double, ndim=2] gpos,
                 np.ndarray[double, ndim=2] vtens, long nneigh):
         #Override parents method to add dipole creation energy
-        #This does not contribute to gpos or vtens
+        #TODO: Does this contribute to gpos or vtens?
         log("Computing PairPotEIDip energy and gradient")
         E = PairPot.compute(self, neighs, stab, gpos, vtens, nneigh)
         E += 0.5*np.dot( np.transpose(np.reshape( self._c_dipoles, (-1,) )) , np.dot( self.poltens_i, np.reshape( self._c_dipoles, (-1,) ) ) )
@@ -1334,11 +1334,12 @@ cdef class PairPotEIDip(PairPot):
         '''Print suitable initialization info on screen.'''
         if log.do_high:
             log.hline()
-            log('   Atom     Charge   Dipole_x   Dipole_y   Dipole_z')
+            log('Atom     Charge     Radius   Dipole_x   Dipole_y   Dipole_z   Radius')
             log.hline()
             for i in xrange(self._c_charges.shape[0]):
-                log('%7i %s %s %s %s' % (i, log.charge(self._c_charges[i]),log.charge(self._c_dipoles[i,0]),\
-                            log.charge(self._c_dipoles[i,1]),log.charge(self._c_dipoles[i,2])))
+                log('%4i %s %s %s %s %s %s' % (i, log.charge(self._c_charges[i]),log.length(self._c_radii[i]),\
+                log.charge(self._c_dipoles[i,0]), log.charge(self._c_dipoles[i,1]),log.charge(self._c_dipoles[i,2]),\
+                log.length(self._c_radii2[i])))
 
     def _get_charges(self):
         '''The atomic charges'''

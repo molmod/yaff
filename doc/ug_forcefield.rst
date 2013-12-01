@@ -591,9 +591,14 @@ Prefix -- FIXQ
 
 **Energy:**
 
+.. math:: E_\text{FIXQ} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} \frac{q_i q_j}{d_{ij}}\exp{-\frac{d_{ij}^2}{R_{ij}^2}}
+
+with :math:`R_{ij}^2 = R_i^2 + R_j^2`. When :math:`R_{ij}=0`, this simplifies
+to the familiar expression for point charges:
+
 .. math:: E_\text{FIXQ} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} \frac{q_i q_j}{d_{ij}}
 
-where the charges are derived from so-called `pre-charges` (:math:`q_{0,i}`) and
+The charges are derived from so-called `pre-charges` (:math:`q_{0,i}`) and
 `bond charge increments` (:math:`p_{i,j}`) as follows:
 
 .. math:: q_i = q_{0,i} + \sum_{j \text{ bonded to } i}p_{ij}
@@ -605,11 +610,20 @@ transfered from atom :math:`i` to :math:`j`. Hence
 it is not bonded to any other atom. From a physical perspective, the pre-charge
 should always be integer, which would also impose integer charges on molecules.
 However, one is free to follow other conventions for the sake of convenience.
+The charge density :math:`\rho_i(\mathbf{r})` for a charge with radius
+:math:`R_i` is given by the Gaussian distribution:
+
+.. math:: \rho_i(\mathbf{r}) = \frac{q_i}{\left(\sqrt{\pi}R_i\right)^3}\exp{-\frac{|\mathbf{r}-\mathbf{r}_i|^2}{R_i^2}}
+
+When :math:`R_i=0`, the distribution becomes a point charge:
+
+.. math::  \rho_i(\mathbf{r}) = q_i\delta\left( \mathbf{r}-\mathbf{r}_i \right)
 
 **Parameters:**
 
 * :math:`q_{0,i}` (``Q0``): the pre-charge
 * :math:`p_{ij}` (``P``): the bond charge increment
+* :math:`R_{i}` (``R``): the charge radius
 
 **Constants:**
 
@@ -627,9 +641,9 @@ However, one is free to follow other conventions for the sake of convenience.
 * ``SCALE`` (may repeat): Specify the scaling of short-ranged interactions. See
   :ref:`sub_sub_sec_general_commands`.
 * ``DIELECTRIC``: Must be 1.0.
-* ``ATOM`` (may repeat): Specify the pre-charge for a given atom type.
-  Three data fields must be given: ``ffatype``, ``Q0``, ``R``. The last field
-  must be zero.
+* ``ATOM`` (may repeat): Specify the pre-charge and radius for a given atom type.
+  Three data fields must be given: ``ffatype``, ``Q0``, ``R``.
+
 * ``BOND`` (may repeat): Specify a bond charge increment for a given combination of atom types.
   Three data fields must be given: ``ffatype0``, ``ffatype1`` and ``P``.
 

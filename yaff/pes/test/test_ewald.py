@@ -56,7 +56,8 @@ def test_ewald_quartz():
 
 def test_ewald_dd_quartz():
     system = get_system_quartz().supercell(2, 2, 2)
-    system = get_system_quartz()
+    system.radii = np.random.rand( system.natom)
+    system.radii2 = np.random.rand( system.natom)
     dipoles = np.random.rand( system.natom, 3 )
     system.dipoles = dipoles
     check_alpha_dependence_dd(system)
