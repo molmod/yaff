@@ -591,7 +591,7 @@ Prefix -- FIXQ
 
 **Energy:**
 
-.. math:: E_\text{FIXQ} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} \frac{q_i q_j}{d_{ij}}\exp{-\frac{d_{ij}^2}{R_{ij}^2}}
+.. math:: E_\text{FIXQ} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} \frac{q_i q_j}{d_{ij}} \textrm{erf}\left(\frac{d_{ij}}{R_{ij}}\right)
 
 with :math:`R_{ij}^2 = R_i^2 + R_j^2`. When :math:`R_{ij}=0`, this simplifies
 to the familiar expression for point charges:
