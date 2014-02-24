@@ -34,10 +34,9 @@ from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
     CellStateItem, EPotContribStateItem, Hook
 from yaff.sampling.utils import get_random_vel
 
-
 __all__ = [
     'VerletIntegrator', 'TemperatureStateItem', 'VerletHook', 'VerletScreenLog',
-    'ConsErrTracker', 'KineticAnnealing',
+    'ConsErrTracker', 'KineticAnnealing'
 ]
 
 

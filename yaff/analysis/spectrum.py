@@ -109,7 +109,7 @@ class Spectrum(AnalysisHook):
            When f is None, or when the path does not exist in the HDF5 file, the
            class can be used as an on-line analysis hook for the iterative
            algorithms in yaff.sampling package. This means that the spectrum
-           is built up as the itertive algorithm progresses. The end option is
+           is built up as the iterative algorithm progresses. The end option is
            ignored for an on-line analysis.
         """
         self.bsize = bsize
@@ -143,7 +143,7 @@ class Spectrum(AnalysisHook):
             return self.weights[indexes]
 
     def init_timestep(self):
-        self.freqs = np.arange(self.ssize)/(self.timestep*self.ssize)
+        self.freqs = np.arange(self.ssize)/(self.timestep*self.bsize)
         self.time = np.arange(self.ssize)*self.timestep
         if self.outg is not None:
             self.outg['freqs'][:] = self.freqs

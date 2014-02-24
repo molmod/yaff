@@ -72,7 +72,9 @@ class Iterative(object):
         if state is None:
             self.state_list = [state_item.copy() for state_item in self.default_state]
         else:
-            self.state_list = state
+            #self.state_list = state
+            self.state_list = [state_item.copy() for state_item in self.default_state]
+            self.state_list += state
         self.state = dict((item.key, item) for item in self.state_list)
         if hooks is None:
             self.hooks = []

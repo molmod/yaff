@@ -29,6 +29,7 @@ import numpy as np
 from molmod import boltzmann, femtosecond
 
 from yaff.log import log
+from yaff.sampling.iterative import Iterative, StateItem
 from yaff.sampling.utils import get_random_vel, clean_momenta, \
     get_ndof_internal_md
 from yaff.sampling.verlet import VerletHook
@@ -36,6 +37,7 @@ from yaff.sampling.verlet import VerletHook
 
 __all__ = [
     'AndersenThermostat', 'NHCThermostat', 'LangevinThermostat',
+    'NHCAttributeStateItem',
 ]
 
 
@@ -107,7 +109,8 @@ class NHChain(object):
 
         # allocate degrees of freedom
         self.pos = np.zeros(length)
-        self.vel = np.zeros(length)
+        self.vel = get_random_vel_therm()
+
 
     def set_ndof(self, ndof):
         # set the masses according to the time constant
@@ -116,12 +119,17 @@ class NHChain(object):
         self.masses = np.ones(self.length)*(boltzmann*self.temp/angfreq**2)
         self.masses[0] *= ndof
 
+    def get_random_vel_therm(self):
+        # generate random velocities for the thermostat velocities using a Gaussian distribution
+        shape = self.length
+        return np.random.normal(0, np.sqrt(self.masses*boltzmann*self.temp), shape)/self.masses
+
     def __call__(self, ekin, vel):
         def do_bead(k, ekin):
             # Compute g
             if k == 0:
                 # coupling with atoms
-                # L = 3N because of equidistant time steps.
+                # L = ndof because of equidistant time steps.
                 g = 2*ekin - self.ndof*self.temp*boltzmann
             else:
                 # coupling between beads
@@ -261,3 +269,18 @@ class LangevinThermostat(VerletHook):
         iterative.vel[:] = c1*iterative.vel + c2*np.random.normal(0, 1, iterative.vel.shape)
         ekin_after = iterative._compute_ekin()
         self.econs_correction += ekin_before - ekin_after
+
+class NHCAttributeStateItem(StateItem):
+    def __init__(self, attr):
+        StateItem.__init__(self, 'chain_'+attr)
+        self.attr = attr
+
+    def get_value(self, iterative):
+        chain = None
+        for hook in iterative.hooks:
+            if isinstance(hook, NHCThermostat):
+                chain = hook.chain
+                break
+        if chain is None:
+            raise TypeError('Iterative does not contain a NHCThermostat hook.')
+        return getattr(chain, self.attr)
