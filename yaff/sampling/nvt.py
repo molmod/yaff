@@ -105,11 +105,12 @@ class NHChain(object):
         self.timestep = timestep
         self.temp = temp
         self.timecon = timecon
-        self.set_ndof(ndof)
+        if ndof>0:#avoid setting self.masses with zero gaussian-width in set_ndof if ndof=0
+            self.set_ndof(ndof)
 
         # allocate degrees of freedom
         self.pos = np.zeros(length)
-        self.vel = get_random_vel_therm()
+        self.vel = np.zeros(length)
 
 
     def set_ndof(self, ndof):
@@ -118,10 +119,14 @@ class NHChain(object):
         angfreq = 2*np.pi/self.timecon
         self.masses = np.ones(self.length)*(boltzmann*self.temp/angfreq**2)
         self.masses[0] *= ndof
+        self.vel = self.get_random_vel_therm()
 
     def get_random_vel_therm(self):
         # generate random velocities for the thermostat velocities using a Gaussian distribution
         shape = self.length
+        print self.masses
+        print boltzmann
+        print self.temp
         return np.random.normal(0, np.sqrt(self.masses*boltzmann*self.temp), shape)/self.masses
 
     def __call__(self, ekin, vel):
