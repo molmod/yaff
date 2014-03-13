@@ -30,7 +30,7 @@ try:
     # The implementation in scipy is often more robust
     from scipy.linalg import eigh
 except ImportError:
-    eigh = np.eigh
+    eigh = np.linalg.eigh
 
 from molmod.minimizer import ConjugateGradient, QuasiNewton, NewtonLineSearch, \
     Minimizer
