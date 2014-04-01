@@ -28,6 +28,8 @@ import numpy as np, time
 
 from molmod import boltzmann
 
+from math import factorial as fact
+
 from yaff.log import log, timer
 from yaff.sampling.iterative import Iterative, StateItem, AttributeStateItem, \
     PosStateItem, DipoleStateItem, DipoleVelStateItem, VolumeStateItem, \
@@ -130,6 +132,7 @@ class VerletIntegrator(Iterative):
         self.timestep = timestep
         self.time = time0
         self.ndof = ndof
+        self.rvecs = ff.system.cell.rvecs.copy()
 
         # The integrator needs masses. If not available, take default values.
         if ff.system.masses is None:
@@ -178,17 +181,46 @@ class VerletIntegrator(Iterative):
         # Allow specialized hooks to modify the state before the regular verlet
         # step.
         self.call_verlet_hooks('pre')
+        from yaff.sampling.npt import MartynaTobiasKleinBarostat
+        if not any(isinstance(hook, MartynaTobiasKleinBarostat) for hook in self.hooks):
+            # Regular verlet step
+            self.delta[:] = self.timestep*self.vel + (0.5*self.timestep**2)*self.acc
+            self.pos += self.delta
+            self.ff.update_pos(self.pos)
+            self.gpos[:] = 0.0
+            self.vtens[:] = 0.0
+            self.epot = self.ff.compute(self.gpos, self.vtens)
+            acc = -self.gpos/self.masses.reshape(-1,1)
+            self.vel += 0.5*(acc+self.acc)*self.timestep
+            self.acc = acc
+        else:
+            for hook in self.hooks:
+                if isinstance(hook, MartynaTobiasKleinBarostat):
+                    # Modified Verlet step
+                    self.vel += 0.5*self.acc*self.timestep
+                    Dr, Qg = np.linalg.eig(hook.vel_press)
+                    Dracc = np.exp(Dr*self.timestep)
+                    Dr = np.diagflat(Dr)
+                    Dracc = np.diagflat(Dracc)
+                    Dv = np.zeros((3,3))
+                    for i in np.arange(0,3):
+                        arg = Dr[i][i]*self.timestep/2
+                        Dv[i][i] = np.exp(arg)*(1+arg**2/fact(3)+arg**4/fact(5)+arg**6/fact(7)+arg**8/fact(9)+arg**10/fact(11)+arg**12/fact(13)+arg**14/fact(15)) # Mclaurin series of sinh
+                    pos_old = self.pos
+                    for i in np.arange(0,len(self.pos)):
+                        self.pos[i] = np.dot(Qg, (np.dot(Dracc, np.dot(Qg.T, self.pos[i])) + self.timestep*np.dot(Dv, np.dot(Qg.T, self.vel[i]))))
+                    self.ff.update_pos(self.pos)
+                    self.delta = self.pos - pos_old
+                    for i in np.arange(0, len(self.rvecs)):
+                        self.rvecs[i] = np.dot(Qg, np.dot(Dracc, np.dot(Qg.T, self.rvecs[i])))
+                    self.ff.update_rvecs(self.rvecs)
+                    self.compute_properties()
+                    self.gpos[:] = 0.0
+                    self.vtens[:] = 0.0
+                    self.epot = self.ff.compute(self.gpos, self.vtens)
+                    self.acc = -self.gpos/self.masses.reshape(-1,1)
+                    self.vel += 0.5*self.acc*self.timestep
 
-        # Regular verlet step
-        self.delta[:] = self.timestep*self.vel + (0.5*self.timestep**2)*self.acc
-        self.pos += self.delta
-        self.ff.update_pos(self.pos)
-        self.gpos[:] = 0.0
-        self.vtens[:] = 0.0
-        self.epot = self.ff.compute(self.gpos, self.vtens)
-        acc = -self.gpos/self.masses.reshape(-1,1)
-        self.vel += 0.5*(acc+self.acc)*self.timestep
-        self.acc = acc
 
         # Allow specialized verlet hooks to modify the state after the step
         self.call_verlet_hooks('post')
@@ -218,7 +250,7 @@ class VerletIntegrator(Iterative):
         self._cons_err_tracker.update(self.ekin, self.econs)
         self.cons_err = self._cons_err_tracker.get()
         if self.ff.system.cell.nvec > 0:
-            self.ptens = (np.dot(self.vel.T*self.masses, self.vel) + self.vtens)/self.ff.system.cell.volume
+            self.ptens = (np.dot(self.vel.T*self.masses, self.vel) - self.vtens)/self.ff.system.cell.volume
             self.press = np.trace(self.ptens)/3
 
     def finalize(self):

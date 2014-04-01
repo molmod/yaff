@@ -48,8 +48,47 @@ def get_time(f, start, end, step):
         time = np.array(range(len(f['trajectory/epot'][:])), float)[start:end:step]
     return time, label
 
-
 def plot_energies(f, fn_png='energies.png', **kwargs):
+    """Make a plot of the potential, total and conserved energy as f. of time
+
+**Arguments:**
+
+f
+An h5.File instance containing the trajectory data.
+
+**Optional arguments:**
+
+fn_png
+The png file to write the figure to
+
+The optional arguments of the ``get_slice`` function are also accepted in
+the form of keyword arguments.
+
+The units for making the plot are taken from the yaff screen logger. This
+type of plot is essential for checking the sanity of a simulation.
+"""
+    import matplotlib.pyplot as pt
+    start, end, step = get_slice(f, **kwargs)
+
+    epot = f['trajectory/epot'][start:end:step]/log.energy.conversion
+    time, tlabel = get_time(f, start, end, step)
+
+    pt.clf()
+    pt.plot(time, epot, 'k-', label='E_pot')
+    if 'trajectory/etot' in f:
+        etot = f['trajectory/etot'][start:end:step]/log.energy.conversion
+        pt.plot(time, etot, 'r-', label='E_tot')
+    if 'trajectory/econs' in f:
+        econs = f['trajectory/econs'][start:end:step]/log.energy.conversion
+        pt.plot(time, econs, 'g-', label='E_cons')
+    pt.xlim(time[0], time[-1])
+    pt.xlabel(tlabel)
+    pt.ylabel('Energy [%s]' % log.energy.notation)
+    pt.legend(loc=0)
+    pt.savefig(fn_png)
+
+
+def plot_energies2(f, fn_png='energies.png', **kwargs):
     """Make a plot of the potential, total and conserved energy as f. of time
 
        **Arguments:**
@@ -75,17 +114,20 @@ def plot_energies(f, fn_png='energies.png', **kwargs):
     time, tlabel = get_time(f, start, end, step)
 
     pt.clf()
-    pt.plot(time, epot, 'k-', label='E_pot')
+    pt.rc('text', usetex=True)
+    pt.rc('font',**{'family':'sans-serif','sans-serif':['Paladino']})
+    pt.rcParams['font.family'] = 'Paladino'
+    pt.plot(time, epot, 'g-', label=r'$E_{pot}$')
     if 'trajectory/etot' in f:
-        etot = f['trajectory/etot'][start:end:step]/log.energy.conversion
-        pt.plot(time, etot, 'r-', label='E_tot')
+        etot = f['trajectory/ekin'][start:end:step]/log.energy.conversion
+        pt.plot(time, etot, 'r-', label=r'$E_{kin}$')
     if 'trajectory/econs' in f:
-        econs = f['trajectory/econs'][start:end:step]/log.energy.conversion
-        pt.plot(time, econs, 'g-', label='E_cons')
+        econs = f['trajectory/etot'][start:end:step]/log.energy.conversion
+        pt.plot(time, econs, 'k-', label=r'$E_{tot}$')
     pt.xlim(time[0], time[-1])
-    pt.xlabel(tlabel)
-    pt.ylabel('Energy [%s]' % log.energy.notation)
-    pt.legend(loc=0)
+    pt.xlabel(r'%s' % tlabel )
+    pt.ylabel(r'Energie [%s]' % log.energy.notation)
+    legend = pt.legend(loc=0)
     pt.savefig(fn_png)
 
 
@@ -148,10 +190,11 @@ def plot_pressure(f, fn_png='pressure.png', **kwargs):
     time, tlabel = get_time(f, start, end, step)
 
     pt.clf()
-    pt.plot(time, press/(1e9*pascal), 'k-')
+    pt.plot(time, press/(1e9*pascal), 'k-',label='Sim (%.3f MPa)' % (press.mean()/(1e6*pascal)))
     pt.xlim(time[0], time[-1])
     pt.xlabel(tlabel)
     pt.ylabel('pressure [GPA]')
+    pt.legend(loc=0)
     pt.savefig(fn_png)
 
 
@@ -288,7 +331,7 @@ def plot_temp_dist(f, fn_png='temp_dist.png', temp=None, ndof=None, select=None,
     pt.axvline(temp, color='k', ls='--')
     pt.ylim(ymin=0)
     pt.xlim(x_sys[0]/xconv, x_sys[-1]/xconv)
-    pt.ylabel('Recaled PDF')
+    pt.ylabel('Rescaled PDF')
     pt.legend(loc=0)
     pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
 

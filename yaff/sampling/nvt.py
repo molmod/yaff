@@ -99,12 +99,13 @@ class AndersenThermostat(VerletHook):
 
 
 class NHChain(object):
-    def __init__(self, length, timestep, temp, ndof, timecon=100*femtosecond):
+    def __init__(self, length, timestep, temp, ndof, barostat, timecon=100*femtosecond):
         # parameters
         self.length = length
         self.timestep = timestep
         self.temp = temp
         self.timecon = timecon
+        self.barostat = barostat
         if ndof>0:#avoid setting self.masses with zero gaussian-width in set_ndof if ndof=0
             self.set_ndof(ndof)
 
@@ -124,18 +125,18 @@ class NHChain(object):
     def get_random_vel_therm(self):
         # generate random velocities for the thermostat velocities using a Gaussian distribution
         shape = self.length
-        print self.masses
-        print boltzmann
-        print self.temp
         return np.random.normal(0, np.sqrt(self.masses*boltzmann*self.temp), shape)/self.masses
 
-    def __call__(self, ekin, vel):
+    def __call__(self, ekin, vel, barostat, volume, masses, iterative):
         def do_bead(k, ekin):
             # Compute g
             if k == 0:
-                # coupling with atoms
-                # L = ndof because of equidistant time steps.
+                # coupling with atoms (and barostat)
+                # L = ndof (+d^2) because of equidistant time steps.
                 g = 2*ekin - self.ndof*self.temp*boltzmann
+                if barostat is not None:
+                    # add pressure contribution to g1
+                    g += barostat.add_press_cont()
             else:
                 # coupling between beads
                 g = self.masses[k-1]*self.vel[k-1]**2 - self.temp*boltzmann
@@ -151,20 +152,28 @@ class NHChain(object):
                 # iL G_k h/4
                 self.vel[k] += g*self.timestep/4
                 # iL vxi_{k-1} h/8
-                #print self.vel[k], self.vel[k+1], self.timestep
                 self.vel[k] *= np.exp(-self.vel[k+1]*self.timestep/8)
 
         # Loop over chain in reverse order
         for k in xrange(self.length-1, -1, -1):
             do_bead(k, ekin)
 
+        # iL (G_g - vxi_1 vg) h/4 if barostat is present
+        if barostat is not None:
+            barostat.propagate_press(self.vel[0], self.ndof, ekin, vel, masses, volume, iterative)
         # iL xi (all) h/2
         self.pos += self.vel*self.timestep/2
 
-        # iL Cv (all) h/2
-        factor = np.exp(-self.vel[0]*self.timestep/2)
-        vel *= factor
-        ekin *= factor**2
+        if barostat is not None:
+            # iL (vg + Tr(vg)/ndof + vxi_1) h/2 if barostat is present
+            vel, ekin = barostat.propagate_vel(self.vel[0], self.ndof, vel, masses)
+            # iL (G_g - vxi_1 vg) h/4 if barostat is present
+            barostat.propagate_press(self.vel[0], self.ndof, ekin, vel, masses, volume, iterative)
+        else:
+            # iL Cv (all) h/2
+            factor = np.exp(-self.vel[0]*self.timestep/2)
+            vel *= factor
+            ekin *= factor**2
 
         # Loop over chain in forward order
         for k in xrange(0, self.length):
@@ -174,11 +183,12 @@ class NHChain(object):
 
     def get_econs_correction(self):
         kt = boltzmann*self.temp
+        # correction due to the thermostat
         return 0.5*(self.vel**2*self.masses).sum() + kt*(self.ndof*self.pos[0] + self.pos[1:].sum())
 
 
 class NHCThermostat(VerletHook):
-    def __init__(self, temp, start=0, timecon=100*femtosecond, chainlength=3):
+    def __init__(self, temp, start=0, timecon=100*femtosecond, chainlength=3, barostat = None):
         """
            This hook implements the Nose-Hoover-Chain thermostat. The equations
            are derived in:
@@ -207,11 +217,15 @@ class NHCThermostat(VerletHook):
 
            chainlength
                 The number of beads in the Nose-Hoover chain.
+
+           barostat
+                A MartynaTobiasKleinBarostat instance.
         """
         self.temp = temp
         # At this point, the timestep and the number of degrees of freedom are
         # not known yet.
-        self.chain = NHChain(chainlength, 0.0, temp, 0, timecon)
+        self.chain = NHChain(chainlength, 0.0, temp, 0, barostat, timecon)
+        self.barostat = barostat
         VerletHook.__init__(self, start, 1)
 
     def init(self, iterative):
@@ -225,12 +239,14 @@ class NHCThermostat(VerletHook):
         self.chain.set_ndof(iterative.ndof)
 
     def pre(self, iterative):
-        iterative.ekin = self.chain(iterative.ekin, iterative.vel)
+        iterative.ekin = self.chain(iterative.ekin, iterative.vel, self.barostat, iterative.ff.system.cell.volume, iterative.masses, iterative)
 
     def post(self, iterative):
         ekin = iterative._compute_ekin()
-        iterative.ekin = self.chain(ekin, iterative.vel)
+        iterative.ekin = self.chain(ekin, iterative.vel, self.barostat, iterative.ff.system.cell.volume, iterative.masses, iterative)
         self.econs_correction = self.chain.get_econs_correction()
+        if self.barostat is not None:
+            self.econs_correction += self.barostat.get_econs_correction(self.chain.pos[0], iterative)
 
 
 class LangevinThermostat(VerletHook):

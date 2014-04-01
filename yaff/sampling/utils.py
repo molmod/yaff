@@ -91,7 +91,6 @@ def remove_com_moment(vel, masses):
     # subtract this com velocity vector from each atomic velocity
     vel[:] -= com_vel
 
-
 def remove_angular_moment(pos, vel, masses):
     '''Zero the global angular momentum.
 
