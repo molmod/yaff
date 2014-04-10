@@ -237,6 +237,7 @@ class NHCThermostat(VerletHook):
         # Configure the chain.
         self.chain.timestep = iterative.timestep
         self.chain.set_ndof(iterative.ndof)
+        self.barostat.set_ndof(iterative.ndof)
 
     def pre(self, iterative):
         iterative.ekin = self.chain(iterative.ekin, iterative.vel, self.barostat, iterative.ff.system.cell.volume, iterative.masses, iterative)
@@ -246,7 +247,7 @@ class NHCThermostat(VerletHook):
         iterative.ekin = self.chain(ekin, iterative.vel, self.barostat, iterative.ff.system.cell.volume, iterative.masses, iterative)
         self.econs_correction = self.chain.get_econs_correction()
         if self.barostat is not None:
-            self.econs_correction += self.barostat.get_econs_correction(self.chain.pos[0], iterative)
+            self.econs_correction += self.barostat.get_econs_correction(self.chain.pos[0], iterative.ff.system.cell.volume)
 
 
 class LangevinThermostat(VerletHook):

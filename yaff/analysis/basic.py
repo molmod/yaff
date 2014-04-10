@@ -28,14 +28,15 @@ import h5py as h5
 
 import numpy as np
 
-from molmod import boltzmann, pascal
+from molmod import boltzmann, pascal, angstrom
 from yaff.log import log
 from yaff.analysis.utils import get_slice
 
 
 __all__ = [
     'plot_energies', 'plot_temperature', 'plot_pressure', 'plot_temp_dist',
-    'plot_density', 'plot_cell_pars', 'plot_epot_contribs',
+    'plot_press_dist', 'plot_volume_dist', 'plot_density', 'plot_cell_pars',
+    'plot_epot_contribs',
 ]
 
 
@@ -367,6 +368,228 @@ def plot_temp_dist(f, fn_png='temp_dist.png', temp=None, ndof=None, select=None,
 
     pt.savefig(fn_png)
 
+def plot_press_dist(f, temp, fn_png='press_dist.png', press=None, ndof=None, select=None, **kwargs):
+    """Plots the distribution of the internal pressure
+
+       **Arguments:**
+
+       f
+            An h5.File instance containing the trajectory data.
+
+       temp
+            The (expected) average temperature used to plot the theoretical
+            distributions.
+
+       **Optional arguments:**
+
+       fn_png
+            The png file to write the figure to
+
+       select
+            A list of atom indexes that should be considered for the analysis.
+            By default, information from all atoms is combined.
+
+       press
+            The (expected) average pressure used to plot the theoretical
+            distributions.
+
+       ndof
+            The number of degrees of freedom. If not specified, this is chosen
+            to be 3*(number of atoms)
+
+       start, end, step, max_sample
+           The optional arguments of the ``get_slice`` function are also
+           accepted in the form of keyword arguments.
+
+       This type of plot is essential for checking the sanity of a simulation.
+       The empirical cumulative distribution is plotted and overlayed with the
+       analytical cumulative distribution one would expect if the data were
+       taken from an NPT ensemble.
+    """
+    import matplotlib.pyplot as pt
+    from matplotlib.ticker import MaxNLocator
+    from scipy.stats import chi2
+    start, end, step = get_slice(f, **kwargs)
+
+    # Make an array with the weights used to compute the temperature
+    if select is None:
+        weights = np.array(f['system/masses'])/boltzmann
+    else:
+        weights = np.array(f['system/masses'])[select]/boltzmann
+
+    if select is None:
+        # just load the temperatures from the output file
+        temps = f['trajectory/temp'][start:end:step]
+    else:
+        # compute the temperatures of the subsystem
+        temps = []
+        for i in xrange(start, end, step):
+             temp = ((f['trajectory/vel'][i,select]**2).mean(axis=1)*weights).mean()
+             temps.append(temp)
+        temps = np.array(temps)
+
+    if temp is None:
+        temp = temps.mean()
+
+    presss = f['trajectory/press'][start:end:step]
+    if press is None:
+        press = presss.mean()
+
+    # A) SYSTEM
+    if select is None:
+        natom = f['system/numbers'].shape[0]
+    else:
+        natom = 3*len(select)
+    if ndof is None:
+        ndof = f['trajectory'].attrs.get('ndof')
+    if ndof is None:
+        ndof = 3*natom
+    #do_atom = ndof == 3*natom
+    sigma = np.std(presss)
+    press_step = sigma/5
+
+    # setup the pressure grid and make the histogram
+    press_grid = np.arange(press-5*sigma, press+5*sigma, press_step)
+    counts = np.histogram(presss.ravel(), bins=press_grid)[0]
+    total = float(len(presss))
+
+    # transform into empirical pdf and cdf
+    emp_sys_pdf = counts/total
+    emp_sys_cdf = counts.cumsum()/total
+
+    # the analytical form
+    rv = chi2(ndof, 0, boltzmann*temp)
+    x_sys = press_grid[:-1]
+    ana_sys_pdf = rv.cdf(press_grid[1:]) - rv.cdf(press_grid[:-1])
+    ana_sys_cdf = rv.cdf(press_grid[1:])
+
+    # C) Make the plots
+    pt.clf()
+    xconv = 1e6*pascal
+
+    pt.subplot(2, 1, 1)
+    pt.title('System (ndof=%i)' % ndof)
+    scale = 1/emp_sys_pdf.max()
+    pt.plot(x_sys/xconv, emp_sys_pdf*scale, 'k-', drawstyle='steps-pre', label='Sim (%.3f MPa)' % (presss.mean()/(1e6*pascal)))
+    pt.plot(x_sys/xconv, ana_sys_pdf*scale, 'r-', drawstyle='steps-pre', label='Exact (%.3f MPa)' % (press/(1e6*pascal)))
+    pt.axvline(press, color='k', ls='--')
+    pt.ylim(ymin=0)
+    pt.xlim(x_sys[0]/xconv, x_sys[-1]/xconv)
+    pt.ylabel('Rescaled PDF')
+    pt.legend(loc=0)
+    pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
+
+    pt.subplot(2, 1, 2)
+    pt.plot(x_sys/xconv, emp_sys_cdf, 'k-', drawstyle='steps-pre')
+    pt.plot(x_sys/xconv, ana_sys_cdf, 'r-', drawstyle='steps-pre')
+    pt.axvline(press, color='k', ls='--')
+    pt.xlim(x_sys[0]/xconv, x_sys[-1]/xconv)
+    pt.ylim(0, 1)
+    pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
+    pt.ylabel('CDF')
+    pt.xlabel('Pressure [MPa]')
+
+    pt.savefig(fn_png)
+
+
+
+def plot_volume_dist(f, fn_png='volume_dist.png', temp=None, press=None, **kwargs):
+    """Plots the distribution of the volume
+
+        **Arguments:**
+
+        f
+            An h5.File instance containing the trajectory data.
+
+
+        **Optional arguments:**
+
+        fn_png
+            The png file to write the figure to
+
+        temp
+            The (expected) average temperature used to plot the theoretical
+            distributions.
+
+        press
+            The (expected) average pressure used to plot the theoretical
+            distributions.
+
+        start, end, step, max_sample
+           The optional arguments of the ``get_slice`` function are also
+           accepted in the form of keyword arguments.
+
+       This type of plot is essential for checking the sanity of a simulation.
+       The empirical cumulative distribution is plotted and overlayed with the
+       analytical cumulative distribution one would expect if the data were
+       taken from an NPT ensemble.
+    """
+    import matplotlib.pyplot as pt
+    from matplotlib.ticker import MaxNLocator
+    from scipy.stats import chi2
+    start, end, step = get_slice(f, **kwargs)
+
+
+    if temp is None:
+        # Make an array of the temperature
+        temps = f['trajectory/temp'][start:end:step]
+        temp = temps.mean()
+
+    if press is None:
+        # Make an array of the pressure
+        presss = f['trajectory/press'][start:end:step]
+        press = presss.mean()
+
+    # Make an array of the cell volume
+    vols = f['trajectory/volume'][start:end:step]
+    vol0 = vols.mean()
+
+    sigma = np.std(vols)
+    vol_step = sigma/5
+
+    # setup the volume grid and make the histogram
+    vol_grid = np.arange(vol0-3*sigma, vol0+3*sigma, vol_step)
+    counts = np.histogram(vols.ravel(), bins=vol_grid)[0]
+    total = float(len(vols))
+
+    # transform into empirical pdf and cdf
+    emp_sys_pdf = counts/total
+    emp_sys_cdf = counts.cumsum()/total
+
+    # the analytical form
+    #rv = chi2(2, 0, vol0/2)
+    rv = chi2(2, vol0-boltzmann*temp/press , boltzmann*temp/press/2)
+    x_sys = vol_grid[:-1]
+    ana_sys_pdf = rv.cdf(vol_grid[1:]) - rv.cdf(vol_grid[:-1])
+    ana_sys_cdf = rv.cdf(vol_grid[1:])
+
+
+    # C) Make the plots
+    pt.clf()
+    xconv = angstrom**3
+
+    pt.subplot(2, 1, 1)
+    pt.title('System')
+    scale = 1/emp_sys_pdf.max()
+    pt.plot(x_sys/xconv, emp_sys_pdf*scale, 'k-', drawstyle='steps-pre')
+    pt.plot(x_sys/xconv, ana_sys_pdf*scale, 'r-', drawstyle='steps-pre')
+    pt.axvline(vol0/xconv, color='k', ls='--')
+    pt.ylim(ymin=0)
+    pt.xlim(x_sys[0]/xconv, x_sys[-1]/xconv)
+    pt.ylabel('Rescaled PDF')
+    pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
+
+    pt.subplot(2, 1, 2)
+    pt.plot(x_sys/xconv, emp_sys_cdf, 'k-', drawstyle='steps-pre')
+    pt.plot(x_sys/xconv, ana_sys_cdf, 'r-', drawstyle='steps-pre')
+    pt.axvline(vol0/xconv, color='k', ls='--')
+    pt.xlim(x_sys[0]/xconv, x_sys[-1]/xconv)
+    pt.ylim(0, 1)
+    pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
+    pt.ylabel('CDF')
+    pt.xlabel('Volume [A^3]')
+
+    pt.savefig(fn_png)
 
 def plot_density(f, fn_png='density.png', **kwargs):
     """Make a plot of the mass density as function of time

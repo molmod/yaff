@@ -52,8 +52,8 @@ xyz = XYZWriter('traj_%s.xyz' % suffix, step=1)
 vsl = VerletScreenLog(step=10)
 
 # Pick your thermostat:
-thermo = AndersenThermostat(300, step=10)
-#thermo = NHCThermostat(300, timecon=100*femtosecond)
+#thermo = AndersenThermostat(300, step=10)
+thermo = NHCThermostat(300, timecon=100*femtosecond)
 #thermo = LangevinThermostat(300, timecon=100*femtosecond)
 verlet = VerletIntegrator(ff, femtosecond, temp0=600, hooks=[thermo, xyz, hdf5, vsl])
 verlet.run(nstep)

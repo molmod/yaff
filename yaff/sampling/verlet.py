@@ -26,7 +26,7 @@
 
 import numpy as np, time
 
-from molmod import boltzmann
+from molmod import boltzmann, kjmol
 
 from math import factorial as fact
 
@@ -198,7 +198,7 @@ class VerletIntegrator(Iterative):
                 if isinstance(hook, MartynaTobiasKleinBarostat):
                     # Modified Verlet step
                     self.vel += 0.5*self.acc*self.timestep
-                    Dr, Qg = np.linalg.eig(hook.vel_press)
+                    Dr, Qg = np.linalg.eigh(hook.vel_press)
                     Dracc = np.exp(Dr*self.timestep)
                     Dr = np.diagflat(Dr)
                     Dracc = np.diagflat(Dracc)
@@ -206,18 +206,23 @@ class VerletIntegrator(Iterative):
                     for i in np.arange(0,3):
                         arg = Dr[i][i]*self.timestep/2
                         Dv[i][i] = np.exp(arg)*(1+arg**2/fact(3)+arg**4/fact(5)+arg**6/fact(7)+arg**8/fact(9)+arg**10/fact(11)+arg**12/fact(13)+arg**14/fact(15)) # Mclaurin series of sinh
-                    pos_old = self.pos
+                    pos_old = self.pos.copy()
                     for i in np.arange(0,len(self.pos)):
                         self.pos[i] = np.dot(Qg, (np.dot(Dracc, np.dot(Qg.T, self.pos[i])) + self.timestep*np.dot(Dv, np.dot(Qg.T, self.vel[i]))))
-                    self.ff.update_pos(self.pos)
                     self.delta = self.pos - pos_old
+                    self.ff.update_pos(self.pos)
+                    #rvecs_old = self.rvecs.copy()
                     for i in np.arange(0, len(self.rvecs)):
                         self.rvecs[i] = np.dot(Qg, np.dot(Dracc, np.dot(Qg.T, self.rvecs[i])))
                     self.ff.update_rvecs(self.rvecs)
+                    #for i in np.arange(0, len(self.pos)):
+                    #    self.pos[i] = np.dot(self.rvecs, np.dot(np.linalg.inv(rvecs_old), self.pos[i]))
+                    self.ff.update_pos(self.pos)
                     self.compute_properties()
                     self.gpos[:] = 0.0
                     self.vtens[:] = 0.0
                     self.epot = self.ff.compute(self.gpos, self.vtens)
+                    #print 'Verlet ' + str(self.vtens/kjmol)
                     self.acc = -self.gpos/self.masses.reshape(-1,1)
                     self.vel += 0.5*self.acc*self.timestep
 
@@ -250,6 +255,9 @@ class VerletIntegrator(Iterative):
         self._cons_err_tracker.update(self.ekin, self.econs)
         self.cons_err = self._cons_err_tracker.get()
         if self.ff.system.cell.nvec > 0:
+            #ontbrekend = np.zeros((3,3),float)
+            #for i in np.arange(0,len(self.pos)):
+            #    ontbrekend += np.outer(-self.gpos[i],self.pos[i])
             self.ptens = (np.dot(self.vel.T*self.masses, self.vel) - self.vtens)/self.ff.system.cell.volume
             self.press = np.trace(self.ptens)/3
 
