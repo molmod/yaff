@@ -177,6 +177,8 @@ class MartynaTobiasKleinBarostat(VerletHook):
         angfreq = 2*np.pi/self.timecon_press
         self.mass_press = (ndof+self.dim**2)*boltzmann*self.temp/angfreq**2
         self.vel_press = self.get_random_vel_press()
+        print self.mass_press
+        print self.vel_press
 
     def cell_symmetrize(self, ff):
         U, s, V = np.linalg.svd(self.cell)
@@ -227,20 +229,20 @@ class MartynaTobiasKleinBarostat(VerletHook):
         #for i in np.arange(0,len(iterative.pos)):
         #    ontbrekend += np.outer(-gpos[i],iterative.pos[i])
         ptens_vol = (np.dot(vel.T*masses, vel) - vtens)
-        #print 'pxp = ' + str(np.dot(vel.T*masses,vel)/kjmol)
-        #print 'vtens = ' + str(vtens/kjmol)
+        # print 'pxp = ' + str(np.dot(vel.T*masses,vel)/kjmol)
+        # print 'vtens = ' + str(vtens/kjmol)
         ptens_vol = 0.5*(ptens_vol.T + ptens_vol)
         # print np.dot(vel.T*masses, vel)
         # print ptens_vol
         # print self.press*volume-2.0*ekin/ndof
         # print self.press*volume
         G = (ptens_vol+(2.0*ekin/ndof-self.press*volume)*np.eye(3))/self.mass_press
-        #print 'PintV = ' + str(ptens_vol/kjmol)
-        #print 'PextV - 2K/3N = ' + str((self.press*volume-2.0*ekin/ndof)/kjmol)
-        #print 'ndof = ' + str(ndof)
-        #print 'PextV = ' + str((self.press*volume)/kjmol)
-        #print '2K/3N = ' + str((2.0*ekin/ndof)/kjmol)
-        #print 'vol = ' + str(volume)
+        # print 'PintV = ' + str(ptens_vol/kjmol)
+        # print 'PextV - 2K/3N = ' + str((self.press*volume-2.0*ekin/ndof)/kjmol)
+        # print 'ndof = ' + str(ndof)
+        # print 'PextV = ' + str((self.press*volume)/kjmol)
+        # print '2K/3N = ' + str((2.0*ekin/ndof)/kjmol)
+        # print 'vol = ' + str(volume)
         G = (ptens_vol-(self.press*volume)*np.eye(3))/self.mass_press
         # iL G_g h/4
         self.vel_press += G*self.timestep_press/4

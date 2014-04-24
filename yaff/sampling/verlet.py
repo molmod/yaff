@@ -212,9 +212,15 @@ class VerletIntegrator(Iterative):
                     self.delta = self.pos - pos_old
                     self.ff.update_pos(self.pos)
                     #rvecs_old = self.rvecs.copy()
+                    #print "Symmetrisch? " + str(self.time)
+                    #print "v_g"
+                    #print str(hook.vel_press.T - hook.vel_press)
                     for i in np.arange(0, len(self.rvecs)):
                         self.rvecs[i] = np.dot(Qg, np.dot(Dracc, np.dot(Qg.T, self.rvecs[i])))
-                    self.ff.update_rvecs(self.rvecs)
+                    self.ff.update_rvecs(0.5*(self.rvecs+self.rvecs.T))
+                    self.rvecs = self.ff.system.cell.rvecs.copy()
+                    #print "C"
+                    #print str(self.rvecs-self.rvecs.T)
                     #for i in np.arange(0, len(self.pos)):
                     #    self.pos[i] = np.dot(self.rvecs, np.dot(np.linalg.inv(rvecs_old), self.pos[i]))
                     self.ff.update_pos(self.pos)
