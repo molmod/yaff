@@ -72,7 +72,9 @@ vlist_dtype = [
     ('kind', int),                      # The kind of energy term, e.g. harmonic, fues, ...
     ('par0', float), ('par1', float),   # The parameters for the energy term. Meaning of par0, par1, ... depends on kind.
     ('par2', float), ('par3', float),
+#    ('par4', float), ('par5', float),
     ('ic0', int), ('ic1', int),         # Indexes of rows in the table of internal coordinates. (See InternalCoordinatList class.)
+#    ('ic2', int),
     ('energy', float),                  # The computed value of the energy, output of forward method.
 ]
 

@@ -29,8 +29,8 @@
 
 typedef struct {
   long kind;
-  double par0, par1, par2, par3;
-  long ic0, ic1;
+  double par0, par1, par2, par3;//, par4, par5;
+  long ic0, ic1;//, ic2;
   double energy;
 } vlist_row_type;
 

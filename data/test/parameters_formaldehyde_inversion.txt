@@ -1,3 +1,3 @@
-OOPANGLE:UNIT A kjmol
-OOPANGLE:PARS  H   H   O   C  1.0
-OOPANGLE:PARS  H   O   H   C  1.0
+OOPCOS:UNIT A kjmol
+OOPCOS:PARS  H   H   O   C  1.0
+OOPCOS:PARS  H   O   H   C  1.0

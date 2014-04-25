@@ -84,13 +84,9 @@ double forward_dihed_angle(iclist_row_type* ic, dlist_row_type* deltas) {
   return acos(c);
 }
 
-double forward_oop_cos(iclist_row_type* ic, dlist_row_type* deltas) {
-  double *delta0, *delta1, *delta2;
+double forward_oop_cos_low(double *delta0, double *delta1, double *delta2) {
   double n[3];
   double n_sq, tmp0, tmp1;
-  delta0 = (double*)(deltas + (*ic).i0);
-  delta1 = (double*)(deltas + (*ic).i1);
-  delta2 = (double*)(deltas + (*ic).i2);
   // The normal to the plane spanned by the first and second vector
   n[0] = delta0[1]*delta1[2] - delta0[2]*delta1[1];
   n[1] = delta0[2]*delta1[0] - delta0[0]*delta1[2];
@@ -105,9 +101,29 @@ double forward_oop_cos(iclist_row_type* ic, dlist_row_type* deltas) {
   return sqrt(1.0 - tmp1*tmp1/tmp0/n_sq);
 }
 
-double forward_oop_angle(iclist_row_type* ic, dlist_row_type* deltas) {
+double forward_oop_cos(iclist_row_type* ic, dlist_row_type* deltas) {
+  double *delta0, *delta1, *delta2;
+  delta0 = (double*)(deltas + (*ic).i0);
+  delta1 = (double*)(deltas + (*ic).i1);
+  delta2 = (double*)(deltas + (*ic).i2);
+  return forward_oop_cos_low(delta0, delta1, delta2);
+}
+
+double forward_oop_meancos(iclist_row_type* ic, dlist_row_type* deltas) {
+  double *delta0, *delta1, *delta2;
+  double tmp;
+  delta0 = (double*)(deltas + (*ic).i0);
+  delta1 = (double*)(deltas + (*ic).i1);
+  delta2 = (double*)(deltas + (*ic).i2);
+  tmp = forward_oop_cos_low(delta0, delta1, delta2);
+  tmp += forward_oop_cos_low(delta2, delta0, delta1);
+  tmp += forward_oop_cos_low(delta1, delta2, delta0);
+  return tmp/3;
+}
+
+double forward_oop_angle_low(double *delta0, double *delta1, double *delta2) {
   double c;
-  c = forward_oop_cos(ic, deltas);
+  c = forward_oop_cos_low(delta0, delta1, delta2);
   // Guard against round-off errors before taking the dot product.
   if (c > 1) {
     c = 1;
@@ -115,6 +131,26 @@ double forward_oop_angle(iclist_row_type* ic, dlist_row_type* deltas) {
     c = -1;
   }
   return acos(c);
+}
+
+double forward_oop_angle(iclist_row_type* ic, dlist_row_type* deltas) {
+  double *delta0, *delta1, *delta2;
+  delta0 = (double*)(deltas + (*ic).i0);
+  delta1 = (double*)(deltas + (*ic).i1);
+  delta2 = (double*)(deltas + (*ic).i2);
+  return forward_oop_angle_low(delta0, delta1, delta2);
+}
+
+double forward_oop_meanangle(iclist_row_type* ic, dlist_row_type* deltas) {
+  double *delta0, *delta1, *delta2;
+  double tmp;
+  delta0 = (double*)(deltas + (*ic).i0);
+  delta1 = (double*)(deltas + (*ic).i1);
+  delta2 = (double*)(deltas + (*ic).i2);
+  tmp = forward_oop_angle_low(delta0, delta1, delta2);
+  tmp += forward_oop_angle_low(delta2, delta0, delta1);
+  tmp += forward_oop_angle_low(delta1, delta2, delta0);
+  return tmp/3;
 }
 
 double forward_oop_distance(iclist_row_type* ic, dlist_row_type* deltas) {
@@ -137,9 +173,9 @@ double forward_oop_distance(iclist_row_type* ic, dlist_row_type* deltas) {
   return n_dot_d2/n_norm;
 }
 
-ic_forward_type ic_forward_fns[9] = {
+ic_forward_type ic_forward_fns[11] = {
   forward_bond, forward_bend_cos, forward_bend_angle, forward_dihed_cos, forward_dihed_angle, forward_bond,
-  forward_oop_cos, forward_oop_angle, forward_oop_distance
+  forward_oop_cos, forward_oop_meancos, forward_oop_angle, forward_oop_meanangle, forward_oop_distance
 };
 
 void iclist_forward(dlist_row_type* deltas, iclist_row_type* ictab, long nic) {
@@ -275,7 +311,7 @@ void back_dihed_angle(iclist_row_type* ic, dlist_row_type* deltas, double value,
   back_dihed_cos(ic, deltas, cos(value), tmp);
 }
 
-void back_oop_cos(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+void back_oop_cos_low(dlist_row_type *delta0, dlist_row_type *delta1, dlist_row_type *delta2, double value, double grad) {
   // This calculation is tedious. Expressions are checked with the following
   // maple commands (assuming the maple worksheet is bug-free)
   /*
@@ -316,15 +352,8 @@ void back_oop_cos(iclist_row_type* ic, dlist_row_type* deltas, double value, dou
   simplify(dcosphi_d2y + fac/cosphi*( d0_cross_d1[2] - n_dot_d2/d2_sq*d2[2]) );
   simplify(dcosphi_d2z + fac/cosphi*( d0_cross_d1[3] - n_dot_d2/d2_sq*d2[3]) );
   */
-
-
-  dlist_row_type *delta0, *delta1, *delta2;
   double n[3], d0_cross_d1[3], d1_cross_d2[3], d2_cross_d0[3];
   double n_sq, d2_sq, n_dot_d2, fac, tmp0, tmp1, tmp2;
-
-  delta0 = deltas + (*ic).i0;
-  delta1 = deltas + (*ic).i1;
-  delta2 = deltas + (*ic).i2;
   // Cross products of delta vectors (introduce a function vectorproduct() ?)
   d0_cross_d1[0] = (*delta0).dy * (*delta1).dz - (*delta0).dz * (*delta1).dy;
   d0_cross_d1[1] = (*delta0).dz * (*delta1).dx - (*delta0).dx * (*delta1).dz;
@@ -363,16 +392,60 @@ void back_oop_cos(iclist_row_type* ic, dlist_row_type* deltas, double value, dou
   (*delta2).gz += - tmp0*grad*( d0_cross_d1[2] -  tmp2*(*delta2).dz );
 }
 
-void back_oop_angle(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+void back_oop_cos(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  dlist_row_type *delta0, *delta1, *delta2;
+  delta0 = deltas + (*ic).i0;
+  delta1 = deltas + (*ic).i1;
+  delta2 = deltas + (*ic).i2;
+  back_oop_cos_low(delta0, delta1, delta2, value, grad);
+}
+
+void back_oop_meancos(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  dlist_row_type *delta0, *delta1, *delta2;
+  double tmp;
+  delta0 = deltas + (*ic).i0;
+  delta1 = deltas + (*ic).i1;
+  delta2 = deltas + (*ic).i2;
+  tmp = forward_oop_cos_low((double*)delta0, (double*)delta1, (double*)delta2);
+  back_oop_cos_low(delta0, delta1, delta2, tmp, grad/3.0);
+  tmp = forward_oop_cos_low((double*)delta2, (double*)delta0,(double*)delta1);
+  back_oop_cos_low(delta2, delta0, delta1, tmp, grad/3.0);
+  tmp = forward_oop_cos_low((double*)delta1, (double*)delta2, (double*)delta0);
+  back_oop_cos_low(delta1, delta2, delta0, tmp, grad/3.0);
+}
+
+void back_oop_angle_low(dlist_row_type *delta0, dlist_row_type *delta1, dlist_row_type *delta2, double value, double grad) {
   double tmp = sin(value);
   if (tmp!=0.0) tmp = -grad/tmp;
-  back_oop_cos(ic, deltas, cos(value), tmp);
+  back_oop_cos_low(delta0, delta1, delta2, cos(value), tmp);
+}
+
+void back_oop_angle(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  dlist_row_type *delta0, *delta1, *delta2;
+  delta0 = deltas + (*ic).i0;
+  delta1 = deltas + (*ic).i1;
+  delta2 = deltas + (*ic).i2;
+  back_oop_angle_low(delta0, delta1, delta2, value, grad);
+}
+
+void back_oop_meanangle(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  dlist_row_type *delta0, *delta1, *delta2;
+  double tmp;
+  delta0 = deltas + (*ic).i0;
+  delta1 = deltas + (*ic).i1;
+  delta2 = deltas + (*ic).i2;
+  tmp = forward_oop_angle_low((double*)delta0, (double*)delta1, (double*)delta2);
+  back_oop_angle_low(delta0, delta1, delta2, tmp, grad/3.0);
+  tmp = forward_oop_angle_low((double*)delta2, (double*)delta0, (double*)delta1);
+  back_oop_angle_low(delta2, delta0, delta1, tmp, grad/3.0);
+  tmp = forward_oop_angle_low((double*)delta1, (double*)delta2, (double*)delta0);
+  back_oop_angle_low(delta1, delta2, delta0, tmp, grad/3.0);
 }
 
 void back_oop_distance(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
   dlist_row_type *delta0, *delta1, *delta2;
   double n[3], d0_cross_d1[3], d1_cross_d2[3], d2_cross_d0[3];
-  double n_norm, n_dot_d2, fac, tmp0, sign;
+  double n_norm, n_dot_d2, fac, tmp0;
 
   delta0 = deltas + (*ic).i0;
   delta1 = deltas + (*ic).i1;
@@ -411,9 +484,9 @@ void back_oop_distance(iclist_row_type* ic, dlist_row_type* deltas, double value
   (*delta2).gz += fac*( d0_cross_d1[2] );
 }
 
-ic_back_type ic_back_fns[9] = {
+ic_back_type ic_back_fns[11] = {
   back_bond, back_bend_cos, back_bend_angle, back_dihed_cos, back_dihed_angle, back_bond,
-  back_oop_cos, back_oop_angle, back_oop_distance
+  back_oop_cos, back_oop_meancos, back_oop_angle, back_oop_meanangle, back_oop_distance
 };
 
 void iclist_back(dlist_row_type* deltas, iclist_row_type* ictab, long nic) {

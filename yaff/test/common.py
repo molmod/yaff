@@ -35,7 +35,8 @@ __all__ = [
     'get_system_polyethylene4', 'get_system_quartz', 'get_system_glycine',
     'get_system_cyclopropene', 'get_system_caffeine', 'get_system_butanol',
     'get_system_2T', 'get_system_peroxide', 'get_system_mil53',
-    'get_system_2atoms', 'get_2systems_2oxygens',
+    'get_system_2atoms', 'get_2systems_2oxygens', 'get_system_formaldehyde',
+    'get_system_amoniak'
 ]
 
 
@@ -468,4 +469,19 @@ def get_system_formaldehyde():
         ])*angstrom,
         ffatypes=['C','O','H','H'],
         bonds=np.array([[0,1],[0,2],[0,3]]),
+    )
+
+def get_system_amoniak():
+    return System(
+        numbers=np.array([7, 1, 1, 1]),
+        pos=np.array([
+            [ 6.14905839e-08, -3.78376023e-05, -2.05755522e-01],
+            [-2.23993227e-05,  1.79042587e+00,  4.80028576e-01],
+            [ 1.55059860e+00, -8.95061229e-01,  4.80130135e-01],
+            [-1.55057663e+00, -8.95099775e-01,  4.80129946E-01],
+        ]),
+        ffatypes=['N', 'H', 'H', 'H'],
+        bonds=np.array([[0,1], [0, 2], [0, 3]]),
+        rvecs=None,
+        charges=np.array([-0.819, 0.273, 0.273, 0.273])
     )

@@ -29,7 +29,8 @@ from molmod import bond_length, bend_angle, bend_cos, dihed_angle, dihed_cos
 from yaff import *
 
 from yaff.test.common import get_system_quartz, get_system_peroxide, \
-    get_system_mil53, get_system_water32, get_system_formaldehyde
+    get_system_mil53, get_system_water32, get_system_formaldehyde, \
+    get_system_amoniak
 
 
 def test_iclist_quartz_bonds():
@@ -257,6 +258,22 @@ def test_oop_angle_formaldehyde():
     assert abs( iclist.ictab[0]['value'] - 1.0 ) < 1e-8
     assert abs( iclist.ictab[1]['value'] - 0.0 ) < 1e-8
 
+def test_oop_meanangle_formaldehyde():
+    system = get_system_formaldehyde()
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    iclist.add_ic(OopMeanAngle(2,3,1,0))
+    iclist.add_ic(OopAngle(1,2,3,0))
+    iclist.add_ic(OopAngle(2,3,1,0))
+    iclist.add_ic(OopAngle(3,1,2,0))
+    dlist.forward()
+    iclist.forward()
+    mean = 0.0
+    for i in xrange(4):
+        assert abs( iclist.ictab[i]['value'] - 0.0) < 1e-8
+        if i > 0: mean += iclist.ictab[i]['value']
+    mean /= 3
+    assert abs(iclist.ictab[0]['value'] - mean) < 1e-8
 
 def test_oop_dist_formaldehyde():
     # All atoms in the y-z plane
@@ -285,3 +302,66 @@ def test_oop_dist_formaldehyde():
     for ic in iclist.ictab:
         if ic['kind']==8:
             assert abs( abs(ic['value']) - 1.2*angstrom ) < 1e-8
+
+def test_oop_meanangle_amoniak():
+    system = get_system_amoniak()
+    ics = [OopAngle(1,2,3,0), OopAngle(2,3,1,0), OopAngle(3,1,2,0)]
+    angles = np.array([58.4158627745, 58.421383756, 58.4158570591])*deg
+    #calculate mean of gradients of angles
+    mean_value = 0.0
+    mean_dgrad = {}
+    for i, ic in enumerate(ics):
+        print 'Adding ic %i' %i
+        dlist = DeltaList(system)
+        iclist = InternalCoordinateList(dlist)
+        iclist.add_ic(ic)
+        dlist.forward()
+        iclist.forward()
+        assert abs(iclist.ictab[0]['value'] - angles[i]) < 1e-8
+        mean_value += iclist.ictab[0]['value']/3.0
+        iclist.ictab[0]['grad'] = 1.0/3.0
+        iclist.back()
+        for j in xrange(3):
+            delta = dlist.deltas[j]
+            key = '%i-%i' %(delta['i'], delta['j'])
+            print 'd(%s).g = ' %key, delta['gx'], delta['gy'], delta['gz']
+        print
+        for j in xrange(3):
+            delta = dlist.deltas[j]
+            key0 = '%i-%i' %(delta['i'], delta['j'])
+            key1 = '%i-%i' %(delta['j'], delta['i'])
+            if key0 in mean_dgrad.keys():
+                mean_dgrad[key0] += np.array([delta['gx'], delta['gy'], delta['gz']])
+                print 'mean_dgrad[%s]: ' %key0, mean_dgrad[key0]
+            elif key1 in mean_dgrad.keys():
+                mean_dgrad[key1] -= np.array([delta['gx'], delta['gy'], delta['gz']])
+                print 'mean_dgrad[%s]: ' %key1, mean_dgrad[key1]
+            else:
+                mean_dgrad[key0] = np.array([delta['gx'], delta['gy'], delta['gz']])
+                print 'mean_dgrad[%s]: ' %key0, mean_dgrad[key0]
+        print
+    print
+    #calculate gradient of meanangle
+    print 'Processing mean'
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    iclist.add_ic(OopMeanAngle(1,2,3,0))
+    dlist.forward()
+    iclist.forward()
+    assert abs(iclist.ictab[0]['value'] - mean_value) < 1e-8
+    iclist.ictab[0]['grad'] = 1.0
+    iclist.back()
+    for i in xrange(3):
+        delta = dlist.deltas[i]
+        key0 = '%i-%i' %(delta['i'], delta['j'])
+        key1 = '%i-%i' %(delta['j'], delta['i'])
+        print 'd_gx, d_gy, d_gz (%s) = ' %(key0), delta['gx'], delta['gy'], delta['gz']
+        if key0 in mean_dgrad.keys():
+            mean = mean_dgrad[key0]
+        elif key1 in mean_dgrad.keys():
+            mean = -mean_dgrad[key1]
+        else:
+            raise AssertionError('Delta %s not found in dlist of system with OopMeanAngle' %key0)
+        assert abs(delta['gx'] - mean[0]) < 1e-8
+        assert abs(delta['gy'] - mean[1]) < 1e-8
+        assert abs(delta['gz'] - mean[2]) < 1e-8

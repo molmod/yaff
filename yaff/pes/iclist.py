@@ -66,8 +66,8 @@ from yaff.pes.ext import iclist_forward, iclist_back
 
 __all__ = [
     'InternalCoordinateList', 'InternalCoordinate', 'Bond', 'BendAngle',
-    'BendCos', 'DihedAngle', 'DihedCos', 'UreyBradley', 'OopAngle', 'OopCos',
-    'OopDist',
+    'BendCos', 'DihedAngle', 'DihedCos', 'UreyBradley', 'OopAngle', 
+    'OopMeanAngle', 'OopCos', 'OopMeanCos', 'OopDist',
 ]
 
 
@@ -314,10 +314,28 @@ class OopCos(InternalCoordinate):
     def get_conversion(self):
         return 1.0
 
+class OopMeanCos(InternalCoordinate):
+    '''Mean of cosines of all 3 out-of-plane angles in a oop pattern.'''
+    kind = 7
+    def __init__(self, i, j, k, l):
+        '''
+           **Arguments:**
+
+           i, j, k, l
+                The indexes of the atoms involved in the out-of-plane angle.
+                The central atom is given by the last index (l). This IC gives
+                the angle between the plane formed by atoms i, j and l and the
+                bond between l and k.
+        '''
+        InternalCoordinate.__init__(self, [(i,l), (j,l), (k,l)])
+
+    def get_conversion(self):
+        return 1.0
+
 
 class OopAngle(InternalCoordinate):
     '''An out-of-plane angle.'''
-    kind = 7
+    kind = 8
     def __init__(self, i, j, k, l):
         '''
            **Arguments:**
@@ -333,10 +351,27 @@ class OopAngle(InternalCoordinate):
     def get_conversion(self):
         return log.angle.conversion
 
+class OopMeanAngle(InternalCoordinate):
+    '''Mean of all 3 out-of-plane angles in an oop pattern.'''
+    kind = 9
+    def __init__(self, i, j, k, l):
+        '''
+           **Arguments:**
+
+           i, j, k, l
+                The indexes of the atoms involved in the out-of-plane angle.
+                The central atom is given by the last index (l). This IC gives
+                the angle between the plane formed by atoms i, j and l and the
+                bond between l and k.
+        '''
+        InternalCoordinate.__init__(self, [(i,l), (j,l), (k,l)])
+
+    def get_conversion(self):
+        return log.angle.conversion
 
 class OopDist(InternalCoordinate):
     '''Distance from an atom to the plane formed by three other atoms'''
-    kind = 8
+    kind = 10
     def __init__(self, i, j, k, l):
         '''
            **Arguments:**

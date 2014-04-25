@@ -130,6 +130,37 @@ def test_generator_water32_ubharm():
     assert part_valence.vlist.nv == 32
 
 
+def test_generator_water32_cross():
+    system = get_system_water32()
+    fn_pars = context.get_fn('test/parameters_water_cross.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert len(ff.parts) == 1
+    assert isinstance(ff.parts[0], ForcePartValence)
+    part_valence = ff.parts[0]
+    assert part_valence.dlist.ndelta == 64
+    for i, j in system.bonds:
+        row0 = part_valence.dlist.lookup.get((i, j))
+        row1 = part_valence.dlist.lookup.get((j, i))
+        assert row0 is not None or row1 is not None
+    assert part_valence.iclist.nic == 96
+    iclist = part_valence.vlist.iclist
+    for row in part_valence.vlist.vtab:
+        assert row['kind'] == 3
+        ic0 = iclist.ictab[row['ic0']]
+        ic1 = iclist.ictab[row['ic1']]
+        if ic0['kind'] == 0 and ic1['kind'] == 0:
+            assert row['par0'] - 2.0000000000e+01*(kjmol/angstrom**2) < 1e-10
+            assert row['par1'] - 0.9470000000e+00*angstrom < 1e-10
+            assert row['par2'] - 0.9470000000e+00*angstrom < 1e-10
+        elif ic0['kind'] == 0 and ic1['kind'] == 2:
+            assert row['par0'] - 1.0000000000e+01*(kjmol/angstrom*rad) < 1e-10
+            assert row['par1'] - 0.9470000000e+00*angstrom < 1e-10
+            assert row['par2'] - 1.0500000000e+02*deg < 1e-10
+        else:
+            raise AssertionError('ICs in Cross term should be Bond-Bond or Bond-BendAngle')
+    assert part_valence.vlist.nv == 96
+
+
 def test_generator_glycine_torsion():
     system = get_system_glycine()
     fn_pars = context.get_fn('test/parameters_glycine_torsion.txt')
@@ -217,25 +248,25 @@ def test_generator_fake_torsion2():
     assert m_counts[6] == 4
 
 
-def test_generator_water32_bondcross():
-    system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_bondcross.txt')
-    ff = ForceField.generate(system, fn_pars)
-    assert len(ff.parts) == 1
-    assert isinstance(ff.parts[0], ForcePartValence)
-    part_valence = ff.part_valence
-    assert part_valence.dlist.ndelta == 64
-    for i, j in system.bonds:
-        row0 = part_valence.dlist.lookup.get((i, j))
-        row1 = part_valence.dlist.lookup.get((j, i))
-        assert row0 is not None or row1 is not None
-    assert (part_valence.iclist.ictab['kind'] == 0).all()
-    assert part_valence.iclist.nic == 64
-    assert (part_valence.vlist.vtab['kind'] == 3).all()
-    assert abs(part_valence.vlist.vtab['par0'] - 1.1354652314e+01*(kjmol/angstrom**2)).max() < 1e-10
-    assert abs(part_valence.vlist.vtab['par1'] - 1.1247753211e+00*angstrom).max() < 1e-10
-    assert abs(part_valence.vlist.vtab['par2'] - 1.1247753211e+00*angstrom).max() < 1e-10
-    assert part_valence.vlist.nv == 32
+#def test_generator_water32_bondcross():
+#    system = get_system_water32()
+#    fn_pars = context.get_fn('test/parameters_water_bondcross.txt')
+#    ff = ForceField.generate(system, fn_pars)
+#    assert len(ff.parts) == 1
+#    assert isinstance(ff.parts[0], ForcePartValence)
+#    part_valence = ff.part_valence
+#    assert part_valence.dlist.ndelta == 64
+#    for i, j in system.bonds:
+#        row0 = part_valence.dlist.lookup.get((i, j))
+#        row1 = part_valence.dlist.lookup.get((j, i))
+#        assert row0 is not None or row1 is not None
+#    assert (part_valence.iclist.ictab['kind'] == 0).all()
+#    assert part_valence.iclist.nic == 64
+#    assert (part_valence.vlist.vtab['kind'] == 3).all()
+#    assert abs(part_valence.vlist.vtab['par0'] - 1.1354652314e+01*(kjmol/angstrom**2)).max() < 1e-10
+#    assert abs(part_valence.vlist.vtab['par1'] - 1.1247753211e+00*angstrom).max() < 1e-10
+#    assert abs(part_valence.vlist.vtab['par2'] - 1.1247753211e+00*angstrom).max() < 1e-10
+#    assert part_valence.vlist.nv == 32
 
 
 def test_generator_water32_lj():

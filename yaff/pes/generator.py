@@ -55,7 +55,7 @@ __all__ = [
     'BendCosHarmGenerator', 'UreyBradleyHarmGenerator',
     'OopAngleGenerator', 'OopDistGenerator',
 
-    'ValenceCrossGenerator', 'BondCrossGenerator',
+    'ValenceCrossGenerator', 'CrossGenerator',
 
     'NonbondedGenerator', 'LJGenerator', 'MM3Generator', 'ExpRepGenerator',
     'DampDispGenerator', 'FixedChargeGenerator',
@@ -541,13 +541,12 @@ class TorsionGenerator(ValenceGenerator):
         else:
             return ValenceGenerator.get_vterm(self, pars, indexes)
 
-
 class OopAngleGenerator(ValenceGenerator):
     nffatype = 4
-    par_info = [('A', float)]
-    prefix = 'OOPANGLE'
-    ICClass = OopCos
-    VClass = Chebychev1
+    par_info = [('K', float), ('PSI0', float)]
+    prefix = 'OOPAngle'
+    ICClass = OopAngle
+    VClass = Harmonic
     allow_superposition = True
 
     def iter_alt_keys(self, key):
@@ -566,8 +565,84 @@ class OopAngleGenerator(ValenceGenerator):
                 yield neighbours[1],neighbours[2],neighbours[0],atom
                 yield neighbours[2],neighbours[0],neighbours[1],atom
 
+class OopMeanAngleGenerator(ValenceGenerator):
+    nffatype = 4
+    par_info = [('K', float), ('PSI0', float)]
+    prefix = 'OOPMANGLE'
+    ICClass = OopMeanAngle
+    VClass = Harmonic
+    allow_superposition = True
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield (key[1],key[2],key[0],key[3])
+        yield (key[2],key[0],key[1],key[3])
+        yield (key[1],key[0],key[2],key[3])
+        yield (key[0],key[2],key[1],key[3])
+        yield (key[2],key[1],key[0],key[3])
+
+    def iter_indexes(self, system):
+        #Loop over all atoms; if an atom has 3 neighbors,
+        #it is candidate for an OopAngle term
+        for atom in system.neighs1.keys():
+            neighbours = list(system.neighs1[atom])
+            if len(neighbours)==3:
+                yield neighbours[0],neighbours[1],neighbours[2],atom
+
+class OopCosGenerator(ValenceGenerator):
+    nffatype = 4
+    par_info = [('A', float)]
+    prefix = 'OOPCOS'
+    ICClass = OopCos
+    VClass = Chebychev1
+    allow_superposition = True
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield (key[1],key[0],key[2],key[3])
+
+    def iter_indexes(self, system):
+        #Loop over all atoms; if an atom has 3 neighbors,
+        #it is candidate for an OopCos term
+        for atom in system.neighs1.keys():
+            neighbours = list(system.neighs1[atom])
+            if len(neighbours)==3:
+                #Yield a term for all three out-of-plane angles
+                #with atom as center atom
+                yield neighbours[0],neighbours[1],neighbours[2],atom
+                yield neighbours[1],neighbours[2],neighbours[0],atom
+                yield neighbours[2],neighbours[0],neighbours[1],atom
+
     def get_vterm(self, pars, indexes):
         ic = OopCos(*indexes)
+        return Chebychev1(pars[0], ic)
+
+class OopMeanCosGenerator(ValenceGenerator):
+    nffatype = 4
+    par_info = [('A', float)]
+    prefix = 'OOPMCOS'
+    ICClass = OopMeanCos
+    VClass = Chebychev1
+    allow_superposition = True
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield (key[1],key[2],key[0],key[3])
+        yield (key[2],key[0],key[1],key[3])
+        yield (key[1],key[0],key[2],key[3])
+        yield (key[0],key[2],key[1],key[3])
+        yield (key[2],key[1],key[0],key[3])
+
+    def iter_indexes(self, system):
+        #Loop over all atoms; if an atom has 3 neighbors,
+        #it is candidate for an OopCos term
+        for atom in system.neighs1.keys():
+            neighbours = list(system.neighs1[atom])
+            if len(neighbours)==3:
+                yield neighbours[0],neighbours[1],neighbours[2],atom
+
+    def get_vterm(self, pars, indexes):
+        ic = OopMeanCos(*indexes)
         return Chebychev1(pars[0], ic)
 
 class OopDistGenerator(ValenceGenerator):
@@ -594,10 +669,6 @@ class OopDistGenerator(ValenceGenerator):
             if len(neighbours)==3:
                 yield neighbours[0],neighbours[1],neighbours[2],atom
 
-    def get_vterm(self, pars, indexes):
-        ic = OopDist(*indexes)
-        return Harmonic(pars[0], pars[1], ic)
-
 class ValenceCrossGenerator(Generator):
     '''All generators for cross valence terms derive from this class.
 
@@ -613,15 +684,30 @@ class ValenceCrossGenerator(Generator):
 
        ICClass1
             The second ``InternalCoordinate`` class. See ``yaff.pes.iclist``.
+       
+       ICClass2
+            The third ``InternalCoordinate`` class. See ``yaff.pes.iclist``.
 
-       VClass
-            The ``ValenceTerm`` class. See ``yaff.pes.vlist``.
+       VClass01
+            The ``ValenceTerm`` class for the cross term between IC0 and IC1.
+            See ``yaff.pes.vlist``.
+
+       VClass02
+            The ``ValenceTerm`` class for the cross term between IC0 and IC2.
+            See ``yaff.pes.vlist``.
+
+       VClass12
+            The ``ValenceTerm`` class for the cross term between IC1 and IC2.
+            See ``yaff.pes.vlist``.
     '''
     suffixes = ['UNIT', 'PARS']
     nffatype = None
     ICClass0 = None
     ICClass1 = None
-    VClass = None
+    ICClass2 = None
+    VClass01 = None
+    VClass02 = None
+    VClass12 = None
 
     def __call__(self, system, parsec, ff_args):
         '''Add contributions to the force field from a ValenceCrossGenerator
@@ -670,9 +756,13 @@ class ValenceCrossGenerator(Generator):
             for pars in par_list:
                 indexes0 = self.get_indexes0(indexes)
                 indexes1 = self.get_indexes1(indexes)
-                args = pars + (self.ICClass0(*indexes0), self.ICClass1(*indexes1))
-                part_valence.add_term(self.VClass(*args))
-
+                indexes2 = self.get_indexes2(indexes)
+                args_01 = (pars[0], pars[3], pars[4]) + (self.ICClass0(*indexes0), self.ICClass1(*indexes1))
+                args_02 = (pars[1], pars[3], pars[5]) + (self.ICClass0(*indexes0), self.ICClass2(*indexes2))
+                args_12 = (pars[2], pars[4], pars[5]) + (self.ICClass1(*indexes1), self.ICClass2(*indexes2))
+                part_valence.add_term(self.VClass01(*args_01))
+                part_valence.add_term(self.VClass02(*args_02))
+                part_valence.add_term(self.VClass12(*args_12))
 
     def iter_indexes(self, system):
         '''Iterate over all tuples of indexes for the pair of internal coordinates'''
@@ -685,19 +775,24 @@ class ValenceCrossGenerator(Generator):
     def get_indexes1(self, indexes):
         '''Get the indexes for the second internal coordinate from the whole'''
         raise NotImplementedError
+    
+    def get_indexes2(self, indexes):
+        '''Get the indexes for the third internal coordinate from the whole'''
+        raise NotImplementedError
 
-
-class BondCrossGenerator(ValenceCrossGenerator):
-    prefix = 'BONDCROSS'
-    par_info = [('K', float), ('R0', float), ('R1', float)]
+class CrossGenerator(ValenceCrossGenerator):
+    prefix = 'CROSS'
+    par_info = [('KSS', float), ('KBS0', float), ('KBS1', float), ('R0', float), ('R1', float), ('THETA0', float)]
     nffatype = 3
     ICClass0 = Bond
     ICClass1 = Bond
-    VClass = Cross
+    ICClass2 = BendAngle
+    VClass01 = Cross
+    VClass02 = Cross
+    VClass12 = Cross
 
     def iter_alt_keys(self, key):
         yield key
-        yield key[::-1]
 
     def iter_indexes(self, system):
         return system.iter_angles()
@@ -707,7 +802,9 @@ class BondCrossGenerator(ValenceCrossGenerator):
 
     def get_indexes1(self, indexes):
         return indexes[1:]
-
+    
+    def get_indexes2(self, indexes):
+        return indexes
 
 class NonbondedGenerator(Generator):
     '''All generators for the non-bonding interactions derive from this class
