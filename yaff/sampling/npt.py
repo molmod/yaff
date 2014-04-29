@@ -166,36 +166,28 @@ class MartynaTobiasKleinBarostat(VerletHook):
         self.dof = 0
         self.mass_press = 0
         self.vel_press = np.zeros((3,3),float)
-
         # symmetrize the cell tensor
         self.cell_symmetrize(ff)
-
         VerletHook.__init__(self, start, 1)
 
     def set_ndof(self, ndof):
         # allocate degrees of freedom
         angfreq = 2*np.pi/self.timecon_press
         self.mass_press = (ndof+self.dim**2)*boltzmann*self.temp/angfreq**2
+        # define initial barostat velocity
         self.vel_press = self.get_random_vel_press()
-        print self.mass_press
-        print self.vel_press
 
     def cell_symmetrize(self, ff):
-        pos_old = ff.system.pos.copy()
-        # frac_pos_old = np.zeros((len(pos_old),3), float)
-        # frac_pos_new = np.zeros((len(pos_old),3), float)
-        # for i in np.arange(0,len(pos_old)):
-        #    frac_pos_old[i] = np.dot(np.linalg.inv(self.cell), pos_old[i])
-        U, s, V = np.linalg.svd(self.cell)
-        rot_mat = np.dot(V.T, U.T)
-        self.cell = np.dot(rot_mat,self.cell)
+        # SVD decomposition of cell tensor
+        U, s, Vt = np.linalg.svd(self.cell)
+        # definition of the rotation matrix to symmetrize cell tensor
+        rot_mat = np.dot(Vt.T, U.T)
+        # symmetrize cell tensor and update cell
+        self.cell = np.dot(self.cell, rot_mat)
         ff.update_rvecs(self.cell)
-        pos_new = pos_old
-        for i in np.arange(0,len(pos_old)):
-            pos_new[i] = np.dot(rot_mat,pos_old[i])
-        #    frac_pos_new[i] = np.dot(np.linalg.inv(self.cell), pos_new[i])
+        # also update the new atomic positions
+        pos_new = np.dot(ff.system.pos, rot_mat)
         ff.update_pos(pos_new)
-        # print frac_pos_old - frac_pos_new
 
     def get_random_vel_press(self):
         # generates symmetric tensor of barostat velocities
@@ -204,8 +196,8 @@ class MartynaTobiasKleinBarostat(VerletHook):
         rand = np.random.normal(0, np.sqrt(self.mass_press*boltzmann*self.temp), shape)/self.mass_press
         vel_press = np.zeros(shape)
         # create initial symmetric pressure velocity tensor
-        for i in np.arange(0,3):
-            for j in np.arange(0,3):
+        for i in xrange(3):
+            for j in xrange(3):
                 if i >= j:
                     vel_press[i,j] = rand[i,j]
                 else:
@@ -214,6 +206,11 @@ class MartynaTobiasKleinBarostat(VerletHook):
 
     def init(self, iterative):
         self.timestep_press = iterative.timestep
+        # compute gpos and vtens, since they differ
+        # after symmetrising the cell tensor
+        iterative.gpos = np.zeros(iterative.pos.shape, float)
+        iterative.vtens = np.zeros((3,3),float)
+        energy = iterative.ff.compute(iterative.gpos,iterative.vtens)
 
     def pre(self, iterative):
         pass
@@ -224,61 +221,32 @@ class MartynaTobiasKleinBarostat(VerletHook):
     def propagate_press(self, chain_vel, ndof, ekin, vel, masses, volume, iterative):
         # iL vxi_1 h/8
         self.vel_press *= np.exp(-chain_vel*self.timestep_press/8)
-
-        # necessary to calculate it here again, instead of during Verlet step?
-        gpos = np.zeros(iterative.pos.shape, float)
-        vtens = np.zeros((3,3),float)
-
-        energy = iterative.ff.compute(gpos,vtens)
-        #print str(iterative.vtens/kjmol)
-        #ontbrekend = np.zeros((3,3),float)
-        #for i in np.arange(0,len(iterative.pos)):
-        #    ontbrekend += np.outer(-gpos[i],iterative.pos[i])
-        ptens_vol = (np.dot(vel.T*masses, vel) - vtens)
-        #print 'pxp = ' + str(np.dot(vel.T*masses,vel)/kjmol)
-        #print 'vtens = ' + str(vtens/kjmol)
+        # definition of P_intV and G
+        ptens_vol = np.dot(vel.T*masses, vel) - iterative.vtens
         ptens_vol = 0.5*(ptens_vol.T + ptens_vol)
-        # print np.dot(vel.T*masses, vel)
-        # print ptens_vol
-        # print self.press*volume-2.0*ekin/ndof
-        # print self.press*volume
         G = (ptens_vol+(2.0*ekin/ndof-self.press*volume)*np.eye(3))/self.mass_press
-        #print 'PintV = ' + str(ptens_vol/kjmol)
-        #print 'PextV - 2K/3N = ' + str((self.press*volume-2.0*ekin/ndof)/kjmol)
-        #print 'ndof = ' + str(ndof)
-        #print 'PextV = ' + str((self.press*volume)/kjmol)
-        #print '2K/3N = ' + str((2.0*ekin/ndof)/kjmol)
-        # print 'vol = ' + str(volume)
-        # G = (ptens_vol-(self.press*volume)*np.eye(3))/self.mass_press
         # iL G_g h/4
         self.vel_press += G*self.timestep_press/4
         # iL vxi_1 h/8
         self.vel_press *= np.exp(-chain_vel*self.timestep_press/8)
 
     def propagate_vel(self, chain_vel, ndof, vel, masses):
-        # diagonalize propagator matrix
-        #print self.vel_press+(np.trace(self.vel_press)/ndof+chain_vel)*np.eye(3)
+        # diagonalize propagator matrix and define D'_g
         Dg, Eg = np.linalg.eigh(self.vel_press+(np.trace(self.vel_press)/ndof+chain_vel)*np.eye(3))
-        #Dg, Eg = np.linalg.eig(self.vel_press+(chain_vel)*np.eye(3))
-        # define D_g and D'_g
-        Daccg = np.exp(-Dg*self.timestep_press/2)
-        Daccg = np.diagflat(Daccg)
+        Daccg = np.diagflat(np.exp(-Dg*self.timestep_press/2))
         # iL (vg + Tr(vg)/ndof + vxi_1) h/2
-        # and update kinetic energie
-        ekin = 0
-        for i in np.arange(0,len(vel)):
-            vel[i] = np.dot(Eg, np.dot(Daccg, np.dot(Eg.T, vel[i])))
+        vel[:] = np.dot(np.dot(np.dot(vel, Eg), Daccg), Eg.T)
+        # change energy
         ekin = 0.5*(vel**2*masses.reshape(-1,1)).sum()
         return vel, ekin
 
     def add_press_cont(self):
+        kt = self.temp*boltzmann
         # pressure contribution to g1: kinetic cell tensor energy
         # and extra degrees of freedom due to cell tensor
-        return self.mass_press*np.trace(np.dot(self.vel_press.T,self.vel_press)) - self.dim**2*self.temp*boltzmann
-        #return self.mass_press*np.trace(np.dot(self.vel_press.T,self.vel_press)) - self.dim*(self.dim+1)/2*self.temp*boltzmann
+        return self.mass_press*np.trace(np.dot(self.vel_press.T,self.vel_press)) - self.dim**2*kt
 
     def get_econs_correction(self, chain_pos, volume):
         kt = boltzmann*self.temp
         # add correction due to combination barostat and thermostat
         return self.dim**2*kt*chain_pos + 0.5*self.mass_press*np.trace(np.dot(self.vel_press.T,self.vel_press)) + self.press*volume
-        #return self.dim*(self.dim+1)/2*kt*chain_vel + 0.5*self.mass_press*np.trace(np.dot(self.vel_press.T,self.vel_press)) + self.press*iterative.ff.system.cell.volume
