@@ -39,7 +39,8 @@ from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
     ForcePartEwaldNeutralizing
 from yaff.pes.iclist import Bond, BendAngle, BendCos, \
-    UreyBradley, DihedAngle, DihedCos, OopAngle, OopCos, OopDist
+    UreyBradley, DihedAngle, DihedCos, OopAngle, OopMeanAngle, OopCos, \
+    OopMeanCos, OopDist
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
 from yaff.pes.vlist import Harmonic, Fues, Cross, Cosine, \
@@ -51,9 +52,9 @@ __all__ = [
 
     'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator',
     'BondFuesGenerator', 'BendGenerator', 'BendAngleHarmGenerator',
-    'TorsionGenerator', 'TorsionCosHarmGenerator',
-    'BendCosHarmGenerator', 'UreyBradleyHarmGenerator',
-    'OopAngleGenerator', 'OopDistGenerator',
+    'BendCosHarmGenerator', 'TorsionGenerator', 'TorsionCosHarmGenerator',
+    'UreyBradleyHarmGenerator', 'OopAngleGenerator', 'OopMeanAngleGenerator',
+    'OopCosGenerator', 'OopMeanCosGenerator', 'OopDistGenerator',
 
     'ValenceCrossGenerator', 'CrossGenerator',
 
