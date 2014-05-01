@@ -163,7 +163,6 @@ class NHChain(object):
             barostat.propagate_press(self.vel[0], self.ndof, ekin, vel, masses, volume, iterative)
         # iL xi (all) h/2
         self.pos += self.vel*self.timestep/2
-
         if barostat is not None:
             # iL (vg + Tr(vg)/ndof + vxi_1) h/2 if barostat is present
             vel, ekin = barostat.propagate_vel(self.vel[0], self.ndof, vel, masses)
@@ -237,7 +236,8 @@ class NHCThermostat(VerletHook):
         # Configure the chain.
         self.chain.timestep = iterative.timestep
         self.chain.set_ndof(iterative.ndof)
-        self.barostat.set_ndof(iterative.ndof)
+        if self.barostat is not None:
+            self.barostat.set_ndof(iterative.ndof)
 
     def pre(self, iterative):
         iterative.ekin = self.chain(iterative.ekin, iterative.vel, self.barostat, iterative.ff.system.cell.volume, iterative.masses, iterative)

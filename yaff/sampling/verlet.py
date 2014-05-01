@@ -214,8 +214,14 @@ class VerletIntegrator(Iterative):
                     self.delta = self.pos - pos_old
                     self.ff.update_pos(self.pos)
                     # update cell tensor
-                    self.rvecs = np.dot(np.dot(np.dot(self.rvecs, Qg), Dracc), Qg.T)
-                    self.ff.update_rvecs(0.5*(self.rvecs+self.rvecs.T))
+                    rot = np.dot(np.dot(Qg, Dracc), Qg.T)
+                    U, s, Vt = np.linalg.svd(rot)
+                    rot_sym = np.dot(np.dot(U,np.diagflat(s)), U.T)
+                    #symm = 0.5*(rot+rot.T)
+                    self.rvecs = np.dot(self.rvecs,rot_sym)
+                    #self.rvecs = np.dot(np.dot(np.dot(self.rvecs, Qg), Dracc), Qg.T)
+                    #self.ff.update_rvecs(0.5*(self.rvecs+self.rvecs.T))
+                    self.ff.update_rvecs(self.rvecs)
                     self.rvecs = self.ff.system.cell.rvecs.copy()
                     # recompute properties and forces for second part velocity update
                     self.compute_properties()
