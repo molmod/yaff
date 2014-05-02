@@ -165,7 +165,7 @@ def plot_temperature(f, fn_png='temperature.png', **kwargs):
     pt.savefig(fn_png)
 
 
-def plot_pressure(f, fn_png='pressure.png', **kwargs):
+def plot_pressure(f, fn_png='pressure.png', window = 1, **kwargs):
     """Make a plot of the pressure as function of time
 
        **Arguments:**
@@ -177,6 +177,8 @@ def plot_pressure(f, fn_png='pressure.png', **kwargs):
 
        fn_png
             The png file to write the figure to
+       window
+            The window over which the pressure is averaged
 
        The optional arguments of the ``get_slice`` function are also accepted in
        the form of keyword arguments.
@@ -190,8 +192,13 @@ def plot_pressure(f, fn_png='pressure.png', **kwargs):
     press = f['trajectory/press'][start:end:step]
     time, tlabel = get_time(f, start, end, step)
 
+    press_av = np.zeros(len(press)+1-window)
+    time_av = np.zeros(len(press)+1-window)
+    for i in xrange(len(press_av)):
+        press_av[i] = press[i:i+window].sum()/window
+        time_av[i] = time[i]
     pt.clf()
-    pt.plot(time, press/(1e9*pascal), 'k-',label='Sim (%.3f MPa)' % (press.mean()/(1e6*pascal)))
+    pt.plot(time_av, press_av/(1e9*pascal), 'k-',label='Sim (%.3f MPa)' % (press.mean()/(1e6*pascal)))
     pt.xlim(time[0], time[-1])
     pt.xlabel(tlabel)
     pt.ylabel('pressure [GPA]')

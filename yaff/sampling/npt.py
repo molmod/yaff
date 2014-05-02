@@ -234,8 +234,11 @@ class MartynaTobiasKleinBarostat(VerletHook):
         # diagonalize propagator matrix and define D'_g
         Dg, Eg = np.linalg.eigh(self.vel_press+(np.trace(self.vel_press)/ndof+chain_vel)*np.eye(3))
         Daccg = np.diagflat(np.exp(-Dg*self.timestep_press/2))
+        rot = np.dot(np.dot(Eg, Daccg), Eg.T)
+        U, s, Vt = np.linalg.svd(rot)
+        rot_sym = np.dot(np.dot(U,np.diagflat(s)), U.T)
         # iL (vg + Tr(vg)/ndof + vxi_1) h/2
-        vel[:] = np.dot(np.dot(np.dot(vel, Eg), Daccg), Eg.T)
+        vel[:] = np.dot(vel, rot_sym)
         # change energy
         ekin = 0.5*(vel**2*masses.reshape(-1,1)).sum()
         return vel, ekin
