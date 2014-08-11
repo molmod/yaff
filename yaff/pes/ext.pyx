@@ -49,9 +49,10 @@ __all__ = [
     'nlist_recompute', 'nlist_inc_r', 'Hammer', 'Switch3', 'PairPot',
     'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep',
     'PairPotDampDisp', 'PairPotEI', 'PairPotEIDip', 'PairPotEiSlater1s1sCorr',
-    'compute_ewald_reci', 'compute_ewald_reci_dd', 'compute_ewald_corr_dd',
-    'compute_ewald_corr', 'dlist_forward', 'dlist_back', 'iclist_forward',
-    'iclist_back', 'vlist_forward', 'vlist_back', 'compute_grid3d'
+    'PairPotOlpSlater1s1s', 'compute_ewald_reci', 'compute_ewald_reci_dd',
+    'compute_ewald_corr_dd', 'compute_ewald_corr', 'dlist_forward',
+    'dlist_back', 'iclist_forward', 'iclist_back', 'vlist_forward',
+    'vlist_back', 'compute_grid3d'
 ]
 
 
@@ -1454,6 +1455,110 @@ cdef class PairPotEiSlater1s1sCorr(PairPot):
 
     slater1s_Z = property(_get_slater1s_Z)
 
+
+cdef class PairPotOlpSlater1s1s(PairPot):
+    r'''Overlap between two Slater 1s densities. This can for instance be used
+        to represent an exchange energy by defining a suitable scaling factor
+        to convert overlap to energy. Furthermore it is possible to add some
+        correction factors defined in following expression:
+
+            E = ex_scale * slater_overlap * (1+corr_c*(N1+N2))*(1-exp(corr_a-corr_b*r/sqrt(sigma1*sigma2)))
+
+        **Arguments:**
+
+        slater1s_widths
+            An array of Slater widths, shape = (natom,)
+
+        slater1s_N
+            An array of Slater populations, shape = (natom,)
+
+        ex_scale
+            A scaling factor to relate overlap and exchange energy
+
+        rcut
+            The cutoff radius
+
+        **Optional arguments:**
+
+        tr
+            The truncation scheme, an instance of a subclass of ``Truncation``.
+            When not given, no truncation is applied
+
+        corr_a
+            Correction factor to modify overlap expression (default=0.0)
+
+        corr_b
+            Correction factor to modify overlap expression (default=0.0)
+
+        corr_c
+            Correction factor to modify overlap expression (default=0.0)
+    '''
+    cdef np.ndarray _c_slater1s_widths
+    cdef np.ndarray _c_slater1s_N
+    name = 'olpslater1s1s'
+
+    def __cinit__(self, np.ndarray[double, ndim=1] slater1s_widths,
+                  np.ndarray[double, ndim=1] slater1s_N, double ex_scale,
+                  double rcut, Truncation tr=None, double corr_a=0.0,
+                  double corr_b=0.0, double corr_c=0.0):
+        assert slater1s_widths.flags['C_CONTIGUOUS']
+        assert slater1s_N.flags['C_CONTIGUOUS']
+        # Precompute some factors here???
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        self.set_truncation(tr)
+        pair_pot.pair_data_olpslater1s1s_init(self._c_pair_pot, <double*>slater1s_widths.data,  <double*>slater1s_N.data,  ex_scale, corr_a, corr_b, corr_c)
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_slater1s_widths = slater1s_widths
+        self._c_slater1s_N = slater1s_N
+
+    def log(self):
+        '''Print suitable initialization info on screen.'''
+        if log.do_medium:
+            log.hline()
+            #log('  alpha:             %s' % log.invlength(self.alpha))
+        if log.do_high:
+            log.hline()
+            #log('   Atom     Charge')
+            #log.hline()
+            #for i in xrange(self._c_charges.shape[0]):
+            #    log('%7i %s' % (i, log.charge(self._c_charges[i])))
+
+    def _get_slater1s_widths(self):
+        '''The atomic charges'''
+        return self._c_slater1s_widths.view()
+
+    slater1s_widths = property(_get_slater1s_widths)
+
+    def _get_slater1s_N(self):
+        '''The atomic charges'''
+        return self._c_slater1s_N.view()
+
+    slater1s_N = property(_get_slater1s_N)
+
+    def _get_ex_scale(self):
+        '''The ex_scale parameter in the exchange energy expression'''
+        return pair_pot.pair_data_olpslater1s1s_get_ex_scale(self._c_pair_pot)
+
+    ex_scale = property(_get_ex_scale)
+
+    def _get_corr_a(self):
+        '''The corr_a parameter in the exchange energy expression'''
+        return pair_pot.pair_data_olpslater1s1s_get_corr_a(self._c_pair_pot)
+
+    corr_a = property(_get_corr_a)
+
+    def _get_corr_b(self):
+        '''The corr_b parameter in the exchange energy expression'''
+        return pair_pot.pair_data_olpslater1s1s_get_corr_b(self._c_pair_pot)
+
+    corr_b = property(_get_corr_b)
+
+    def _get_corr_c(self):
+        '''The corr_c parameter in the exchange energy expression'''
+        return pair_pot.pair_data_olpslater1s1s_get_corr_c(self._c_pair_pot)
+
+    corr_c = property(_get_corr_c)
 
 
 #

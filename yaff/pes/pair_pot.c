@@ -652,3 +652,99 @@ double pair_fn_eislater1s1scorr(void *pair_data, long center_index, long other_i
   }
   return pot;
 }
+
+
+
+
+void pair_data_olpslater1s1s_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double ex_scale, double corr_a, double corr_b, double corr_c ) {
+  pair_data_olpslater1s1s_type *pair_data;
+  pair_data = malloc(sizeof(pair_data_olpslater1s1s_type));
+  (*pair_pot).pair_data = pair_data;
+  if (pair_data != NULL) {
+    (*pair_pot).pair_fn = pair_fn_olpslater1s1s;
+    (*pair_data).widths = slater1s_widths;
+    (*pair_data).N = slater1s_N;
+    (*pair_data).ex_scale = ex_scale;
+    (*pair_data).corr_a = corr_a;
+    (*pair_data).corr_b = corr_b;
+    (*pair_data).corr_c = corr_c;
+  }
+}
+
+
+double pair_fn_olpslater1s1s(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
+  double a, b, dab, Na, Nb, da, db;
+  double pot = 0.0;
+  a  = (*(pair_data_olpslater1s1s_type*)pair_data).widths[center_index];
+  b  = (*(pair_data_olpslater1s1s_type*)pair_data).widths[other_index];
+  Na = (*(pair_data_olpslater1s1s_type*)pair_data).N[center_index];
+  Nb = (*(pair_data_olpslater1s1s_type*)pair_data).N[other_index];
+  dab = a - b;
+  da = d/a;
+  db = d/b;
+  // Discriminate between small and not small difference in slater width
+  if (fabs(dab) > 0.025) {
+    double a2 = a*a;
+    double b2 = b*b;
+    double diff = 1.0/(a2-b2);
+    double diff2 = diff*diff;
+    double diff3 = diff2*diff;
+    double pot1 = 0.5*(-4.0*a2*b2*diff3 + a*d*diff2)*exp(-da)/d/M_FOUR_PI;
+    double pot2 = 0.5*( 4.0*a2*b2*diff3 + b*d*diff2)*exp(-db)/d/M_FOUR_PI;
+    pot += pot1 + pot2;
+    if (g != NULL) {
+      *g = -pot/d/d-pot1/d/a-pot2/d/b + 0.5*a*diff2*exp(-da)/d/M_FOUR_PI/d + 0.5*b*diff2*exp(-db)/d/M_FOUR_PI/d;
+    }
+  } else {
+    double da2 = da*da;
+    double da3 = da2*da;
+    double da4 = da2*da2;
+    double a2i = 1.0/(a*a);
+    double a3i = a2i/a;
+    double a4i = a2i*a2i;
+    double a5i = a3i*a2i;
+    double a6i = a3i*a3i;
+    pot += (da2+3.0*da+3.0)*exp(-da)*a3i/48.0/M_FOUR_PI;
+    pot += (-da3+2.0*da2+9.0*da+9.0)*exp(-da)*a4i/96.0/M_FOUR_PI*dab;
+    pot += (3.0*da4-25.0*da3+5.0*da2+90.0*da+90.0)*exp(-da)*a5i/960.0/M_FOUR_PI*dab*dab;
+    if (g != NULL) {
+        *g  = -pot/d/a;
+        *g += (3.0+2.0*da)*exp(-da)*a4i/48.0/M_FOUR_PI/d;
+        *g += (9.0+4.0*da-3.0*da2)*exp(-da)*a5i/96.0/M_FOUR_PI*dab/d;
+        *g += (90.0+10.0*da-75.0*da2+12.0*da3)*exp(-da)*a6i/960.0/M_FOUR_PI*dab*dab;
+    }
+  }
+  // Multiply with scaling factor and populations
+  pot *= Na*Nb*(*(pair_data_olpslater1s1s_type*)pair_data).ex_scale;
+  if (g != NULL) *g *= Na*Nb*(*(pair_data_olpslater1s1s_type*)pair_data).ex_scale;
+  // Apply corrections to the overlap expression
+  double ca = (*(pair_data_olpslater1s1s_type*)pair_data).corr_a;
+  double cb = (*(pair_data_olpslater1s1s_type*)pair_data).corr_b;
+  double cc = (*(pair_data_olpslater1s1s_type*)pair_data).corr_c;
+  if ( cc != 0.0 ) pot *= 1.0 + cc*(Na+Nb);
+  if ( ca != 0.0 ) pot *= 1.0 - exp(ca-cb*d/sqrt(a*b));
+  if (g != NULL) {
+    if ( cc != 0.0 ) *g *= 1.0 + cc*(Na+Nb);
+    if ( ca != 0.0 ) {
+      *g *= 1.0 - exp(ca-cb*d/sqrt(a*b));
+      *g += pot*cb/sqrt(a*b)*exp(ca-cb*d/sqrt(a*b))/d;
+    }
+  }
+  return pot;
+}
+
+double pair_data_olpslater1s1s_get_ex_scale(pair_pot_type *pair_pot) {
+  return (*(pair_data_olpslater1s1s_type*)((*pair_pot).pair_data)).ex_scale;
+}
+
+double pair_data_olpslater1s1s_get_corr_a(pair_pot_type *pair_pot) {
+  return (*(pair_data_olpslater1s1s_type*)((*pair_pot).pair_data)).corr_a;
+}
+
+double pair_data_olpslater1s1s_get_corr_b(pair_pot_type *pair_pot) {
+  return (*(pair_data_olpslater1s1s_type*)((*pair_pot).pair_data)).corr_b;
+}
+
+double pair_data_olpslater1s1s_get_corr_c(pair_pot_type *pair_pot) {
+  return (*(pair_data_olpslater1s1s_type*)((*pair_pot).pair_data)).corr_c;
+}
