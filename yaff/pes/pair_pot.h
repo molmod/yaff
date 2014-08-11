@@ -134,4 +134,14 @@ void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipo
 double pair_fn_eidip(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
 double pair_data_eidip_get_alpha(pair_pot_type *pair_pot);
 
+
+typedef struct {
+  double *N;
+  double *Z;
+  double *widths;
+} pair_data_eislater1s1scorr_type;
+
+void pair_data_eislater1s1scorr_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double *slater1s_Z);
+double pair_fn_eislater1s1scorr(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
+
 #endif

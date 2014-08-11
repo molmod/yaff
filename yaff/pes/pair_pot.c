@@ -587,3 +587,68 @@ double pair_fn_eidip(void *pair_data, long center_index, long other_index, doubl
 double pair_data_eidip_get_alpha(pair_pot_type *pair_pot) {
   return (*(pair_data_eidip_type*)((*pair_pot).pair_data)).alpha;
 }
+
+void pair_data_eislater1s1scorr_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double *slater1s_Z) {
+  pair_data_eislater1s1scorr_type *pair_data;
+  pair_data = malloc(sizeof(pair_data_eislater1s1scorr_type));
+  (*pair_pot).pair_data = pair_data;
+  if (pair_data != NULL) {
+      (*pair_pot).pair_fn = pair_fn_eislater1s1scorr;
+      (*pair_data).widths = slater1s_widths;
+      (*pair_data).N = slater1s_N;
+      (*pair_data).Z = slater1s_Z;
+  }
+}
+
+double pair_fn_eislater1s1scorr(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
+  double a, b, dab, Za, Na, Zb, Nb, da, db;
+  double pot = 0.0;
+  a  = (*(pair_data_eislater1s1scorr_type*)pair_data).widths[center_index];
+  b  = (*(pair_data_eislater1s1scorr_type*)pair_data).widths[other_index];
+  Na = (*(pair_data_eislater1s1scorr_type*)pair_data).N[center_index];
+  Nb = (*(pair_data_eislater1s1scorr_type*)pair_data).N[other_index];
+  Za = (*(pair_data_eislater1s1scorr_type*)pair_data).Z[center_index];
+  Zb = (*(pair_data_eislater1s1scorr_type*)pair_data).Z[other_index];
+  dab = a - b;
+  da = d/a;
+  db = d/b;
+  // Discriminate between small and not small difference in slater width
+  if (fabs(dab) > 0.025) {  // TODO: carefully check criterium
+    double a2 = a*a;
+    double a3 = a2*a;
+    double a4 = a2*a2;
+    double b2 = b*b;
+    double b3 = b2*b;
+    double b4 = b2*b2;
+    double diff = 1.0/(a2-b2);
+    double diff2 = diff*diff;
+    double diff3 = diff2*diff;
+    double pot1 = Na*(Zb*(1.0+0.5*da) + Nb*( a4*(a2-3.0*b2)*diff3 + 0.5*a3*diff2*d )) * exp(-da) / d;
+    double pot2 = Nb*(Za*(1.0+0.5*db) + Na*( b4*(3.0*a2-b2)*diff3 + 0.5*b3*diff2*d )) * exp(-db) / d;
+    pot += - pot1 - pot2;
+    if (g != NULL) *g = (-pot/d+pot1/a+pot2/b - Na*(0.5*Zb/a + Nb*0.5*a3*diff2)*exp(-da)/d - Nb*(0.5*Za/b + Na*0.5*b3*diff2)*exp(-db)/d)/d;
+   } else {
+    double da2 = da*da;
+    double da3 = da2*da;
+    double da4 = da2*da2;
+    double a2i = 1.0/(a*a);
+    double a3i = a2i/a;
+    double a4i = a2i*a2i;
+    pot -= Na*Zb*(1.0+0.5*da)* exp(-da) / d;
+    pot -= Nb*Za*(1.0+0.5*db)* exp(-db) / d;
+    pot -= Na*Nb*(48.0+33.0*da+9.0*da2+da3)*exp(-da)/48.0/d; // Taylor 0th order in dab
+    pot += Na*Nb*(15.0+15.0*da+6.0*da2+da3)*exp(-da)*dab/96.0*a2i; // Taylor 1st order in dab
+    pot -= Na*Nb*(-60.0-60.0*da-15.0*da2+5.0*da3+3.0*da4)*exp(-da)*dab*dab/960.0*a3i; // Taylor 2nd order in dab
+    if (g != NULL) {
+      *g  = Na*Zb*(1.0+0.5*da)* exp(-da) / d * (1.0/d + 1.0/a) / d;
+      *g += Nb*Za*(1.0+0.5*db)* exp(-db) / d * (1.0/d + 1.0/b) / d;
+      *g += Na*Nb*(48.0+33.0*da+9.0*da2+da3)*exp(-da)/48.0/d * (1.0/d + 1.0/a) / d;
+      *g -= Na*Nb*(33.0+18.0*da+3.0*da2)*exp(-da)/48.0/d/d/a;
+      *g -= Na*Nb*(15.0+15.0*da+6.0*da2+da3)*exp(-da)*dab/96.0*a3i/d;
+      *g += Na*Nb*(15.0+12.0*da+3.0*da2)*exp(-da)*dab/96.0*a3i/d;
+      *g += Na*Nb*(-60.0-60.0*da-15.0*da2+5.0*da3+3.0*da4)*exp(-da)*dab*dab/960.0*a4i/d;
+      *g -= Na*Nb*(-60.0-30.0*da+15.0*da2+12.0*da3)*exp(-da)*dab*dab/960.0*a4i/d;
+    }
+  }
+  return pot;
+}

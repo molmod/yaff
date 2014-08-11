@@ -47,8 +47,9 @@ def _unravel_triangular(i):
 
 class System(object):
     def __init__(self, numbers, pos, scopes=None, scope_ids=None, ffatypes=None,
-                 ffatype_ids=None, bonds=None, rvecs=None, charges=None, radii=None,
-                 dipoles=None, radii2=None, masses=None):
+                 ffatype_ids=None, bonds=None, rvecs=None, charges=None,
+                 radii=None, valence_charges=None, dipoles=None, radii2=None,
+                 masses=None):
         '''
            **Arguments:**
 
@@ -100,6 +101,12 @@ class System(object):
                 distribution
                 rho[i]=charges[i]/(sqrt(pi)radii[i]**3)*exp(-(|r-pos[i]|/radii[i])**2)
 
+           valence_charges
+                In case a point-core + distribute valence charge is used, this
+                vector contains the valence charges. The core charges can be
+                computed by subtracting the valence charges from the net
+                charges.
+
            dipoles
                 An array of atomic dipoles
 
@@ -137,6 +144,7 @@ class System(object):
         self.cell = Cell(rvecs)
         self.charges = charges
         self.radii = radii
+        self.valence_charges = valence_charges
         self.dipoles = dipoles
         self.radii2 = radii2
         self.masses = masses
@@ -417,7 +425,7 @@ class System(object):
                     allowed_keys = [
                         'numbers', 'pos', 'scopes', 'scope_ids', 'ffatypes',
                         'ffatype_ids', 'bonds', 'rvecs', 'charges', 'radii',
-                        'dipoles','radii2','masses',
+                        'valence_charges', 'dipoles', 'radii2', 'masses',
                     ]
                     for key, value in load_chk(fn).iteritems():
                         if key in allowed_keys:
@@ -798,7 +806,8 @@ class System(object):
 
         # B) Simple repetitions
         rep_all = np.product(reps)
-        for attrname in 'numbers', 'ffatype_ids', 'scope_ids', 'charges', 'radii', 'radii2', 'masses':
+        for attrname in 'numbers', 'ffatype_ids', 'scope_ids', 'charges', \
+                        'radii', 'valence_charges', 'radii2', 'masses':
             value = getattr(self, attrname)
             if value is not None:
                 new_args[attrname] = np.tile(value, rep_all)
@@ -948,6 +957,7 @@ class System(object):
         ffatype_ids = reduce_int_array(self.ffatype_ids)
         charges = reduce_float_array(self.charges)
         radii = reduce_float_array(self.radii)
+        valence_charges = reduce_float_array(self.valence_charges)
         dipoles = reduce_float_matrix(self.dipoles)
         radii2 = reduce_float_array(self.radii2)
         masses = reduce_float_array(self.masses)
@@ -973,7 +983,7 @@ class System(object):
             bonds = set((oldnew[ia], oldnew[ib]) for ia, ib in self.bonds)
             bonds = np.array([bond for bond in bonds])
 
-        return self.__class__(numbers, pos, self.scopes, scope_ids, self.ffatypes, ffatype_ids, bonds, self.cell.rvecs, charges, radii, dipoles, radii2, masses)
+        return self.__class__(numbers, pos, self.scopes, scope_ids, self.ffatypes, ffatype_ids, bonds, self.cell.rvecs, charges, radii, valence_charges, dipoles, radii2, masses)
 
     def subsystem(self, indexes):
         '''Return a System instance in which only the given atom are retained.'''
@@ -1018,6 +1028,7 @@ class System(object):
             rvecs=self.cell.rvecs,
             charges=reduce_array(self.charges),
             radii=reduce_array(self.radii),
+            valence_charges=reduce_array(self.valence_charges),
             dipoles=reduce_array(self.dipoles),
             radii2=reduce_array(self.radii2),
             masses=reduce_array(self.masses),
@@ -1075,6 +1086,7 @@ class System(object):
                 'rvecs': self.cell.rvecs,
                 'charges': self.charges,
                 'radii': self.radii,
+                'valence_charges': self.valence_charges,
                 'dipoles': self.dipoles,
                 'radii2': self.radii2,
                 'masses': self.masses,
@@ -1120,6 +1132,8 @@ class System(object):
             sgrp.create_dataset('charges', data=self.charges)
         if self.radii is not None:
             sgrp.create_dataset('radii', data=self.radii)
+        if self.valence_charges is not None:
+            sgrp.create_dataset('valence_charges', data=self.charges)
         if self.dipoles is not None:
             sgrp.create_dataset('dipoles', data=self.dipoles)
         if self.radii2 is not None:

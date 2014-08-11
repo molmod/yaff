@@ -30,7 +30,8 @@ from nose.tools import assert_raises
 from molmod import angstrom, kcalmol
 
 from yaff.test.common import get_system_water32, get_system_caffeine, \
-    get_system_2atoms, get_system_quartz, get_system_water
+    get_system_2atoms, get_system_quartz, get_system_water, \
+    get_system_4113_01WaterWater
 from yaff.pes.test.common import check_gpos_part, check_vtens_part
 
 from yaff import *
@@ -916,6 +917,77 @@ def test_pair_pot_ei3_caffeine_10A():
 
 
 #
+# 4113_01WaterWater tests
+#
+
+
+def get_part_4113_01WaterWater_eislater1s1scorr():
+    # Get a system and define scalings
+    system = get_system_4113_01WaterWater()
+    nlist = NeighborList(system)
+    scalings = Scalings(system, 0.0, 1.0, 1.0)
+    rcut = 20*angstrom
+    pair_pot = PairPotEiSlater1s1sCorr(system.radii, system.valence_charges, system.charges - system.valence_charges, rcut)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    def pair_fn(i, j, R, alpha, beta):
+        E = 0.0
+        delta = beta-alpha
+        if alpha==0.0 or beta==0.0:
+            if beta!=0.0:
+                E = -np.exp(-R/beta)/R - 0.5/beta*np.exp(-R/beta)
+            elif alpha!=0.0:
+                E = -np.exp(-R/alpha)/R - 0.5/alpha*np.exp(-R/alpha)
+        elif np.abs(delta)<0.025:
+            alphaR = R/alpha
+            T0 = -np.exp(-alphaR)/R - np.exp(-alphaR)/48.0/R*(alphaR**3 + 9.0*alphaR**2 + 33.0*alphaR)
+            T1 = -1.0/96.0/alpha**2*( alphaR**3 + 6.0*alphaR**2 + 15.0*alphaR + 15.0)*np.exp(-alphaR)
+            T2 = -1.0/480.0/alpha**3*( 3.0*alphaR**4 + 5.0*alphaR**3 - 15.0*alphaR**2 - 60.0*alphaR - 60.0)*np.exp(-alphaR)
+            E = T0 + T1*delta + T2*delta**2/2.0
+        else:
+            E -= ( beta**3*np.exp(-R/beta) + alpha**3*np.exp(-R/alpha) ) / (2.0*(alpha**2-beta**2)**2)
+            E -= ( beta**4*(3.0*alpha**2-beta**2)*np.exp(-R/beta) - alpha**4*(3.0*beta**2-alpha**2)*np.exp(-R/alpha) ) / (R*(alpha**2-beta**2)**3)
+        return E
+    return system, nlist, scalings, part_pair, pair_fn
+
+
+def check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn, eps):
+    nlist.update() # update the neighborlists, once the rcuts are known.
+    # Compute the energy using yaff.
+    energy1 = part_pair.compute()
+    gpos = np.zeros(system.pos.shape, float)
+    energy2 = part_pair.compute(gpos)
+    # Compute the energy manually
+    check_energy = 0.0
+    srow = 0
+    core_charges = system.charges - system.valence_charges
+    for a in xrange(system.natom):
+        # compute the distances in the neighborlist manually and check.
+        for b in xrange(a):
+            delta = system.pos[b] - system.pos[a]
+            # find the scaling
+            srow, fac = get_scaling(scalings, srow, a, b)
+            # continue if scaled to zero
+            if fac == 0.0:
+                continue
+            d = np.linalg.norm(delta)
+            if d < nlist.rcut:
+                energy  = fac*pair_fn(a, b, d, system.radii[a], system.radii[b])*system.valence_charges[a]*system.valence_charges[b]
+                energy += fac*pair_fn(a, b, d, 0.0, system.radii[b])*core_charges[a]*system.valence_charges[b]
+                energy += fac*pair_fn(a, b, d, system.radii[a], 0.0)*system.valence_charges[a]*core_charges[b]
+                energy += fac*pair_fn(a, b, d, 0.0, 0.0)*core_charges[a]*core_charges[b]
+                check_energy += energy
+    print "energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy)
+    print "energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy)
+    assert abs(energy1 - check_energy) < eps
+    assert abs(energy2 - check_energy) < eps
+
+
+def test_pair_pot_4113_01WaterWater_eislater1s1scorr():
+    system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_eislater1s1scorr()
+    check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn, 1e-8)
+
+
+#
 # Water derivative tests
 #
 
@@ -990,6 +1062,13 @@ def test_gpos_vtens_pair_pot_caffeine_ei2_10A():
     system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_ei3_10A()
     check_gpos_part(system, part_pair, nlist)
     check_vtens_part(system, part_pair, nlist)
+
+
+def test_gpos_vtens_pot_4113_01WaterWater_eislater1s1scorr():
+    system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_eislater1s1scorr()
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist)
+
 
 
 #
