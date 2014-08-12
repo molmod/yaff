@@ -420,7 +420,7 @@ void pair_data_disp68bjdamp_init(pair_pot_type *pair_pot, long nffatype, long* f
   }
 }
 
-double pair_fn_disp68bjdamp(void *pair_data, long center_index, long other_index, double d, double *g){
+double pair_fn_disp68bjdamp(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
   long i;
   double c6, c8, R, R2, R4, R6, R8, d2, d4, d6, d8;
   // Load parameters from data structure
@@ -717,29 +717,15 @@ double pair_fn_eislater1s1scorr(void *pair_data, long center_index, long other_i
 }
 
 
-void pair_data_olpslater1s1s_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double ex_scale, double corr_a, double corr_b, double corr_c ) {
-  pair_data_olpslater1s1s_type *pair_data;
-  pair_data = malloc(sizeof(pair_data_olpslater1s1s_type));
-  (*pair_pot).pair_data = pair_data;
-  if (pair_data != NULL) {
-    (*pair_pot).pair_fn = pair_fn_olpslater1s1s;
-    (*pair_data).widths = slater1s_widths;
-    (*pair_data).N = slater1s_N;
-    (*pair_data).ex_scale = ex_scale;
-    (*pair_data).corr_a = corr_a;
-    (*pair_data).corr_b = corr_b;
-    (*pair_data).corr_c = corr_c;
-  }
-}
-
-
-double pair_fn_olpslater1s1s(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
-  double a, b, dab, Na, Nb, da, db;
+double slater_00_00_olp(double a, double b, double d, double *g){
+  // Overlap between two 1s (=00) Slater densities carrying unit charge
+  // a: width of first Slater
+  // b: width of second Slater
+  // d: distance between two centers
+  // g: pointer to gradient
+  // Returns
+  double dab, da, db;
   double pot = 0.0;
-  a  = (*(pair_data_olpslater1s1s_type*)pair_data).widths[center_index];
-  b  = (*(pair_data_olpslater1s1s_type*)pair_data).widths[other_index];
-  Na = (*(pair_data_olpslater1s1s_type*)pair_data).N[center_index];
-  Nb = (*(pair_data_olpslater1s1s_type*)pair_data).N[other_index];
   dab = a - b;
   da = d/a;
   db = d/b;
@@ -775,6 +761,35 @@ double pair_fn_olpslater1s1s(void *pair_data, long center_index, long other_inde
         *g += (90.0+10.0*da-75.0*da2+12.0*da3)*exp(-da)*a6i/960.0/M_FOUR_PI*dab*dab;
     }
   }
+  return pot;
+}
+
+
+void pair_data_olpslater1s1s_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double ex_scale, double corr_a, double corr_b, double corr_c ) {
+  pair_data_olpslater1s1s_type *pair_data;
+  pair_data = malloc(sizeof(pair_data_olpslater1s1s_type));
+  (*pair_pot).pair_data = pair_data;
+  if (pair_data != NULL) {
+    (*pair_pot).pair_fn = pair_fn_olpslater1s1s;
+    (*pair_data).widths = slater1s_widths;
+    (*pair_data).N = slater1s_N;
+    (*pair_data).ex_scale = ex_scale;
+    (*pair_data).corr_a = corr_a;
+    (*pair_data).corr_b = corr_b;
+    (*pair_data).corr_c = corr_c;
+  }
+}
+
+
+double pair_fn_olpslater1s1s(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
+  double a, b, Na, Nb;
+  double pot = 0.0;
+  a  = (*(pair_data_olpslater1s1s_type*)pair_data).widths[center_index];
+  b  = (*(pair_data_olpslater1s1s_type*)pair_data).widths[other_index];
+  Na = (*(pair_data_olpslater1s1s_type*)pair_data).N[center_index];
+  Nb = (*(pair_data_olpslater1s1s_type*)pair_data).N[other_index];
+  // Overlap between unit Slater densities
+  pot += slater_00_00_olp(a, b, d, g);
   // Multiply with scaling factor and populations
   pot *= Na*Nb*(*(pair_data_olpslater1s1s_type*)pair_data).ex_scale;
   if (g != NULL) *g *= Na*Nb*(*(pair_data_olpslater1s1s_type*)pair_data).ex_scale;
@@ -808,4 +823,53 @@ double pair_data_olpslater1s1s_get_corr_b(pair_pot_type *pair_pot) {
 
 double pair_data_olpslater1s1s_get_corr_c(pair_pot_type *pair_pot) {
   return (*(pair_data_olpslater1s1s_type*)((*pair_pot).pair_data)).corr_c;
+}
+
+
+void pair_data_chargetransferslater1s1s_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double ct_scale, double width_power) {
+  pair_data_chargetransferslater1s1s_type *pair_data;
+  pair_data = malloc(sizeof(pair_data_chargetransferslater1s1s_type));
+  (*pair_pot).pair_data = pair_data;
+  if (pair_data != NULL) {
+    (*pair_pot).pair_fn = pair_fn_chargetransferslater1s1s;
+    (*pair_data).widths = slater1s_widths;
+    (*pair_data).N = slater1s_N;
+    (*pair_data).ct_scale = ct_scale;
+    (*pair_data).width_power = width_power;
+  }
+}
+
+
+double pair_fn_chargetransferslater1s1s(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
+  double a, b, Na, Nb, fac;
+  double pot = 0.0;
+  a  = (*(pair_data_olpslater1s1s_type*)pair_data).widths[center_index];
+  b  = (*(pair_data_olpslater1s1s_type*)pair_data).widths[other_index];
+  Na = (*(pair_data_olpslater1s1s_type*)pair_data).N[center_index];
+  Nb = (*(pair_data_olpslater1s1s_type*)pair_data).N[other_index];
+  // Overlap between unit Slater densities
+  pot += slater_00_00_olp(a, b, d, g);
+  // Multiply with scaling factor and populations
+  pot *= -Na*Nb*(*(pair_data_chargetransferslater1s1s_type*)pair_data).ct_scale;
+  if (g != NULL) *g *= -Na*Nb*(*(pair_data_chargetransferslater1s1s_type*)pair_data).ct_scale;
+  // Multiply with power of widths
+  // TODO: this power will likely be integer, so this could be implemented more efficiently
+  double wp = (*(pair_data_chargetransferslater1s1s_type*)pair_data).width_power;
+  if (wp == 3.0) {
+    fac = 1.0/a/b;
+    fac *= fac*fac;
+  } else {
+    fac = pow( 1.0/a/b, wp);
+  }
+  pot *= fac;
+  if (g != NULL) *g *= fac;
+  return pot;
+}
+
+double pair_data_chargetransferslater1s1s_get_ct_scale(pair_pot_type *pair_pot) {
+  return (*(pair_data_chargetransferslater1s1s_type*)((*pair_pot).pair_data)).ct_scale;
+}
+
+double pair_data_chargetransferslater1s1s_get_width_power(pair_pot_type *pair_pot) {
+  return (*(pair_data_chargetransferslater1s1s_type*)((*pair_pot).pair_data)).width_power;
 }

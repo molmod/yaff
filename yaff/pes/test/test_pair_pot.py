@@ -954,7 +954,7 @@ def get_part_4113_01WaterWater_olpslater1s1s():
     # Get a system and define scalings
     system = get_system_4113_01WaterWater()
     #system = system.subsystem([2,3])
-    #print system.slater1s_widths
+    #print system.radii
     nlist = NeighborList(system)
     scalings = Scalings(system, 0.0, 1.0, 1.0)
     rcut = 20*angstrom
@@ -986,7 +986,7 @@ def get_part_4113_01WaterWater_disp68bjdamp():
     # Get a system and define scalings
     system = get_system_4113_01WaterWater()
     #system = system.subsystem([2,3])
-    #print system.slater1s_widths
+    #print system.radii
     nlist = NeighborList(system)
     scalings = Scalings(system, 0.0, 0.0, 1.0)
     rcut = 20*angstrom
@@ -1016,6 +1016,36 @@ def get_part_4113_01WaterWater_disp68bjdamp():
         else: R0 = 0.0
         E = -c6_cross[i,j]/(R**6+(bj_a*R0+bj_b)**6) - c8_scale*c8_cross[i,j]/(R**8+(bj_a*R0+bj_b)**8)
         return E
+    return system, nlist, scalings, part_pair, pair_fn
+
+
+def get_part_4113_01WaterWater_chargetransferslater1s1s():
+    # Get a system and define scalings
+    system = get_system_4113_01WaterWater()
+    #system = system.subsystem([2,3])
+    #print system.radii
+    nlist = NeighborList(system)
+    scalings = Scalings(system, 0.0, 0.0, 1.0)
+    rcut = 20*angstrom
+    # Define some parameters for the exchange term
+    ct_scale = 0.01363842
+    width_power = 3.0
+    # Make the pair potential
+    pair_pot = PairPotChargeTransferSlater1s1s(system.radii, system.valence_charges, ct_scale, rcut, width_power=width_power)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    def pair_fn(i, j, R, alpha, beta):
+        E = 0.0
+        delta = beta-alpha
+        if np.abs(delta)<0.025:
+            alphaR = R/alpha
+            T0 = (alphaR**2+3.0*alphaR+3.0)*np.exp(-alphaR)/192.0/np.pi/alpha**3
+            T1 = (alphaR**3-2.0*alphaR**2-9.0*alphaR-9.0)*np.exp(-alphaR)/384.0/np.pi/alpha**4
+            T2 = (3.0*alphaR**4-25.0*alphaR**3+5.0*alphaR**2+90.0*alphaR+90.0)*np.exp(-alphaR)/1920.0/np.pi/alpha**5
+            E = T0 + T1*delta + 0.5*T2*delta**2
+        else:
+            E = (alpha*np.exp(-R/alpha) + beta*np.exp(-R/beta))/8.0/np.pi/(alpha-beta)**2/(alpha+beta)**2
+            E += alpha**2*beta**2*(np.exp(-R/beta) - np.exp(-R/alpha))/2.0/np.pi/R/(alpha-beta)**3/(alpha+beta)**3
+        return -E*ct_scale/(alpha*beta)**width_power
     return system, nlist, scalings, part_pair, pair_fn
 
 
@@ -1067,6 +1097,11 @@ def test_pair_pot_4113_01WaterWater_olpslater1s1s():
 def test_pair_pot_4113_01WaterWater_disp68bjdamp():
     system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_disp68bjdamp()
     check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn, 1e-8, mult_pop=False)
+
+
+def test_pair_pot_4113_01WaterWater_chargetransferslater1s1s():
+    system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_chargetransferslater1s1s()
+    check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn, 1e-8)
 
 
 #
@@ -1160,6 +1195,12 @@ def test_gpos_vtens_pot_4113_01WaterWater_olpslater1s1s():
 
 def test_gpos_vtens_pot_4113_01WaterWater_disp68bjdamp():
     system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_disp68bjdamp()
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist)
+
+
+def test_gpos_vtens_pot_4113_01WaterWater_chargetransferslater1s1s():
+    system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_chargetransferslater1s1s()
     check_gpos_part(system, part_pair, nlist)
     check_vtens_part(system, part_pair, nlist)
 
