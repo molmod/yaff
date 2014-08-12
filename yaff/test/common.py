@@ -506,6 +506,8 @@ def get_system_4113_01WaterWater():
                                -0.575295591836335, -0.5752744321374641])
     slater_Z = np.array([6.340131543436602,1.0,1.0,6.34008454441325,1.0,1.0])
     charges = slater_Z + slater_charges
-    system = System(numbers, pos, bonds=bonds, charges=charges,
-                    radii=slater_widths, valence_charges=slater_charges)
+    ffatypes = ['at%03d'%i for i in xrange(len(numbers))]
+    system = System(numbers, pos, bonds=bonds, ffatypes=ffatypes,
+                    charges=charges, radii=slater_widths,
+                    valence_charges=slater_charges)
     return system

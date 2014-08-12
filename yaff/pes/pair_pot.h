@@ -110,6 +110,26 @@ double pair_fn_dampdisp(void *pair_data, long center_index, long other_index, do
 
 
 typedef struct {
+  long nffatype;
+  long *ffatype_ids;
+  double *c6_cross;
+  double *c8_cross;
+  double *R_cross;
+  double c6_scale;
+  double c8_scale;
+  double bj_a;
+  double bj_b;
+} pair_data_disp68bjdamp_type;
+
+void pair_data_disp68bjdamp_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *c6_cross, double *c8_cross, double *R_cross, double c6_scale, double c8_scale, double bj_a, double bj_b);
+double pair_fn_disp68bjdamp(void *pair_data, long center_index, long other_index, double d, double *g);
+double pair_data_disp68bjdamp_get_c6_scale(pair_pot_type *pair_pot);
+double pair_data_disp68bjdamp_get_c8_scale(pair_pot_type *pair_pot);
+double pair_data_disp68bjdamp_get_bj_a(pair_pot_type *pair_pot);
+double pair_data_disp68bjdamp_get_bj_b(pair_pot_type *pair_pot);
+
+
+typedef struct {
   double *charges;
   double alpha;
   double dielectric;

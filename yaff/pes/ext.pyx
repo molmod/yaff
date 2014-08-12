@@ -48,11 +48,11 @@ __all__ = [
     'Cell', 'nlist_status_init', 'nlist_build', 'nlist_status_finish',
     'nlist_recompute', 'nlist_inc_r', 'Hammer', 'Switch3', 'PairPot',
     'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep',
-    'PairPotDampDisp', 'PairPotEI', 'PairPotEIDip', 'PairPotEiSlater1s1sCorr',
-    'PairPotOlpSlater1s1s', 'compute_ewald_reci', 'compute_ewald_reci_dd',
-    'compute_ewald_corr_dd', 'compute_ewald_corr', 'dlist_forward',
-    'dlist_back', 'iclist_forward', 'iclist_back', 'vlist_forward',
-    'vlist_back', 'compute_grid3d'
+    'PairPotDampDisp', 'PairPotDisp68BJDamp', 'PairPotEI', 'PairPotEIDip',
+    'PairPotEiSlater1s1sCorr', 'PairPotOlpSlater1s1s', 'compute_ewald_reci',
+    'compute_ewald_reci_dd', 'compute_ewald_corr_dd', 'compute_ewald_corr',
+    'dlist_forward', 'dlist_back', 'iclist_forward', 'iclist_back',
+    'vlist_forward', 'vlist_back', 'compute_grid3d'
 ]
 
 
@@ -1184,6 +1184,147 @@ cdef class PairPotDampDisp(PairPot):
         return self._c_b_cross.view()
 
     b_cross = property(_get_b_cross)
+
+
+cdef class PairPotDisp68BJDamp(PairPot):
+    r'''Dispersion term with r^-6 and r^-8 term and Becke-Johnson damping
+
+        **Arguments:**
+
+        ffatype_ids
+            An array with atom type IDs for each atom. The IDs are integer
+            indexes for the atom types that start counting from zero. shape =
+            (natom,).
+
+        c6_cross
+            The :math:`C_{6,ij}` cross parameters.
+
+        c8_cross
+            The :math:`C_{8,ij}` cross parameters.
+
+        R_cross
+            The R cross parameters. If not supplied, these are computed as
+            sqrt(C8/C6).
+
+        rcut
+            The cutoff radius
+
+        **Optional arguments:**
+
+        tr
+            The truncation scheme, an instance of a subclass of ``Truncation``.
+            When not given, no truncation is applied
+
+        c6s
+            The diagonal :math:`C_{6,i}` parameters
+
+        c8s
+            The diagonal :math:`C_{8,i}` parameters
+
+        Rs
+            The diagonal parameters
+
+        c6_scale
+            Overall scaling of c6 energy. (Default=1.0)
+
+        c8_scale
+            Overall scaling of c8 energy. (Default=1.0)
+
+        bj_a
+            Parameter to control Becke-Johnson damping.
+
+        bj_b
+            Another parameter to control Becke Johnson damping
+
+        The three last optional arguments are used to determine pair parameters
+        from the mixing rules. These mixing rules are only applied if the
+        corresponding cross parameters are initially set to zero in the arrays
+        ``c6_cross``, ``c8_cross`` and ``R_cross``.
+    '''
+    cdef long _c_nffatype
+    cdef np.ndarray _c_c6_cross
+    cdef np.ndarray _c_c8_cross
+    cdef np.ndarray _c_R_cross
+    name = 'disp68bjdamp'
+
+    def __cinit__(self, np.ndarray[long, ndim=1] ffatype_ids not None,
+                  np.ndarray[double, ndim=2] c6_cross not None,
+                  np.ndarray[double, ndim=2] c8_cross not None,
+                  np.ndarray[double, ndim=2] R_cross not None,
+                  double rcut, Truncation tr=None,
+                  np.ndarray[double, ndim=1] c6s=None,
+                  np.ndarray[double, ndim=1] c8s=None,
+                  np.ndarray[double, ndim=1] Rs=None,
+                  double c6_scale=1.0, double c8_scale=1.0, double bj_a=0.0, double bj_b=0.0):
+        assert ffatype_ids.flags['C_CONTIGUOUS']
+        assert c6_cross.flags['C_CONTIGUOUS']
+        assert c8_cross.flags['C_CONTIGUOUS']
+        assert R_cross.flags['C_CONTIGUOUS']
+        nffatype = c6_cross.shape[0]
+        assert ffatype_ids.min() >= 0
+        assert ffatype_ids.max() < nffatype
+        assert c6_cross.shape[1] == nffatype
+        assert c8_cross.shape[0] == nffatype
+        assert c8_cross.shape[1] == nffatype
+        assert R_cross.shape[0] == nffatype
+        assert R_cross.shape[1] == nffatype
+        if c6s is not None:
+            assert c6s.flags['C_CONTIGUOUS']
+            assert c6s.shape[0] == nffatype
+            raise NotImplementedError
+        if c8s is not None:
+            assert c8s.flags['C_CONTIGUOUS']
+            assert c8s.shape[0] == nffatype
+            raise NotImplementedError
+        if Rs is not None:
+            assert Rs.flags['C_CONTIGUOUS']
+            assert Rs.shape[0] == nffatype
+            raise NotImplementedError
+        if np.all(R_cross==0.0):
+            # We need to mask out zero c6 coefficients
+            mask = c6_cross != 0.0
+            R_cross[mask] = np.sqrt(c8_scale*c8_cross[mask]/c6_cross[mask]/c6_scale)
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        self.set_truncation(tr)
+        pair_pot.pair_data_disp68bjdamp_init(
+            self._c_pair_pot, nffatype, <long*> ffatype_ids.data,
+            <double*> c6_cross.data, <double*> c8_cross.data,
+            <double*> R_cross.data, c6_scale, c8_scale, bj_a, bj_b,
+        )
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_nffatype = nffatype
+        self._c_c6_cross = c6_cross
+        self._c_c8_cross = c8_cross
+        self._c_R_cross = R_cross
+
+    def log(self):
+        '''Print suitable initialization info on screen.'''
+        if log.do_high:
+            log.hline()
+            #log('ffatype_id0 ffatype_id1         C6          B')
+            #log.hline()
+            #for i0 in xrange(self._c_nffatype):
+            #    for i1 in xrange(i0+1):
+            #        log('%11i %11i %s %s' % (i0, i1, log.c6(self._c_c6_cross[i0,i1]), log.invlength(self._c_b_cross[i0,i1])))
+
+    def _get_c6_cross(self):
+        '''The C6 cross parameters'''
+        return self._c_c6_cross.view()
+
+    c6_cross = property(_get_c6_cross)
+
+    def _get_c8_cross(self):
+        '''The C8 cross parameters'''
+        return self._c_c8_cross.view()
+
+    c8_cross = property(_get_c8_cross)
+
+    def _get_R_cross(self):
+        '''The R cross parameters'''
+        return self._c_R_cross.view()
+
+    R_cross = property(_get_R_cross)
 
 
 cdef class PairPotEI(PairPot):

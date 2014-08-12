@@ -402,6 +402,69 @@ double pair_fn_dampdisp(void *pair_data, long center_index, long other_index, do
 }
 
 
+void pair_data_disp68bjdamp_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *c6_cross, double *c8_cross, double *R_cross, double c6_scale, double c8_scale, double bj_a, double bj_b) {
+  pair_data_disp68bjdamp_type *pair_data;
+  pair_data = malloc(sizeof(pair_data_disp68bjdamp_type));
+  (*pair_pot).pair_data = pair_data;
+  if (pair_data != NULL) {
+    (*pair_pot).pair_fn = pair_fn_disp68bjdamp;
+    (*pair_data).nffatype = nffatype;
+    (*pair_data).ffatype_ids = ffatype_ids;
+    (*pair_data).c6_cross = c6_cross;
+    (*pair_data).c8_cross = c8_cross;
+    (*pair_data).R_cross = R_cross;
+    (*pair_data).c6_scale = c6_scale;
+    (*pair_data).c8_scale = c8_scale;
+    (*pair_data).bj_a = bj_a;
+    (*pair_data).bj_b = bj_b;
+  }
+}
+
+double pair_fn_disp68bjdamp(void *pair_data, long center_index, long other_index, double d, double *g){
+  long i;
+  double c6, c8, R, R2, R4, R6, R8, d2, d4, d6, d8;
+  // Load parameters from data structure
+  pair_data_disp68bjdamp_type *pd;
+  pd = (pair_data_disp68bjdamp_type*)pair_data;
+  i = (*pd).ffatype_ids[center_index]*(*pd).nffatype + (*pd).ffatype_ids[other_index];
+  c6 = (*pd).c6_cross[i];
+  c8 = (*pd).c8_cross[i];
+  R  = (*pd).bj_a * (*pd).R_cross[i] + (*pd).bj_b;
+  // Compute succesive powers of distance and R
+  R2 = R*R;
+  R4 = R2*R2;
+  R6 = R4*R2;
+  R8 = R4*R4;
+  d2 = d*d;
+  d4 = d2*d2;
+  d6 = d4*d2;
+  d8 = d4*d4;
+  // Add everything together
+  double pot = -(*pd).c6_scale*c6/(d6+R6)-(*pd).c8_scale*c8/(d8+R8);
+  //printf("%d %d %f %f %f %f %f %f %f\n",center_index,other_index,c6,c8,d,R,pot,(*pd).c6_scale,(*pd).c8_scale);
+  if (g != NULL) {
+    *g = 6.0*(*pd).c6_scale*c6/(d6+R6)/(d6+R6)*d4 + 8.0*(*pd).c8_scale*c8/(d8+R8)/(d8+R8)*d6;
+  }
+  return pot;
+}
+
+double pair_data_disp68bjdamp_get_c6_scale(pair_pot_type *pair_pot) {
+  return (*(pair_data_disp68bjdamp_type*)((*pair_pot).pair_data)).c6_scale;
+}
+
+double pair_data_disp68bjdamp_get_c8_scale(pair_pot_type *pair_pot){
+  return (*(pair_data_disp68bjdamp_type*)((*pair_pot).pair_data)).c8_scale;
+}
+
+double pair_data_disp68bjdamp_get_bj_a(pair_pot_type *pair_pot){
+  return (*(pair_data_disp68bjdamp_type*)((*pair_pot).pair_data)).bj_a;
+}
+
+double pair_data_disp68bjdamp_get_bj_b(pair_pot_type *pair_pot){
+  return (*(pair_data_disp68bjdamp_type*)((*pair_pot).pair_data)).bj_b;
+}
+
+
 void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha, double dielectric, double *radii) {
   pair_data_ei_type *pair_data;
   pair_data = malloc(sizeof(pair_data_ei_type));
@@ -652,8 +715,6 @@ double pair_fn_eislater1s1scorr(void *pair_data, long center_index, long other_i
   }
   return pot;
 }
-
-
 
 
 void pair_data_olpslater1s1s_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double ex_scale, double corr_a, double corr_b, double corr_c ) {

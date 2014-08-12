@@ -982,7 +982,44 @@ def get_part_4113_01WaterWater_olpslater1s1s():
     return system, nlist, scalings, part_pair, pair_fn
 
 
-def check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn, eps, do_cores=False):
+def get_part_4113_01WaterWater_disp68bjdamp():
+    # Get a system and define scalings
+    system = get_system_4113_01WaterWater()
+    #system = system.subsystem([2,3])
+    #print system.slater1s_widths
+    nlist = NeighborList(system)
+    scalings = Scalings(system, 0.0, 0.0, 1.0)
+    rcut = 20*angstrom
+    # Define some parameters for the dispersion
+    c6_cross = np.array([[  0.        ,   4.19523224,   4.28064173,  23.14022933,   4.20534285,    4.2056618 ],
+                         [  4.19523224,   0.        ,   0.82846012,   4.19857256,   0.81388705,    0.81394877],
+                         [  4.28064173,   0.82846012,   0.        ,   4.28405005,   0.83045673,    0.83051972],
+                         [ 23.14022933,   4.19857256,   4.28405005,   0.        ,   4.20869122,    4.20901042],
+                         [  4.20534285,   0.81388705,   0.83045673,   4.20869122,   0.        ,    0.81591041],
+                         [  4.2056618 ,   0.81394877,   0.83051972,   4.20901042,   0.81591041,    0.        ]] )
+    c8_cross = np.array([[   0.       ,    35.7352303,    36.7355119,   372.3924437 ,   35.85391291,    35.85754569],
+                         [  35.7352303,     0.        ,    3.76477196,   35.77871306,    3.67442289,     3.67479519],
+                         [  36.7355119,     3.76477196,    0.        ,   36.78021181,    3.77727539,     3.77765811],
+                         [ 372.3924437,    35.77871306,   36.78021181,    0.        ,   35.89754009,    35.90117729],
+                         [  35.85391291,    3.67442289,    3.77727539,   35.89754009,    0.        ,     3.68699979],
+                         [  35.85754569,    3.67479519,    3.77765811,   35.90117729,    3.68699979,     0.        ]] )
+    R_cross = np.zeros((system.natom,system.natom))
+    c8_scale = 1.71910290
+    bj_a = 0.818471488
+    bj_b = 0.0
+
+    # Make the pair potential
+    pair_pot = PairPotDisp68BJDamp(system.ffatype_ids, c6_cross, c8_cross, R_cross, rcut, c8_scale=c8_scale,bj_a=bj_a,bj_b=bj_b)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    def pair_fn(i, j, R, alpha, beta):
+        if c6_cross[i,j] != 0.0: R0 = np.sqrt(c8_scale*c8_cross[i,j]/c6_cross[i,j])
+        else: R0 = 0.0
+        E = -c6_cross[i,j]/(R**6+(bj_a*R0+bj_b)**6) - c8_scale*c8_cross[i,j]/(R**8+(bj_a*R0+bj_b)**8)
+        return E
+    return system, nlist, scalings, part_pair, pair_fn
+
+
+def check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn, eps, do_cores=False, mult_pop=True):
     nlist.update() # update the neighborlists, once the rcuts are known.
     # Compute the energy using yaff.
     energy1 = part_pair.compute()
@@ -1003,7 +1040,9 @@ def check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn
                 continue
             d = np.linalg.norm(delta)
             if d < nlist.rcut:
-                energy  = fac*pair_fn(a, b, d, system.radii[a], system.radii[b])*system.valence_charges[a]*system.valence_charges[b]
+                energy  = fac*pair_fn(a, b, d, system.radii[a], system.radii[b])
+                if mult_pop:
+                    energy *= system.valence_charges[a]*system.valence_charges[b]
                 if do_cores:
                     energy += fac*pair_fn(a, b, d, 0.0, system.radii[b])*core_charges[a]*system.valence_charges[b]
                     energy += fac*pair_fn(a, b, d, system.radii[a], 0.0)*system.valence_charges[a]*core_charges[b]
@@ -1023,6 +1062,11 @@ def test_pair_pot_4113_01WaterWater_eislater1s1scorr():
 def test_pair_pot_4113_01WaterWater_olpslater1s1s():
     system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_olpslater1s1s()
     check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn, 1e-8)
+
+
+def test_pair_pot_4113_01WaterWater_disp68bjdamp():
+    system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_disp68bjdamp()
+    check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn, 1e-8, mult_pop=False)
 
 
 #
@@ -1113,6 +1157,11 @@ def test_gpos_vtens_pot_4113_01WaterWater_olpslater1s1s():
     check_gpos_part(system, part_pair, nlist)
     check_vtens_part(system, part_pair, nlist)
 
+
+def test_gpos_vtens_pot_4113_01WaterWater_disp68bjdamp():
+    system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_disp68bjdamp()
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist)
 
 #
 # Tests for special cases
