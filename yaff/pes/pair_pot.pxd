@@ -60,6 +60,10 @@ cdef extern from "pair_pot.h":
     void pair_data_dampdisp_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *c6_cross, double *b_cross)
 
     void pair_data_disp68bjdamp_init(pair_pot_type *pair_pot, long nffatype, long* ffaype_ids, double *c6_cross, double *c8_cross, double *R_cross, double c6_scale, double c8_scale, double bj_a, double bj_b)
+    double pair_data_disp68bjdamp_get_c6_scale(pair_pot_type *pair_pot)
+    double pair_data_disp68bjdamp_get_c8_scale(pair_pot_type *pair_pot)
+    double pair_data_disp68bjdamp_get_bj_a(pair_pot_type *pair_pot)
+    double pair_data_disp68bjdamp_get_bj_b(pair_pot_type *pair_pot)
 
     void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha, double dielectric, double *radii)
     double pair_data_ei_get_alpha(pair_pot_type *pair_pot)

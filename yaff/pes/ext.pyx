@@ -1301,13 +1301,18 @@ cdef class PairPotDisp68BJDamp(PairPot):
 
     def log(self):
         '''Print suitable initialization info on screen.'''
+        if log.do_medium:
+            log('  c6_scale:             %s' % ("%10.5f"%self.c6_scale))
+            log('  c8_scale:             %s' % ("%10.5f"%self.c8_scale))
+            log('  bj_a:             %s' % ("%10.5f"%self.bj_a))
+            log('  bj_b:             %s' % ("%10.5f"%self.bj_b))
         if log.do_high:
             log.hline()
-            #log('ffatype_id0 ffatype_id1         C6          B')
-            #log.hline()
-            #for i0 in xrange(self._c_nffatype):
-            #    for i1 in xrange(i0+1):
-            #        log('%11i %11i %s %s' % (i0, i1, log.c6(self._c_c6_cross[i0,i1]), log.invlength(self._c_b_cross[i0,i1])))
+            log('ffatype_id0 ffatype_id1         C6         C8          R')
+            log.hline()
+            for i0 in xrange(self._c_nffatype):
+                for i1 in xrange(i0+1):
+                    log('%11i %11i %s %s %s' % (i0, i1, log.c6(self._c_c6_cross[i0,i1]), "%10.5f"%self._c_c8_cross[i0,i1], log.length(self._c_R_cross[i0,i1])))
 
     def _get_c6_cross(self):
         '''The C6 cross parameters'''
@@ -1326,6 +1331,30 @@ cdef class PairPotDisp68BJDamp(PairPot):
         return self._c_R_cross.view()
 
     R_cross = property(_get_R_cross)
+
+    def _get_c6_scale(self):
+        '''Global scaling of C6 coefficients'''
+        return pair_pot.pair_data_disp68bjdamp_get_c6_scale(self._c_pair_pot)
+
+    c6_scale = property(_get_c6_scale)
+
+    def _get_c8_scale(self):
+        '''Global scaling of C8 coefficients'''
+        return pair_pot.pair_data_disp68bjdamp_get_c8_scale(self._c_pair_pot)
+
+    c8_scale = property(_get_c8_scale)
+
+    def _get_bj_a(self):
+        '''First parameter of Becke-Johnson damping'''
+        return pair_pot.pair_data_disp68bjdamp_get_bj_a(self._c_pair_pot)
+
+    bj_a = property(_get_bj_a)
+
+    def _get_bj_b(self):
+        '''Global scaling of C6 coefficients'''
+        return pair_pot.pair_data_disp68bjdamp_get_bj_b(self._c_pair_pot)
+
+    bj_b = property(_get_bj_b)
 
 
 cdef class PairPotEI(PairPot):
@@ -1569,15 +1598,12 @@ cdef class PairPotEiSlater1s1sCorr(PairPot):
 
     def log(self):
         '''Print suitable initialization info on screen.'''
-        if log.do_medium:
-            log.hline()
-            #log('  alpha:             %s' % log.invlength(self.alpha))
         if log.do_high:
             log.hline()
-            #log('   Atom     Charge')
-            #log.hline()
-            #for i in xrange(self._c_charges.shape[0]):
-            #    log('%7i %s' % (i, log.charge(self._c_charges[i])))
+            log('   Atom  Slater charge  Core charge   Slater width')
+            log.hline()
+            for i in xrange(self._c_slater1s_widths.shape[0]):
+                log('%7i     %s   %s     %s' % (i, log.charge(self._c_slater1s_N[i]),log.charge(self._c_slater1s_Z[i]),log.length(self._c_slater1s_widths[i])))
 
     def _get_slater1s_widths(self):
         '''The atomic charges'''
@@ -1657,14 +1683,16 @@ cdef class PairPotOlpSlater1s1s(PairPot):
     def log(self):
         '''Print suitable initialization info on screen.'''
         if log.do_medium:
-            log.hline()
-            #log('  alpha:             %s' % log.invlength(self.alpha))
+            log('  ex_scale:             %s' % ("%10.5f"%self.ex_scale))
+            log('  corr_a:             %s' % ("%10.5f"%self.corr_a))
+            log('  corr_b:             %s' % ("%10.5f"%self.corr_b))
+            log('  corr_c:             %s' % ("%10.5f"%self.corr_c))
         if log.do_high:
             log.hline()
-            #log('   Atom     Charge')
-            #log.hline()
-            #for i in xrange(self._c_charges.shape[0]):
-            #    log('%7i %s' % (i, log.charge(self._c_charges[i])))
+            log('   Atom  Slater charge   Slater width')
+            log.hline()
+            for i in xrange(self._c_slater1s_widths.shape[0]):
+                log('%7i     %s     %s' % (i, log.charge(self._c_slater1s_N[i]),log.length(self._c_slater1s_widths[i])))
 
     def _get_slater1s_widths(self):
         '''The atomic charges'''
@@ -1754,14 +1782,14 @@ cdef class PairPotChargeTransferSlater1s1s(PairPot):
     def log(self):
         '''Print suitable initialization info on screen.'''
         if log.do_medium:
-            log.hline()
-            #log('  alpha:             %s' % log.invlength(self.alpha))
+            log('  ct_scale:             %s' % ("%10.5f"%self.ct_scale))
+            log('  width_power:             %s' % ("%10.5f"%self.width_power))
         if log.do_high:
             log.hline()
-            #log('   Atom     Charge')
-            #log.hline()
-            #for i in xrange(self._c_charges.shape[0]):
-            #    log('%7i %s' % (i, log.charge(self._c_charges[i])))
+            log('   Atom  Slater charge   Slater width')
+            log.hline()
+            for i in xrange(self._c_slater1s_widths.shape[0]):
+                log('%7i     %s     %s' % (i, log.charge(self._c_slater1s_N[i]),log.length(self._c_slater1s_widths[i])))
 
     def _get_slater1s_widths(self):
         '''The atomic charges'''
