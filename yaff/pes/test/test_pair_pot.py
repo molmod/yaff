@@ -1249,3 +1249,127 @@ def test_bks_vtens_gpos_parts():
     for part in ff.parts:
         check_vtens_part(system, part, ff.nlist)
         check_gpos_part(system, part, ff.nlist)
+
+#
+# Tests for toy systems
+#
+def check_dipole_finite_difference(system, nlist, part_pair, eps):
+    # Collect data about the dipoles
+    a1s = part_pair.pair_pot.slater1s_widths
+    a1p = part_pair.pair_pot.slater1p_widths
+    N1s = part_pair.pair_pot.slater1s_N
+    Z1s = part_pair.pair_pot.slater1s_Z
+    N1p = part_pair.pair_pot.slater1p_N
+    Z1p = part_pair.pair_pot.slater1p_Z
+    # Construct a new system with at every site charges to approximate the dipoles + the original charges
+    # Those damn Slater dipole are however not that easy to approximate with
+    # Slater monopole, oh no. You need the recurrence relation for the Slater
+    # densities, which involves a derivative to alpha and to x. This leads to
+    # a finite difference approximation with 4 sites for each dipole.
+
+    # Set finite difference interval
+    delta = 0.001*angstrom
+    sigma = 0.001
+    pos = []
+    bonds = []
+    widths = []
+    Ns = []
+    Zs = []
+    for i in xrange(system.natom):
+        pos.append(system.pos[i])
+        for j in xrange(2): pos.append(system.pos[i] + delta*np.array([1.0,0.0,0.0]))
+        for j in xrange(2): pos.append(system.pos[i] - delta*np.array([1.0,0.0,0.0]))
+        for j in xrange(2): pos.append(system.pos[i] + delta*np.array([0.0,1.0,0.0]))
+        for j in xrange(2): pos.append(system.pos[i] - delta*np.array([0.0,1.0,0.0]))
+        for j in xrange(2): pos.append(system.pos[i] + delta*np.array([0.0,0.0,1.0]))
+        for j in xrange(2): pos.append(system.pos[i] - delta*np.array([0.0,0.0,1.0]))
+        # Connect all these charges so they do not get accounted in the pair pot.
+        for j in xrange(13):
+            for k in xrange(j+1,13):
+                bonds.append([13*i+j,13*i+k])
+        widths.append(a1s[i])
+        Ns.append(N1s[i])
+        Zs.append(Z1s[i])
+        for j in xrange(3):
+            for k in xrange(2):
+                widths.append(a1p[i,j]+sigma)
+                widths.append(a1p[i,j]-sigma)
+            Ns.append( 0.25/sigma/delta*N1p[i,j]*a1p[i,j]**-3*(a1p[i,j]+sigma)**4*0.25)
+            Ns.append(-0.25/sigma/delta*N1p[i,j]*a1p[i,j]**-3*(a1p[i,j]-sigma)**4*0.25)
+            Ns.append(-0.25/sigma/delta*N1p[i,j]*a1p[i,j]**-3*(a1p[i,j]+sigma)**4*0.25)
+            Ns.append( 0.25/sigma/delta*N1p[i,j]*a1p[i,j]**-3*(a1p[i,j]-sigma)**4*0.25)
+            Zs.append(0.5/delta*Z1p[i,j])
+            Zs.append(0.0)
+            Zs.append(-0.5/delta*Z1p[i,j])
+            Zs.append(0.0)
+    pos = np.asarray(pos)
+    numbers = np.repeat(system.numbers,13)
+    bonds = np.asarray(bonds)
+    widths = np.asarray(widths)
+    Ns = np.asarray(Ns)
+    Zs = np.asarray(Zs)
+    # Construct a new system
+    system_fd = System(numbers,pos,bonds=bonds)
+    # Construct a new pair potential
+    nlist_fd = NeighborList(system_fd)
+    scalings = Scalings(system_fd, 0.0, 0.0, 0.0)
+    rcut = 20.0*angstrom
+    pair_pot_fd = PairPotEiSlater1s1sCorr(widths,Ns,Zs,rcut)
+    part_pair_fd = ForcePartPair(system_fd, nlist_fd, scalings, pair_pot_fd)
+    nlist.update() # update the neighborlists, once the rcuts are known.
+    nlist_fd.update()
+    # Finally compare the energy of the two approaches
+    energy1 = part_pair.compute()
+    energy2 = part_pair_fd.compute()
+    rel_err = np.abs(energy1-energy2)/energy1
+    assert rel_err < eps
+
+
+def test_pair_pot_eislater1sp1spcorr():
+    # """Test dipole implementation by approximating dipole with monopoles"""
+    # Make a toy system with just two atoms
+    system = System(np.array([1,2]),np.array([[0.0,0.0,0.0],[0.4,0.7,0.5]]),bonds=np.array([]))
+    nlist = NeighborList(system)
+    scalings = Scalings(system, 0.0, 0.0, 0.0)
+    rcut = 20.0*angstrom
+    # Multipole sizes
+    N1s = np.array([0.5,2.0])
+    N1p = np.array([[0.9,4.0,3.0],[1.2,1.1,0.45]])
+    Z1s = np.array([2.0,8.0])
+    Z1p = np.array([[2.0,0.0,3.0],[3.0,4.0,06.0]])
+
+    # Slater-widths, very different
+    a1s = np.array([0.5,0.6])
+    a1p = np.array([[0.5,0.5,0.5],[0.6,0.6,0.6]])
+    pair_pot = PairPotEiSlater1sp1spCorr(a1s,N1s,Z1s,a1p,N1p,Z1p,rcut)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    # Check with finite difference (don't expect impressive accuracy!)
+    nlist.update()
+    check_dipole_finite_difference(system, nlist, part_pair, 1e-4)
+    # Check gradient and virial tensor
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist, symm_vtens=False)
+
+    # Slater-widths, nearly equal
+    a1s = np.array([0.5,0.501])
+    a1p = np.array([[0.5,0.5,0.5],[0.501,0.501,0.501]])
+    pair_pot = PairPotEiSlater1sp1spCorr(a1s,N1s,Z1s,a1p,N1p,Z1p,rcut)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    # Check with finite difference (don't expect impressive accuracy!)
+    nlist.update()
+    check_dipole_finite_difference(system, nlist, part_pair, 1e-4)
+    # Check gradient and virial tensor
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist, symm_vtens=False)
+
+    # Slater-widths, equal
+    a1s = np.array([0.5,0.5])
+    a1p = np.array([[0.5,0.5,0.5],[0.5,0.5,0.5]])
+    pair_pot = PairPotEiSlater1sp1spCorr(a1s,N1s,Z1s,a1p,N1p,Z1p,rcut)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    # Check with finite difference (don't expect impressive accuracy!)
+    nlist.update()
+    check_dipole_finite_difference(system, nlist, part_pair, 1e-4)
+    # Check gradient and virial tensor
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist, symm_vtens=False)

@@ -157,6 +157,19 @@ double pair_data_eidip_get_alpha(pair_pot_type *pair_pot);
 
 
 typedef struct {
+  double *Ns;
+  double *Zs;
+  double *widthss;
+  double *Np;
+  double *Zp;
+  double *widthsp;
+} pair_data_eislater1sp1spcorr_type;
+
+void pair_data_eislater1sp1spcorr_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double *slater1s_Z, double *slater1p_widths, double *slater1p_N, double *slater1p_Z);
+double pair_fn_eislater1sp1spcorr(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
+
+
+typedef struct {
   double *N;
   double *Z;
   double *widths;

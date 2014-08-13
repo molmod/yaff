@@ -49,7 +49,7 @@ __all__ = [
     'nlist_recompute', 'nlist_inc_r', 'Hammer', 'Switch3', 'PairPot',
     'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep',
     'PairPotDampDisp', 'PairPotDisp68BJDamp', 'PairPotEI', 'PairPotEIDip',
-    'PairPotEiSlater1s1sCorr', 'PairPotOlpSlater1s1s',
+    'PairPotEiSlater1s1sCorr', 'PairPotEiSlater1sp1spCorr', 'PairPotOlpSlater1s1s',
     'PairPotChargeTransferSlater1s1s', 'compute_ewald_reci',
     'compute_ewald_reci_dd', 'compute_ewald_corr_dd', 'compute_ewald_corr',
     'dlist_forward', 'dlist_back', 'iclist_forward', 'iclist_back',
@@ -1622,6 +1622,121 @@ cdef class PairPotEiSlater1s1sCorr(PairPot):
         return self._c_slater1s_Z.view()
 
     slater1s_Z = property(_get_slater1s_Z)
+
+
+cdef class PairPotEiSlater1sp1spCorr(PairPot):
+    r'''Electrostatic interaction between sites with a point charge, a
+        1s Slater charge density, a point dipole and a 1p Slater charge density
+        MINUS the electrostatic interaction between
+        the resulting net point monopoles and dipoles.
+        TODO: explain this properly
+
+        **Arguments:**
+
+        slater1s_widths
+            An array of Slater widths, shape = (natom,)
+
+        slater1s_N
+            An array of Slater populations, shape = (natom,)
+
+        slater1s_Z
+            An array of effective core charges, shape = (natom,)
+
+        slater1p_widths
+            An array of Slater widths, shape = (natom,3)
+
+        slater1p_N
+            An array of Slater populations, shape = (natom,3)
+
+        slater1p_Z
+            An array of point dipoles, shape = (natom,3)
+
+        rcut
+            The cutoff radius
+
+        **Optional arguments:**
+
+        tr
+            The truncation scheme, an instance of a subclass of ``Truncation``.
+            When not given, no truncation is applied
+    '''
+    cdef np.ndarray _c_slater1s_widths
+    cdef np.ndarray _c_slater1s_N
+    cdef np.ndarray _c_slater1s_Z
+    cdef np.ndarray _c_slater1p_widths
+    cdef np.ndarray _c_slater1p_N
+    cdef np.ndarray _c_slater1p_Z
+    name = 'eislater1sp1spcorr'
+
+    def __cinit__(self, np.ndarray[double, ndim=1] slater1s_widths,
+                  np.ndarray[double, ndim=1] slater1s_N, np.ndarray[double, ndim=1] slater1s_Z,
+                  np.ndarray[double, ndim=2] slater1p_widths, np.ndarray[double, ndim=2] slater1p_N,
+                  np.ndarray[double, ndim=2] slater1p_Z, double rcut, Truncation tr=None):
+        assert slater1s_widths.flags['C_CONTIGUOUS']
+        assert slater1s_N.flags['C_CONTIGUOUS']
+        assert slater1s_Z.flags['C_CONTIGUOUS']
+        assert slater1p_widths.flags['C_CONTIGUOUS']
+        assert slater1p_N.flags['C_CONTIGUOUS']
+        assert slater1p_Z.flags['C_CONTIGUOUS']
+        # Precompute some factors here???
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        self.set_truncation(tr)
+        pair_pot.pair_data_eislater1sp1spcorr_init(self._c_pair_pot, <double*>slater1s_widths.data,  <double*>slater1s_N.data,  <double*>slater1s_Z.data,
+                                                   <double*>slater1p_widths.data, <double*>slater1p_N.data, <double*>slater1p_Z.data)
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_slater1s_widths = slater1s_widths
+        self._c_slater1s_N = slater1s_N
+        self._c_slater1s_Z = slater1s_Z
+        self._c_slater1p_widths = slater1p_widths
+        self._c_slater1p_N = slater1p_N
+        self._c_slater1p_Z = slater1p_Z
+
+
+    def log(self):
+        '''Print suitable initialization info on screen.'''
+        if log.do_high:
+            log.hline()
+            log('   Atom  Slater charge  Core charge   Slater width')
+            log.hline()
+            for i in xrange(self._c_slater1s_widths.shape[0]):
+                log('%7i     %s   %s     %s' % (i, log.charge(self._c_slater1s_N[i]),log.charge(self._c_slater1s_Z[i]),log.length(self._c_slater1s_widths[i])))
+
+    def _get_slater1s_widths(self):
+        '''The atomic charges'''
+        return self._c_slater1s_widths.view()
+
+    slater1s_widths = property(_get_slater1s_widths)
+
+    def _get_slater1s_N(self):
+        '''The atomic charges'''
+        return self._c_slater1s_N.view()
+
+    slater1s_N = property(_get_slater1s_N)
+
+    def _get_slater1s_Z(self):
+        '''The atomic charges'''
+        return self._c_slater1s_Z.view()
+
+    slater1s_Z = property(_get_slater1s_Z)
+
+    def _get_slater1p_widths(self):
+        '''The atomic charges'''
+        return self._c_slater1p_widths.view()
+
+    slater1p_widths = property(_get_slater1p_widths)
+
+    def _get_slater1p_N(self):
+        '''The atomic charges'''
+        return self._c_slater1p_N.view()
+
+    slater1p_N = property(_get_slater1p_N)
+
+    def _get_slater1p_Z(self):
+        '''The atomic charges'''
+        return self._c_slater1p_Z.view()
+
+    slater1p_Z = property(_get_slater1p_Z)
 
 
 cdef class PairPotOlpSlater1s1s(PairPot):

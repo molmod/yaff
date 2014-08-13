@@ -74,7 +74,8 @@ cdef extern from "pair_pot.h":
     double pair_data_eidip_get_alpha(pair_pot_type *pair_pot)
 
     void pair_data_eislater1s1scorr_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double *slater1s_Z)
-    double pair_fn_eislater1s1scorr(void *pair_data, long center_index, long other_index, double d, double *g)
+
+    void pair_data_eislater1sp1spcorr_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double *slater1s_Z, double *slater1p_widths, double *slater1p_N, double *slater1p_Z)
 
     void pair_data_olpslater1s1s_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double ex_scale, double corr_a, double corr_b, double corr_c)
     double pair_data_olpslater1s1s_get_ex_scale(pair_pot_type *pair_pot)
