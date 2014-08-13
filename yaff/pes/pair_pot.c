@@ -26,7 +26,8 @@
 #include <stdlib.h>
 #include "constants.h"
 #include "pair_pot.h"
-#include <stdio.h>
+#include "slater.h"
+
 
 pair_pot_type* pair_pot_new(void) {
   pair_pot_type* result;
@@ -664,104 +665,15 @@ void pair_data_eislater1s1scorr_init(pair_pot_type *pair_pot, double *slater1s_w
 }
 
 double pair_fn_eislater1s1scorr(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
-  double a, b, dab, Za, Na, Zb, Nb, da, db;
-  double pot = 0.0;
-  a  = (*(pair_data_eislater1s1scorr_type*)pair_data).widths[center_index];
-  b  = (*(pair_data_eislater1s1scorr_type*)pair_data).widths[other_index];
-  Na = (*(pair_data_eislater1s1scorr_type*)pair_data).N[center_index];
-  Nb = (*(pair_data_eislater1s1scorr_type*)pair_data).N[other_index];
-  Za = (*(pair_data_eislater1s1scorr_type*)pair_data).Z[center_index];
-  Zb = (*(pair_data_eislater1s1scorr_type*)pair_data).Z[other_index];
-  dab = a - b;
-  da = d/a;
-  db = d/b;
-  // Discriminate between small and not small difference in slater width
-  if (fabs(dab) > 0.025) {  // TODO: carefully check criterium
-    double a2 = a*a;
-    double a3 = a2*a;
-    double a4 = a2*a2;
-    double b2 = b*b;
-    double b3 = b2*b;
-    double b4 = b2*b2;
-    double diff = 1.0/(a2-b2);
-    double diff2 = diff*diff;
-    double diff3 = diff2*diff;
-    double pot1 = Na*(Zb*(1.0+0.5*da) + Nb*( a4*(a2-3.0*b2)*diff3 + 0.5*a3*diff2*d )) * exp(-da) / d;
-    double pot2 = Nb*(Za*(1.0+0.5*db) + Na*( b4*(3.0*a2-b2)*diff3 + 0.5*b3*diff2*d )) * exp(-db) / d;
-    pot += - pot1 - pot2;
-    if (g != NULL) *g = (-pot/d+pot1/a+pot2/b - Na*(0.5*Zb/a + Nb*0.5*a3*diff2)*exp(-da)/d - Nb*(0.5*Za/b + Na*0.5*b3*diff2)*exp(-db)/d)/d;
-   } else {
-    double da2 = da*da;
-    double da3 = da2*da;
-    double da4 = da2*da2;
-    double a2i = 1.0/(a*a);
-    double a3i = a2i/a;
-    double a4i = a2i*a2i;
-    pot -= Na*Zb*(1.0+0.5*da)* exp(-da) / d;
-    pot -= Nb*Za*(1.0+0.5*db)* exp(-db) / d;
-    pot -= Na*Nb*(48.0+33.0*da+9.0*da2+da3)*exp(-da)/48.0/d; // Taylor 0th order in dab
-    pot += Na*Nb*(15.0+15.0*da+6.0*da2+da3)*exp(-da)*dab/96.0*a2i; // Taylor 1st order in dab
-    pot -= Na*Nb*(-60.0-60.0*da-15.0*da2+5.0*da3+3.0*da4)*exp(-da)*dab*dab/960.0*a3i; // Taylor 2nd order in dab
-    if (g != NULL) {
-      *g  = Na*Zb*(1.0+0.5*da)* exp(-da) / d * (1.0/d + 1.0/a) / d;
-      *g += Nb*Za*(1.0+0.5*db)* exp(-db) / d * (1.0/d + 1.0/b) / d;
-      *g += Na*Nb*(48.0+33.0*da+9.0*da2+da3)*exp(-da)/48.0/d * (1.0/d + 1.0/a) / d;
-      *g -= Na*Nb*(33.0+18.0*da+3.0*da2)*exp(-da)/48.0/d/d/a;
-      *g -= Na*Nb*(15.0+15.0*da+6.0*da2+da3)*exp(-da)*dab/96.0*a3i/d;
-      *g += Na*Nb*(15.0+12.0*da+3.0*da2)*exp(-da)*dab/96.0*a3i/d;
-      *g += Na*Nb*(-60.0-60.0*da-15.0*da2+5.0*da3+3.0*da4)*exp(-da)*dab*dab/960.0*a4i/d;
-      *g -= Na*Nb*(-60.0-30.0*da+15.0*da2+12.0*da3)*exp(-da)*dab*dab/960.0*a4i/d;
-    }
-  }
-  return pot;
-}
-
-
-double slater_00_00_olp(double a, double b, double d, double *g){
-  // Overlap between two 1s (=00) Slater densities carrying unit charge
-  // a: width of first Slater
-  // b: width of second Slater
-  // d: distance between two centers
-  // g: pointer to gradient
-  // Returns
-  double dab, da, db;
-  double pot = 0.0;
-  dab = a - b;
-  da = d/a;
-  db = d/b;
-  // Discriminate between small and not small difference in slater width
-  if (fabs(dab) > 0.025) {
-    double a2 = a*a;
-    double b2 = b*b;
-    double diff = 1.0/(a2-b2);
-    double diff2 = diff*diff;
-    double diff3 = diff2*diff;
-    double pot1 = 0.5*(-4.0*a2*b2*diff3 + a*d*diff2)*exp(-da)/d/M_FOUR_PI;
-    double pot2 = 0.5*( 4.0*a2*b2*diff3 + b*d*diff2)*exp(-db)/d/M_FOUR_PI;
-    pot += pot1 + pot2;
-    if (g != NULL) {
-      *g = -pot/d/d-pot1/d/a-pot2/d/b + 0.5*a*diff2*exp(-da)/d/M_FOUR_PI/d + 0.5*b*diff2*exp(-db)/d/M_FOUR_PI/d;
-    }
-  } else {
-    double da2 = da*da;
-    double da3 = da2*da;
-    double da4 = da2*da2;
-    double a2i = 1.0/(a*a);
-    double a3i = a2i/a;
-    double a4i = a2i*a2i;
-    double a5i = a3i*a2i;
-    double a6i = a3i*a3i;
-    pot += (da2+3.0*da+3.0)*exp(-da)*a3i/48.0/M_FOUR_PI;
-    pot += (-da3+2.0*da2+9.0*da+9.0)*exp(-da)*a4i/96.0/M_FOUR_PI*dab;
-    pot += (3.0*da4-25.0*da3+5.0*da2+90.0*da+90.0)*exp(-da)*a5i/960.0/M_FOUR_PI*dab*dab;
-    if (g != NULL) {
-        *g  = -pot/d/a;
-        *g += (3.0+2.0*da)*exp(-da)*a4i/48.0/M_FOUR_PI/d;
-        *g += (9.0+4.0*da-3.0*da2)*exp(-da)*a5i/96.0/M_FOUR_PI*dab/d;
-        *g += (90.0+10.0*da-75.0*da2+12.0*da3)*exp(-da)*a6i/960.0/M_FOUR_PI*dab*dab;
-    }
-  }
-  return pot;
+  return slaterei_0_0(
+    (*(pair_data_eislater1s1scorr_type*)pair_data).widths[center_index],
+    (*(pair_data_eislater1s1scorr_type*)pair_data).widths[other_index],
+    (*(pair_data_eislater1s1scorr_type*)pair_data).N[center_index],
+    (*(pair_data_eislater1s1scorr_type*)pair_data).Z[center_index],
+    (*(pair_data_eislater1s1scorr_type*)pair_data).N[other_index],
+    (*(pair_data_eislater1s1scorr_type*)pair_data).Z[other_index],
+    d, g
+  );
 }
 
 
@@ -789,7 +701,7 @@ double pair_fn_olpslater1s1s(void *pair_data, long center_index, long other_inde
   Na = (*(pair_data_olpslater1s1s_type*)pair_data).N[center_index];
   Nb = (*(pair_data_olpslater1s1s_type*)pair_data).N[other_index];
   // Overlap between unit Slater densities
-  pot += slater_00_00_olp(a, b, d, g);
+  pot += slaterolp_0_0(a, b, d, g);
   // Multiply with scaling factor and populations
   pot *= Na*Nb*(*(pair_data_olpslater1s1s_type*)pair_data).ex_scale;
   if (g != NULL) *g *= Na*Nb*(*(pair_data_olpslater1s1s_type*)pair_data).ex_scale;
@@ -848,7 +760,7 @@ double pair_fn_chargetransferslater1s1s(void *pair_data, long center_index, long
   Na = (*(pair_data_olpslater1s1s_type*)pair_data).N[center_index];
   Nb = (*(pair_data_olpslater1s1s_type*)pair_data).N[other_index];
   // Overlap between unit Slater densities
-  pot += slater_00_00_olp(a, b, d, g);
+  pot += slaterolp_0_0(a, b, d, g);
   // Multiply with scaling factor and populations
   pot *= -Na*Nb*(*(pair_data_chargetransferslater1s1s_type*)pair_data).ct_scale;
   if (g != NULL) *g *= -Na*Nb*(*(pair_data_chargetransferslater1s1s_type*)pair_data).ct_scale;

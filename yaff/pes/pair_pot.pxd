@@ -26,6 +26,7 @@
 cimport numpy as np
 cimport nlist
 cimport truncation
+cimport slater
 
 cdef extern from "pair_pot.h":
     ctypedef struct scaling_row_type:

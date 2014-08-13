@@ -27,6 +27,7 @@
 
 #include "nlist.h"
 #include "truncation.h"
+#include "slater.h"
 
 
 typedef double (*pair_fn_type)(void*, long, long, double, double*, double*, double*);
