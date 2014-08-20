@@ -1882,7 +1882,7 @@ cdef class PairPotChargeTransferSlater1s1s(PairPot):
 
     def __cinit__(self, np.ndarray[double, ndim=1] slater1s_widths,
                   np.ndarray[double, ndim=1] slater1s_N, double ct_scale,
-                  double rcut, Truncation tr=None, double width_power=0.0):
+                  double rcut, Truncation tr=None, double width_power=3.0):
         assert slater1s_widths.flags['C_CONTIGUOUS']
         assert slater1s_N.flags['C_CONTIGUOUS']
         # Precompute some factors here???
