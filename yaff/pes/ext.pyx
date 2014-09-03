@@ -47,7 +47,7 @@ from yaff.log import log
 __all__ = [
     'Cell', 'nlist_status_init', 'nlist_build', 'nlist_status_finish',
     'nlist_recompute', 'nlist_inc_r', 'Hammer', 'Switch3', 'PairPot',
-    'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep',
+    'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep', 'PairPotLJCross',
     'PairPotDampDisp', 'PairPotDisp68BJDamp', 'PairPotEI', 'PairPotEIDip',
     'PairPotEiSlater1s1sCorr', 'PairPotEiSlater1sp1spCorr', 'PairPotOlpSlater1s1s',
     'PairPotChargeTransferSlater1s1s', 'compute_ewald_reci',
@@ -1046,6 +1046,95 @@ cdef class PairPotExpRep(PairPot):
         return self._c_b_cross.view()
 
     b_cross = property(_get_b_cross)
+
+
+cdef class PairPotLJCross(PairPot):
+    r'''Lennard Jones with explicit cross parameters.
+
+       **Energy:**
+
+       .. math:: E_\text{LJ} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} 4 s_{ij} \epsilon_{ij} \left[
+                 \left(\frac{\sigma_{ij}}{d_{ij}}\right)^{12} - \left(\frac{\sigma_{ij}}{d_{ij}}\right)^6
+                 \right]
+
+       with
+
+       .. math:: s_{ij} = \text{the short-range scaling factor}
+
+
+       **Arguments:**
+
+        ffatype_ids
+            An array with atom type IDs for each atom. The IDs are integer
+            indexes for the atom types that start counting from zero. shape =
+            (natom,).
+
+       eps_cross
+            An array with epsilon parameters, one for each combination of atom types, shape (nffatype,nffatype)
+
+       sig_cross
+            An array with epsilon parameters, one for each combination of atom types, shape (nffatype,nffatype)
+
+       rcut
+            The cutoff radius
+
+       **Optional arguments:**
+
+       tr
+            The truncation scheme, an instance of a subclass of ``Truncation``.
+            When not given, no truncation is applied
+    '''
+    cdef long _c_nffatype
+    cdef np.ndarray _c_eps_cross
+    cdef np.ndarray _c_sig_cross
+    name = 'ljcross'
+
+    def __cinit__(self, np.ndarray[long, ndim=1] ffatype_ids not None,
+                  np.ndarray[double, ndim=2] eps_cross not None,
+                  np.ndarray[double, ndim=2] sig_cross not None,
+                  double rcut, Truncation tr=None):
+        assert ffatype_ids.flags['C_CONTIGUOUS']
+        assert eps_cross.flags['C_CONTIGUOUS']
+        assert sig_cross.flags['C_CONTIGUOUS']
+        nffatype = eps_cross.shape[0]
+        assert ffatype_ids.min() >= 0
+        assert ffatype_ids.max() < nffatype
+        assert eps_cross.shape[1] == nffatype
+        assert sig_cross.shape[0] == nffatype
+        assert sig_cross.shape[1] == nffatype
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        self.set_truncation(tr)
+        pair_pot.pair_data_ljcross_init(
+            self._c_pair_pot, nffatype, <long*> ffatype_ids.data,
+            <double*> eps_cross.data, <double*> sig_cross.data,
+        )
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_nffatype = nffatype
+        self._c_eps_cross = eps_cross
+        self._c_sig_cross = sig_cross
+
+    def log(self):
+        '''Print suitable initialization info on screen.'''
+        if log.do_high:
+            log.hline()
+            log('ffatype_id0 ffatype_id1         eps          sig')
+            log.hline()
+            for i0 in xrange(self._c_nffatype):
+                for i1 in xrange(i0+1):
+                    log('%11i %11i %s %s' % (i0, i1, log.energy(self._c_eps_cross[i0,i1]), log.length(self._c_sig_cross[i0,i1])))
+
+    def _get_eps_cross(self):
+        '''The C6 cross parameters'''
+        return self._c_eps_cross.view()
+
+    eps_cross = property(_get_eps_cross)
+
+    def _get_sig_cross(self):
+        '''The damping cross parameters'''
+        return self._c_sig_cross.view()
+
+    sig_cross = property(_get_sig_cross)
 
 
 cdef class PairPotDampDisp(PairPot):

@@ -793,6 +793,43 @@ def test_pair_pot_exprep_caffeine_5A_case2():
     check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, 1e-15)
 
 
+def get_part_caffeine_ljcross_9A():
+    # Get a system and define scalings
+    system = get_system_caffeine()
+    nlist = NeighborList(system)
+    scalings = Scalings(system, 0.0, 0.0, 1.0)
+    # Initialize (very random) parameters
+    assert system.nffatype == 4
+    eps_cross = np.array([[1.0,3.5,4.6,9.4],
+                          [3.5,2.0,4.4,4.1],
+                          [4.6,4.4,5.0,3.3],
+                          [9.4,4.1,3.3,0.1]])
+    sig_cross = np.array([[0.2,0.5,1.6,1.4],
+                          [0.5,1.0,2.4,1.1],
+                          [1.6,2.4,1.0,2.3],
+                          [1.4,1.1,2.3,0.9]])
+    assert np.all( np.abs( sig_cross - np.transpose(sig_cross) ) < 1e-15 )
+    assert np.all( np.abs( eps_cross - np.transpose(eps_cross) ) < 1e-15 )
+    # Construct the pair potential and part
+    pair_pot = PairPotLJCross(system.ffatype_ids, eps_cross, sig_cross, 9*angstrom)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    # The pair function
+    def pair_fn(i0, i1, d):
+        ffat0 = system.ffatype_ids[i0]
+        ffat1 = system.ffatype_ids[i1]
+        epsilon = eps_cross[ffat0,ffat1]
+        sigma = sig_cross[ffat0,ffat1]
+        E = 4.0*epsilon*( (sigma/d)**12.0 - (sigma/d)**6.0 )
+        #print "%2d %2d %4.1f %+7.4f" % (i0,i1,d,E)
+        return E
+    return system, nlist, scalings, part_pair, pair_fn
+
+
+def test_pair_pot_ljcross_caffeine_9A():
+    system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_ljcross_9A()
+    check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, 1e-15)
+
+
 def get_part_caffeine_dampdisp_9A():
     # Get a system and define scalings
     system = get_system_caffeine()
@@ -1153,6 +1190,12 @@ def test_gpos_vtens_pair_pot_caffeine_exprep_5A_case1():
 
 def test_gpos_vtens_pair_pot_caffeine_exprep_5A_case2():
     system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_exprep_5A(1, 2.385e-2, 1, 7.897e-3)
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist)
+
+
+def test_gpos_vtens_pair_pot_caffeine_ljcross_9A():
+    system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_ljcross_9A()
     check_gpos_part(system, part_pair, nlist)
     check_vtens_part(system, part_pair, nlist)
 

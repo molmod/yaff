@@ -336,6 +336,39 @@ bail:
 }
 
 
+void pair_data_ljcross_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *eps_cross, double *sig_cross) {
+  pair_data_ljcross_type *pair_data;
+  pair_data = malloc(sizeof(pair_data_ljcross_type));
+  (*pair_pot).pair_data = pair_data;
+  if (pair_data != NULL) {
+    (*pair_pot).pair_fn = pair_fn_ljcross;
+    (*pair_data).nffatype = nffatype;
+    (*pair_data).ffatype_ids = ffatype_ids;
+    (*pair_data).eps_cross = eps_cross;
+    (*pair_data).sig_cross = sig_cross;
+  }
+}
+
+
+double pair_fn_ljcross(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
+  long i;
+  double sigma, epsilon, x;
+  // Load parameters from data structure and mix
+  pair_data_ljcross_type *pd;
+  pd = (pair_data_ljcross_type*)pair_data;
+  i = (*pd).ffatype_ids[center_index]*(*pd).nffatype + (*pd).ffatype_ids[other_index];
+  epsilon = (*pd).eps_cross[i];
+  sigma = (*pd).sig_cross[i];
+  x = sigma/d;
+  x *= x;
+  x *= x*x;
+  if (g != NULL) {
+    *g = 24.0*epsilon/d/d*x*(1.0-2.0*x);
+  }
+  return 4.0*epsilon*(x*(x-1.0));
+}
+
+
 
 void pair_data_dampdisp_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *c6_cross, double *b_cross) {
   pair_data_dampdisp_type *pair_data;
