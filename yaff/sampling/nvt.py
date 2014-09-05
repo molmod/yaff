@@ -33,6 +33,7 @@ from yaff.sampling.iterative import Iterative, StateItem
 from yaff.sampling.utils import get_random_vel, clean_momenta, \
     get_ndof_internal_md
 from yaff.sampling.verlet import VerletHook
+from yaff.sampling.npt import MartynaTobiasKleinBarostat
 
 
 __all__ = [
@@ -159,11 +160,11 @@ class NHChain(object):
             do_bead(k, ekin)
 
         # iL (G_g - vxi_1 vg) h/4 if barostat is present
-        if barostat is not None:
+        if isinstance(barostat, MartynaTobiasKleinBarostat):
             barostat.propagate_press(self.vel[0], self.ndof, ekin, vel, masses, volume, iterative)
         # iL xi (all) h/2
         self.pos += self.vel*self.timestep/2
-        if barostat is not None:
+        if isinstance(barostat, MartynaTobiasKleinBarostat):
             # iL (vg + Tr(vg)/ndof + vxi_1) h/2 if barostat is present
             vel, ekin = barostat.propagate_vel(self.vel[0], self.ndof, vel, masses)
             # iL (G_g - vxi_1 vg) h/4 if barostat is present
@@ -218,7 +219,7 @@ class NHCThermostat(VerletHook):
                 The number of beads in the Nose-Hoover chain.
 
            barostat
-                A MartynaTobiasKleinBarostat instance.
+                A Barostat instance.
         """
         self.temp = temp
         # At this point, the timestep and the number of degrees of freedom are
@@ -236,7 +237,7 @@ class NHCThermostat(VerletHook):
         # Configure the chain.
         self.chain.timestep = iterative.timestep
         self.chain.set_ndof(iterative.ndof)
-        if self.barostat is not None:
+        if isinstance(self.barostat, MartynaTobiasKleinBarostat):
             self.barostat.set_ndof(iterative.ndof)
 
     def pre(self, iterative):

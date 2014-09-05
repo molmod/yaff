@@ -26,7 +26,7 @@
 
 import numpy as np
 
-from molmod import boltzmann, femtosecond, kjmol
+from molmod import boltzmann, femtosecond, kjmol, bar
 
 from yaff.log import log, timer
 from yaff.sampling.utils import get_random_vel
@@ -34,9 +34,63 @@ from yaff.sampling.verlet import VerletHook
 
 
 __all__ = [
-    'AndersenMcDonaldBarostat', 'MartynaTobiasKleinBarostat'
+    'AndersenMcDonaldBarostat', 'BerendsenBarostat', 'MartynaTobiasKleinBarostat',
+    'ThermostatBarostatCombination'
 ]
 
+class ThermostatBarostatCombination(VerletHook):
+    def __init__(self, thermostat, barostat, start = 0, step_thermo = 1, step_baro = 1):
+        """
+            VerletHook combining an arbitrary thermostat instance and barostat instance,
+            which ensures these instances are called in the correct succession.
+
+            **Arguments:**
+
+            thermostat
+                The thermostat instance
+
+            barostat
+                The barostat instance
+
+        """
+        self.thermostat = thermostat
+        self.barostat = barostat
+        self.start = start
+        self.step_thermo = step_thermo
+        self.step_baro = step_baro
+        if not self.verify():
+            raise TypeError('The thermostat or barostat instance is not supported')
+        VerletHook.__init__(self, start, min(step_thermo, step_baro))
+
+    def pre(self, iterative):
+        if self.expectscall(iterative, 'baro'):
+            self.barostat.pre(self)
+        if self.expectscall(iterative, 'thermo'):
+            self.thermostat.pre(self)
+
+    def post(self, iterative):
+        if self.expectscall(iterative, 'thermo'):
+            self.thermostat.post(self)
+        if self.expectscall(iterative, 'baro'):
+            self.barostat.post(self)
+
+    def expectscall(self, iterative, kind):
+        if kind == 'thermo':
+            return iterative.counter >= self.start and (iterative.counter - self.start) % self.step_thermo == 0
+        if kind == 'baro':
+            return iterative.counter >= self.start and (iterative.counter - self.start) % self.step_baro == 0
+
+    def verify(self):
+        from yaff.sampling.nvt import AndersenThermostat, NHCThermostat, LangevinThermostat
+        thermo_correct = False
+        baro_correct = False
+        thermo_list = [AndersenThermostat, NHCThermostat, LangevinThermostat]
+        baro_list = [AndersenMcDonaldBarostat, BerendsenBarostat, MartynaTobiasKleinBarostat]
+        if any(isinstance(self.thermostat, thermo) for thermo in thermo_list):
+            thermo_correct = True
+        if any(isinstance(self.barostat, baro) for baro in baro_list):
+            baro_correct = True
+        return (thermo_correct and baro_correct)
 
 class AndersenMcDonaldBarostat(VerletHook):
     def __init__(self, temp, press, start=0, step=1, amp=1e-3):
@@ -123,13 +177,96 @@ class AndersenMcDonaldBarostat(VerletHook):
                     log('THERMO energy change %s' % log.energy(ekin0 - ekin1))
 
 
+class BerendsenBarostat(VerletHook):
+    def __init__(self, ff, temp, press, start=0, timecon=1000*femtosecond, beta = 4.57e-5/bar, anisotropic=True):
+        """
+            This hook implements the combination of the Berendsen barostat. The
+            equations are derived in:
+
+                Berendsen, H. J. C.; Postma, J. P. M.; van Gunsteren, W. F.;
+                Dinola, A.; Haak, J. R. J. Chem. Phys. 1984, 81, 3684-3690
+
+            **Arguments:**
+
+            ff
+                A ForceField instance.
+
+            temp
+                The temperature of thermostat.
+
+            press
+                The applied pressure for the barostat.
+
+            **Optional arguments:**
+
+            start
+                The step at which the thermostat becomes active.
+
+            timecon
+                The time constant of the Berendsen barostat.
+
+            beta
+                The isothermal compressibility, conventionally the compressibility of liquid water
+        """
+        self.temp = temp
+        self.press = press
+        self.mass_press = 3.0*timecon/beta
+        self.anisotropic = anisotropic
+        self.cell = ff.system.cell.rvecs.copy()
+        self.cell_symmetrize(ff)
+        VerletHook.__init__(self, start, 1)
+
+    def cell_symmetrize(self, ff):
+        # SVD decomposition of cell tensor
+        U, s, Vt = np.linalg.svd(self.cell)
+        # definition of the rotation matrix to symmetrize cell tensor
+        rot_mat = np.dot(Vt.T, U.T)
+        # symmetrize cell tensor and update cell
+        self.cell = np.dot(self.cell, rot_mat)
+        ff.update_rvecs(self.cell)
+        # also update the new atomic positions
+        pos_new = np.dot(ff.system.pos, rot_mat)
+        ff.update_pos(pos_new)
+
+    def init(self, iterative):
+        self.timestep_press = iterative.timestep
+
+    def pre(self, iterative):
+        # calculation of the virial tensor
+        iterative.gpos = np.zeros(iterative.pos.shape, float)
+        iterative.vtens = np.zeros((3,3),float)
+        energy = iterative.ff.compute(iterative.gpos,iterative.vtens)
+        # calculation of the internal pressure tensor
+        ptens = (np.dot(iterative.vel.T*iterative.masses, iterative.vel) - iterative.vtens)/iterative.ff.system.cell.volume
+        # determination of mu
+        mu = np.eye(3)-self.timestep_press/self.mass_press*(self.press*np.eye(3)-ptens)
+        mu = 0.5*(mu+mu.T)
+        if not self.anisotropic:
+            mu = ((np.trace(mu)/3.0)**(1.0/3.0))*np.eye(3)
+        # updating the positions and cell vectors
+        pos_new = np.dot(iterative.pos, mu)
+        rvecs_new = np.dot(iterative.rvecs, mu)
+        iterative.ff.update_pos(pos_new)
+        iterative.pos[:] = pos_new
+        iterative.ff.update_rvecs(rvecs_new)
+        iterative.rvecs[:] = rvecs_new
+
+    def post(self, iterative):
+        self.econs_correction = self.press*iterative.ff.system.cell.volume
+
+    def add_press_cont(self):
+        return 0
+
+    def get_econs_correction(self, chain_pos, volume):
+        return 0
+
 class MartynaTobiasKleinBarostat(VerletHook):
     def __init__(self, ff, temp, press, start=0, timecon=1000*femtosecond):
         """
             This hook implements the combination of the Nosé-Hoover chain thermostat
             and the Martyna-Tobias-Klein barostat. The equations are derived in:
 
-                Martyna, G. J.; Tobias, D. J.: Klein, M. L. J. Chem. Phys. 1994,
+                Martyna, G. J.; Tobias, D. J.; Klein, M. L. J. Chem. Phys. 1994,
                 101, 4177-4189.
 
             The implementation (used here) of a symplectic integrator of this thermostat

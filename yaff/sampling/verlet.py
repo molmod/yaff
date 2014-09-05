@@ -180,10 +180,11 @@ class VerletIntegrator(Iterative):
     def propagate(self):
         # Allow specialized hooks to modify the state before the regular verlet
         # step.
+        posoud = self.pos.copy()
         self.call_verlet_hooks('pre')
         from yaff.sampling.npt import MartynaTobiasKleinBarostat
         if not any(isinstance(hook, MartynaTobiasKleinBarostat) for hook in self.hooks):
-            # Regular verlet step if not MTK barostat is present
+            # Regular verlet step if no MTK barostat is present
             self.delta[:] = self.timestep*self.vel + (0.5*self.timestep**2)*self.acc
             self.pos += self.delta
             self.ff.update_pos(self.pos)
@@ -206,8 +207,7 @@ class VerletIntegrator(Iterative):
                     Dv = np.zeros((3,3))
                     for i in xrange(3):
                         arg = Dr[i][i]*self.timestep/2
-                        # exp times Mclaurin series of sinh (O(8))
-                        Dv[i][i] = np.exp(arg)*(1+arg**2/fact(3)+arg**4/fact(5)+arg**6/fact(7)+arg**8/fact(9)+arg**10/fact(11)+arg**12/fact(13)+arg**14/fact(15))
+                        Dv[i][i] = np.exp(arg)*np.sinh(arg)/arg
                     # store old position for bookkeeping, and update positions
                     pos_old = self.pos.copy()
                     rot = np.dot(np.dot(Qg, Dracc), Qg.T)
@@ -217,13 +217,10 @@ class VerletIntegrator(Iterative):
                     U2, s2, V2t = np.linalg.svd(rot_2)
                     rot_sym_2 = np.dot(np.dot(U2, np.diagflat(s2)), U2.T)
                     self.pos = np.dot(self.pos, rot_sym) + self.timestep*np.dot(self.vel, rot_sym_2)
-                    #self.pos = np.dot(np.dot(np.dot(self.pos, Qg), Dracc) + self.timestep*np.dot(np.dot(self.vel,Qg),Dv), Qg.T)
                     self.delta = self.pos - pos_old
                     self.ff.update_pos(self.pos)
                     # update cell tensor
                     self.rvecs = np.dot(self.rvecs,rot_sym)
-                    #self.rvecs = np.dot(np.dot(np.dot(self.rvecs, Qg), Dracc), Qg.T)
-                    #self.ff.update_rvecs(0.5*(self.rvecs+self.rvecs.T))
                     self.ff.update_rvecs(self.rvecs)
                     self.rvecs = self.ff.system.cell.rvecs.copy()
                     # recompute properties and forces for second part velocity update
