@@ -32,6 +32,7 @@ import numpy as np
 __all__ = [
     'get_random_vel', 'remove_com_moment', 'remove_angular_moment',
     'clean_momenta', 'angular_moment', 'get_ndof_internal_md',
+    'cell_symmetrize', 'get_random_vel_press'
 ]
 
 
@@ -281,3 +282,47 @@ def get_ndof_internal_md(natom, nper):
     else:
         # 2D and 3D periodic
         return 3*natom - 3
+
+def cell_symmetrize(ff):
+    '''Symmetrizes the unit cell tensor, and updates the position vectors
+
+    **Arguments:**
+
+    ff
+        A ForceField instance.
+    '''
+    # store the unit cell tensor
+    cell = ff.system.cell.rvecs.copy()
+    # SVD decomposition of cell tensor
+    U, s, Vt = np.linalg.svd(cell)
+    # definition of the rotation matrix to symmetrize cell tensor
+    rot_mat = np.dot(Vt.T, U.T)
+    # symmetrize cell tensor and update cell
+    cell = np.dot(cell, rot_mat)
+    ff.update_rvecs(cell)
+    # also update the new atomic positions
+    pos_new = np.dot(ff.system.pos, rot_mat)
+    ff.update_pos(pos_new)
+
+def get_random_vel_press(mass, temp):
+    '''Generates symmetric tensor of barostat velocities
+
+    *Arguments:**
+
+    mass
+        The Barostat mass.
+    temp
+        The temperature at which the velocities are selected.
+    '''
+    shape = 3, 3
+    # generate random 3x3 tensor
+    rand = np.random.normal(0, np.sqrt(mass*boltzmann*temp), shape)/mass
+    vel_press = np.zeros(shape)
+    # create initial symmetric pressure velocity tensor
+    for i in xrange(3):
+        for j in xrange(3):
+            if i >= j:
+                vel_press[i,j] = rand[i,j]
+            else:
+                vel_press[i,j] = rand[j,i]
+    return vel_press

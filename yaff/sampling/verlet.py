@@ -165,6 +165,7 @@ class VerletIntegrator(Iterative):
         self.ff.update_pos(self.pos)
         self.epot = self.ff.compute(self.gpos)
         self.acc = -self.gpos/self.masses.reshape(-1,1)
+        self.posoud = self.pos.copy()
 
         # Allow for specialized initializations by the Verlet hooks.
         self.call_verlet_hooks('init')
@@ -180,59 +181,29 @@ class VerletIntegrator(Iterative):
     def propagate(self):
         # Allow specialized hooks to modify the state before the regular verlet
         # step.
-        posoud = self.pos.copy()
         self.call_verlet_hooks('pre')
-        from yaff.sampling.npt import MartynaTobiasKleinBarostat
-        if not any(isinstance(hook, MartynaTobiasKleinBarostat) for hook in self.hooks):
-            # Regular verlet step if no MTK barostat is present
-            self.delta[:] = self.timestep*self.vel + (0.5*self.timestep**2)*self.acc
-            self.pos += self.delta
-            self.ff.update_pos(self.pos)
-            self.gpos[:] = 0.0
-            self.vtens[:] = 0.0
-            self.epot = self.ff.compute(self.gpos, self.vtens)
-            acc = -self.gpos/self.masses.reshape(-1,1)
-            self.vel += 0.5*(acc+self.acc)*self.timestep
-            self.acc = acc
-        else:
-            for hook in self.hooks:
-                if isinstance(hook, MartynaTobiasKleinBarostat):
-                    # Modified Verlet step if MTK barostat is present
-                    # first velocity update
-                    self.vel += 0.5*self.acc*self.timestep
-                    # define matrices Dr, D'_r and Dv
-                    Dr, Qg = np.linalg.eigh(hook.vel_press)
-                    Dracc = np.diagflat(np.exp(Dr*self.timestep))
-                    Dr = np.diagflat(Dr)
-                    Dv = np.zeros((3,3))
-                    for i in xrange(3):
-                        arg = Dr[i][i]*self.timestep/2
-                        Dv[i][i] = np.exp(arg)*np.sinh(arg)/arg
-                    # store old position for bookkeeping, and update positions
-                    pos_old = self.pos.copy()
-                    rot = np.dot(np.dot(Qg, Dracc), Qg.T)
-                    U, s, Vt = np.linalg.svd(rot)
-                    rot_sym = np.dot(np.dot(U,np.diagflat(s)), U.T)
-                    rot_2 = np.dot(np.dot(Qg, Dv), Qg.T)
-                    U2, s2, V2t = np.linalg.svd(rot_2)
-                    rot_sym_2 = np.dot(np.dot(U2, np.diagflat(s2)), U2.T)
-                    self.pos = np.dot(self.pos, rot_sym) + self.timestep*np.dot(self.vel, rot_sym_2)
-                    self.delta = self.pos - pos_old
-                    self.ff.update_pos(self.pos)
-                    # update cell tensor
-                    self.rvecs = np.dot(self.rvecs,rot_sym)
-                    self.ff.update_rvecs(self.rvecs)
-                    self.rvecs = self.ff.system.cell.rvecs.copy()
-                    # recompute properties and forces for second part velocity update
-                    self.compute_properties()
-                    self.gpos[:] = 0.0
-                    self.vtens[:] = 0.0
-                    self.epot = self.ff.compute(self.gpos, self.vtens)
-                    self.acc = -self.gpos/self.masses.reshape(-1,1)
-                    self.vel += 0.5*self.acc*self.timestep
+
+        # Regular verlet step
+        self.gpos[:] = 0.0
+        self.vtens[:] = 0.0
+        self.epot = self.ff.compute(self.gpos, self.vtens)
+        self.acc = -self.gpos/self.masses.reshape(-1,1)
+        self.vel += 0.5*self.acc*self.timestep
+        self.delta[:] = self.timestep*self.vel
+        self.pos += self.delta
+        self.ff.update_pos(self.pos)
+        self.gpos[:] = 0.0
+        self.vtens[:] = 0.0
+        self.epot = self.ff.compute(self.gpos, self.vtens)
+        self.acc = -self.gpos/self.masses.reshape(-1,1)
+        self.vel += 0.5*self.acc*self.timestep
 
         # Allow specialized verlet hooks to modify the state after the step
         self.call_verlet_hooks('post')
+        self.posnieuw = self.pos.copy()
+        self.delta[:] = self.posnieuw-self.posoud
+        self.posoud[:] = self.posnieuw
+        self.epot = self.ff.compute(self.gpos, self.vtens)
 
         # Common post-processing of a single step
         self.time += self.timestep
