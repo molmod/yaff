@@ -141,8 +141,9 @@ class NeighborList(object):
 
             if self._need_rebuild():
                 # *rebuild* the entire neighborlist
-                if self.system.natom/self.system.cell.volume > 1:
-                    raise ValueError('Atom density too high')
+                if self.system.cell.volume != 0:
+                    if self.system.natom/self.system.cell.volume > 1:
+                        raise ValueError('Atom density too high')
                 # 1) make an initial status object for the neighbor list algorithm
                 status = nlist_status_init(self.rmax)
                 # 2) a loop of consecutive update/allocate calls

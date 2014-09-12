@@ -182,7 +182,7 @@ class VerletIntegrator(Iterative):
         # Allow specialized hooks to modify the state before the regular verlet
         # step.
         self.call_verlet_hooks('pre')
-
+        '''
         # Regular verlet step
         self.gpos[:] = 0.0
         self.vtens[:] = 0.0
@@ -197,13 +197,27 @@ class VerletIntegrator(Iterative):
         self.epot = self.ff.compute(self.gpos, self.vtens)
         self.acc = -self.gpos/self.masses.reshape(-1,1)
         self.vel += 0.5*self.acc*self.timestep
+        '''
+
+        # Regular verlet step
+        self.delta[:] = self.timestep*self.vel + (0.5*self.timestep**2)*self.acc
+        self.pos += self.delta
+        self.ff.update_pos(self.pos)
+        self.gpos[:] = 0.0
+        self.vtens[:] = 0.0
+        self.epot = self.ff.compute(self.gpos, self.vtens)
+        acc = -self.gpos/self.masses.reshape(-1,1)
+        self.vel += 0.5*(acc+self.acc)*self.timestep
+        self.acc = acc
 
         # Allow specialized verlet hooks to modify the state after the step
         self.call_verlet_hooks('post')
+        '''
         self.posnieuw = self.pos.copy()
         self.delta[:] = self.posnieuw-self.posoud
         self.posoud[:] = self.posnieuw
         self.epot = self.ff.compute(self.gpos, self.vtens)
+        '''
 
         # Common post-processing of a single step
         self.time += self.timestep

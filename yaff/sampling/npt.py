@@ -30,7 +30,7 @@ from molmod import boltzmann, femtosecond, kjmol, bar
 
 from yaff.log import log, timer
 from yaff.sampling.utils import get_random_vel, cell_symmetrize, get_random_vel_press, \
-    get_ndof_internal_md
+    get_ndof_internal_md, clean_momenta
 from yaff.sampling.verlet import VerletHook
 
 
@@ -255,9 +255,9 @@ class BerendsenBarostat(VerletHook):
         self.press = press
         self.mass_press = 3.0*timecon/beta
         self.anisotropic = anisotropic
+        cell_symmetrize(ff)
         self.cell = ff.system.cell.rvecs.copy()
         self.dim = ff.system.cell.nvec
-        cell_symmetrize(ff)
         VerletHook.__init__(self, start, 1)
 
     def init(self, iterative):
@@ -324,13 +324,14 @@ class LangevinBarostat(VerletHook):
         self.press = press
         self.timecon = timecon
         self.anisotropic = anisotropic
+        cell_symmetrize(ff)
         self.cell = ff.system.cell.rvecs.copy()
         self.dim = ff.system.cell.nvec
-        cell_symmetrize(ff)
         VerletHook.__init__(self, start, 1)
 
     def init(self, iterative):
         self.timestep_press = iterative.timestep
+        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
         # define the barostat 'mass'
         self.ndof = get_ndof_internal_md(len(iterative.ff.system.numbers), iterative.ff.system.cell.nvec)
         self.mass_press = (self.ndof+3)/3*boltzmann*self.temp*(self.timecon/(2*np.pi))**2
@@ -342,23 +343,27 @@ class LangevinBarostat(VerletHook):
         # after symmetrising the cell tensor
         iterative.gpos = np.zeros(iterative.pos.shape, float)
         iterative.vtens = np.zeros((3,3),float)
-        self.epot0 = iterative.ff.compute(iterative.gpos,iterative.vtens)
-        self.ekin0 = iterative._compute_ekin()
+        energy = iterative.ff.compute(iterative.gpos,iterative.vtens)
 
     def pre(self, iterative, chainvel0 = None):
         iterative.gpos = np.zeros(iterative.pos.shape, float)
         iterative.vtens = np.zeros((3,3),float)
-        self.epot0 = iterative.ff.compute(iterative.gpos,iterative.vtens)
-        self.ekin0 = iterative._compute_ekin()
+        epot0 = iterative.ff.compute(iterative.gpos,iterative.vtens)
+        ekin0 = iterative._compute_ekin()
         self.baro(iterative, chainvel0)
+        epot1 = iterative.ff.compute(iterative.gpos,iterative.vtens)
+        ekin1 = iterative._compute_ekin()
+        self.econs_correction += epot0 - epot1 + ekin0 - ekin1
 
     def post(self, iterative, chainvel0 = None):
-        self.baro(iterative, chainvel0)
         iterative.gpos = np.zeros(iterative.pos.shape, float)
         iterative.vtens = np.zeros((3,3),float)
-        self.epot1 = iterative.ff.compute(iterative.gpos,iterative.vtens)
-        self.ekin1 = iterative._compute_ekin()
-        self.econs_correction += self.epot0 - self.epot1 + self.ekin0 - self.ekin1
+        epot0 = iterative.ff.compute(iterative.gpos,iterative.vtens)
+        ekin0 = iterative._compute_ekin()
+        self.baro(iterative, chainvel0)
+        epot1 = iterative.ff.compute(iterative.gpos,iterative.vtens)
+        ekin1 = iterative._compute_ekin()
+        self.econs_correction += epot0 - epot1 + ekin0 - ekin1
 
     def baro(self, iterative, chainvel0):
         def update_baro_vel():
@@ -371,6 +376,7 @@ class LangevinBarostat(VerletHook):
             # definition of P_intV and G
             iterative.gpos = np.zeros(iterative.pos.shape, float)
             iterative.vtens = np.zeros((3,3),float)
+            iterative.ekin = iterative._compute_ekin()
             energy = iterative.ff.compute(iterative.gpos,iterative.vtens)
             ptens_vol = np.dot(iterative.vel.T*iterative.masses, iterative.vel) - iterative.vtens
             ptens_vol = 0.5*(ptens_vol.T + ptens_vol)
@@ -408,9 +414,8 @@ class LangevinBarostat(VerletHook):
         # -iL (v_g + Tr(v_g)/ndof) h/2
         if self.anisotropic:
             Dg, Eg = np.linalg.eigh(self.vel_press+(np.trace(self.vel_press)/self.ndof)*np.eye(3))
-            Daccg = np.diagflat(np.exp(-Dg*self.timestep_press/2))
-            rot_mat = np.dot(np.dot(Eg, Daccg), Eg.T)
-            vel_new = np.dot(iterative.vel, rot_mat)
+            Bg = np.dot(Eg, np.diagflat(np.exp(-Dg*self.timestep_press/4)))
+            vel_new = np.dot(np.dot(iterative.vel, Bg), Bg.T)
         else:
             vel_new = np.exp(-((1.0+3.0/self.ndof)*self.vel_press)*self.timestep_press/2) * iterative.vel
         iterative.vel[:] = vel_new
