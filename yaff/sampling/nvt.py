@@ -276,7 +276,7 @@ class LangevinThermostat(VerletHook):
         self.econs_correction += ekin_before - ekin_after
 
 class BerendsenThermostat(VerletHook):
-    def __init__(self, temp, start=0, timecon=1000*femtosecond):
+    def __init__(self, temp, start=0, timecon=100*femtosecond):
         """
            This is an implementation of the Berendsen thermostat. The algorithm
            is described in:
