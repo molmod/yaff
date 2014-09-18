@@ -262,6 +262,7 @@ class BerendsenBarostat(VerletHook):
 
     def init(self, iterative):
         self.timestep_press = iterative.timestep
+        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
         # compute gpos and vtens, since they differ
         # after symmetrising the cell tensor
         iterative.gpos[:] = 0.0
@@ -296,7 +297,7 @@ class BerendsenBarostat(VerletHook):
         pass
 
 class LangevinBarostat(VerletHook):
-    def __init__(self, ff, temp, press, start=0, anisotropic = True, timecon=1000*femtosecond):
+    def __init__(self, ff, temp, press, start=0, timecon=1000*femtosecond, anisotropic = True):
         """
             This hook implements the Langevin barostat. The equations are derived in:
 
@@ -489,6 +490,7 @@ class MTKBarostat(VerletHook):
 
     def init(self, iterative):
         self.timestep_press = iterative.timestep
+        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
         # determine barostat 'mass'
         angfreq = 2*np.pi/self.timecon_press
         self.ndof = get_ndof_internal_md(len(iterative.ff.system.numbers), iterative.ff.system.cell.nvec)

@@ -78,7 +78,8 @@ class AndersenThermostat(VerletHook):
         VerletHook.__init__(self, start, step)
 
     def init(self, iterative):
-        pass
+        # It is mandatory to zero the external momenta.
+        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
 
     def pre(self, iterative, G1_add = None):
         pass
@@ -259,7 +260,8 @@ class LangevinThermostat(VerletHook):
         VerletHook.__init__(self, start, 1)
 
     def init(self, iterative):
-        pass
+        # It is mandatory to zero the external momenta.
+        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
 
     def pre(self, iterative, G1_add = None):
         self.thermo(iterative)
@@ -302,6 +304,8 @@ class BerendsenThermostat(VerletHook):
         VerletHook.__init__(self, start, 1)
 
     def init(self, iterative):
+        # It is mandatory to zero the external momenta.
+        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
         if iterative.ndof is None:
             iterative.ndof = get_ndof_internal_md(iterative.pos.shape[0], iterative.ff.system.cell.nvec)
 
