@@ -82,9 +82,7 @@ class AndersenThermostat(VerletHook):
         clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
 
     def pre(self, iterative, G1_add = None):
-        pass
-
-    def post(self, iterative, G1_add = None):
+        # Andersen thermostat step before usual Verlet hook, since it largely affects the velocities
         # Needed to correct the conserved quantity
         ekin_before = iterative._compute_ekin()
         # Change the (selected) velocities
@@ -92,12 +90,16 @@ class AndersenThermostat(VerletHook):
             iterative.vel[:] = get_random_vel(self.temp, False, iterative.masses)
         else:
             iterative.vel[self.select] = get_random_vel(self.temp, False, iterative.masses, self.select)
+        # Zero any external momenta after choosing new velocities
+        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
         # Update the kinetic energy and the reference for the conserved quantity
         ekin_after = iterative._compute_ekin()
         self.econs_correction += ekin_before - ekin_after
         # Optional annealing
         self.temp *= self.annealing
 
+    def post(self, iterative, G1_add = None):
+        pass
 
 class NHChain(object):
     def __init__(self, length, timestep, temp, ndof, timecon=100*femtosecond):
