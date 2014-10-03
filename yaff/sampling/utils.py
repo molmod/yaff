@@ -325,4 +325,7 @@ def get_random_vel_press(mass, temp):
                 vel_press[i,j] = rand[i,j]
             else:
                 vel_press[i,j] = rand[j,i]
+            # correct for p_ab = p_ba, hence only 1 dof if a != b
+            if i != j:
+                vel_press[i,j] /= np.sqrt(2)
     return vel_press
