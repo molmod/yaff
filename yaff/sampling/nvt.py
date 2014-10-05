@@ -294,12 +294,12 @@ class CSVRThermostat(VerletHook):
             This is an implementation of the CSVR thermostat. The equations are
             derived in:
 
-            	Bussi, G.; Donadio, D.; Parrinello, M. J. Chem. Phys. 2007,
-            	126, 014101
+                Bussi, G.; Donadio, D.; Parrinello, M. J. Chem. Phys. 2007,
+                126, 014101
 
             The implementation (used here) is derived in
 
-            	Bussi, G.; Parrinello, M. Comput. Phys. Commun. 2008, 179, 26-29
+                Bussi, G.; Parrinello, M. Comput. Phys. Commun. 2008, 179, 26-29
 
            **Arguments:**
 

@@ -260,7 +260,7 @@ class BerendsenBarostat(VerletHook):
         pass
 
     def post(self, iterative, chainvel0 = None):
-        # calculation of the virial tensor
+        # calculation of the virial tensor for bookkeeping purposes
         iterative.gpos[:] = 0.0
         iterative.vtens[:] = 0.0
         epot0 = iterative.ff.compute(iterative.gpos,iterative.vtens)
@@ -278,6 +278,7 @@ class BerendsenBarostat(VerletHook):
         iterative.pos[:] = pos_new
         iterative.ff.update_rvecs(rvecs_new)
         iterative.rvecs[:] = rvecs_new
+        # calculation of the virial tensor for bookkeeping purposes
         iterative.gpos[:] = 0.0
         iterative.vtens[:] = 0.0
         epot1 = iterative.ff.compute(iterative.gpos,iterative.vtens)
@@ -527,6 +528,8 @@ class MTKBarostat(VerletHook):
             ptens_vol = np.dot(iterative.vel.T*iterative.masses, iterative.vel) - iterative.vtens
             ptens_vol = 0.5*(ptens_vol.T + ptens_vol)
             G = (ptens_vol+(2.0*iterative.ekin/self.ndof-self.press*iterative.ff.system.cell.volume)*np.eye(3))/self.mass_press
+            # make sure the off diagonal elements of G only contribute as 3 dof instead of 6
+            G = G/np.sqrt(2)+np.diag(np.diag(G))*(1-1/np.sqrt(2))
             if not self.anisotropic:
                 G = np.trace(G)
             # iL G_g h/4
