@@ -189,6 +189,7 @@ class VerletIntegrator(Iterative):
         self.epot = self.ff.compute(self.gpos, self.vtens)
         self.acc = -self.gpos/self.masses.reshape(-1,1)
         self.vel += 0.5*self.acc*self.timestep
+        self.call_verlet_hooks('inter')
         self.pos += self.timestep*self.vel
         self.ff.update_pos(self.pos)
         self.gpos[:] = 0.0
@@ -241,6 +242,7 @@ class VerletIntegrator(Iterative):
             log.hline()
 
     def call_verlet_hooks(self, kind):
+        from yaff.sampling.npt import BerendsenBarostat, TBCombination
         # In this call, the state items are not updated. The pre and post calls
         # of the verlet hooks can rely on the specific implementation of the
         # VerletIntegrator and need not to rely on the generic state item
@@ -254,6 +256,8 @@ class VerletIntegrator(Iterative):
                         hook.pre(self)
                     elif kind == 'post':
                         hook.post(self)
+                    elif kind == 'inter' and (isinstance(hook, BerendsenBarostat) or isinstance(hook, TBCombination)):
+                        hook.inter(self)
                     else:
                         raise NotImplementedError
 
@@ -283,6 +287,9 @@ class VerletHook(Hook):
         raise NotImplementedError
 
     def pre(self, iterative):
+        raise NotImplementedError
+
+    def inter(self, iterative):
         raise NotImplementedError
 
     def post(self, iterative):

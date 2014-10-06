@@ -36,8 +36,8 @@ from yaff.sampling.verlet import VerletHook
 
 
 __all__ = [
-    'AndersenThermostat', 'NHCThermostat', 'LangevinThermostat',
-    'CSVRThermostat', 'BerendsenThermostat', 'NHCAttributeStateItem',
+    'AndersenThermostat', 'BerendsenThermostat', 'LangevinThermostat',
+    'CSVRThermostat', 'NHCThermostat', 'NHCAttributeStateItem',
 ]
 
 
@@ -100,6 +100,158 @@ class AndersenThermostat(VerletHook):
 
     def post(self, iterative, G1_add = None):
         pass
+
+class BerendsenThermostat(VerletHook):
+    def __init__(self, temp, start=0, timecon=100*femtosecond):
+        """
+           This is an implementation of the Berendsen thermostat. The algorithm
+           is described in:
+
+                Berendsen, H. J. C.; Postma, J. P. M.; van Gunsteren, W. F.;
+                Dinola, A.; Haak, J. R. J. Chem. Phys. 1984, 81, 3684-3690
+
+           **Arguments:**
+
+           temp
+                The temperature of thermostat.
+
+           **Optional arguments:**
+
+           start
+                The step at which the thermostat becomes active.
+
+           timecon
+                The time constant of the Berendsen thermostat.
+        """
+        self.temp = temp
+        self.timecon = timecon
+        VerletHook.__init__(self, start, 1)
+
+    def init(self, iterative):
+        # It is mandatory to zero the external momenta.
+        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
+        if iterative.ndof is None:
+            iterative.ndof = get_ndof_internal_md(iterative.pos.shape[0], iterative.ff.system.cell.nvec)
+
+    def pre(self, iterative, G1_add = None):
+        pass
+
+    def post(self, iterative, G1_add = None):
+        ekin = iterative._compute_ekin()
+        temp_inst = 2.0*ekin/(boltzmann*iterative.ndof)
+        c = np.sqrt(1+iterative.timestep/self.timecon*(self.temp/temp_inst-1))
+        iterative.vel[:] = c*iterative.vel
+        self.econs_correction += (1-c**2)*ekin
+
+
+class LangevinThermostat(VerletHook):
+    def __init__(self, temp, start=0, timecon=100*femtosecond):
+        """
+           This is an implementation of the Langevin thermostat. The algorithm
+           is described in:
+
+                Bussi, G.; Parrinello, M. Phys. Rev. E 2007, 75, 056707
+
+           **Arguments:**
+
+           temp
+                The temperature of thermostat.
+
+           **Optional arguments:**
+
+           start
+                The step at which the thermostat becomes active.
+
+           timecon
+                The time constant of the Nose-Hoover thermostat.
+        """
+        self.temp = temp
+        self.timecon = timecon
+        VerletHook.__init__(self, start, 1)
+
+    def init(self, iterative):
+        # It is mandatory to zero the external momenta.
+        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
+        # Necessary to calculate conserved quantity
+        self.forces = np.zeros(iterative.pos.shape, float)
+        self.posoud = iterative.pos.copy()
+
+    def pre(self, iterative, G1_add = None):
+        # Necessary to calculate conserved quantity
+        self.epot_old = iterative.epot
+        self.forces[:] = iterative.acc*iterative.masses.reshape(-1,1)
+        # Actual update
+        self.thermo(iterative)
+
+    def post(self, iterative, G1_add = None):
+        # Actual update
+        self.thermo(iterative)
+        # Calculation of the conserved quantity
+        iterative.ekin = iterative._compute_ekin()
+        forces_new = iterative.acc*iterative.masses.reshape(-1,1)
+        self.econs_correction = -iterative.ekin + iterative.econs + 0.5*np.multiply(iterative.pos.copy()-self.posoud, self.forces + forces_new).sum() - self.epot_old + iterative.timestep**2/8.0*np.divide(np.sum(forces_new**2-self.forces**2, axis=1), iterative.masses).sum()
+        self.posoud = iterative.pos.copy()
+
+    def thermo(self, iterative):
+        c1 = np.exp(-iterative.timestep/self.timecon/2)
+        c2 = np.sqrt((1.0-c1**2)*self.temp*boltzmann/iterative.masses).reshape(-1,1)
+        iterative.vel[:] = c1*iterative.vel + c2*np.random.normal(0, 1, iterative.vel.shape)
+
+
+class CSVRThermostat(VerletHook):
+    def __init__(self, temp, start=0, timecon=100*femtosecond):
+        """
+            This is an implementation of the CSVR thermostat. The equations are
+            derived in:
+
+                Bussi, G.; Donadio, D.; Parrinello, M. J. Chem. Phys. 2007,
+                126, 014101
+
+            The implementation (used here) is derived in
+
+                Bussi, G.; Parrinello, M. Comput. Phys. Commun. 2008, 179, 26-29
+
+           **Arguments:**
+
+           temp
+                The temperature of thermostat.
+
+           **Optional arguments:**
+
+           start
+                The step at which the thermostat becomes active.
+
+           timecon
+                The time constant of the CSVR thermostat.
+        """
+        self.temp = temp
+        self.timecon = timecon
+        VerletHook.__init__(self, start, 1)
+
+    def init(self, iterative):
+        # It is mandatory to zero the external momenta.
+        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
+        if iterative.ndof is None:
+            iterative.ndof = get_ndof_internal_md(iterative.pos.shape[0], iterative.ff.system.cell.nvec)
+        self.kin = 0.5*iterative.ndof*boltzmann*self.temp
+
+    def pre(self, iterative, G1_add = None):
+        c = np.exp(-iterative.timestep/self.timecon)
+        R = np.random.normal(0, 1)
+        S = (np.random.normal(0, 1, iterative.ndof-1)**2).sum()
+        iterative.ekin = iterative._compute_ekin()
+        fact = (1-c)*self.kin/iterative.ndof/iterative.ekin
+        alpha = np.sign(R+np.sqrt(c/fact))*np.sqrt(c + (S+R**2)*fact + 2*R*np.sqrt(c*fact))
+        iterative.vel[:] = alpha*iterative.vel
+        iterative.ekin_new = alpha**2*iterative.ekin
+        self.econs_correction += (1-alpha**2)*iterative.ekin
+        iterative.ekin = iterative.ekin_new
+
+    def post(self, iterative, G1_add = None):
+        pass
+        # How implementing the Wiener Noise?
+        # self.econs_correction += (self.kin-iterative.ekin)*iterative.timestep/self.timecon
+
 
 class NHChain(object):
     def __init__(self, length, timestep, temp, ndof, timecon=100*femtosecond):
@@ -169,7 +321,6 @@ class NHChain(object):
         # Loop over chain in forward order
         for k in xrange(0, self.length):
             do_bead(k, ekin)
-
         return vel, ekin
 
     def get_econs_correction(self):
@@ -235,154 +386,6 @@ class NHCThermostat(VerletHook):
         vel_new, iterative.ekin = self.chain(ekin, iterative.vel, G1_add)
         iterative.vel[:] = vel_new
         self.econs_correction = self.chain.get_econs_correction()
-
-class LangevinThermostat(VerletHook):
-    def __init__(self, temp, start=0, timecon=100*femtosecond):
-        """
-           This is an implementation of the Langevin thermostat. The algorithm
-           is described in:
-
-                Bussi, G.; Parrinello, M. Phys. Rev. E 2007, 75, 056707
-
-           **Arguments:**
-
-           temp
-                The temperature of thermostat.
-
-           **Optional arguments:**
-
-           start
-                The step at which the thermostat becomes active.
-
-           timecon
-                The time constant of the Nose-Hoover thermostat.
-        """
-        self.temp = temp
-        self.timecon = timecon
-        VerletHook.__init__(self, start, 1)
-
-    def init(self, iterative):
-        # It is mandatory to zero the external momenta.
-        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
-        self.forces = np.zeros(iterative.pos.shape, float) #
-        self.posoud = iterative.pos.copy() #
-
-    def pre(self, iterative, G1_add = None):
-        self.epot_old = iterative.epot
-        self.forces[:] = iterative.acc*iterative.masses.reshape(-1,1) #
-        self.thermo(iterative)
-
-    def post(self, iterative, G1_add = None):
-        self.thermo(iterative)
-        iterative.ekin = iterative._compute_ekin() #
-        forces_new = iterative.acc*iterative.masses.reshape(-1,1) #
-        self.econs_correction = -iterative.ekin + iterative.econs + 0.5*np.multiply(iterative.pos.copy()-self.posoud, self.forces + forces_new).sum() - self.epot_old + iterative.timestep**2/8.0*np.divide(np.sum(forces_new**2-self.forces**2, axis=1), iterative.masses).sum() #
-        self.epot_old = iterative.epot #
-        self.posoud = iterative.pos.copy() #
-
-    def thermo(self, iterative):
-        c1 = np.exp(-iterative.timestep/self.timecon/2)
-        c2 = np.sqrt((1.0-c1**2)*self.temp*boltzmann/iterative.masses).reshape(-1,1)
-        # ekin_before = iterative._compute_ekin()
-        iterative.vel[:] = c1*iterative.vel + c2*np.random.normal(0, 1, iterative.vel.shape)
-        # ekin_after = iterative._compute_ekin()
-        # self.econs_correction += ekin_before - ekin_after
-
-class CSVRThermostat(VerletHook):
-    def __init__(self, temp, start=0, timecon=100*femtosecond):
-        """
-            This is an implementation of the CSVR thermostat. The equations are
-            derived in:
-
-                Bussi, G.; Donadio, D.; Parrinello, M. J. Chem. Phys. 2007,
-                126, 014101
-
-            The implementation (used here) is derived in
-
-                Bussi, G.; Parrinello, M. Comput. Phys. Commun. 2008, 179, 26-29
-
-           **Arguments:**
-
-           temp
-                The temperature of thermostat.
-
-           **Optional arguments:**
-
-           start
-                The step at which the thermostat becomes active.
-
-           timecon
-                The time constant of the CSVR thermostat.
-        """
-        self.temp = temp
-        self.timecon = timecon
-        VerletHook.__init__(self, start, 1)
-
-    def init(self, iterative):
-        # It is mandatory to zero the external momenta.
-        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
-        if iterative.ndof is None:
-            iterative.ndof = get_ndof_internal_md(iterative.pos.shape[0], iterative.ff.system.cell.nvec)
-        self.kin = 0.5*iterative.ndof*boltzmann*self.temp
-
-    def pre(self, iterative, G1_add = None):
-        c = np.exp(-iterative.timestep/self.timecon)
-        R = np.random.normal(0, 1)
-        S = (np.random.normal(0, 1, iterative.ndof-1)**2).sum()
-        iterative.ekin = iterative._compute_ekin()
-        fact = (1-c)*self.kin/iterative.ndof/iterative.ekin
-        alpha = np.sign(R+np.sqrt(c/fact))*np.sqrt(c + (S+R**2)*fact + 2*R*np.sqrt(c*fact))
-        iterative.vel[:] = alpha*iterative.vel
-        iterative.ekin_new = alpha**2*iterative.ekin
-        self.econs_correction += (1-alpha**2)*iterative.ekin
-        iterative.ekin = iterative.ekin_new
-
-    def post(self, iterative, G1_add = None):
-        pass
-        # How implementing the Wiener Noise?
-        # self.econs_correction += (self.kin-iterative.ekin)*iterative.timestep/self.timecon
-
-class BerendsenThermostat(VerletHook):
-    def __init__(self, temp, start=0, timecon=100*femtosecond):
-        """
-           This is an implementation of the Berendsen thermostat. The algorithm
-           is described in:
-
-                Berendsen, H. J. C.; Postma, J. P. M.; van Gunsteren, W. F.;
-                Dinola, A.; Haak, J. R. J. Chem. Phys. 1984, 81, 3684-3690
-
-           **Arguments:**
-
-           temp
-                The temperature of thermostat.
-
-           **Optional arguments:**
-
-           start
-                The step at which the thermostat becomes active.
-
-           timecon
-                The time constant of the Berendsen thermostat.
-        """
-        self.temp = temp
-        self.timecon = timecon
-        VerletHook.__init__(self, start, 1)
-
-    def init(self, iterative):
-        # It is mandatory to zero the external momenta.
-        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
-        if iterative.ndof is None:
-            iterative.ndof = get_ndof_internal_md(iterative.pos.shape[0], iterative.ff.system.cell.nvec)
-
-    def pre(self, iterative, G1_add = None):
-        ekin = iterative._compute_ekin()
-        temp_inst = 2.0*ekin/(boltzmann*iterative.ndof)
-        c = np.sqrt(1+iterative.timestep/self.timecon*(self.temp/temp_inst-1))
-        iterative.vel[:] = c*iterative.vel
-        self.econs_correction += (1-c**2)*ekin
-
-    def post(self, iterative, G1_add = None):
-        pass
 
 class NHCAttributeStateItem(StateItem):
     def __init__(self, attr):

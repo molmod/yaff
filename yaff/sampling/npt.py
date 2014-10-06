@@ -93,6 +93,12 @@ class TBCombination(VerletHook):
                 self.G1_add = self.barostat.add_press_cont()
             self.thermostat.pre(iterative, self.G1_add)
 
+    def inter(self, iterative):
+        if isinstance(self.barostat, BerendsenBarostat) and self.expectscall(iterative, 'baro'):
+            self.barostat.inter(iterative, self.chainvel0)
+        else:
+            pass
+
     def post(self, iterative):
         # determine whether the thermostat should be called
         if self.expectscall(iterative, 'thermo'):
@@ -259,7 +265,7 @@ class BerendsenBarostat(VerletHook):
     def pre(self, iterative, chainvel0 = None):
         pass
 
-    def post(self, iterative, chainvel0 = None):
+    def inter(self, iterative, chainvel0 = None):
         # calculation of the virial tensor for bookkeeping purposes
         iterative.gpos[:] = 0.0
         iterative.vtens[:] = 0.0
@@ -283,6 +289,9 @@ class BerendsenBarostat(VerletHook):
         iterative.vtens[:] = 0.0
         epot1 = iterative.ff.compute(iterative.gpos,iterative.vtens)
         self.econs_correction += epot0 - epot1
+
+    def post(self, iterative, chainvel0 = None):
+        pass
 
 class LangevinBarostat(VerletHook):
     def __init__(self, ff, temp, press, start=0, step=1, timecon=1000*femtosecond, anisotropic = True):
