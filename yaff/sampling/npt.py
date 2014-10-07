@@ -32,11 +32,12 @@ from yaff.log import log, timer
 from yaff.sampling.utils import get_random_vel, cell_symmetrize, get_random_vel_press, \
     get_ndof_internal_md, clean_momenta
 from yaff.sampling.verlet import VerletHook
+from yaff.sampling.iterative import StateItem
 
 
 __all__ = [
     'TBCombination', 'McDonaldBarostat', 'BerendsenBarostat', 'LangevinBarostat',
-    'MTKBarostat'
+    'MTKBarostat', 'MTKAttributeStateItem'
 ]
 
 class TBCombination(VerletHook):
@@ -537,8 +538,6 @@ class MTKBarostat(VerletHook):
             ptens_vol = np.dot(iterative.vel.T*iterative.masses, iterative.vel) - iterative.vtens
             ptens_vol = 0.5*(ptens_vol.T + ptens_vol)
             G = (ptens_vol+(2.0*iterative.ekin/self.ndof-self.press*iterative.ff.system.cell.volume)*np.eye(3))/self.mass_press
-            # make sure the off diagonal elements of G only contribute as 3 dof instead of 6
-            G = G/np.sqrt(2)+np.diag(np.diag(G))*(1-1/np.sqrt(2))
             if not self.anisotropic:
                 G = np.trace(G)
             # iL G_g h/4
@@ -585,6 +584,26 @@ class MTKBarostat(VerletHook):
         # pressure contribution to g1: kinetic cell tensor energy
         # and extra degrees of freedom due to cell tensor
         if self.anisotropic:
-            return self.mass_press*np.trace(np.dot(self.vel_press.T,self.vel_press)) - self.dim**2*kt
+            return self.mass_press*np.trace(np.dot(self.vel_press.T,self.vel_press)) - self.dim*(self.dim-1)*kt
         else:
-            return self.mass_press*self.vel_press**2 - self.dim**2*kt
+            return self.mass_press*self.vel_press**2 - kt
+
+
+class MTKAttributeStateItem(StateItem):
+    def __init__(self, attr):
+        StateItem.__init__(self, 'baro_'+attr)
+        self.attr = attr
+
+    def get_value(self, iterative):
+        baro = None
+        for hook in iterative.hooks:
+            if isinstance(hook, MTKBarostat):
+                baro = hook
+                break
+            elif isinstance(hook, TBCombination):
+                if isinstance(hook.baro, MTKBarostat):
+                    baro = hook.baro
+                break
+        if baro is None:
+            raise TypeError('Iterative does not contain a MTKBarostat hook.')
+        return getattr(baro, self.attr)

@@ -285,7 +285,7 @@ class NHChain(object):
             # Compute g
             if k == 0:
                 # coupling with atoms (and barostat)
-                # L = ndof (+d^2) because of equidistant time steps.
+                # L = ndof (+d^2 (aniso) / +1 (iso)) because of equidistant time steps.
                 g = 2*ekin - self.ndof*self.temp*boltzmann
                 if G1_add is not None:
                     # add pressure contribution to g1
@@ -397,6 +397,10 @@ class NHCAttributeStateItem(StateItem):
         for hook in iterative.hooks:
             if isinstance(hook, NHCThermostat):
                 chain = hook.chain
+                break
+            elif isinstance(hook, TBCombination):
+                if isinstance(hook.thermo, NHCThermostat):
+                    chain = hook.thermo.chain
                 break
         if chain is None:
             raise TypeError('Iterative does not contain a NHCThermostat hook.')
