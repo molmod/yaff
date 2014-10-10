@@ -134,15 +134,15 @@ class BerendsenThermostat(VerletHook):
             iterative.ndof = get_ndof_internal_md(iterative.pos.shape[0], iterative.ff.system.cell.nvec)
 
     def pre(self, iterative, G1_add = None):
-        pass
-
-    def post(self, iterative, G1_add = None):
-        ekin = iterative._compute_ekin()
-        temp_inst = 2.0*ekin/(boltzmann*iterative.ndof)
+        ekin = iterative.ekin
+        temp_inst = 2.0*iterative.ekin/(boltzmann*iterative.ndof)
         c = np.sqrt(1+iterative.timestep/self.timecon*(self.temp/temp_inst-1))
         iterative.vel[:] = c*iterative.vel
+        iterative.ekin = iterative._compute_ekin()
         self.econs_correction += (1-c**2)*ekin
 
+    def post(self, iterative, G1_add = None):
+        pass
 
 class LangevinThermostat(VerletHook):
     def __init__(self, temp, start=0, timecon=100*femtosecond):
@@ -173,30 +173,35 @@ class LangevinThermostat(VerletHook):
         # It is mandatory to zero the external momenta.
         clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
         # Necessary to calculate conserved quantity
-        self.forces = np.zeros(iterative.pos.shape, float)
-        self.posoud = iterative.pos.copy()
+        #self.forces = np.zeros(iterative.pos.shape, float)
+        #self.posoud = iterative.pos.copy()
 
     def pre(self, iterative, G1_add = None):
         # Necessary to calculate conserved quantity
-        self.epot_old = iterative.epot
-        self.forces[:] = iterative.acc*iterative.masses.reshape(-1,1)
+        #self.epot_old = iterative.epot
+        #self.forces[:] = iterative.acc*iterative.masses.reshape(-1,1)
+        ekin0 = iterative.ekin
         # Actual update
         self.thermo(iterative)
+        ekin1 = iterative.ekin
+        iterative.ekin += ekin0-ekin1
 
     def post(self, iterative, G1_add = None):
+        ekin0 = iterative.ekin
         # Actual update
         self.thermo(iterative)
+        ekin1 = iterative.ekin
+        iterative.ekin += ekin0-ekin1
         # Calculation of the conserved quantity
-        iterative.ekin = iterative._compute_ekin()
-        forces_new = iterative.acc*iterative.masses.reshape(-1,1)
-        self.econs_correction = -iterative.ekin + iterative.econs + 0.5*np.multiply(iterative.pos.copy()-self.posoud, self.forces + forces_new).sum() - self.epot_old + iterative.timestep**2/8.0*np.divide(np.sum(forces_new**2-self.forces**2, axis=1), iterative.masses).sum()
-        self.posoud = iterative.pos.copy()
+        #forces_new = iterative.acc*iterative.masses.reshape(-1,1)
+        #self.econs_correction = -iterative.ekin + iterative.econs + 0.5*np.multiply(iterative.pos.copy()-self.posoud, self.forces + forces_new).sum() - self.epot_old + iterative.timestep**2/8.0*np.divide(np.sum(forces_new**2-self.forces**2, axis=1), iterative.masses).sum()
+        #self.posoud = iterative.pos.copy()
 
     def thermo(self, iterative):
         c1 = np.exp(-iterative.timestep/self.timecon/2)
         c2 = np.sqrt((1.0-c1**2)*self.temp*boltzmann/iterative.masses).reshape(-1,1)
         iterative.vel[:] = c1*iterative.vel + c2*np.random.normal(0, 1, iterative.vel.shape)
-
+        iterative.ekin = iterative._compute_ekin()
 
 class CSVRThermostat(VerletHook):
     def __init__(self, temp, start=0, timecon=100*femtosecond):
@@ -285,7 +290,7 @@ class NHChain(object):
             # Compute g
             if k == 0:
                 # coupling with atoms (and barostat)
-                # L = ndof (+d^2 (aniso) / +1 (iso)) because of equidistant time steps.
+                # L = ndof (+d(d+1)/2 (aniso NPT) / +1 (iso NPT)) because of equidistant time steps.
                 g = 2*ekin - self.ndof*self.temp*boltzmann
                 if G1_add is not None:
                     # add pressure contribution to g1
@@ -382,8 +387,7 @@ class NHCThermostat(VerletHook):
         iterative.vel[:] = vel_new
 
     def post(self, iterative, G1_add = None):
-        ekin = iterative._compute_ekin()
-        vel_new, iterative.ekin = self.chain(ekin, iterative.vel, G1_add)
+        vel_new, iterative.ekin = self.chain(iterative.ekin, iterative.vel, G1_add)
         iterative.vel[:] = vel_new
         self.econs_correction = self.chain.get_econs_correction()
 

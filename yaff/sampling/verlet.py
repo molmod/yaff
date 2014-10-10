@@ -184,12 +184,8 @@ class VerletIntegrator(Iterative):
         self.call_verlet_hooks('pre')
 
         # Regular verlet step
-        self.gpos[:] = 0.0
-        self.vtens[:] = 0.0
-        self.epot = self.ff.compute(self.gpos, self.vtens)
         self.acc = -self.gpos/self.masses.reshape(-1,1)
         self.vel += 0.5*self.acc*self.timestep
-        self.call_verlet_hooks('inter')
         self.pos += self.timestep*self.vel
         self.ff.update_pos(self.pos)
         self.gpos[:] = 0.0
@@ -202,12 +198,10 @@ class VerletIntegrator(Iterative):
         # Allow specialized verlet hooks to modify the state after the step
         self.call_verlet_hooks('post')
 
+        # Calculate the total position change
         self.posnieuw = self.pos.copy()
         self.delta[:] = self.posnieuw-self.posoud
         self.posoud[:] = self.posnieuw
-        self.gpos[:] = 0.0
-        self.vtens[:] = 0.0
-        self.epot = self.ff.compute(self.gpos, self.vtens)
 
         # Common post-processing of a single step
         self.time += self.timestep
@@ -256,8 +250,6 @@ class VerletIntegrator(Iterative):
                         hook.pre(self)
                     elif kind == 'post':
                         hook.post(self)
-                    elif kind == 'inter' and (isinstance(hook, BerendsenBarostat) or isinstance(hook, TBCombination)):
-                        hook.inter(self)
                     else:
                         raise NotImplementedError
 
@@ -287,9 +279,6 @@ class VerletHook(Hook):
         raise NotImplementedError
 
     def pre(self, iterative):
-        raise NotImplementedError
-
-    def inter(self, iterative):
         raise NotImplementedError
 
     def post(self, iterative):
