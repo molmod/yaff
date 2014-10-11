@@ -173,29 +173,30 @@ class LangevinThermostat(VerletHook):
         # It is mandatory to zero the external momenta.
         clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
         # Necessary to calculate conserved quantity
-        #self.forces = np.zeros(iterative.pos.shape, float)
-        #self.posoud = iterative.pos.copy()
+        #self.forces_old = -iterative.gpos
+        #self.pos_old = iterative.pos.copy()
 
     def pre(self, iterative, G1_add = None):
         # Necessary to calculate conserved quantity
         #self.epot_old = iterative.epot
-        #self.forces[:] = iterative.acc*iterative.masses.reshape(-1,1)
+        #self.forces_old[:] = -iterative.gpos
+        #self.pos_old = iterative.pos.copy()
         ekin0 = iterative.ekin
         # Actual update
         self.thermo(iterative)
         ekin1 = iterative.ekin
-        iterative.ekin += ekin0-ekin1
+        self.econs_correction += ekin0-ekin1
 
     def post(self, iterative, G1_add = None):
         ekin0 = iterative.ekin
         # Actual update
         self.thermo(iterative)
         ekin1 = iterative.ekin
-        iterative.ekin += ekin0-ekin1
+        self.econs_correction += ekin0-ekin1
         # Calculation of the conserved quantity
-        #forces_new = iterative.acc*iterative.masses.reshape(-1,1)
-        #self.econs_correction = -iterative.ekin + iterative.econs + 0.5*np.multiply(iterative.pos.copy()-self.posoud, self.forces + forces_new).sum() - self.epot_old + iterative.timestep**2/8.0*np.divide(np.sum(forces_new**2-self.forces**2, axis=1), iterative.masses).sum()
-        #self.posoud = iterative.pos.copy()
+        #forces_new = -iterative.gpos
+        #pos_new = iterative.pos.copy()
+        #self.econs_correction = iterative.econs - iterative.ekin - self.epot_old + 0.5*np.multiply(pos_new-self.pos_old, self.forces_old + forces_new).sum() + iterative.timestep**2/8.0*np.divide(np.sum(forces_new**2-self.forces_old**2, axis=1), iterative.masses).sum()
 
     def thermo(self, iterative):
         c1 = np.exp(-iterative.timestep/self.timecon/2)
