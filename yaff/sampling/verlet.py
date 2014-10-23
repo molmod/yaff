@@ -68,6 +68,7 @@ class VerletIntegrator(Iterative):
         AttributeStateItem('econs'),
         AttributeStateItem('cons_err'),
         AttributeStateItem('ptens'),
+        AttributeStateItem('vtens'),
         AttributeStateItem('press'),
         DipoleStateItem(),
         DipoleVelStateItem(),

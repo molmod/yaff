@@ -175,6 +175,7 @@ class LangevinThermostat(VerletHook):
         # Necessary to calculate conserved quantity
         #self.forces_old = -iterative.gpos
         #self.pos_old = iterative.pos.copy()
+        #self.econs_correction = 0.0
 
     def pre(self, iterative, G1_add = None):
         # Necessary to calculate conserved quantity
@@ -196,7 +197,7 @@ class LangevinThermostat(VerletHook):
         # Calculation of the conserved quantity
         #forces_new = -iterative.gpos
         #pos_new = iterative.pos.copy()
-        #self.econs_correction = iterative.econs - iterative.ekin - self.epot_old + 0.5*np.multiply(pos_new-self.pos_old, self.forces_old + forces_new).sum() + iterative.timestep**2/8.0*np.divide(np.sum(forces_new**2-self.forces_old**2, axis=1), iterative.masses).sum()
+        #self.econs_correction += iterative.etot - iterative.ekin - self.epot_old + 0.5*np.multiply(pos_new-self.pos_old, self.forces_old + forces_new).sum() + iterative.timestep**2/8.0*np.divide(np.sum(forces_new**2-self.forces_old**2, axis=1), iterative.masses).sum()
 
     def thermo(self, iterative):
         c1 = np.exp(-iterative.timestep/self.timecon/2)
