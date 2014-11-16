@@ -32,7 +32,7 @@ import numpy as np
 __all__ = [
     'get_random_vel', 'remove_com_moment', 'remove_angular_moment',
     'clean_momenta', 'angular_moment', 'get_ndof_internal_md',
-    'cell_symmetrize', 'get_random_vel_press'
+    'cell_symmetrize', 'get_random_vel_press', 'get_ndof_baro'
 ]
 
 
@@ -44,7 +44,7 @@ def get_random_vel(temp0, scalevel0, masses, select=None):
        temp0
             The temperature for the Maxwell-Boltzmann distribution.
 
-       svalevel0
+       scalevel0
             When set to True, the velocities are rescaled such that the
             instantaneous temperature coincides with temp0.
 
@@ -329,3 +329,16 @@ def get_random_vel_press(mass, temp):
             if i != j:
                 vel_press[i,j] /= np.sqrt(2)
     return vel_press
+
+def get_ndof_baro(dim, anisotropic, Vconstraint):
+    baro_ndof = 1
+    # degrees of freedom for a symmetric cell tensor
+    if anisotropic:
+        baro_ndof = dim*(dim+1)/2
+    # decrease the number of dof by one if volume is constant
+    if Vconstraint:
+        baro_ndof -= 1
+    # verify at least one degree of freedom is left
+    if baro_ndof == 0:
+        raise AssertionError('Isotropic barostat called with a volume constraint')
+    return baro_ndof

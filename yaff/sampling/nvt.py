@@ -339,14 +339,14 @@ class NHChain(object):
 class NHCThermostat(VerletHook):
     def __init__(self, temp, start=0, timecon=100*femtosecond, chainlength=3):
         """
-           This hook implements the Nose-Hoover-Chain thermostat. The equations
+           This hook implements the Nose-Hoover chain thermostat. The equations
            are derived in:
 
                 Martyna, G. J.; Klein, M. L.; Tuckerman, M. J. Chem. Phys. 1992,
                 97, 2635-2643.
 
            The implementation (used here) of a symplectic integrator of the
-           Nose-Hoover-Chain thermostat is discussed in:
+           Nose-Hoover chain thermostat is discussed in:
 
                 Martyna, G. J.;  Tuckerman, M. E.;  Tobias, D. J.;  Klein,
                 M. L. Mol. Phys. 1996, 87, 1117-1157.
