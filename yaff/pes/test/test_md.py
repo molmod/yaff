@@ -40,7 +40,6 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
     system = get_system_water32()
     rcut = 7*angstrom
     alpha = 4.5/rcut
-    dielectric = 1.0
     scalings = Scalings(system)
     parts = []
     if do_valence:
@@ -74,15 +73,15 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
     # electrostatics
     if do_eireal:
         # Real-space electrostatics
-        pair_pot_ei = PairPotEI(system.charges, alpha, dielectric, rcut)
+        pair_pot_ei = PairPotEI(system.charges, alpha, rcut)
         part_pair_ei = ForcePartPair(system, nlist, scalings, pair_pot_ei)
         parts.append(part_pair_ei)
     if do_eireci:
         # Reciprocal-space electrostatics
-        part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, dielectric, gcut=alpha/0.75)
+        part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, gcut=alpha/0.75)
         parts.append(part_ewald_reci)
         # Ewald corrections
-        part_ewald_corr = ForcePartEwaldCorrection(system, alpha, dielectric, scalings)
+        part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings)
         parts.append(part_ewald_corr)
     return ForceField(system, parts, nlist)
 

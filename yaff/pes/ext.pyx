@@ -1198,10 +1198,6 @@ cdef class PairPotEI(PairPot):
             set to zero, the interaction between point charges is computed
             without any long-range screening.
 
-        dielectric
-            A relative dielectric permitivity that just scales the Coulomb
-            interaction.
-
         rcut
             The cutoff radius
 
@@ -1210,6 +1206,10 @@ cdef class PairPotEI(PairPot):
         tr
             The truncation scheme, an instance of a subclass of ``Truncation``.
             When not given, no truncation is applied
+
+        dielectric
+            A relative dielectric permitivity that just scales the Coulomb
+            interaction.
 
         radii
             An array of atomic radii, shape = (natom,). The charge distribution
@@ -1225,7 +1225,7 @@ cdef class PairPotEI(PairPot):
     name = 'ei'
 
     def __cinit__(self, np.ndarray[double, ndim=1] charges, double alpha,
-                  double dielectric, double rcut, Truncation tr=None,
+                  double rcut, Truncation tr=None, double dielectric=1.0,
                   np.ndarray[double, ndim=1] radii=None):
         assert charges.flags['C_CONTIGUOUS']
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
@@ -1241,8 +1241,8 @@ cdef class PairPotEI(PairPot):
     def log(self):
         '''Print suitable initialization info on screen.'''
         if log.do_medium:
-            log('  alpha:             %s' % log.invlength(self.alpha))
-            log('  relative permittivity:   %5.3f' % self.dielectric )
+            log('  alpha:                 %s' % log.invlength(self.alpha))
+            log('  relative permittivity: %5.3f' % self.dielectric)
         if log.do_high:
             log.hline()
             log('   Atom     Charge     Radius')
@@ -1385,8 +1385,9 @@ cdef class PairPotEIDip(PairPot):
 
 def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
                        np.ndarray[double, ndim=1] charges,
-                       Cell unitcell, double alpha, double dielectric,
-                       np.ndarray[long, ndim=1] jmax, double kcut,
+                       Cell unitcell, double alpha,
+                       np.ndarray[long, ndim=1] jmax,
+                       double kcut, double dielectric,
                        np.ndarray[double, ndim=2] gpos,
                        np.ndarray[double, ndim=1] work,
                        np.ndarray[double, ndim=2] vtens):
@@ -1407,9 +1408,6 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
        alpha
             The :math:`\\alpha` parameter from the Ewald summation scheme.
 
-       dielectric
-            The scalar relative permittivity of the system.
-
        jmax
             The maximum range of periodic images in reciprocal space to be
             considered for the Ewald sum. integer numpy array with shape (3,).
@@ -1420,6 +1418,9 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
        kcut
             The cutoff in reciprocal space. The caller is responsible for the
             compatibility of ``kcut`` with ``jmax``.
+
+       dielectric
+            The scalar relative permittivity of the system.
 
        gpos
             If not set to None, the Cartesian gradient of the energy is
@@ -1469,8 +1470,8 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
 
     return ewald.compute_ewald_reci(<double*>pos.data, len(pos),
                                     <double*>charges.data,
-                                    unitcell._c_cell, alpha, dielectric,
-                                    <long*>jmax.data, kcut, my_gpos, my_work,
+                                    unitcell._c_cell, alpha, <long*>jmax.data,
+                                    kcut, dielectric, my_gpos, my_work,
                                     my_vtens)
 
 
@@ -1570,8 +1571,9 @@ def compute_ewald_reci_dd(np.ndarray[double, ndim=2] pos,
 
 def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
                        np.ndarray[double, ndim=1] charges,
-                       Cell unitcell, double alpha, double dielectric,
+                       Cell unitcell, double alpha,
                        np.ndarray[pair_pot.scaling_row_type, ndim=1] stab,
+                       double dielectric,
                        np.ndarray[double, ndim=2] gpos,
                        np.ndarray[double, ndim=2] vtens):
     '''Compute the corrections to the reciprocal Ewald term due to scaled
@@ -1592,14 +1594,14 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
        alpha
             The :math:`\\alpha` parameter from the Ewald summation scheme.
 
-       dielectric
-            The scalar relative permittivity of the system.
-
        stab
             The table with (sorted) pairs of atoms whose electrostatic
             interactions are scaled. Each record corresponds to one pair
             and contains the corresponding amount of scaling. See
             ``pair_pot.scaling_row_type``
+
+       dielectric
+            The scalar relative permittivity of the system.
 
        gpos
             If not set to None, the Cartesian gradient of the energy is
@@ -1638,7 +1640,7 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
 
     return ewald.compute_ewald_corr(
         <double*>pos.data, <double*>charges.data, unitcell._c_cell, alpha,
-        dielectric, <pair_pot.scaling_row_type*>stab.data, len(stab),
+        <pair_pot.scaling_row_type*>stab.data, len(stab), dielectric,
         my_gpos, my_vtens, len(pos)
     )
 

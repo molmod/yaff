@@ -325,7 +325,7 @@ class ForcePartEwaldReciprocal(ForcePart):
     '''The long-range contribution to the electrostatic interaction in 3D
        periodic systems.
     '''
-    def __init__(self, system, alpha, dielectric, gcut=0.35):
+    def __init__(self, system, alpha, gcut=0.35, dielectric=1.0):
         '''
            **Arguments:**
 
@@ -335,11 +335,13 @@ class ForcePartEwaldReciprocal(ForcePart):
            alpha
                 The alpha parameter in the Ewald summation method.
 
-           dielectric
-                The scalar relative permittivity of the system.
+           **Optional arguments:**
 
            gcut
                 The cutoff in reciprocal space.
+
+           dielectric
+                The scalar relative permittivity of the system.
         '''
         ForcePart.__init__(self, 'ewald_reci', system)
         if not system.cell.nvec == 3:
@@ -348,17 +350,17 @@ class ForcePartEwaldReciprocal(ForcePart):
             raise ValueError('The system does not have charges.')
         self.system = system
         self.alpha = alpha
-        self.dielectric = dielectric
         self.gcut = gcut
+        self.dielectric = dielectric
         self.update_gmax()
         self.work = np.empty(system.natom*2)
         if log.do_medium:
             with log.section('FPINIT'):
                 log('Force part: %s' % self.name)
                 log.hline()
-                log('  alpha:             %s' % log.invlength(self.alpha))
-                log('  relative permittivity   %5.3f' % self.dielectric )
-                log('  gcut:              %s' % log.invlength(self.gcut))
+                log('  alpha:                 %s' % log.invlength(self.alpha))
+                log('  gcut:                  %s' % log.invlength(self.gcut))
+                log('  relative permittivity: %5.3f' % self.dielectric)
                 log.hline()
 
 
@@ -378,7 +380,7 @@ class ForcePartEwaldReciprocal(ForcePart):
         with timer.section('Ewald reci.'):
             return compute_ewald_reci(
                 self.system.pos, self.system.charges, self.system.cell, self.alpha,
-                self.dielectric, self.gmax, self.gcut, gpos, self.work, vtens
+                self.gmax, self.gcut, self.dielectric, gpos, self.work, vtens
             )
 
 
@@ -446,7 +448,7 @@ class ForcePartEwaldCorrection(ForcePart):
        This correction is only needed if scaling rules apply to the short-range
        electrostatics.
     '''
-    def __init__(self, system, alpha, dielectric, scalings):
+    def __init__(self, system, alpha, scalings, dielectric=1.0):
         '''
            **Arguments:**
 
@@ -456,14 +458,16 @@ class ForcePartEwaldCorrection(ForcePart):
            alpha
                 The alpha parameter in the Ewald summation method.
 
-           dielectric
-                The scalar relative permittivity of the system.
-
            scalings
                 A ``Scalings`` object. This object contains all the information
                 about the energy scaling of pairwise contributions that are
                 involved in covalent interactions. See
                 :class:`yaff.pes.scalings.Scalings` for more details.
+
+           **Optional arguments:**
+
+           dielectric
+                The scalar relative permittivity of the system.
         '''
         ForcePart.__init__(self, 'ewald_cor', system)
         if not system.cell.nvec == 3:
@@ -479,7 +483,7 @@ class ForcePartEwaldCorrection(ForcePart):
                 log('Force part: %s' % self.name)
                 log.hline()
                 log('  alpha:             %s' % log.invlength(self.alpha))
-                log('  relative permittivity   %5.3f' % self.dielectric )
+                log('  relative permittivity   %5.3f' % self.dielectric)
                 log('  scalings:          %5.3f %5.3f %5.3f' % (scalings.scale1, scalings.scale2, scalings.scale3))
                 log.hline()
 
@@ -487,7 +491,7 @@ class ForcePartEwaldCorrection(ForcePart):
         with timer.section('Ewald corr.'):
             return compute_ewald_corr(
                 self.system.pos, self.system.charges, self.system.cell,
-                self.alpha, self.dielectric, self.scalings.stab, gpos, vtens
+                self.alpha, self.scalings.stab, self.dielectric, gpos, vtens
             )
 
 
@@ -542,7 +546,7 @@ class ForcePartEwaldNeutralizing(ForcePart):
 
        This term is only required of the system is not neutral.
     '''
-    def __init__(self, system, alpha, dielectric):
+    def __init__(self, system, alpha, dielectric=1.0):
         '''
            **Arguments:**
 
@@ -552,9 +556,10 @@ class ForcePartEwaldNeutralizing(ForcePart):
            alpha
                 The alpha parameter in the Ewald summation method.
 
+           **Optional arguments:**
+
            dielectric
                 The scalar relative permittivity of the system.
-
         '''
         ForcePart.__init__(self, 'ewald_neut', system)
         if not system.cell.nvec == 3:
@@ -568,8 +573,8 @@ class ForcePartEwaldNeutralizing(ForcePart):
             with log.section('FPINIT'):
                 log('Force part: %s' % self.name)
                 log.hline()
-                log('  alpha:             %s' % log.invlength(self.alpha))
-                log('  relative permittivity   %5.3f' % self.dielectric )
+                log('  alpha:                   %s' % log.invlength(self.alpha))
+                log('  relative permittivity:   %5.3f' % self.dielectric)
                 log.hline()
 
     def _internal_compute(self, gpos, vtens):

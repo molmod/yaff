@@ -30,8 +30,8 @@
 #include <stdio.h>
 
 double compute_ewald_reci(double *pos, long natom, double *charges,
-                          cell_type* cell, double alpha, double dielectric,
-                          long *gmax, double gcut, double *gpos, double *work,
+                          cell_type* cell, double alpha, long *gmax, double
+                          gcut, double dielectric, double *gpos, double *work,
                           double* vtens) {
   long g0, g1, g2, i;
   double energy, k[3], ksq, cosfac, sinfac, x, c, s, fac1, fac2, dielectric_factor;
@@ -222,8 +222,8 @@ double compute_ewald_reci_dd(double *pos, long natom, double *charges, double *d
 }
 
 double compute_ewald_corr(double *pos, double *charges,
-                          cell_type *unitcell, double alpha, double dielectric,
-                          scaling_row_type *stab, long nstab,
+                          cell_type *unitcell, double alpha,
+                          scaling_row_type *stab, long nstab, double dielectric,
                           double *gpos, double *vtens, long natom) {
   long i, center_index, other_index;
   double energy, delta[3], d, x, g, pot, fac, dielectric_factor;

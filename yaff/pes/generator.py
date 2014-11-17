@@ -168,9 +168,9 @@ class FFArgs(object):
             raise NotImplementedError('Only zero- and three-dimensional electrostatics are supported.')
         # Real-space electrostatics
         if self.smooth_ei:
-            pair_pot_ei = PairPotEI(system.charges, alpha, dielectric, self.rcut, tr=self.tr, radii=system.radii)
+            pair_pot_ei = PairPotEI(system.charges, alpha, self.rcut, self.tr, dielectric, system.radii)
         else:
-            pair_pot_ei = PairPotEI(system.charges, alpha, dielectric, self.rcut, radii=system.radii)
+            pair_pot_ei = PairPotEI(system.charges, alpha, self.rcut, None, dielectric, system.radii)
         part_pair_ei = ForcePartPair(system, nlist, scalings, pair_pot_ei)
         self.parts.append(part_pair_ei)
         if self.reci_ei == 'ignore':
@@ -179,10 +179,10 @@ class FFArgs(object):
         elif self.reci_ei == 'ewald':
             if system.cell.nvec == 3:
                 # Reciprocal-space electrostatics
-                part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, dielectric, gcut=self.gcut_scale*alpha)
+                part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, self.gcut_scale*alpha, dielectric)
                 self.parts.append(part_ewald_reci)
                 # Ewald corrections
-                part_ewald_corr = ForcePartEwaldCorrection(system, alpha, dielectric, scalings)
+                part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings, dielectric)
                 self.parts.append(part_ewald_corr)
                 # Neutralizing background
                 part_ewald_neut = ForcePartEwaldNeutralizing(system, alpha, dielectric)
