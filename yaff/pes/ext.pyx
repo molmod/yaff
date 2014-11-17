@@ -1386,8 +1386,8 @@ cdef class PairPotEIDip(PairPot):
 def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
                        np.ndarray[double, ndim=1] charges,
                        Cell unitcell, double alpha,
-                       np.ndarray[long, ndim=1] jmax,
-                       double kcut, double dielectric,
+                       np.ndarray[long, ndim=1] gmax,
+                       double gcut, double dielectric,
                        np.ndarray[double, ndim=2] gpos,
                        np.ndarray[double, ndim=1] work,
                        np.ndarray[double, ndim=2] vtens):
@@ -1408,16 +1408,16 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
        alpha
             The :math:`\\alpha` parameter from the Ewald summation scheme.
 
-       jmax
+       gmax
             The maximum range of periodic images in reciprocal space to be
             considered for the Ewald sum. integer numpy array with shape (3,).
             Each element gives the range along the corresponding reciprocal
-            cell vector. The range along each axis goes from -jmax[0] to
-            jmax[0] (inclusive).
+            cell vector. The range along each axis goes from -gmax[0] to
+            gmax[0] (inclusive).
 
-       kcut
+       gcut
             The cutoff in reciprocal space. The caller is responsible for the
-            compatibility of ``kcut`` with ``jmax``.
+            compatibility of ``gcut`` with ``gmax``.
 
        dielectric
             The scalar relative permittivity of the system.
@@ -1445,8 +1445,8 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
     assert unitcell.nvec == 3
     assert alpha > 0
     assert dielectric >= 1.0
-    assert jmax.flags['C_CONTIGUOUS']
-    assert jmax.shape[0] == 3
+    assert gmax.flags['C_CONTIGUOUS']
+    assert gmax.shape[0] == 3
 
     if gpos is None:
         my_gpos = NULL
@@ -1470,8 +1470,8 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
 
     return ewald.compute_ewald_reci(<double*>pos.data, len(pos),
                                     <double*>charges.data,
-                                    unitcell._c_cell, alpha, <long*>jmax.data,
-                                    kcut, dielectric, my_gpos, my_work,
+                                    unitcell._c_cell, alpha, <long*>gmax.data,
+                                    gcut, dielectric, my_gpos, my_work,
                                     my_vtens)
 
 
@@ -1479,7 +1479,7 @@ def compute_ewald_reci_dd(np.ndarray[double, ndim=2] pos,
                        np.ndarray[double, ndim=1] charges,
                        np.ndarray[double, ndim=2] dipoles,
                        Cell unitcell, double alpha,
-                       np.ndarray[long, ndim=1] jmax, double kcut,
+                       np.ndarray[long, ndim=1] gmax, double gcut,
                        np.ndarray[double, ndim=2] gpos,
                        np.ndarray[double, ndim=1] work,
                        np.ndarray[double, ndim=2] vtens):
@@ -1503,16 +1503,16 @@ def compute_ewald_reci_dd(np.ndarray[double, ndim=2] pos,
        alpha
             The :math:`\\alpha` parameter from the Ewald summation scheme.
 
-       jmax
+       gmax
             The maximum range of periodic images in reciprocal space to be
             considered for the Ewald sum. integer numpy array with shape (3,).
             Each element gives the range along the corresponding reciprocal
-            cell vector. The range along each axis goes from -jmax[0] to
-            jmax[0] (inclusive).
+            cell vector. The range along each axis goes from -gmax[0] to
+            gmax[0] (inclusive).
 
-       kcut
+       gcut
             The cutoff in reciprocal space. The caller is responsible for the
-            compatibility of ``kcut`` with ``jmax``.
+            compatibility of ``gcut`` with ``gmax``.
 
        gpos
             If not set to None, the Cartesian gradient of the energy is
@@ -1538,8 +1538,8 @@ def compute_ewald_reci_dd(np.ndarray[double, ndim=2] pos,
     assert dipoles.shape[0] == pos.shape[0]
     assert unitcell.nvec == 3
     assert alpha > 0
-    assert jmax.flags['C_CONTIGUOUS']
-    assert jmax.shape[0] == 3
+    assert gmax.flags['C_CONTIGUOUS']
+    assert gmax.shape[0] == 3
 
     if gpos is None:
         my_gpos = NULL
@@ -1565,7 +1565,7 @@ def compute_ewald_reci_dd(np.ndarray[double, ndim=2] pos,
                                     <double*>charges.data,
                                     <double*>dipoles.data,
                                     unitcell._c_cell, alpha,
-                                    <long*>jmax.data, kcut, my_gpos, my_work,
+                                    <long*>gmax.data, gcut, my_gpos, my_work,
                                     my_vtens)
 
 

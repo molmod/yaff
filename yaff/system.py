@@ -346,26 +346,26 @@ class System(object):
             log.hline()
             log.blank()
 
-    def get_natom(self):
+    def _get_natom(self):
         """The number of atoms"""
         return len(self.pos)
 
-    natom = property(get_natom)
+    natom = property(_get_natom)
 
-    def get_nffatype(self):
+    def _get_nffatype(self):
         """The number of atom types"""
         return len(self.ffatypes)
 
-    nffatype = property(get_nffatype)
+    nffatype = property(_get_nffatype)
 
-    def get_nbond(self):
+    def _get_nbond(self):
         '''The number of bonds'''
         if self.bonds is None:
             return 0
         else:
             return len(self.bonds)
 
-    nbond = property(get_nbond)
+    nbond = property(_get_nbond)
 
     @classmethod
     def from_file(cls, *fns, **user_kwargs):
