@@ -685,7 +685,7 @@ class ValenceCrossGenerator(Generator):
 
        ICClass1
             The second ``InternalCoordinate`` class. See ``yaff.pes.iclist``.
-       
+
        ICClass2
             The third ``InternalCoordinate`` class. See ``yaff.pes.iclist``.
 
@@ -776,7 +776,7 @@ class ValenceCrossGenerator(Generator):
     def get_indexes1(self, indexes):
         '''Get the indexes for the second internal coordinate from the whole'''
         raise NotImplementedError
-    
+
     def get_indexes2(self, indexes):
         '''Get the indexes for the third internal coordinate from the whole'''
         raise NotImplementedError
@@ -803,7 +803,7 @@ class CrossGenerator(ValenceCrossGenerator):
 
     def get_indexes1(self, indexes):
         return indexes[1:]
-    
+
     def get_indexes2(self, indexes):
         return indexes
 

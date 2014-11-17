@@ -66,7 +66,7 @@ from yaff.pes.ext import iclist_forward, iclist_back
 
 __all__ = [
     'InternalCoordinateList', 'InternalCoordinate', 'Bond', 'BendAngle',
-    'BendCos', 'DihedAngle', 'DihedCos', 'UreyBradley', 'OopAngle', 
+    'BendCos', 'DihedAngle', 'DihedCos', 'UreyBradley', 'OopAngle',
     'OopMeanAngle', 'OopCos', 'OopMeanCos', 'OopDist',
 ]
 
