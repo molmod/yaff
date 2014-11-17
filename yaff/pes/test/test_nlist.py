@@ -46,7 +46,7 @@ def test_nlist_water32_4A():
     # check a few random rows from the neighbor list
     for i in random.sample(xrange(nneigh), 100):
         row = nlist.neighs[i]
-        row['d'] <= rcut
+        assert row['d'] <= rcut
 
         delta = system.pos[row['b']] - system.pos[row['a']]
         delta -= np.floor(delta/(9.865*angstrom)+0.5)*(9.865*angstrom)
