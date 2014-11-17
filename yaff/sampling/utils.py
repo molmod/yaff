@@ -304,6 +304,7 @@ def cell_symmetrize(ff):
     pos_new = np.dot(ff.system.pos, rot_mat)
     ff.update_pos(pos_new)
 
+
 def get_random_vel_press(mass, temp):
     '''Generates symmetric tensor of barostat velocities
 
@@ -330,13 +331,14 @@ def get_random_vel_press(mass, temp):
                 vel_press[i,j] /= np.sqrt(2)
     return vel_press
 
-def get_ndof_baro(dim, anisotropic, Vconstraint):
+
+def get_ndof_baro(dim, anisotropic, vol_constraint):
     baro_ndof = 1
     # degrees of freedom for a symmetric cell tensor
     if anisotropic:
         baro_ndof = dim*(dim+1)/2
     # decrease the number of dof by one if volume is constant
-    if Vconstraint:
+    if vol_constraint:
         baro_ndof -= 1
     # verify at least one degree of freedom is left
     if baro_ndof == 0:

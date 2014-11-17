@@ -101,6 +101,7 @@ class AndersenThermostat(VerletHook):
     def post(self, iterative, G1_add = None):
         pass
 
+
 class BerendsenThermostat(VerletHook):
     def __init__(self, temp, start=0, timecon=100*femtosecond):
         """
@@ -144,6 +145,7 @@ class BerendsenThermostat(VerletHook):
     def post(self, iterative, G1_add = None):
         pass
 
+
 class LangevinThermostat(VerletHook):
     def __init__(self, temp, start=0, timecon=100*femtosecond):
         """
@@ -163,7 +165,7 @@ class LangevinThermostat(VerletHook):
                 The step at which the thermostat becomes active.
 
            timecon
-                The time constant of the Nose-Hoover thermostat.
+                The time constant of the Langevin thermostat.
         """
         self.temp = temp
         self.timecon = timecon
@@ -204,6 +206,7 @@ class LangevinThermostat(VerletHook):
         c2 = np.sqrt((1.0-c1**2)*self.temp*boltzmann/iterative.masses).reshape(-1,1)
         iterative.vel[:] = c1*iterative.vel + c2*np.random.normal(0, 1, iterative.vel.shape)
         iterative.ekin = iterative._compute_ekin()
+
 
 class CSVRThermostat(VerletHook):
     def __init__(self, temp, start=0, timecon=100*femtosecond):
@@ -256,8 +259,6 @@ class CSVRThermostat(VerletHook):
 
     def post(self, iterative, G1_add = None):
         pass
-        # How implementing the Wiener Noise?
-        # self.econs_correction += (self.kin-iterative.ekin)*iterative.timestep/self.timecon
 
 
 class NHChain(object):
@@ -370,17 +371,17 @@ class NHCThermostat(VerletHook):
         """
         self.temp = temp
         # At this point, the timestep and the number of degrees of freedom are
-        # not known yet.
+        # not known yet
         self.chain = NHChain(chainlength, 0.0, temp, 0, timecon)
         VerletHook.__init__(self, start, 1)
 
     def init(self, iterative):
-        # It is mandatory to zero the external momenta.
+        # It is mandatory to zero the external momenta
         clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
-        # If needed, determine the number of _internal_ degrees of freedom.
+        # If needed, determine the number of _internal_ degrees of freedom
         if iterative.ndof is None:
             iterative.ndof = get_ndof_internal_md(iterative.pos.shape[0], iterative.ff.system.cell.nvec)
-        # Configure the chain.
+        # Configure the chain
         self.chain.timestep = iterative.timestep
         self.chain.set_ndof(iterative.ndof)
 
@@ -392,6 +393,7 @@ class NHCThermostat(VerletHook):
         vel_new, iterative.ekin = self.chain(iterative.ekin, iterative.vel, G1_add)
         iterative.vel[:] = vel_new
         self.econs_correction = self.chain.get_econs_correction()
+
 
 class NHCAttributeStateItem(StateItem):
     def __init__(self, attr):
