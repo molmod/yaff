@@ -65,9 +65,9 @@ class TBCombination(VerletHook):
             self.thermostat = barostat
             if not self.verify():
                 raise TypeError('The Thermostat or Barostat instance is not supported (yet)')
-        self.stebaro_thermo = self.thermostat.step
+        self.step_thermo = self.thermostat.step
         self.step_baro = self.barostat.step
-        VerletHook.__init__(self, start, min(self.stebaro_thermo, self.step_baro))
+        VerletHook.__init__(self, start, min(self.step_thermo, self.step_baro))
 
     def init(self, iterative):
         # initialize the thermostat and barostat separately
@@ -133,7 +133,7 @@ class TBCombination(VerletHook):
     def expectscall(self, iterative, kind):
         # returns whether the thermostat/barostat should be called in this iteration
         if kind == 'thermo':
-            return iterative.counter >= self.start and (iterative.counter - self.start) % self.stebaro_thermo == 0
+            return iterative.counter >= self.start and (iterative.counter - self.start) % self.step_thermo == 0
         if kind == 'baro':
             return iterative.counter >= self.start and (iterative.counter - self.start) % self.step_baro == 0
 
