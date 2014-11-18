@@ -1,5 +1,19 @@
+# Binary files
 *.pyc
 *.so
 *.png
 *.h5
 ext.c
+*.tar.gz
+
+# compiled stuff
+build
+dist
+
+# output of the examples
+data/examples/000_overview/traj.xyz
+data/examples/001_tutorial_bks/init/init.chk
+data/examples/001_tutorial_bks/nvt/traj_0300_000310.h5.xyz
+data/examples/001_tutorial_bks/opt/opt.chk
+data/examples/001_tutorial_bks/opt/traj.xyz
+data/examples/003_water_thermostat/traj.xyz
