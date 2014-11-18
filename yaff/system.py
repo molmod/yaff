@@ -805,10 +805,10 @@ class System(object):
         attrname = 'dipoles'
         value = getattr(self, attrname)
         if value is not None:
-            new_args[attrname] = np.tile(value, (rep_all,1) )
+            new_args[attrname] = np.tile(value, (rep_all, 1))
 
         # C) Cell vectors
-        new_args['rvecs'] = self.cell.rvecs*np.reshape(reps, (3,1))
+        new_args['rvecs'] = self.cell.rvecs*np.array(reps)[:,None]
 
         # D) Atom positions
         new_pos = np.zeros((self.natom*rep_all, 3), float)
