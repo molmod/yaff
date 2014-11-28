@@ -70,9 +70,16 @@ class TBCombination(VerletHook):
         VerletHook.__init__(self, start, min(self.step_thermo, self.step_baro))
 
     def init(self, iterative):
+        # verify whether ndof is given as an argument
+        set_ndof = iterative.ndof is not None
         # initialize the thermostat and barostat separately
         self.thermostat.init(iterative)
         self.barostat.init(iterative)
+        # ensure ndof = 3N if the center of mass movement is not suppressed and ndof is not determined by the user
+        from yaff.sampling.nvt import LangevinThermostat, GLEThermostat
+        p_cm_fluct = isinstance(self.thermostat, LangevinThermostat) or isinstance(self.thermostat, GLEThermostat) or isinstance(self.barostat, LangevinBarostat)
+        if (not set_ndof) and p_cm_fluct:
+            iterative.ndof = iterative.pos.size
         # variables which will determine the coupling between thermostat and barostat
         self.chainvel0 = None
         self.G1_add = None
@@ -139,10 +146,10 @@ class TBCombination(VerletHook):
 
     def verify(self):
         # returns whether the thermostat and barostat instances are currently supported by yaff
-        from yaff.sampling.nvt import AndersenThermostat, NHCThermostat, LangevinThermostat, BerendsenThermostat
+        from yaff.sampling.nvt import AndersenThermostat, NHCThermostat, LangevinThermostat, BerendsenThermostat, CSVRThermostat, GLEThermostat
         thermo_correct = False
         baro_correct = False
-        thermo_list = [AndersenThermostat, NHCThermostat, LangevinThermostat, BerendsenThermostat]
+        thermo_list = [AndersenThermostat, NHCThermostat, LangevinThermostat, BerendsenThermostat, CSVRThermostat, GLEThermostat]
         baro_list = [McDonaldBarostat, BerendsenBarostat, LangevinBarostat, MTKBarostat]
         if any(isinstance(self.thermostat, thermo) for thermo in thermo_list):
             thermo_correct = True
@@ -366,9 +373,11 @@ class LangevinBarostat(VerletHook):
     def init(self, iterative):
         self.timestep_press = iterative.timestep
         clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
+        # set the number of internal degrees of freedom (no restriction on p_cm)
+        if iterative.ndof is None:
+            iterative.ndof = iterative.pos.size
         # define the barostat 'mass'
-        self.ndof = get_ndof_internal_md(len(iterative.ff.system.numbers), iterative.ff.system.cell.nvec)
-        self.mass_press = (self.ndof+3)/3*boltzmann*self.temp*(self.timecon/(2*np.pi))**2
+        self.mass_press = (iterative.ndof+3)/3*boltzmann*self.temp*(self.timecon/(2*np.pi))**2
         # define initial barostat velocity
         self.vel_press = get_random_vel_press(self.mass_press, self.temp)
         # make sure the volume of the cell will not change if applicable
@@ -416,7 +425,7 @@ class LangevinBarostat(VerletHook):
             # definition of P_intV and G
             ptens_vol = np.dot(iterative.vel.T*iterative.masses, iterative.vel) - iterative.vtens
             ptens_vol = 0.5*(ptens_vol.T + ptens_vol)
-            G = (ptens_vol+(2.0*iterative.ekin/self.ndof-self.press*iterative.ff.system.cell.volume)*np.eye(3))/self.mass_press
+            G = (ptens_vol+(2.0*iterative.ekin/iterative.ndof-self.press*iterative.ff.system.cell.volume)*np.eye(3))/self.mass_press
             R = self.getR()
             if self.vol_constraint:
                 G -= np.trace(G)/self.dim*np.eye(self.dim)
@@ -463,12 +472,12 @@ class LangevinBarostat(VerletHook):
             if self.vol_constraint:
                 Dg, Eg = np.linalg.eigh(self.vel_press)
             else:
-                Dg, Eg = np.linalg.eigh(self.vel_press+(np.trace(self.vel_press)/self.ndof)*np.eye(3))
+                Dg, Eg = np.linalg.eigh(self.vel_press+(np.trace(self.vel_press)/iterative.ndof)*np.eye(3))
             Daccg = np.diagflat(np.exp(-Dg*self.timestep_press/2))
             rot_mat = np.dot(np.dot(Eg, Daccg), Eg.T)
             vel_new = np.dot(iterative.vel, rot_mat)
         else:
-            vel_new = np.exp(-((1.0+3.0/self.ndof)*self.vel_press)*self.timestep_press/2) * iterative.vel
+            vel_new = np.exp(-((1.0+3.0/iterative.ndof)*self.vel_press)*self.timestep_press/2) * iterative.vel
         iterative.vel[:] = vel_new
 
         # update kinetic energy
@@ -553,10 +562,12 @@ class MTKBarostat(VerletHook):
     def init(self, iterative):
         self.timestep_press = iterative.timestep
         clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
+        # determine the internal degrees of freedom
+        if iterative.ndof is None:
+            iterative.ndof = get_ndof_internal_md(len(iterative.ff.system.numbers), iterative.ff.system.cell.nvec)
         # determine barostat 'mass'
         angfreq = 2*np.pi/self.timecon_press
-        self.ndof = get_ndof_internal_md(len(iterative.ff.system.numbers), iterative.ff.system.cell.nvec)
-        self.mass_press = (self.ndof+self.dim**2)*boltzmann*self.temp/angfreq**2
+        self.mass_press = (iterative.ndof+self.dim**2)*boltzmann*self.temp/angfreq**2
         # define initial barostat velocity
         self.vel_press = get_random_vel_press(self.mass_press, self.temp)
         if not self.anisotropic:
@@ -617,7 +628,7 @@ class MTKBarostat(VerletHook):
             # definition of P_intV and G
             ptens_vol = np.dot(iterative.vel.T*iterative.masses, iterative.vel) - iterative.vtens
             ptens_vol = 0.5*(ptens_vol.T + ptens_vol)
-            G = (ptens_vol+(2.0*iterative.ekin/self.ndof-self.press*iterative.ff.system.cell.volume)*np.eye(3))/self.mass_press
+            G = (ptens_vol+(2.0*iterative.ekin/iterative.ndof-self.press*iterative.ff.system.cell.volume)*np.eye(3))/self.mass_press
             if not self.anisotropic:
                 G = np.trace(G)
             if self.vol_constraint:
@@ -659,12 +670,12 @@ class MTKBarostat(VerletHook):
             if self.vol_constraint:
                 Dg, Eg = np.linalg.eigh(self.vel_press)
             else:
-                Dg, Eg = np.linalg.eigh(self.vel_press+(np.trace(self.vel_press)/self.ndof)*np.eye(3))
+                Dg, Eg = np.linalg.eigh(self.vel_press+(np.trace(self.vel_press)/iterative.ndof)*np.eye(3))
             Daccg = np.diagflat(np.exp(-Dg*self.timestep_press/2))
             rot_mat = np.dot(np.dot(Eg, Daccg), Eg.T)
             vel_new = np.dot(iterative.vel, rot_mat)
         else:
-            vel_new = np.exp(-((1.0+3.0/self.ndof)*self.vel_press)*self.timestep_press/2) * iterative.vel
+            vel_new = np.exp(-((1.0+3.0/iterative.ndof)*self.vel_press)*self.timestep_press/2) * iterative.vel
 
         # update the velocities and the kinetic energy
         iterative.vel[:] = vel_new
