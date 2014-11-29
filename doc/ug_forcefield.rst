@@ -398,14 +398,15 @@ Prefix -- LJ
 
 with
 
+.. math:: \sigma_{ij} = \frac{\sigma_i + \sigma_j}{2}
+
 .. math:: \epsilon_{ij} = \sqrt{\epsilon_i \epsilon_j}
 
-.. math:: \sigma_{ij} = \frac{\sigma_i + \sigma_j}{2}
 
 **Parameters:**
 
-* :math:`\epsilon_i` (``EPSILON``): the depth of the energy minimum (for a pair of atoms of the same type).
 * :math:`\sigma_i` (``SIGMA``): the (finite) distance at which the energy becomes zero (for a pair of atoms of the same type).
+* :math:`\epsilon_i` (``EPSILON``): the depth of the energy minimum (for a pair of atoms of the same type).
 
 **Constants:**
 
@@ -418,12 +419,12 @@ with
 
 **Commands:**
 
-* ``UNIT`` (may repeat): Specify the units of the parameters ``EPSILON`` and ``SIGMA``. See
+* ``UNIT`` (may repeat): Specify the units of the parameters ``SIGMA`` and ``EPSILON``. See
   :ref:`sub_sub_sec_general_commands`.
 * ``SCALE`` (may repeat): Specify the scaling of short-ranged interactions. See
   :ref:`sub_sub_sec_general_commands`.
 * ``PARS`` (may repeat): Specify parameters for a given atom type.
-  Three data fields must be given: ``ffatype``, ``EPSILON`` and ``SIGMA``.
+  Three data fields must be given: ``ffatype``, ``SIGMA`` and ``EPSILON``.
 
 **Example**:
 

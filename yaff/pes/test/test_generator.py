@@ -276,10 +276,10 @@ def test_generator_water32_lj():
     assert len(ff.parts) == 1
     part_pair_lj = ff.part_pair_lj
     # check parameters
-    assert abs(part_pair_lj.pair_pot.sigmas[0] - 1.7*angstrom) < 1e-10
-    assert abs(part_pair_lj.pair_pot.sigmas[1] - 0.2*angstrom) < 1e-10
-    assert abs(part_pair_lj.pair_pot.epsilons[0] - 0.12*kcalmol) < 1e-10
-    assert abs(part_pair_lj.pair_pot.epsilons[1] - 0.04*kcalmol) < 1e-10
+    assert abs(part_pair_lj.pair_pot.sigmas[0] - 3.15*angstrom) < 1e-10
+    assert abs(part_pair_lj.pair_pot.sigmas[1] - 0.4*angstrom) < 1e-10
+    assert abs(part_pair_lj.pair_pot.epsilons[0] - 0.1521*kcalmol) < 1e-10
+    assert abs(part_pair_lj.pair_pot.epsilons[1] - 0.046*kcalmol) < 1e-10
 
 
 def test_generator_glycine_lj():
