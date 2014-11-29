@@ -14,7 +14,7 @@ git checkout master && (
       echo Adding $f
       git add $f
     done
-    git commit -a --amend -m 'Automatic documentation update'
+    git commit --no-verify -a --amend -m 'Automatic documentation update'
     git push origin gh-pages:gh-pages -f
   )
 ) && git checkout master
