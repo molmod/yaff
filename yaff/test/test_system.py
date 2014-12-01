@@ -323,9 +323,9 @@ def test_supercell_charges():
         radii=np.array([0.0,2.0]),
         rvecs=np.identity(3)*cellpar,
     )
-    sys333 = sys111.supercell(3,3,3)
-    assert np.all(sys333.charges==np.repeat(np.array([0.1,1.0]),9))==0.0
-    assert np.all(sys333.radii==np.repeat(np.array([0.0,2.0]),9))==0.0
+    sys333 = sys111.supercell(3, 3, 3)
+    assert (sys333.charges == np.tile(np.array([0.1,1.0]), 27)).all()
+    assert (sys333.radii == np.tile(np.array([0.0,2.0]), 27)).all()
 
 
 def test_supercell_dipoles():
@@ -339,8 +339,8 @@ def test_supercell_dipoles():
         rvecs=np.identity(3)*cellpar,
     )
     sys333 = sys111.supercell(3,3,3)
-    assert np.all(sys333.charges==np.tile(np.array([[0.1,1.0,2.0],[0.5,0.7,0.9]]),(9,1)))==0.0
-    assert np.all(sys333.radii==np.repeat(np.array([0.0,2.0]),9))==0.0
+    assert (sys333.dipoles == np.tile(np.array([[0.1,1.0,2.0],[0.5,0.7,0.9]]), (27,1))).all()
+    assert (sys333.radii2 == np.tile(np.array([0.0,2.0]), 27)).all()
 
 
 def test_remove_duplicate1():

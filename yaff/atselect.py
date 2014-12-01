@@ -304,13 +304,13 @@ class Name(Rule):
 
     def __call__(self, system, i):
         if self.scope is not None:
-            if system.scopes == None:
+            if system.scopes is None:
                 raise ValueError('The system does not have scopes.')
             if system.get_scope(i) != self.scope:
                 return False
         if self.ffatype != '*':
             if self.ffatype is not None:
-                if system.ffatypes == None:
+                if system.ffatypes is None:
                     raise ValueError('The system does not have ffatypes.')
                 if system.get_ffatype(i) != self.ffatype:
                     return False
