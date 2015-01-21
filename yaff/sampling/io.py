@@ -31,7 +31,7 @@ __all__ = ['HDF5Writer', 'XYZWriter']
 
 
 class HDF5Writer(Hook):
-    def __init__(self, f, start=0, step=1):
+    def __init__(self, f, start=0, step=1, flush=None):
         """
            **Argument:**
 
@@ -45,8 +45,15 @@ class HDF5Writer(Hook):
 
            step
                 The hook will be called every `step` iterations.
+
+           flush
+                Flush the h5.File object every `flush` iterations so it can be
+                read up to the latest flush. This is useful to avoid data loss
+                for long calculations or to monitor running calculations.
+                Note that flushing too often might impact performance of hdf5.
         """
         self.f = f
+        self.flush = flush
         Hook.__init__(self, start, step)
 
     def __call__(self, iterative):
@@ -70,6 +77,8 @@ class HDF5Writer(Hook):
                 # do not over-allocate. hdf5 works with chunks internally.
                 ds.resize(row+1, axis=0)
             ds[row] = item.value
+        if self.flush is not None:
+            if row%self.flush == 0: self.f.flush()
 
     def dump_system(self, system):
         system.to_hdf5(self.f)
