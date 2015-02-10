@@ -333,18 +333,26 @@ class GLEThermostat(VerletHook):
 
 
 class NHChain(object):
-    def __init__(self, length, timestep, temp, ndof, timecon=100*femtosecond):
+    def __init__(self, length, timestep, temp, ndof, pos0, vel0, timecon=100*femtosecond):
         # parameters
         self.length = length
         self.timestep = timestep
         self.temp = temp
         self.timecon = timecon
+        # verify whether positions and velocities are taken from a restart
+        self.restart_pos = False
+        self.restart_vel = False
+        if pos0 is not None: self.restart_pos = True
+        if vel0 is not None: self.restart_vel = True
+
         if ndof>0:#avoid setting self.masses with zero gaussian-width in set_ndof if ndof=0
             self.set_ndof(ndof)
 
         # allocate degrees of freedom
-        self.pos = np.zeros(length)
-        self.vel = np.zeros(length)
+        if self.restart_pos: self.pos = pos0.copy()
+        else: self.pos = np.zeros(length)
+        if self.restart_vel: self.vel = vel0.copy()
+        else: self.vel = np.zeros(length)
 
     def set_ndof(self, ndof):
         # set the masses according to the time constant
@@ -352,7 +360,7 @@ class NHChain(object):
         angfreq = 2*np.pi/self.timecon
         self.masses = np.ones(self.length)*(boltzmann*self.temp/angfreq**2)
         self.masses[0] *= ndof
-        self.vel = self.get_random_vel_therm()
+        if not self.restart_vel: self.vel = self.get_random_vel_therm()
 
     def get_random_vel_therm(self):
         # generate random velocities for the thermostat velocities using a Gaussian distribution
@@ -409,46 +417,52 @@ class NHChain(object):
 
 
 class NHCThermostat(VerletHook):
-    def __init__(self, temp, start=0, timecon=100*femtosecond, chainlength=3):
+    def __init__(self, temp, start=0, timecon=100*femtosecond, chainlength=3, chain_pos0=None, chain_vel0=None):
         """
-           This hook implements the Nose-Hoover chain thermostat. The equations
-           are derived in:
+            This hook implements the Nose-Hoover chain thermostat. The equations
+            are derived in:
 
                 Martyna, G. J.; Klein, M. L.; Tuckerman, M. J. Chem. Phys. 1992,
                 97, 2635-2643.
 
-           The implementation (used here) of a symplectic integrator of the
-           Nose-Hoover chain thermostat is discussed in:
+            The implementation (used here) of a symplectic integrator of the
+            Nose-Hoover chain thermostat is discussed in:
 
                 Martyna, G. J.;  Tuckerman, M. E.;  Tobias, D. J.;  Klein,
                 M. L. Mol. Phys. 1996, 87, 1117-1157.
 
-           **Arguments:**
+            **Arguments:**
 
-           temp
+            temp
                 The temperature of thermostat.
 
-           **Optional arguments:**
+            **Optional arguments:**
 
-           start
+            start
                 The step at which the thermostat becomes active.
 
-           timecon
+            timecon
                 The time constant of the Nose-Hoover thermostat.
 
-           chainlength
+            chainlength
                 The number of beads in the Nose-Hoover chain.
 
+            chain_pos0
+                The initial thermostat chain positions
+
+            chain_vel0
+                The initial thermostat chain velocities
         """
         self.temp = temp
         # At this point, the timestep and the number of degrees of freedom are
         # not known yet
-        self.chain = NHChain(chainlength, 0.0, temp, 0, timecon)
+        self.chain = NHChain(chainlength, 0.0, temp, 0, chain_pos0, chain_vel0, timecon)
         VerletHook.__init__(self, start, 1)
 
     def init(self, iterative):
-        # It is mandatory to zero the external momenta
-        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
+        if not iterative.restart:
+            # It is mandatory to zero the external momenta
+            clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
         # If needed, determine the number of _internal_ degrees of freedom
         if iterative.ndof is None:
             iterative.ndof = get_ndof_internal_md(iterative.pos.shape[0], iterative.ff.system.cell.nvec)
@@ -468,7 +482,7 @@ class NHCThermostat(VerletHook):
 
 class NHCAttributeStateItem(StateItem):
     def __init__(self, attr):
-        StateItem.__init__(self, 'chain_'+attr)
+        StateItem.__init__(self, 'thermo_'+attr)
         self.attr = attr
 
     def get_value(self, iterative):
@@ -479,8 +493,11 @@ class NHCAttributeStateItem(StateItem):
                 break
             elif isinstance(hook, TBCombination):
                 if isinstance(hook.thermo, NHCThermostat):
-                    chain = hook.thermo.chain
+                    chain = hook.thermostat.chain
                 break
         if chain is None:
             raise TypeError('Iterative does not contain a NHCThermostat hook.')
         return getattr(chain, self.attr)
+
+    def copy(self):
+        return self.__class__(self.key)

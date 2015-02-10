@@ -99,7 +99,7 @@ def blav(signal, minblock=100, fn_png=None, unit=None):
             conversion = 1
             notation = '1'
         else:
-            converions = unit.conversion
+            conversion = unit.conversion
             notation = unit.notation
         pt.clf()
         pt.plot(x[:-l], e[:-l]/conversion, 'k+', alpha=0.5)

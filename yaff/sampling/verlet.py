@@ -80,43 +80,43 @@ class VerletIntegrator(Iterative):
     log_name = 'VERLET'
 
     def __init__(self, ff, timestep, state=None, hooks=None, vel0=None,
-                 temp0=300, scalevel0=True, time0=0.0, ndof=None, counter0=0):
+                 temp0=300, scalevel0=True, time0=0.0, ndof=None, counter0=0, restart = False):
         """
-           **Arguments:**
+            **Arguments:**
 
-           ff
+            ff
                 A ForceField instance
 
-           timestep
+            timestep
                 The integration time step (in atomic units)
 
-           **Optional arguments:**
+            **Optional arguments:**
 
-           state
+            state
                 A list with state items. State items are simple objects
                 that take or derive a property from the current state of the
                 iterative algorithm.
 
-           hooks
+            hooks
                 A function (or a list of functions) that is called after every
                 iterative.
 
-           vel0
+            vel0
                 An array with initial velocities. If not given, random
                 velocities are sampled from the Maxwell-Boltzmann distribution
                 corresponding to the optional arguments temp0 and scalevel0
 
-           temp0
+            temp0
                 The (initial) temperature for the random initial velocities
 
-           scalevel0
+            scalevel0
                 If True (the default), the random velocities are rescaled such
                 that the instantaneous temperature coincides with temp0.
 
-           time0
+            time0
                 The time associated with the initial state.
 
-           ndof
+            ndof
                 When given, this option overrides the number of degrees of
                 freedom determined from internal heuristics. When ndof is not
                 given, its default value depends on the thermostat used. In most
@@ -125,8 +125,11 @@ class VerletIntegrator(Iterative):
                 attribute is used to derive the temperature from the kinetic
                 energy.
 
-           counter0
+            counter0
                 The counter value associated with the initial state.
+
+            restart
+                If true, the cell is not symmetrized initially
         """
         # Assign init arguments
         self.pos = ff.system.pos.copy()
@@ -134,6 +137,7 @@ class VerletIntegrator(Iterative):
         self.time = time0
         self.ndof = ndof
         self.rvecs = ff.system.cell.rvecs.copy()
+        self.restart = restart
 
         # The integrator needs masses. If not available, take default values.
         if ff.system.masses is None:

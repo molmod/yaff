@@ -24,10 +24,11 @@
 '''Trajectory writers'''
 
 
-from yaff.sampling.iterative import Hook
+from yaff.sampling.iterative import Hook, AttributeStateItem, PosStateItem, CellStateItem
+from yaff.sampling.nvt import NHCThermostat
+from yaff.sampling.npt import MTKBarostat, TBCombination
 
-
-__all__ = ['HDF5Writer', 'XYZWriter']
+__all__ = ['HDF5Writer', 'XYZWriter', 'RestartWriter']
 
 
 class HDF5Writer(Hook):
@@ -132,3 +133,69 @@ class XYZWriter(Hook):
         else:
             pos = iterative.ff.system.pos[self.select]
         self.xyz_writer.dump(title, pos)
+
+
+class RestartWriter(Hook):
+    def __init__(self, fn_restart, step):
+        """
+            **Argument:**
+
+            fn_restart
+                A filename to write the restart information too.
+
+            step
+                The hook will be called every 'step' iterations
+
+        """
+
+        self.fn_restart = fn_restart
+        Hook.__init__(self, 0, step)
+
+    def show_vec(self, f, name, data):
+        c1 = data.shape[0]
+        f.write(name + '\t\t\t' + str(c1) + '\n')
+        for i in xrange(c1):
+            f.write(str(data[i]) + '\t')
+        f.write('\n\n')
+
+    def show_mat(self, f, name, data):
+        c1 = data.shape[0]
+        c2 = data.shape[1]
+        f.write(name + '\t\t\t' + str(c1) + ',' + str(c2) + '\n')
+        for i in xrange(c1):
+            for j in xrange(c2):
+                f.write(str(data[i,j]) + '\t')
+            f.write('\n')
+        f.write('\n')
+
+    def __call__(self, iterative):
+        f = open(self.fn_restart, 'a')
+        f.write('counter\t\t\t1\n' + str(iterative.counter) + '\n\n')
+        f.write('time\t\t\t1\n' + str(iterative.time) + '\n\n')
+        self.show_mat(f, 'positions', iterative.pos)
+        self.show_mat(f, 'velocities', iterative.vel)
+        self.show_mat(f, 'cell tensor', iterative.ff.system.cell.rvecs)
+
+        thermo = None
+        baro = None
+        for hook in iterative.hooks:
+            if isinstance(hook, NHCThermostat):
+                thermo = hook.chain
+            if isinstance(hook, MTKBarostat):
+                baro = hook
+            if isinstance(hook, TBCombination):
+                if isinstance(hook.thermostat, NHCThermostat):
+                    thermo = hook.thermostat.chain
+                if isinstance(hook.barostat, MTKBarostat):
+                    baro = hook.barostat
+        if thermo is not None:
+            self.show_vec(f, 'thermostat positions', thermo.pos)
+            self.show_vec(f, 'thermostat velocities', thermo.vel)
+
+        if baro is not None:
+            self.show_mat(f, 'barostat velocity', baro.vel_press)
+
+        if baro.baro_thermo is not None:
+                self.show_vec(f, 'barostat thermostat positions', baro.baro_thermo.chain.pos)
+                self.show_vec(f, 'barostat thermostat velocities', baro.baro_thermo.chain.vel)
+        f.close()

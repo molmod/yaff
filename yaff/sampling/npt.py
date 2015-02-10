@@ -37,7 +37,7 @@ from yaff.sampling.iterative import StateItem
 
 __all__ = [
     'TBCombination', 'McDonaldBarostat', 'BerendsenBarostat', 'LangevinBarostat',
-    'MTKBarostat'
+    'MTKBarostat', 'MTKAttributeStateItem'
 ]
 
 class TBCombination(VerletHook):
@@ -502,16 +502,16 @@ class LangevinBarostat(VerletHook):
 
 
 class MTKBarostat(VerletHook):
-    def __init__(self, ff, temp, press=1*atm, start=0, step=1, timecon=1000*femtosecond, anisotropic=True, vol_constraint=False, baro_thermo=None):
+    def __init__(self, ff, temp, press=1*atm, start=0, step=1, timecon=1000*femtosecond, anisotropic=True, isotropic_lammps = False, vol_constraint=False, baro_thermo=None, vel_press0=None, restart=False):
         """
-            This hook implements the combination of the Nosé-Hoover chain thermostat
-            and the Martyna-Tobias-Klein barostat. The equations are derived in:
+            This hook implements the Martyna-Tobias-Klein barostat. The equations
+            are derived in:
 
                 Martyna, G. J.; Tobias, D. J.; Klein, M. L. J. Chem. Phys. 1994,
                 101, 4177-4189.
 
-            The implementation (used here) of a symplectic integrator of this thermostat
-            and barostat is discussed in
+            The implementation (used here) of a symplectic integrator of this
+            barostat is discussed in
 
                 Martyna, G. J.;  Tuckerman, M. E.;  Tobias, D. J.;  Klein,
                 M. L. Mol. Phys. 1996, 87, 1117-1157.
@@ -543,35 +543,49 @@ class MTKBarostat(VerletHook):
 
             baro_thermo
                 NHCThermostat instance, coupled directly to the barostat
+
+            vel_press0
+                The initial barostat velocity tensor
+
+            restart
+                If true, the cell is not symmetrized initially
         """
         self.temp = temp
         self.press = press
         self.timecon_press = timecon
         self.anisotropic = anisotropic
+        self.isotropic_lammps = isotropic_lammps
         self.vol_constraint = vol_constraint
         self.baro_thermo = baro_thermo
         self.dim = ff.system.cell.nvec
         # determine the number of degrees of freedom associated with the unit cell
         self.baro_ndof = get_ndof_baro(self.dim, self.anisotropic, self.vol_constraint)
-        if self.anisotropic:
+        if self.isotropic_lammps:
+            self.baro_ndof = 3
+        if self.anisotropic and not restart:
             # symmetrize the cell tensor
             cell_symmetrize(ff)
         self.cell = ff.system.cell.rvecs.copy()
+        self.vel_press = vel_press0
         VerletHook.__init__(self, start, step)
 
     def init(self, iterative):
         self.timestep_press = iterative.timestep
-        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
+        if not iterative.restart:
+            clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
         # determine the internal degrees of freedom
         if iterative.ndof is None:
             iterative.ndof = get_ndof_internal_md(len(iterative.ff.system.numbers), iterative.ff.system.cell.nvec)
         # determine barostat 'mass'
         angfreq = 2*np.pi/self.timecon_press
         self.mass_press = (iterative.ndof+self.dim**2)*boltzmann*self.temp/angfreq**2
-        # define initial barostat velocity
-        self.vel_press = get_random_vel_press(self.mass_press, self.temp)
-        if not self.anisotropic:
-            self.vel_press = self.vel_press[0][0]
+        if self.vel_press is None:
+            # define initial barostat velocity
+            self.vel_press = get_random_vel_press(self.mass_press, self.temp)
+            if not self.anisotropic:
+                self.vel_press = self.vel_press[0][0]
+            elif self.isotropic_lammps:
+                self.vel_press = self.vel_press[0][0]*np.eye(3)
         # initialize the barostat thermostat if present
         if self.baro_thermo is not None:
             self.baro_thermo.chain.timestep = iterative.timestep
@@ -633,6 +647,8 @@ class MTKBarostat(VerletHook):
                 G = np.trace(G)
             if self.vol_constraint:
                 G -= np.trace(G)/self.dim*np.eye(self.dim)
+            if self.isotropic_lammps:
+                G = np.diag(np.diag(G))
             # iL G_g h/4
             self.vel_press += G*self.timestep_press/4
             if chainvel0 is not None:
@@ -700,3 +716,30 @@ class MTKBarostat(VerletHook):
             return 0.5*self.mass_press*np.trace(np.dot(self.vel_press.T,self.vel_press))
         else:
             return 0.5*self.mass_press*self.vel_press**2
+
+class MTKAttributeStateItem(StateItem):
+    def __init__(self, attr):
+        StateItem.__init__(self, 'baro_'+attr)
+        self.attr = attr
+
+    def get_value(self, iterative):
+        baro = None
+        for hook in iterative.hooks:
+            if isinstance(hook, MTKBarostat):
+                baro = hook
+                break
+            elif isinstance(hook, TBCombination):
+                if isinstance(hook.baro, MTKBarostat):
+                    baro = hook.barostat
+                break
+        if baro is None:
+            raise TypeError('Iterative does not contain an MTKBarostat hook.')
+        if self.attr.startswith('chain_'):
+            if baro.baro_thermo is not None:
+                attr = self.attr.split('_')[1]
+                return getattr(baro.baro_thermo.chain, attr)
+            else: return 0
+        else: return getattr(baro, self.attr)
+
+    def copy(self):
+        return self.__class__(self.key)

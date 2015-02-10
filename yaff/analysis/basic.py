@@ -28,7 +28,7 @@ import h5py as h5
 
 import numpy as np
 
-from molmod import boltzmann, pascal, angstrom
+from molmod import boltzmann, pascal, angstrom, second, lightspeed, centimeter
 from yaff.log import log
 from yaff.analysis.utils import get_slice
 
@@ -36,7 +36,7 @@ from yaff.analysis.utils import get_slice
 __all__ = [
     'plot_energies', 'plot_temperature', 'plot_pressure', 'plot_temp_dist',
     'plot_press_dist', 'plot_volume_dist', 'plot_density', 'plot_cell_pars',
-    'plot_epot_contribs',
+    'plot_epot_contribs', 'plot_angle', 'plot_dihedral'
 ]
 
 
@@ -752,3 +752,286 @@ def plot_epot_contribs(f, fn_png='epot_contribs.png', size=1.0, **kwargs):
     DefaultSize = F.get_size_inches()
     F.set_size_inches(DefaultSize[0]*size, DefaultSize[1]*size)
     pt.savefig(fn_png)
+
+
+def plot_angle(f, index, fn_png='angle.png', n_int = 1, xlim = None, ymax = None, angle_lim = None, angle_shift = False, oriented = False, **kwargs):
+    """Make a plot of the angle between the given atoms as f. of time
+
+    **Arguments:**
+
+     f
+        An h5.File instance containing the trajectory data
+
+     index
+        A list containing the three indices of the atoms as in the h5 file
+
+   **Optional arguments:**
+
+   fn_png
+        The png file to write the figure to
+
+    n_int
+        The number of equidistant intervals considered in the FFT and histogram
+
+    xlim
+        Frequency interval of interest
+
+    ymax
+        Maximal intensity of interest in the FFT
+
+    angle_lim
+        Angle interval of interest in the histogram
+
+    angle_shift
+        If True, all angles are shifted towards positive values
+
+    oriented
+        If True, a distinction is made between positive and negative angles
+    """
+
+    import matplotlib.pyplot as pt
+    from matplotlib.ticker import MaxNLocator
+    start, end, step = get_slice(f, **kwargs)
+
+    n_angles = index.shape[0]
+    n_atoms = index.shape[1]
+    n_dim = 3
+    if n_atoms != 3: raise AssertionError(n_atoms + ' atoms selected instead of 3')
+
+    # construct the working arrays
+    time = f['trajectory/time'][start:end:step]
+    atom_vec = np.zeros((len(time), n_angles, n_dim, 2))
+    angle = np.zeros((len(time), n_angles))
+
+    pt.clf()
+    comap = pt.cm.get_cmap(name='hsv')
+    # calculate the relative positions
+    for i in xrange(n_angles):
+        for j in xrange(2):
+            atom_vec[:,i,:,j] = (-1)**j*(f['trajectory/pos'][start:end:step, index[i,j+1], :]-f['trajectory/pos'][start:end:step, index[i,j], :])
+        angle[:,i] = np.arccos((atom_vec[:,i,:,0]*atom_vec[:,i,:,1]).sum(axis=1)/np.sqrt((atom_vec[:,i,:,0]**2).sum(axis=1)*(atom_vec[:,i,:,1]**2).sum(axis=1)))/log.angle.conversion
+        if oriented:
+            # determine the orientation of the cross product of both vectors wrt the normal axis
+            normal = np.cross(atom_vec[0,i,:,0], atom_vec[0,i,:,1])
+            sign = np.sign((np.cross(atom_vec[:,i,:,0], atom_vec[:,i,:,1])*normal).sum(axis=1))
+            angle[:,i] *= sign
+            for j in xrange(len(time)):
+                if angle_shift and angle[j,i] < 0: angle[j,i] += 360
+
+        # plot the raw time signal
+        pt.plot(time/(1e-12*second), angle[:,i], color = comap(1.0*i/n_angles))
+    pt.xlim([time[0]/(1e-12*second), time[-1]/(1e-12*second)])
+    pt.xlabel('Time [ps]')
+    pt.ylabel('Angle [%s]' % log.angle.notation)
+    pt.savefig('time_' + str(fn_png))
+
+    # calculate the fourier transform
+    loss = len(time) % n_int
+    time_int = time[0:len(time)-loss].reshape(n_int,-1)
+    angle_int = angle.reshape(n_int, -1, n_angles)
+    timestep = time[1]-time[0]
+    bsize = len(time)/n_int
+    ssize = bsize/2+1
+    freq_fft = np.arange(ssize)/(timestep*bsize)
+    angle_int_fft = np.zeros((n_int, len(freq_fft)))
+
+    for i in xrange(n_int):
+        av = angle_int[i,:,:].mean()
+        for j in xrange(n_angles):
+            angle_int_fft[i,:] += abs(np.fft.rfft(angle_int[i,:,j]-av))**2
+
+    # plot the fourier transform
+    pt.clf()
+    if n_int == 1:
+        pt.plot(freq_fft/lightspeed*centimeter, angle_int_fft[0,:], 'k-')
+    else:
+        for i in xrange(n_int):
+            pt.plot(freq_fft/lightspeed*centimeter, angle_int_fft[i,:], color = comap(1.0*i/n_int), label = r'[%0.f ps, %0.f ps]' % (time_int[i,0]/(1e-12*second), time_int[i,-1]/(1e-12*second)))
+        pt.legend(loc=0)
+    pt.xlabel('Frequency [cm^-1]')
+    pt.ylabel('Intensity [au]')
+    if xlim is not None:
+            pt.xlim(xlim[0], xlim[1])
+    if ymax is not None:
+            pt.ylim(ymax=ymax)
+    pt.savefig('fft_' + str(fn_png))
+
+    # setup the angle grid and make the histogram
+    angle_min = 0
+    angle_max = 180
+    if oriented: angle_min = -180
+    if angle_shift:
+        angle_min = 0
+        angle_max = 360
+    angle0 = angle.mean()
+    sigma = np.std(angle)
+    angle_step = sigma/25.0
+    angle_grid = np.arange(angle_min, angle_max, angle_step)
+    # plot the different probability distributions
+    pt.clf()
+    for i in xrange(n_int):
+        # make the histogram
+        counts = 0
+        for j in xrange(n_angles):
+            counts += np.histogram(angle_int[i,:,j].ravel(), bins=angle_grid)[0]
+        total = float(time_int.shape[1]*n_angles)
+        emp_sys_pdf = counts/total
+        x_sys = angle_grid[:-1]
+
+        # plot the histogram
+        if n_int == 1:
+            pt.plot(x_sys, emp_sys_pdf, color = 'k')
+        else:
+            pt.plot(x_sys, emp_sys_pdf, color = comap(1.0*i/n_int), label = r'[%0.f ps, %0.f ps]' % (time_int[i,0]/(1e-12*second), time_int[i,-1]/(1e-12*second)))
+        pt.ylim(ymin=0)
+        pt.xlim(x_sys[0], x_sys[-1])
+        pt.ylabel('PDF')
+        pt.xlabel('Angle [%s]' % log.angle.notation)
+        pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
+    pt.legend(loc=0)
+    if angle_lim is not None:
+        pt.xlim(angle_lim[0], angle_lim[1])
+    pt.savefig('dist_' + str(fn_png))
+
+
+def plot_dihedral(f, index, fn_png='dihedral.png', n_int = 1, xlim = None, ymax = None, angle_lim = None, angle_shift = False, oriented = False, **kwargs):
+    """Make a plot of the angle between the given atoms as f. of time
+
+    **Arguments:**
+
+     f
+        An h5.File instance containing the trajectory data
+
+     index
+        A list containing the four indices of the atoms as in the h5 file
+
+   **Optional arguments:**
+
+   fn_png
+        The png file to write the figure to
+
+    n_int
+        The number of equidistant intervals considered in the FFT and histogram
+
+    xlim
+        Frequency interval of interest
+
+    ymax
+        Maximal intensity of interest in the FFT
+
+    angle_lim
+        Angle interval of interest in the histogram
+
+    angle_shift
+        If True, all angles are shifted towards positive values
+
+    oriented
+        If True, a distinction is made between positive and negative angles
+    """
+
+    import matplotlib.pyplot as pt
+    from matplotlib.ticker import MaxNLocator
+    start, end, step = get_slice(f, **kwargs)
+
+    n_angles = index.shape[0]
+    n_atoms = index.shape[1]
+    n_dim = 3
+    if n_atoms != 4: raise AssertionError(n_atoms + ' atoms selected instead of 4')
+
+    # construct the working arrays
+    time = f['trajectory/time'][start:end:step]
+    atom_vec = np.zeros((len(time), n_angles, n_dim, 3))
+    plane_vec = np.zeros((len(time), n_angles, n_dim, 2))
+    angle = np.zeros((len(time), n_angles))
+
+    pt.clf()
+    comap = pt.cm.get_cmap(name='hsv')
+    # calculate the relative positions
+    for i in xrange(n_angles):
+        for j in xrange(3):
+            atom_vec[:,i,:,j] = f['trajectory/pos'][start:end:step, index[i,j+1], :]-f['trajectory/pos'][start:end:step, index[i,j], :]
+        # calculate the plane normals
+        for j in xrange(2):
+            plane_vec[:,i,:,j] = np.cross(atom_vec[:,i,:,j], atom_vec[:,i,:,j+1])
+        angle[:,i] = np.arccos((plane_vec[:,i,:,0]*plane_vec[:,i,:,1]).sum(axis=1)/np.sqrt((plane_vec[:,i,:,0]**2).sum(axis=1)*(plane_vec[:,i,:,1]**2).sum(axis=1)))/log.angle.conversion
+        if oriented:
+            # determine the orientation of the cross product of both planes wrt the mutual axis
+            sign = np.sign((np.cross(plane_vec[:,i,:,0], plane_vec[:,i,:,1])*atom_vec[:,i,:,1]).sum(axis=1))
+            angle[:,i] *= sign
+            for j in xrange(len(time)):
+                if angle_shift and angle[j,i] < 0: angle[j,i] += 360
+
+        # plot the raw time signal
+        pt.plot(time/(1e-12*second), angle[:,i], color = comap(1.0*i/n_angles))
+    pt.xlim([time[0]/(1e-12*second), time[-1]/(1e-12*second)])
+    pt.xlabel('Time [ps]')
+    pt.ylabel('Dihedral angle [%s]' % log.angle.notation)
+    pt.savefig('time_' + str(fn_png))
+
+    # calculate the fourier transform
+    loss = len(time) % n_int
+    time_int = time[0:len(time)-loss].reshape(n_int,-1)
+    angle_int = angle.reshape(n_int, -1, n_angles)
+    timestep = time[1]-time[0]
+    bsize = len(time)/n_int
+    ssize = bsize/2+1
+    freq_fft = np.arange(ssize)/(timestep*bsize)
+    angle_int_fft = np.zeros((n_int, len(freq_fft)))
+
+    for i in xrange(n_int):
+        av = angle_int[i,:,:].mean()
+        for j in xrange(n_angles):
+            angle_int_fft[i,:] += abs(np.fft.rfft(angle_int[i,:,j]-av))**2
+
+    # plot the fourier transform
+    pt.clf()
+    if n_int == 1:
+        pt.plot(freq_fft/lightspeed*centimeter, angle_int_fft[0,:], 'k-')
+    else:
+        for i in xrange(n_int):
+            pt.plot(freq_fft/lightspeed*centimeter, angle_int_fft[i,:], color = comap(1.0*i/n_int), label = r'[%0.f ps, %0.f ps]' % (time_int[i,0]/(1e-12*second), time_int[i,-1]/(1e-12*second)))
+        pt.legend(loc=0)
+    pt.xlabel('Frequency [cm^-1]')
+    pt.ylabel('Intensity [au]')
+    if xlim is not None:
+            pt.xlim(xlim[0], xlim[1])
+    if ymax is not None:
+            pt.ylim(ymax=ymax)
+    pt.savefig('fft_' + str(fn_png))
+
+    # setup the angle grid and make the histogram
+    angle_min = 0
+    angle_max = 180
+    if oriented: angle_min = -180
+    if angle_shift:
+        angle_min = 0
+        angle_max = 360
+    angle0 = angle.mean()
+    sigma = np.std(angle)
+    angle_step = sigma/25.0
+    angle_grid = np.arange(angle_min, angle_max, angle_step)
+    # plot the different probability distributions
+    pt.clf()
+    for i in xrange(n_int):
+        # make the histogram
+        counts = 0
+        for j in xrange(n_angles):
+            counts += np.histogram(angle_int[i,:,j].ravel(), bins=angle_grid)[0]
+        total = float(time_int.shape[1]*n_angles)
+        emp_sys_pdf = counts/total
+        x_sys = angle_grid[:-1]
+
+        # plot the histogram
+        if n_int == 1:
+            pt.plot(x_sys, emp_sys_pdf, color = 'k')
+        else:
+            pt.plot(x_sys, emp_sys_pdf, color = comap(1.0*i/n_int), label = r'[%0.f ps, %0.f ps]' % (time_int[i,0]/(1e-12*second), time_int[i,-1]/(1e-12*second)))
+        pt.ylim(ymin=0)
+        pt.xlim(x_sys[0], x_sys[-1])
+        pt.ylabel('PDF')
+        pt.xlabel('Dihedral angle [%s]' % log.angle.notation)
+        pt.gca().get_xaxis().set_major_locator(MaxNLocator(nbins=5))
+    pt.legend(loc=0)
+    if angle_lim is not None:
+        pt.xlim(angle_lim[0], angle_lim[1])
+    pt.savefig('dist_' + str(fn_png))
