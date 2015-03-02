@@ -41,6 +41,9 @@ __all__ = [
 
 
 class AndersenThermostat(VerletHook):
+    name = 'Andersen'
+    kind = 'stochastic'
+    method = 'thermostat'
     def __init__(self, temp, start=0, step=1, select=None, annealing=1.0):
         """
            This is an implementation of the Andersen thermostat. The method
@@ -102,7 +105,10 @@ class AndersenThermostat(VerletHook):
 
 
 class BerendsenThermostat(VerletHook):
-    def __init__(self, temp, start=0, timecon=100*femtosecond):
+    name = 'Berendsen'
+    kind = 'deterministic'
+    method = 'thermostat'
+    def __init__(self, temp, start=0, timecon=100*femtosecond, restart=False):
         """
            This is an implementation of the Berendsen thermostat. The algorithm
            is described in:
@@ -122,14 +128,19 @@ class BerendsenThermostat(VerletHook):
 
            timecon
                 The time constant of the Berendsen thermostat.
+
+            restart
+                Indicates whether the initalisation should be carried out.
         """
         self.temp = temp
         self.timecon = timecon
+        self.restart = restart
         VerletHook.__init__(self, start, 1)
 
     def init(self, iterative):
-        # It is mandatory to zero the external momenta.
-        clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
+        if not self.restart:
+            # It is mandatory to zero the external momenta.
+            clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
         if iterative.ndof is None:
             iterative.ndof = get_ndof_internal_md(iterative.pos.shape[0], iterative.ff.system.cell.nvec)
 
@@ -146,6 +157,9 @@ class BerendsenThermostat(VerletHook):
 
 
 class LangevinThermostat(VerletHook):
+    name = 'Langevin'
+    kind = 'stochastic'
+    method = 'thermostat'
     def __init__(self, temp, start=0, timecon=100*femtosecond):
         """
            This is an implementation of the Langevin thermostat. The algorithm
@@ -173,16 +187,8 @@ class LangevinThermostat(VerletHook):
     def init(self, iterative):
         # It is mandatory to zero the external momenta.
         clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
-        # Necessary to calculate conserved quantity
-        #self.forces_old = -iterative.gpos
-        #self.pos_old = iterative.pos.copy()
-        #self.econs_correction = 0.0
 
     def pre(self, iterative, G1_add = None):
-        # Necessary to calculate conserved quantity
-        #self.epot_old = iterative.epot
-        #self.forces_old[:] = -iterative.gpos
-        #self.pos_old = iterative.pos.copy()
         ekin0 = iterative.ekin
         # Actual update
         self.thermo(iterative)
@@ -195,10 +201,6 @@ class LangevinThermostat(VerletHook):
         self.thermo(iterative)
         ekin1 = iterative.ekin
         self.econs_correction += ekin0-ekin1
-        # Calculation of the conserved quantity
-        #forces_new = -iterative.gpos
-        #pos_new = iterative.pos.copy()
-        #self.econs_correction += iterative.etot - iterative.ekin - self.epot_old + 0.5*np.multiply(pos_new-self.pos_old, self.forces_old + forces_new).sum() + iterative.timestep**2/8.0*np.divide(np.sum(forces_new**2-self.forces_old**2, axis=1), iterative.masses).sum()
 
     def thermo(self, iterative):
         c1 = np.exp(-iterative.timestep/self.timecon/2)
@@ -208,6 +210,9 @@ class LangevinThermostat(VerletHook):
 
 
 class CSVRThermostat(VerletHook):
+    name = 'CSVR'
+    kind = 'stochastic'
+    method = 'thermostat'
     def __init__(self, temp, start=0, timecon=100*femtosecond):
         """
             This is an implementation of the CSVR thermostat. The equations are
@@ -261,6 +266,9 @@ class CSVRThermostat(VerletHook):
 
 
 class GLEThermostat(VerletHook):
+    name = 'GLE'
+    kind = 'stochastic'
+    method = 'thermostat'
     def __init__(self, temp, a_p, c_p=None, start=0):
         """
             This hook implements the coloured noise thermostat. The equations
@@ -417,7 +425,10 @@ class NHChain(object):
 
 
 class NHCThermostat(VerletHook):
-    def __init__(self, temp, start=0, timecon=100*femtosecond, chainlength=3, chain_pos0=None, chain_vel0=None):
+    name = 'NHC'
+    kind = 'deterministic'
+    method = 'thermostat'
+    def __init__(self, temp, start=0, timecon=100*femtosecond, chainlength=3, chain_pos0=None, chain_vel0=None, restart=False):
         """
             This hook implements the Nose-Hoover chain thermostat. The equations
             are derived in:
@@ -452,15 +463,19 @@ class NHCThermostat(VerletHook):
 
             chain_vel0
                 The initial thermostat chain velocities
+
+            restart
+                Indicates whether the initalisation should be carried out
         """
         self.temp = temp
+        self.restart = restart
         # At this point, the timestep and the number of degrees of freedom are
         # not known yet
         self.chain = NHChain(chainlength, 0.0, temp, 0, chain_pos0, chain_vel0, timecon)
         VerletHook.__init__(self, start, 1)
 
     def init(self, iterative):
-        if not iterative.restart:
+        if not self.restart:
             # It is mandatory to zero the external momenta
             clean_momenta(iterative.pos, iterative.vel, iterative.masses, iterative.ff.system.cell)
         # If needed, determine the number of _internal_ degrees of freedom
@@ -487,12 +502,13 @@ class NHCAttributeStateItem(StateItem):
 
     def get_value(self, iterative):
         chain = None
+        from yaff.sampling.npt import TBCombination
         for hook in iterative.hooks:
             if isinstance(hook, NHCThermostat):
                 chain = hook.chain
                 break
             elif isinstance(hook, TBCombination):
-                if isinstance(hook.thermo, NHCThermostat):
+                if isinstance(hook.thermostat, NHCThermostat):
                     chain = hook.thermostat.chain
                 break
         if chain is None:
@@ -500,4 +516,4 @@ class NHCAttributeStateItem(StateItem):
         return getattr(chain, self.attr)
 
     def copy(self):
-        return self.__class__(self.key)
+        return self.__class__(self.attr)
