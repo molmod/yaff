@@ -450,8 +450,8 @@ with
 
 **Parameters:**
 
-* :math:`\epsilon_i` (``EPSILON``): the depth of the energy minimum (for a pair of atoms of the same type).
 * :math:`\sigma_i` (``SIGMA``): the (finite) distance at which the energy becomes zero (for a pair of atoms of the same type).
+* :math:`\epsilon_i` (``EPSILON``): the depth of the energy minimum (for a pair of atoms of the same type).
 
 **Constants:**
 
@@ -464,12 +464,12 @@ with
 
 **Commands:**
 
-* ``UNIT`` (may repeat): Specify the units of the parameters ``EPSILON`` and ``SIGMA``. See
+* ``UNIT`` (may repeat): Specify the units of the parameters ``SIGMA`` and ``EPSILON``. See
   :ref:`sub_sub_sec_general_commands`.
 * ``SCALE`` (may repeat): Specify the scaling of short-ranged interactions. See
   :ref:`sub_sub_sec_general_commands`.
 * ``PARS`` (may repeat): Specify parameters for a given atom type.
-  Four data fields must be given: ``ffatype``, ``EPSILON``, ``SIGMA`` and ``ONLYPAULI``.
+  Four data fields must be given: ``ffatype``, ``SIGMA``, ``EPSILON`` and ``ONLYPAULI``.
   The last data field corresponds to an undocumented feature. Set it to ``0`` to
   get the original MM3 form.
 
