@@ -32,7 +32,8 @@ import numpy as np
 __all__ = [
     'get_random_vel', 'remove_com_moment', 'remove_angular_moment',
     'clean_momenta', 'angular_moment', 'get_ndof_internal_md',
-    'cell_symmetrize', 'get_random_vel_press', 'get_ndof_baro'
+    'cell_symmetrize', 'get_random_vel_press', 'get_ndof_baro',
+    'stabilized_cholesky_decomp'
 ]
 
 
@@ -262,7 +263,7 @@ def get_ndof_internal_md(natom, nper):
             The number of atoms
 
        nper
-            The number of periodic boundary conditions. (0 for isolated systems)
+            The number of periodic boundary conditions (0 for isolated systems)
     '''
     if nper == 0:
         # isolated systems
@@ -289,7 +290,7 @@ def cell_symmetrize(ff):
     **Arguments:**
 
     ff
-        A ForceField instance.
+        A ForceField instance
     '''
     # store the unit cell tensor
     cell = ff.system.cell.rvecs.copy()
@@ -308,12 +309,13 @@ def cell_symmetrize(ff):
 def get_random_vel_press(mass, temp):
     '''Generates symmetric tensor of barostat velocities
 
-    *Arguments:**
+    **Arguments:**
 
     mass
-        The Barostat mass.
+        The Barostat mass
+
     temp
-        The temperature at which the velocities are selected.
+        The temperature at which the velocities are selected
     '''
     shape = 3, 3
     # generate random 3x3 tensor
@@ -333,6 +335,19 @@ def get_random_vel_press(mass, temp):
 
 
 def get_ndof_baro(dim, anisotropic, vol_constraint):
+    '''Calculates the number of degrees of freedom associated with the cell fluctuation
+
+    **Arguments:**
+
+    dim
+        The dimension of the system
+
+    anisotropic
+        Boolean value determining whether anisotropic cell fluctuations are allowed
+
+    vol_constraint
+        Boolean value determining whether the cell volume can change
+    '''
     baro_ndof = 1
     # degrees of freedom for a symmetric cell tensor
     if anisotropic:
@@ -344,3 +359,35 @@ def get_ndof_baro(dim, anisotropic, vol_constraint):
     if baro_ndof == 0:
         raise AssertionError('Isotropic barostat called with a volume constraint')
     return baro_ndof
+
+def stabilized_cholesky_decomp(mat):
+    '''
+    Do LDL^T and transform to MM^T with negative diagonal entries of D put equal to zero
+    Assume mat is square and symmetric (but not necessarily positive definite).
+    '''
+    if np.all(np.linalg.eigvals(mat) > 0):
+        return np.linalg.cholesky(mat)  #usual cholesky decomposition
+    else:
+        n = int(mat.shape[0])
+        D = np.zeros(n)
+        L = np.zeros(mat.shape)
+
+        for i in np.arange(n):
+            L[i, i] = 1
+
+            for j in np.arange(i):
+                L[i, j] = mat[i, j]
+                for k in np.arange(j):
+                    L[i, j] -= L[i, k] * L[j, k] * D[k]
+
+                if abs(D[j]) > 1e-12:
+                    L[i, j] *= 1.0/D[j]
+                else:
+                    L[i, j] = 0
+
+            D[i] = mat[i, i]
+            for k in np.arange(i):
+                D[i] -= L[i, k] * L[i, k] * D[k]
+
+        D = np.sqrt(D.clip(min=0))
+        return L*D
