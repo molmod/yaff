@@ -84,10 +84,22 @@ double forward_chebychev6(vlist_row_type* term, iclist_row_type* ictab) {
   return 0.5*(*term).par0*(1+(*term).par1*(32*c*c*c-48*c*c+18*c-1));
 }
 
-v_forward_type v_forward_fns[10] = {
+double forward_polysix(vlist_row_type* term, iclist_row_type* ictab) {
+  double K, temp;
+  double x, y;
+  temp = ((*term).par1-(*term).par2)*((*term).par1-(*term).par2);
+  temp *= temp;
+  K = (*term).par0/temp;
+  x = ictab[(*term).ic0].value - (*term).par1;
+  y = ictab[(*term).ic0].value - (*term).par2;
+  y *= y;
+  return 0.5*K*x*x*y*y;
+}
+
+v_forward_type v_forward_fns[11] = {
   forward_harmonic, forward_polyfour, forward_fues, forward_cross,
   forward_cosine, forward_chebychev1, forward_chebychev2, forward_chebychev3,
-  forward_chebychev4, forward_chebychev6
+  forward_chebychev4, forward_chebychev6, forward_polysix
 };
 
 double vlist_forward(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
@@ -155,10 +167,23 @@ void back_chebychev6(vlist_row_type* term, iclist_row_type* ictab) {
   ictab[(*term).ic0].grad += (*term).par1*6*(*term).par0*c*(16*c*c*c*c-16*c*c+3);
 }
 
-v_back_type v_back_fns[10] = {
+void back_polysix(vlist_row_type* term, iclist_row_type* ictab) {
+  double K, temp;
+  double x, y, z;
+  temp = ((*term).par1-(*term).par2)*((*term).par1-(*term).par2);
+  temp *= temp;
+  K = (*term).par0/(temp);
+  x = ictab[(*term).ic0].value - (*term).par1;
+  y = ictab[(*term).ic0].value - (*term).par2;
+  y *= y;
+  z = ictab[(*term).ic0].value - (*term).par2;
+  ictab[(*term).ic0].grad += 0.5*K*(2*x*y*y+4*x*x*y*z);
+}
+
+v_back_type v_back_fns[11] = {
   back_harmonic, back_polyfour, back_fues, back_cross, back_cosine,
   back_chebychev1, back_chebychev2, back_chebychev3, back_chebychev4,
-  back_chebychev6
+  back_chebychev6, back_polysix
 };
 
 void vlist_back(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
