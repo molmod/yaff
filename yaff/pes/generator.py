@@ -477,6 +477,21 @@ class UreyBradleyHarmGenerator(BendGenerator):
     ICClass = UreyBradley
 
 
+class BendCosGenerator(ValenceGenerator):
+    nffatype = 3
+    par_info = [('M', int), ('A', float), ('PHI0', float)]
+    prefix = 'BENDCOS'
+    ICClass = BendAngle
+    VClass = Cosine
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        return system.iter_angles()
+
+
 class TorsionCosHarmGenerator(ValenceGenerator):
     nffatype = 4
     par_info = [('A', float), ('COS0', float)]
