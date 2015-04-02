@@ -192,6 +192,8 @@ class ForceField(ForcePart):
         self.needs_nlist_update = nlist is not None
         for part in parts:
             self.add_part(part)
+        self.gpos_parts = np.zeros((len(parts), system.pos.shape[0], system.pos.shape[1]), float)
+        self.vtens_parts = np.zeros((len(parts), 3, 3), float)
         if log.do_medium:
             with log.section('FFINIT'):
                 log('Force field with %i parts:&%s.' % (
@@ -262,7 +264,15 @@ class ForceField(ForcePart):
         if self.needs_nlist_update:
             self.nlist.update()
             self.needs_nlist_update = False
-        result = sum([part.compute(gpos, vtens) for part in self.parts])
+        self.gpos_parts[:] = 0.0
+        self.vtens_parts[:] = 0.0
+        result = 0.0
+        for i, part in enumerate(self.parts):
+            result += part.compute(self.gpos_parts[i,:,:], self.vtens_parts[i,:,:])
+        if gpos is not None:
+            gpos[:] = np.sum(self.gpos_parts, axis=0)
+        if vtens is not None:
+            vtens[:] = np.sum(self.vtens_parts, axis=0)
         return result
 
 
