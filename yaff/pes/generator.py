@@ -44,15 +44,17 @@ from yaff.pes.iclist import Bond, BendAngle, BendCos, \
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
 from yaff.pes.vlist import Harmonic, Fues, Cross, Cosine, \
-    Chebychev1, Chebychev2, Chebychev3, Chebychev4, Chebychev6, PolySix
+    Chebychev1, Chebychev2, Chebychev3, Chebychev4, Chebychev6, PolySix, CosineSquare, \
+    MM3Quartic, MM3Bend
 
 
 __all__ = [
     'FFArgs', 'Generator',
 
     'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator', 'BondDoubleWellGenerator',
-    'BondFuesGenerator', 'BendGenerator', 'BendAngleHarmGenerator',
-    'BendCosHarmGenerator', 'BendCosGenerator', 'TorsionGenerator', 'TorsionCosHarmGenerator',
+    'BondFuesGenerator', 'MM3QuarticGenerator',
+    'BendGenerator', 'BendAngleHarmGenerator', 'BendCosHarmGenerator', 'BendCosGenerator', 'MM3BendGenerator',
+    'TorsionGenerator', 'TorsionCosHarmGenerator', 'TorsionCosQuadGenerator',
     'UreyBradleyHarmGenerator', 'OopAngleGenerator', 'OopMeanAngleGenerator',
     'OopCosGenerator', 'OopMeanCosGenerator', 'OopDistGenerator',
 
@@ -445,6 +447,7 @@ class BondFuesGenerator(BondGenerator):
     prefix = 'BONDFUES'
     VClass = Fues
 
+
 class BondDoubleWellGenerator(ValenceGenerator):
     par_info = [('K', float), ('R1', float), ('R2', float)]
     nffatype = 2
@@ -458,6 +461,11 @@ class BondDoubleWellGenerator(ValenceGenerator):
 
     def iter_indexes(self, system):
         return system.iter_bonds()
+
+
+class MM3QuarticGenerator(BondGenerator):
+    prefix = 'MM3QUART'
+    VClass = MM3Quartic
 
 
 class BendGenerator(ValenceGenerator):
@@ -483,13 +491,28 @@ class BendCosHarmGenerator(BendGenerator):
     par_info = [('K', float), ('COS0', float)]
     prefix = 'BENDCHARM'
     ICClass = BendCos
-    
+
+
 class BendCosGenerator(ValenceGenerator):
     nffatype = 3
     par_info = [('M', int), ('A', float), ('PHI0', float)]
     ICClass = BendAngle
     VClass = Cosine
     prefix = 'BENDCOSI'
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        return system.iter_angles()
+
+class MM3BendGenerator(BendGenerator):
+    nffatype = 3
+    par_info = [('K', float), ('THETA0', float)]
+    ICClass = BendAngle
+    VClass = MM3Bend
+    prefix = 'MM3BENDA'
 
     def iter_alt_keys(self, key):
         yield key
