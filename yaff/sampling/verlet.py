@@ -206,13 +206,19 @@ class VerletIntegrator(Iterative):
             index_baro = 0
 
             # Look for the presence of a thermostat and/or barostat
-            for index, hook in enumerate(self.hooks):
-                if hook.method == 'thermostat':
-                    thermo = hook
-                    index_thermo = index
-                elif hook.method == 'barostat':
-                    baro = hook
-                    index_baro = index
+            if hasattr(self.hooks, '__len__'):
+                for index, hook in enumerate(self.hooks):
+                    if hook.method == 'thermostat':
+                        thermo = hook
+                        index_thermo = index
+                    elif hook.method == 'barostat':
+                        baro = hook
+                        index_baro = index
+            elif self.hooks is not None:
+                if self.hooks.method == 'thermostat':
+                    thermo = self.hooks
+                elif self.hooks.method == 'barostat':
+                    baro = self.hooks
 
             # If both are present, delete them and generate TBCombination element
             if thermo is not None and baro is not None:
@@ -223,10 +229,15 @@ class VerletIntegrator(Iterative):
                 del self.hooks[min(index_thermo, index_baro)]
                 self.hooks.append(TBCombination(thermo, baro))
 
-            for hook in self.hooks:
-                if hook.name == 'TBCombination':
-                    thermo = hook.thermostat
-                    baro = hook.barostat
+            if hasattr(self.hooks, '__len__'):
+                for hook in self.hooks:
+                    if hook.name == 'TBCombination':
+                        thermo = hook.thermostat
+                        baro = hook.barostat
+            elif self.hooks is not None:
+                if self.hooks.name == 'TBCombination':
+                    thermo = self.hooks.thermostat
+                    baro = self.hooks.barostat
 
             if log.do_warning:
                 if thermo is not None:
@@ -369,7 +380,8 @@ class VerletIntegrator(Iterative):
         self.vtens_parts = self.ff.vtens_parts
         if restart_h5 is not None:
             self.econs = restart_h5['trajectory/econs'][-1]
-        self._cons_err_tracker.update(self.ekin, self.econs)
+        else:
+            self._cons_err_tracker.update(self.ekin, self.econs)
         self.cons_err = self._cons_err_tracker.get()
         if self.ff.system.cell.nvec > 0:
             self.ptens = (np.dot(self.vel.T*self.masses, self.vel) - self.vtens)/self.ff.system.cell.volume
@@ -467,7 +479,7 @@ class ConsErrTracker(object):
             self.econs_sumsq = 0.0
         else:
             tgrp = restart_h5['trajectory']
-            self.counter = tgrp['counter'][-1]+1
+            self.counter = tgrp['counter'][-1]+1    # self.counter = Iterative.counter + 1
             self.ekin_sum = tgrp['ekin_sum'][-1]
             self.ekin_sumsq = tgrp['ekin_sumsq'][-1]
             self.econs_sum = tgrp['econs_sum'][-1]
