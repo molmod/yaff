@@ -44,15 +44,15 @@ from yaff.pes.iclist import Bond, BendAngle, BendCos, \
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
 from yaff.pes.vlist import Harmonic, Fues, Cross, Cosine, \
-    Chebychev1, Chebychev2, Chebychev3, Chebychev4, Chebychev6
+    Chebychev1, Chebychev2, Chebychev3, Chebychev4, Chebychev6, PolySix
 
 
 __all__ = [
     'FFArgs', 'Generator',
 
-    'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator',
+    'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator', 'BondDoubleWellGenerator',
     'BondFuesGenerator', 'BendGenerator', 'BendAngleHarmGenerator',
-    'BendCosHarmGenerator', 'TorsionGenerator', 'TorsionCosHarmGenerator',
+    'BendCosHarmGenerator', 'BendCosGenerator', 'TorsionGenerator', 'TorsionCosHarmGenerator',
     'UreyBradleyHarmGenerator', 'OopAngleGenerator', 'OopMeanAngleGenerator',
     'OopCosGenerator', 'OopMeanCosGenerator', 'OopDistGenerator',
 
@@ -404,7 +404,7 @@ class ValenceGenerator(Generator):
                 part_valence.add_term(vterm)
 
     def get_vterm(self, pars, indexes):
-        '''Return an instane of the ValenceTerm class with the proper InternalCoordinate instance
+        '''Return an instance of the ValenceTerm class with the proper InternalCoordinate instance
 
            **Arguments:**
 
@@ -412,13 +412,13 @@ class ValenceGenerator(Generator):
                 The parameters for the ValenceTerm class.
 
            indexes
-                The atom indexes used to define the internal coordinate
+                The atom indices used to define the internal coordinate
         '''
         args = pars + (self.ICClass(*indexes),)
         return self.VClass(*args)
 
     def iter_indexes(self, system):
-        '''Iterate over all tuples of indexes for the internal coordinate'''
+        '''Iterate over all tuples of indices for the internal coordinate'''
         raise NotImplementedError
 
 
@@ -445,6 +445,20 @@ class BondFuesGenerator(BondGenerator):
     prefix = 'BONDFUES'
     VClass = Fues
 
+class BondDoubleWellGenerator(ValenceGenerator):
+    par_info = [('K', float), ('R1', float), ('R2', float)]
+    nffatype = 2
+    ICClass = Bond
+    prefix = 'DOUBWELL'
+    VClass = PolySix
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        return system.iter_bonds()
+
 
 class BendGenerator(ValenceGenerator):
     nffatype = 3
@@ -469,12 +483,41 @@ class BendCosHarmGenerator(BendGenerator):
     par_info = [('K', float), ('COS0', float)]
     prefix = 'BENDCHARM'
     ICClass = BendCos
+    
+class BendCosGenerator(ValenceGenerator):
+    nffatype = 3
+    par_info = [('M', int), ('A', float), ('PHI0', float)]
+    ICClass = BendAngle
+    VClass = Cosine
+    prefix = 'BENDCOSI'
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        return system.iter_angles()
 
 
 class UreyBradleyHarmGenerator(BendGenerator):
     par_info = [('K', float), ('R0', float)]
     prefix = 'UBHARM'
     ICClass = UreyBradley
+
+
+class BendCosGenerator(ValenceGenerator):
+    nffatype = 3
+    par_info = [('M', int), ('A', float), ('PHI0', float)]
+    prefix = 'BENDCOS'
+    ICClass = BendAngle
+    VClass = Cosine
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        return system.iter_angles()
 
 
 class TorsionCosHarmGenerator(ValenceGenerator):
