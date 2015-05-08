@@ -64,7 +64,7 @@ from yaff.pes.ext import vlist_forward, vlist_back
 __all__ = [
     'ValenceList', 'ValenceTerm', 'Harmonic', 'PolyFour', 'Fues', 'Cross',
     'Cosine', 'Chebychev1', 'Chebychev2', 'Chebychev3', 'Chebychev4',
-    'Chebychev6', 'PolySix', 'CosineSquare', 'MM3Quartic', 'MM3Bend'
+    'Chebychev6', 'PolySix', 'MM3Quartic', 'MM3Bend'
 ]
 
 
@@ -531,41 +531,10 @@ class PolySix(ValenceTerm):
             self.pars[2]/c
         )
 
-class CosineSquare(ValenceTerm):
-    '''A cosine energy term: 0.5*a*(1-cos(m*(phi-phi0)))*(1-cos(m*(phi+phi0)))'''
-    kind = 11
-    def __init__(self, m, a, phi0, ic):
-        '''
-           **Arguments:**
-
-           m
-                The multiplicity of the cosine function, which may be useful
-                for torsional barriers.
-
-           a
-                The amplitude of the cosine function (in atomic units).
-
-           phi0
-                The rest angle of cosine term (in radians).
-
-           ic
-                An ``InternalCoordinate`` object. This must be an internal
-                coordinate that computes some angle in radians.
-        '''
-        ValenceTerm.__init__(self, [m, a, phi0], [ic])
-
-    def get_log(self):
-        c = self.ics[0].get_conversion()
-        return '%s(M=%i,A=%.5e,PHI0=%.5e)' % (
-            self.__class__.__name__,
-            int(self.pars[0]),
-            self.pars[1]/log.energy.conversion,
-            self.pars[2]/c
-        )
 
 class MM3Quartic(ValenceTerm):
     '''The quartic energy term used for the bond stretch in MM3: 0.5*K*(q-q0)^2*(1-2.55*(q-q0)^2+7/12*(2.55*(q-q0))^2)'''
-    kind = 12
+    kind = 11
     def __init__(self, fc, rv, ic):
         '''
            **Arguments:**
@@ -591,7 +560,7 @@ class MM3Quartic(ValenceTerm):
 
 class MM3Bend(ValenceTerm):
     '''The sixth-order energy term used for the bends in MM3: 0.5*K*(q-q0)^2*(1-0.14*(q-q0)+5.6*10^(-5)*(q-q0)^2-7*10^(-7)*(q-q0)^3+2.2*10^(-7)*(q-q0)^4)'''
-    kind = 13
+    kind = 12
     def __init__(self, fc, rv, ic):
         '''
            **Arguments:**

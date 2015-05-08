@@ -96,14 +96,6 @@ double forward_polysix(vlist_row_type* term, iclist_row_type* ictab) {
   return 0.5*K*x*x*y*y;
 }
 
-double forward_cosinesquare(vlist_row_type* term, iclist_row_type* ictab) {
-  return 0.5*(*term).par1*(1-cos(
-    (*term).par0*(ictab[(*term).ic0].value - (*term).par2)
-  ))*(1-cos(
-    (*term).par0*(ictab[(*term).ic0].value + (*term).par2)
-  ));
-}
-
 double forward_mm3quartic(vlist_row_type* term, iclist_row_type* ictab) {
   double x = ictab[(*term).ic0].value - (*term).par1;
   double x2 = x*x;
@@ -116,10 +108,10 @@ double forward_mm3bend(vlist_row_type* term, iclist_row_type* ictab) {
   return 0.5*((*term).par0)*x2*(1-0.14*x+0.000056*x2-0.0000007*x2*x+0.000000022*x2*x2);
 }
 
-v_forward_type v_forward_fns[14] = {
+v_forward_type v_forward_fns[13] = {
   forward_harmonic, forward_polyfour, forward_fues, forward_cross,
   forward_cosine, forward_chebychev1, forward_chebychev2, forward_chebychev3,
-  forward_chebychev4, forward_chebychev6, forward_polysix, forward_cosinesquare,
+  forward_chebychev4, forward_chebychev6, forward_polysix,
   forward_mm3quartic, forward_mm3bend
 };
 
@@ -201,14 +193,6 @@ void back_polysix(vlist_row_type* term, iclist_row_type* ictab) {
   ictab[(*term).ic0].grad += 0.5*K*(2*x*y*y+4*x*x*y*z);
 }
 
-void back_cosinesquare(vlist_row_type* term, iclist_row_type* ictab) {
-  ictab[(*term).ic0].grad += 2.0*(*term).par1*(*term).par0*
-  sin((*term).par0/2.0*(ictab[(*term).ic0].value - (*term).par2))*
-  sin((*term).par0/2.0*(ictab[(*term).ic0].value + (*term).par2))*
-  (sin((*term).par0/2.0*(ictab[(*term).ic0].value + (*term).par2))*cos((*term).par0/2.0*(ictab[(*term).ic0].value - (*term).par2))+
-  sin((*term).par0/2.0*(ictab[(*term).ic0].value - (*term).par2))*cos((*term).par0/2.0*(ictab[(*term).ic0].value + (*term).par2)));
-}
-
 void back_mm3quartic(vlist_row_type* term, iclist_row_type* ictab) {
   double q = (ictab[(*term).ic0].value - (*term).par1);
   ictab[(*term).ic0].grad += ((*term).par0)*(q-3.825*q*q+7.58625*q*q*q);
@@ -220,10 +204,10 @@ void back_mm3bend(vlist_row_type* term, iclist_row_type* ictab) {
   ictab[(*term).ic0].grad += ((*term).par0)*(q-0.21*q2+0.00012*q2*q-0.00000175*q2*q2+0.000000066*q2*q2*q);
 }
 
-v_back_type v_back_fns[14] = {
+v_back_type v_back_fns[13] = {
   back_harmonic, back_polyfour, back_fues, back_cross, back_cosine,
   back_chebychev1, back_chebychev2, back_chebychev3, back_chebychev4,
-  back_chebychev6, back_polysix, back_cosinesquare, back_mm3quartic,
+  back_chebychev6, back_polysix, back_mm3quartic,
   back_mm3bend
 };
 

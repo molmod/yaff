@@ -44,7 +44,7 @@ from yaff.pes.iclist import Bond, BendAngle, BendCos, \
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
 from yaff.pes.vlist import Harmonic, Fues, Cross, Cosine, \
-    Chebychev1, Chebychev2, Chebychev3, Chebychev4, Chebychev6, PolySix, CosineSquare, \
+    Chebychev1, Chebychev2, Chebychev3, Chebychev4, Chebychev6, PolySix, \
     MM3Quartic, MM3Bend
 
 
@@ -54,7 +54,7 @@ __all__ = [
     'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator', 'BondDoubleWellGenerator',
     'BondFuesGenerator', 'MM3QuarticGenerator',
     'BendGenerator', 'BendAngleHarmGenerator', 'BendCosHarmGenerator', 'BendCosGenerator', 'MM3BendGenerator',
-    'TorsionGenerator', 'TorsionCosHarmGenerator', 'TorsionCosQuadGenerator',
+    'TorsionGenerator', 'TorsionCosHarmGenerator',
     'UreyBradleyHarmGenerator', 'OopAngleGenerator', 'OopMeanAngleGenerator',
     'OopCosGenerator', 'OopMeanCosGenerator', 'OopDistGenerator',
 
