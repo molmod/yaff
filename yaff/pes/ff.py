@@ -208,6 +208,14 @@ class ForceField(ForcePart):
         if name in self.__dict__:
             raise ValueError('The part %s occurs twice in the force field.' % name)
         self.__dict__[name] = part
+        # Extend the matrices containing the gpos and vtens parts
+        gpos_parts_new = np.zeros((len(self.parts), self.system.pos.shape[0], self.system.pos.shape[1]), float)
+        vtens_parts_new = np.zeros((len(self.parts), 3, 3), float)
+        for i in len(self.parts)-1:
+            gpos_parts_new[i,:,:] = self.gpos_parts[i,:,:]
+            vtens_parts_new[i,:,:] = self.vtens_parts[i,:,:]
+        self.gpos_parts = gpos_parts_new.copy()
+        self.vtens_parts = vtens_parts_new.copy()
 
     @classmethod
     def generate(cls, system, parameters, **kwargs):
@@ -221,7 +229,7 @@ class ForceField(ForcePart):
            parameters
                 Three types are accepted: (i) the filename of the parameter
                 file, which is a text file that adheres to YAFF parameter
-                format, (ii) a list of such filenames, or (ii) an instance of
+                format, (ii) a list of such filenames, or (iii) an instance of
                 the Parameters class.
 
            See the constructor of the :class:`yaff.pes.generator.FFArgs` class
