@@ -211,7 +211,7 @@ class ForceField(ForcePart):
         # Extend the matrices containing the gpos and vtens parts
         gpos_parts_new = np.zeros((len(self.parts), self.system.pos.shape[0], self.system.pos.shape[1]), float)
         vtens_parts_new = np.zeros((len(self.parts), 3, 3), float)
-        for i in len(self.parts)-1:
+        for i in xrange(len(self.parts)-1):
             gpos_parts_new[i,:,:] = self.gpos_parts[i,:,:]
             vtens_parts_new[i,:,:] = self.vtens_parts[i,:,:]
         self.gpos_parts = gpos_parts_new.copy()
