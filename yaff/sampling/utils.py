@@ -284,13 +284,24 @@ def get_ndof_internal_md(natom, nper):
         # 2D and 3D periodic
         return 3*natom - 3
 
-def cell_symmetrize(ff):
+def cell_symmetrize(ff, vector_list = None, tensor_list = None):
     '''Symmetrizes the unit cell tensor, and updates the position vectors
 
     **Arguments:**
 
     ff
         A ForceField instance
+
+    **Optional arguments:**
+
+    vector_list
+        A list of numpy vectors which should be transformed under the
+        symmetrization. Note that the positions are already transformed
+        automatically
+
+    tensor_list
+        A list of numpy tensors of rank 2 which should be transformed
+        under the symmetrization.
     '''
     # store the unit cell tensor
     cell = ff.system.cell.rvecs.copy()
@@ -304,7 +315,18 @@ def cell_symmetrize(ff):
     # also update the new atomic positions
     pos_new = np.dot(ff.system.pos, rot_mat)
     ff.update_pos(pos_new)
-
+    # initialize the new vector and tensor lists
+    new_vector_list = []
+    new_tensor_list = []
+    # update the additional vectors from vector_list
+    if vector_list is not None:
+        for i in xrange(len(vector_list)):
+            new_vector_list.append(np.dot(vector_list[i], rot_mat))
+    # update the additional tensors from tensor_list
+    if tensor_list is not None:
+        for i in xrange(len(tensor_list)):
+            new_tensor_list.append(np.dot(np.dot(rot_mat.T, tensor_list[i]), rot_mat))
+    return new_vector_list, new_tensor_list
 
 def get_random_vel_press(mass, temp):
     '''Generates symmetric tensor of barostat velocities
