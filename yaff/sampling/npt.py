@@ -769,7 +769,10 @@ class PRBarostat(VerletHook):
         """
 
         self.temp = temp
-        self.press = press
+        if isinstance(press, np.ndarray):
+            self.press = press
+        else:
+            self.press = press*np.eye(3)
         self.timecon_press = timecon
         self.anisotropic = anisotropic
         self.vol_constraint = vol_constraint
@@ -782,8 +785,8 @@ class PRBarostat(VerletHook):
             # symmetrize the cell and stress tensor
             vc, tn = cell_symmetrize(ff, tensor_list=[self.press])
             self.press = tn[0]
-        self.P = np.trace(press)/3
-        self.S_ani = press - self.P*np.eye(3)
+        self.P = np.trace(self.press)/3
+        self.S_ani = self.press - self.P*np.eye(3)
         self.S_ani = 0.5*(self.S_ani + self.S_ani.T)    # only symmetric part of stress tensor contributes to individual motion
         self.cellinv0 = np.linalg.inv(ff.system.cell.rvecs.copy())
         self.vol0 = ff.system.cell.volume
@@ -889,7 +892,7 @@ class PRBarostat(VerletHook):
         if self.anisotropic:
             Dr, Qg = np.linalg.eigh(np.dot(self.vel_press, np.linalg.inv(iterative.rvecs.T)))
         else:
-            Dr, Qg = np.linalg.eigh(self.vel_press, np.linalg.inv(iterative.rvecs.T))
+            Dr, Qg = np.linalg.eigh(self.vel_press*np.linalg.inv(iterative.rvecs.T))
         Daccr = np.diagflat(np.exp(Dr*self.timestep_press/2))
         Daccv = np.diagflat(np.exp(-Dr*self.timestep_press/2))
         rot_mat_r = np.dot(np.dot(Qg, Daccr), Qg.T)
