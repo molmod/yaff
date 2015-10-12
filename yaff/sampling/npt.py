@@ -856,6 +856,7 @@ class PRBarostat(VerletHook):
         # calculate the correction due to the barostat alone
         h = iterative.rvecs.copy()
         self.econs_correction = self._compute_ekin_baro() + self.P*iterative.ff.system.cell.volume + 0.5*np.trace(np.dot(np.dot(self.Sigma, h), h.T))
+
         if self.baro_thermo is not None:
             # add the correction due to the barostat thermostat
             self.econs_correction += self.baro_thermo.chain.get_econs_correction()

@@ -191,7 +191,6 @@ class VerletIntegrator(Iterative):
 
         # Tracks quality of the conserved quantity
         self._cons_err_tracker = ConsErrTracker(restart_h5)
-
         Iterative.__init__(self, ff, state, self.hooks, counter0)
 
     def _add_default_hooks(self):
@@ -479,11 +478,12 @@ class ConsErrTracker(object):
             self.econs_sumsq = 0.0
         else:
             tgrp = restart_h5['trajectory']
-            self.counter = tgrp['counter'][-1]+1    # self.counter = Iterative.counter + 1
+            self.counter = tgrp['econs_counter'][-1]
             self.ekin_sum = tgrp['ekin_sum'][-1]
             self.ekin_sumsq = tgrp['ekin_sumsq'][-1]
             self.econs_sum = tgrp['econs_sum'][-1]
             self.econs_sumsq = tgrp['econs_sumsq'][-1]
+        self.eps = np.finfo(float).eps
 
     def update(self, ekin, econs):
         self.counter += 1
@@ -495,9 +495,14 @@ class ConsErrTracker(object):
     def get(self):
         if self.counter > 0:
             ekin_var = self.ekin_sumsq/self.counter - (self.ekin_sum/self.counter)**2
-            if ekin_var > 0:
+            max_contrib = max(self.ekin_sumsq/self.counter, (self.ekin_sum/self.counter)**2)
+            if np.abs(ekin_var)/max_contrib > 10.*self.eps:
+            # only calculate further if the variance is substantially different from zero,
+            # to mediate precision errors
                 econs_var = self.econs_sumsq/self.counter - (self.econs_sum/self.counter)**2
-                return np.sqrt(econs_var/ekin_var)
+                max_contrib = max(self.econs_sumsq/self.counter, (self.econs_sum/self.counter)**2)
+                if np.abs(econs_var)/max_contrib > 10.*self.eps:
+                    return np.sqrt(econs_var/ekin_var)
         return 0.0
 
 

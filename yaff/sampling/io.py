@@ -182,6 +182,7 @@ class RestartWriter(Hook):
             AttributeStateItem('vel'),
             CellStateItem(),
             AttributeStateItem('econs'),
+            ConsErrStateItem('econs_counter'),
             ConsErrStateItem('ekin_sum'),
             ConsErrStateItem('ekin_sumsq'),
             ConsErrStateItem('econs_sum'),
