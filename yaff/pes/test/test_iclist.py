@@ -90,6 +90,23 @@ def test_iclist_quartz_bend_angle():
         assert abs(iclist.ictab[row]['value'] - bend_angle([delta0, np.zeros(3, float), delta2])[0]) < 1e-5
 
 
+def test_iclist_linear_bend_angle():
+    numbers = np.array([1]*3)
+    # Linear arrangement of 3 atoms, with a small distance between two atoms
+    # This leads to round-off errors in calculation of the cosine of the angle
+    pos = np.array([[0.0,0.0,0.0],[0.001,0.0,0.0],[1.0,0.0,0.0]])
+    system = System(numbers, pos)
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    iclist.add_ic(BendAngle(0,1,2))
+    dlist.forward()
+    iclist.forward()
+    # This test checks that our guard against round-off errors in the
+    # calculation of the cosine of the angle works.
+    theta = iclist.ictab[0]['value']
+    assert np.isfinite(theta)
+
+
 def test_iclist_peroxide_dihedral_cos():
     number_of_tests=50
     for i in xrange(number_of_tests):
