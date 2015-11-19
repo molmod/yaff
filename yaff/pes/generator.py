@@ -958,12 +958,12 @@ class NonbondedGenerator(Generator):
             if scale < 0 or scale > 1:
                 pardef.complain(counter, 'has a scale that is not in the range [0,1].')
             result[num_bonds] = scale
-        if len(result) < 3:
-            pardef.complain(None, 'must contain four SCALE suffixes for each non-bonding term.')
+        if len(result) < 3 or len(result) > 4:
+            pardef.complain(None, 'must contain three or four SCALE suffixes for each non-bonding term.')
         if 1 not in result or 2 not in result or 3 not in result:
             pardef.complain(None, 'must contain a scale parameter for atoms separated by 1, 2 and 3 bonds, for each non-bonding term.')
         if 4 not in result:
-            result[4]=1.0
+            result[4] = 1.0
         return result
 
     def process_mix(self, pardef):
