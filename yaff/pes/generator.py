@@ -1267,7 +1267,7 @@ class DampDispGenerator(NonbondedGenerator):
 
 class D3BJGenerator(NonbondedGenerator):
     prefix = 'D3BJ'
-    suffixes = ['UNIT', 'SCALE', 'PARS', 'GLOBALPARS']
+    suffixes = ['UNIT', 'SCALE', 'CPARS', 'GLOBALPARS']
     par_info = [('C6', float), ('C8', float),('S6', float), ('S8', float),('A1', float), ('A2', float)]
     pairpar_info = [('C6', float), ('C8', float)]
     globalpar_info = [('S6', float), ('S8', float),('A1', float), ('A2', float)]
@@ -1276,7 +1276,7 @@ class D3BJGenerator(NonbondedGenerator):
         self.check_suffixes(parsec)
         conversions = self.process_units(parsec['UNIT'])
         #Parameters for every couple of ffatypes
-        par_table = self.process_pars(parsec['PARS'], conversions, 2, self.pairpar_info)
+        par_table = self.process_pars(parsec['CPARS'], conversions, 2, self.pairpar_info)
         #Global parameters, specifically for D3BJ these are s6,s8,a1,a2
         globalpar_table = self.process_pars(parsec['GLOBALPARS'], conversions, 0, self.globalpar_info)
         scale_table = self.process_scales(parsec['SCALE'])
