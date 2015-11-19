@@ -335,6 +335,36 @@ bail:
   return 0.0;
 }
 
+void pair_data_qmdffrep_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *amp_cross, double *b_cross) {
+  pair_data_qmdffrep_type *pair_data;
+  pair_data = malloc(sizeof(pair_data_qmdffrep_type));
+  (*pair_pot).pair_data = pair_data;
+  if (pair_data != NULL) {
+    (*pair_pot).pair_fn = pair_fn_qmdffrep;
+    (*pair_data).nffatype = nffatype;
+    (*pair_data).ffatype_ids = ffatype_ids;
+    (*pair_data).amp_cross = amp_cross;
+    (*pair_data).b_cross = b_cross;
+  }
+}
+
+double pair_fn_qmdffrep(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
+  long i;
+  double amp, b, e;
+  pair_data_qmdffrep_type *pd;
+  pd = (pair_data_qmdffrep_type*)pair_data;
+  i = (*pd).ffatype_ids[center_index]*(*pd).nffatype + (*pd).ffatype_ids[other_index];
+  amp = (*pd).amp_cross[i];
+  if (amp==0.0) goto bail;
+  b = (*pd).b_cross[i];
+  if (b==0.0) goto bail;
+  e = amp/d*exp(-b*d);
+  if (g != NULL) *g = -(b+1/d)*e/d;
+  return e;
+bail:
+  if (g != NULL) *g = 0.0;
+  return 0.0;
+}
 
 void pair_data_ljcross_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *eps_cross, double *sig_cross) {
   pair_data_ljcross_type *pair_data;

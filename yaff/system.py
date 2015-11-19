@@ -207,6 +207,16 @@ class System(object):
                     if i3 != i0 and i3 not in self.neighs1[i0] and i3 not in self.neighs2[i0]:
                         self.neighs3[i0].add(i3)
                         self.neighs3[i3].add(i0)
+        # 4-bond neighbors
+        self.neighs4 = dict((i,set([])) for i in xrange(self.natom))
+        for i0, n0 in self.neighs1.iteritems():
+            for i1 in n0:
+                for i4 in self.neighs3[i1]:
+                    # Require that there are no shorter paths than three bonds
+                    # between i0 and i4. Also avoid duplicates.
+                    if i4 != i0 and i4 not in self.neighs1[i0] and i4 not in self.neighs2[i0] and i4 not in self.neighs3[i0]:
+                        self.neighs4[i0].add(i4)
+                        self.neighs4[i4].add(i0)
         # report some basic stuff on screen
         if log.do_medium:
             log('Analysis of the bonds:')

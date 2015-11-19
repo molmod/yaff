@@ -47,13 +47,15 @@ from yaff.log import log
 __all__ = [
     'Cell', 'nlist_status_init', 'nlist_build', 'nlist_status_finish',
     'nlist_recompute', 'nlist_inc_r', 'Hammer', 'Switch3', 'PairPot',
-    'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep', 'PairPotLJCross',
-    'PairPotDampDisp', 'PairPotDisp68BJDamp', 'PairPotEI', 'PairPotEIDip',
-    'PairPotEiSlater1s1sCorr', 'PairPotEiSlater1sp1spCorr', 'PairPotOlpSlater1s1s',
-    'PairPotChargeTransferSlater1s1s', 'compute_ewald_reci',
-    'compute_ewald_reci_dd', 'compute_ewald_corr_dd', 'compute_ewald_corr',
-    'dlist_forward', 'dlist_back', 'iclist_forward', 'iclist_back',
-    'vlist_forward', 'vlist_back', 'compute_grid3d'
+    'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep', 
+    'PairPotQMDFFRep', 'PairPotLJCross', 'PairPotDampDisp', 
+    'PairPotDisp68BJDamp', 'PairPotEI', 'PairPotEIDip', 
+    'PairPotEiSlater1s1sCorr', 'PairPotEiSlater1sp1spCorr', 
+    'PairPotOlpSlater1s1s','PairPotChargeTransferSlater1s1s', 
+    'compute_ewald_reci', 'compute_ewald_reci_dd',  'compute_ewald_corr_dd', 
+    'compute_ewald_corr', 'dlist_forward', 'dlist_back', 'iclist_forward', 
+    'iclist_back', 'iclist_jacobian', 'iclist_hessian', 'vlist_forward', 
+    'vlist_back', 'vlist_hessian', 'compute_grid3d',
 ]
 
 
@@ -1048,6 +1050,166 @@ cdef class PairPotExpRep(PairPot):
     b_cross = property(_get_b_cross)
 
 
+cdef class PairPotQMDFFRep(PairPot):
+    r'''Exponential repulsion from QMDFF force field of Grimme
+
+        .. math:: E_\text{EXPREP} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} \frac{A_{ij}}{d_{ij}} \exp(-B_{ij} d_{ij})
+
+        The pair parameters can be provided explicitly, or can be derived from atomic
+        parameters using two possible mixing rules for each parameter:
+
+        * ``GEOMETRIC`` mixing for :math:`A_{ij}`: :math:`A_{ij} = \sqrt{A_i A_j}`
+
+        * ``GEOMETRIC_COR`` mixing for :math:`A_{ij}`: :math:`\ln A_{ij} = (\ln A_i + \ln A_j)\frac{1-x\vert\ln(A_i/A_j)\vert}{2}` where :math:`x` is a configurable parameter
+
+        * ``ARITHMETIC`` mixing for :math:`B_{ij}`: :math:`B_{ij} = \frac{B_i + B_j}{2}`
+
+        * ``ARITHMETIC_COR`` mixing for :math:`B_{ij}`: :math:`B_{ij} = (B_i + B_j)\frac{1-x\vert\ln(A_i/A_j)\vert}{2}` where :math:`x` is a configurable parameter
+
+        **Arguments:**
+
+        ffatype_ids
+            An array with atom type IDs for each atom. The IDs are integer
+            indexes for the atom types that start counting from zero. shape =
+            (natom,).
+
+        amp_cross
+            A 2D array of amplitude cross parameters (:math:`A_{ij}`)
+
+        b_cross
+            A 2D array of decay cross parameters (:math:`B_{ij}`)
+
+        rcut
+             The cutoff radius
+
+        **Optional arguments:**
+
+        tr
+            The truncation scheme, an instance of a subclass of ``Truncation``.
+            When not given, no truncation is applied
+
+        amps
+            A 1D array of amplitude diagonal parameters (:math:`A_{i}`)
+
+        amp_mix
+            An integer ID that determines the mixing rule for the a parameter.
+            0=GEOMETRIC, 1=GEOMETRIC_COR.
+
+        amp_mix_coeff
+            The parameter :math:`x` for the corrected geometric mixing rule.
+
+        bs
+            A 1D array of decay diagonal parameters (:math:`B_{i}`)
+
+        b_mix
+            An integer ID that determines the mixing rule for the B parameter.
+            0=ARITHMETIC, 1=ARITHMETIC_COR.
+
+        b_mix_coeff
+            The parameter :math:`x` for the corrected arithmetic mixing rule.
+
+        The mixing rules are only in effect when the optional diagonal
+        parameters are given. Only when the cross parameters are zero (in the
+        arguments ``amp_cross`` and ``b_cross``), these numbers would be
+        overwritten by the mixing rules.
+    '''
+    cdef long _c_nffatype
+    cdef np.ndarray _c_ffatype_ids
+    cdef np.ndarray _c_amp_cross
+    cdef np.ndarray _c_b_cross
+    name = 'qmdffrep'
+
+    def __cinit__(self, np.ndarray[long, ndim=1] ffatype_ids not None,
+                  np.ndarray[double, ndim=2] amp_cross not None,
+                  np.ndarray[double, ndim=2] b_cross not None,
+                  double rcut, Truncation tr=None,
+                  np.ndarray[double, ndim=1] amps=None, long amp_mix=-1, double amp_mix_coeff=-1,
+                  np.ndarray[double, ndim=1] bs=None, long b_mix=-1, double b_mix_coeff=-1):
+        assert ffatype_ids.flags['C_CONTIGUOUS']
+        assert amp_cross.flags['C_CONTIGUOUS']
+        assert b_cross.flags['C_CONTIGUOUS']
+        nffatype = amp_cross.shape[0]
+        assert amp_cross.shape[1] == nffatype
+        assert b_cross.shape[0] == nffatype
+        assert b_cross.shape[1] == nffatype
+        assert ffatype_ids.min() >= 0
+        assert ffatype_ids.max() < nffatype
+        if amps is not None:
+            assert amps.shape[0] == nffatype
+            assert amp_mix == 0 or amp_mix == 1
+            assert amp_mix_coeff >= 0 and amp_mix_coeff <= 1
+            self._init_amp_cross(nffatype, amp_cross, amps, amp_mix, amp_mix_coeff)
+        assert (amp_cross == amp_cross.T).all()
+        if bs is not None:
+            assert bs.shape[0] == nffatype
+            assert b_mix == 0 or b_mix == 1
+            assert b_mix_coeff >= 0 and b_mix_coeff <= 1
+            self._init_b_cross(nffatype, b_cross, bs, b_mix, b_mix_coeff, amps)
+        assert (b_cross == b_cross.T).all()
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        self.set_truncation(tr)
+        pair_pot.pair_data_qmdffrep_init(
+            self._c_pair_pot, nffatype, <long*> ffatype_ids.data,
+            <double*> amp_cross.data, <double*> b_cross.data
+        )
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_nffatype = nffatype
+        self._c_amp_cross = amp_cross
+        self._c_b_cross = b_cross
+
+    def _init_amp_cross(self, nffatype, amp_cross, amps, amp_mix, amp_mix_coeff):
+        for i0 in xrange(nffatype):
+            for i1 in xrange(i0+1):
+                if amp_cross[i0, i1] == 0.0:
+                    if amp_mix == 0:
+                        amp_cross[i0, i1] = np.sqrt(amps[i0]*amps[i1])
+                    elif amps[i0] == 0.0 or amps[i1] == 0.0:
+                        amp = 0.0
+                    else:
+                        amp = (np.log(amps[i0])+np.log(amps[i1]))/2;
+                        amp *= 1 - amp_mix_coeff*abs(np.log(amps[i0]/amps[i1]));
+                        amp_cross[i0, i1] = np.exp(amp)
+                    amp_cross[i1, i0] = amp_cross[i0, i1]
+
+    def _init_b_cross(self, nffatype, b_cross, bs, b_mix, b_mix_coeff, amps):
+        for i0 in xrange(nffatype):
+            for i1 in xrange(i0+1):
+                if b_cross[i0, i1] == 0.0:
+                    if b_mix == 0:
+                        b_cross[i0, i1] = (bs[i0] + bs[i1])/2
+                    elif amps[i0] == 0.0 or amps[i1] == 0.0:
+                        b = 0.0
+                    else:
+                        b = (bs[i0] + bs[i1])/2;
+                        b *= 1 - b_mix_coeff*abs(np.log(amps[i0]/amps[i1]));
+                        b_cross[i0, i1] = b
+                    b_cross[i1, i0] = b_cross[i0, i1]
+
+    def log(self):
+        '''Print suitable initialization info on screen.'''
+        if log.do_high:
+            log.hline()
+            log('ffatype_id0 ffatype_id1          A          B')
+            log.hline()
+            for i0 in xrange(self._c_nffatype):
+                for i1 in xrange(i0+1):
+                    log('%11i %11i %s %s' % (i0, i1, log.energy(self._c_amp_cross[i0, i1]), log.invlength(self._c_b_cross[i0,i1])))
+
+    def _get_amp_cross(self):
+        '''The amplitude cross parameters'''
+        return self._c_amp_cross.view()
+
+    amp_cross = property(_get_amp_cross)
+
+    def _get_b_cross(self):
+        '''The decay cross parameters'''
+        return self._c_b_cross.view()
+
+    b_cross = property(_get_b_cross)
+
+
+
 cdef class PairPotLJCross(PairPot):
     r'''Lennard Jones with explicit cross parameters.
 
@@ -1373,7 +1535,8 @@ cdef class PairPotDisp68BJDamp(PairPot):
         if np.all(R_cross==0.0):
             # We need to mask out zero c6 coefficients
             mask = c6_cross != 0.0
-            R_cross[mask] = np.sqrt(c8_scale*c8_cross[mask]/c6_cross[mask]/c6_scale)
+            #R_cross[mask] = np.sqrt(c8_scale*c8_cross[mask]/c6_cross[mask]/c6_scale)
+            R_cross[mask] = np.sqrt(c8_cross[mask]/c6_cross[mask])
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
         self.set_truncation(tr)
         pair_pot.pair_data_disp68bjdamp_init(
@@ -1444,6 +1607,12 @@ cdef class PairPotDisp68BJDamp(PairPot):
         return pair_pot.pair_data_disp68bjdamp_get_bj_b(self._c_pair_pot)
 
     bj_b = property(_get_bj_b)
+    
+    def _get_global_pars(self):
+        '''Global parameters'''
+        return [self.c6_scale,self.c8_scale,self.bj_a,self.bj_b]
+
+    global_pars = property(_get_global_pars)
 
 
 cdef class PairPotEI(PairPot):

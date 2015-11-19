@@ -1380,7 +1380,6 @@ def test_pair_pot_eislater1sp1spcorr():
     N1p = np.array([[0.9,4.0,3.0],[1.2,1.1,0.45]])
     Z1s = np.array([2.0,8.0])
     Z1p = np.array([[2.0,0.0,3.0],[3.0,4.0,06.0]])
-
     # Slater-widths, very different
     a1s = np.array([0.5,0.6])
     a1p = np.array([[0.5,0.5,0.5],[0.6,0.6,0.6]])
@@ -1392,7 +1391,6 @@ def test_pair_pot_eislater1sp1spcorr():
     # Check gradient and virial tensor
     check_gpos_part(system, part_pair, nlist)
     check_vtens_part(system, part_pair, nlist, symm_vtens=False)
-
     # Slater-widths, nearly equal
     a1s = np.array([0.5,0.501])
     a1p = np.array([[0.5,0.5,0.5],[0.501,0.501,0.501]])
@@ -1404,7 +1402,6 @@ def test_pair_pot_eislater1sp1spcorr():
     # Check gradient and virial tensor
     check_gpos_part(system, part_pair, nlist)
     check_vtens_part(system, part_pair, nlist, symm_vtens=False)
-
     # Slater-widths, equal
     a1s = np.array([0.5,0.5])
     a1p = np.array([[0.5,0.5,0.5],[0.5,0.5,0.5]])

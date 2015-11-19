@@ -102,9 +102,21 @@ double pair_fn_exprep(void *pair_data, long center_index, long other_index, doub
 typedef struct {
   long nffatype;
   long *ffatype_ids;
+  double *amp_cross;
+  double *b_cross;
+} pair_data_qmdffrep_type;
+
+void pair_data_qmdffrep_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *amp_cross, double *b_cross);
+double pair_fn_qmdffrep(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
+
+
+typedef struct {
+  long nffatype;
+  long *ffatype_ids;
   double *eps_cross;
   double *sig_cross;
 } pair_data_ljcross_type;
+
 
 void pair_data_ljcross_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *eps_cross, double *sig_cross);
 double pair_fn_ljcross(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
