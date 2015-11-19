@@ -24,37 +24,44 @@
 
 
 import numpy as np, tempfile, h5py as h5, shutil
-from subprocess import PIPE, Popen, call
+from subprocess import Popen, STDOUT, PIPE
 
 from yaff import *
 from yaff.sampling.test.common import get_ff_water32
 
 def test_h5_flush():
-    # Test if we can read intermediate hdf5 files that are flushed
-    # This test relies on the `h5ls` command being  available in the command line.
+    # Test if we can read intermediate hdf5 files that are flushed.
+
     # Make a temporary directory
     dn_tmp = tempfile.mkdtemp(suffix='yaff', prefix='nve_water_32')
-    # Setup a test FF
-    ff = get_ff_water32()
-    # Make two different hdf5 hooks
-    f = h5.File('%s/output.h5' % dn_tmp)
-    hdf5 = HDF5Writer(f)
-    f_flushed = h5.File('%s/output_flushed.h5' % dn_tmp)
-    hdf5_flushed = HDF5Writer(f_flushed,flush=4)
-    # Run a test simulation
-    nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=[hdf5,hdf5_flushed])
-    nve.run(5)
-    try: # Actual test
-        # Check that we can read the h5 files from the command line
-        # This should not work
-        p = Popen(["h5ls", '%s/output.h5' % dn_tmp], stdout=PIPE, stderr=PIPE)
-        result = p.communicate()
-        assert 'unable' in result[1]
-        # This should work
-        p = Popen(["h5ls", '%s/output_flushed.h5' % dn_tmp], stdout=PIPE, stderr=PIPE)
-        result = p.communicate()
-        assert 'trajectory' in result[0]
-    finally: # Cleanup
-        f.close()
-        f_flushed.close()
+    try:
+        # Setup a test FF
+        ff = get_ff_water32()
+        # Make two different hdf5 hooks
+        with h5.File('%s/output.h5' % dn_tmp) as f, \
+             h5.File('%s/output_flushed.h5' % dn_tmp) as f_flushed:
+            hdf5 = HDF5Writer(f)
+            hdf5_flushed = HDF5Writer(f_flushed, flush=4)
+            # Run a test simulation
+            nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=[hdf5,hdf5_flushed])
+            nve.run(5)
+
+            # Actual tests
+
+            # 1) Check that we can't read the trajectory group in the h5 file without flushing.
+            # This must be done in a subprocess, otherwise the HDF5 library will fake
+            # flushing while it does not really flush to disk.
+            command = ['python', '-c', 'import h5py as h5; f = h5.File(\'%s/output.h5\', 'r'); f.close()' % dn_tmp]
+            p = Popen(command, stdout=PIPE, stderr=STDOUT)
+            output = p.communicate()[0]
+            assert 'IOError' in output
+            assert p.returncode != 0
+
+            # 2) This should work in a subprocess.
+            command = ['python', '-c', 'import h5py as h5; f = h5.File(\'%s/output_flushed.h5\', 'r'); f.close()' % dn_tmp]
+            p = Popen(command, stdout=PIPE, stderr=STDOUT)
+            output = p.communicate()[0]
+            assert 'IOError' not in output
+            assert p.returncode == 0
+    finally:
         shutil.rmtree(dn_tmp)
