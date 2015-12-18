@@ -4,6 +4,7 @@ python:
 virtualenv:
   system_site_packages: true
 install:
+ - "sudo apt-get update"
  - "sudo apt-get --no-install-recommends install python-numpy python-scipy python-matplotlib libhdf5-serial-dev gfortran"
  - "mkdir -p ~/.matplotlib/; echo 'backend : Agg' > ~/.matplotlib/matplotlibrc"
  - "pip install h5py cython --use-mirrors"
