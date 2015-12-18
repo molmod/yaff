@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Use libgomp that was compiled with the --disable-linux-futex configuration option
-export LD_LIBRARY_PATH=./gcc-6.0.0-no-futex-lib/lib64:./gcc-6.0.0-no-futex-lib/lib:
+export LD_LIBRARY_PATH=./../gcc-6.0.0-no-futex-lib/lib64:./../gcc-6.0.0-no-futex-lib/lib:
 # Store whether all tests pass or not
 succes=true
 
@@ -21,7 +21,7 @@ do
     # Compile the test program
     gcc -fopenmp $CFLAGS -fPIC -o $name $name.c $OBJ -lm
     # Run helgrind
-    valgrind --tool=helgrind --log-file=$name.log --suppressions=./gcc-6.0.0-no-futex-lib/valgrind.supp ./$name
+    valgrind --tool=helgrind --log-file=$name.log --suppressions=./../gcc-6.0.0-no-futex-lib/valgrind.supp ./$name
     echo $name
     tail -n1 $name.log
     # Find out number of reported errors
