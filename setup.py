@@ -95,6 +95,8 @@ setup(
                      'yaff/pes/cell.h', 'yaff/pes/cell.pxd',
                      'yaff/pes/truncation.h', 'yaff/pes/truncation.pxd',
                      'yaff/pes/constants.h'],
+            extra_compile_args=["-Wall","-O3","-std=c++0x","-fPIC","-Wno-sign-compare","-fopenmp"],
+            extra_link_args=["-fopenmp"],
             include_dirs=[np.get_include()],
         ),
     ],

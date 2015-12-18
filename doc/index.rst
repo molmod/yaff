@@ -28,6 +28,7 @@ This guide is a gentle introduction to Yaff with many examples.
    ug_sampling.rst
    ug_analysis.rst
    ug_tune.rst
+   ug_parallel.rst
 
 
 Tutorials

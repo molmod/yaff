@@ -4,10 +4,16 @@ python:
 virtualenv:
   system_site_packages: true
 install:
- - "sudo apt-get --no-install-recommends install python-numpy python-scipy python-matplotlib libhdf5-serial-dev gfortran"
+ - "sudo apt-get update"
+ - "sudo apt-get --no-install-recommends install python-numpy python-scipy python-matplotlib libhdf5-serial-dev gfortran valgrind wget"
+ # Download libgomp for gcc that was compiled with the --disable-linux-futex configuration option
+ - "wget http://users.ugent.be/~stevvdnb/gcc-6.0.0-no-futex-lib.tar.gz"
+ - "tar -xzf gcc-6.0.0-no-futex-lib.tar.gz"
  - "mkdir -p ~/.matplotlib/; echo 'backend : Agg' > ~/.matplotlib/matplotlibrc"
  - "pip install h5py cython --use-mirrors"
  - "git clone https://github.com/molmod/molmod.git; cd molmod; python setup.py install; cd .."
  - "python setup.py install"
 script:
- - "cd; nosetests -v yaff"
+ - "cd; export OMP_NUM_THREADS=4; nosetests -v yaff"
+ # Back to yaff installation dir to run helgrind tests
+ - "cd -; cd tests_helgrind; bash run_tests.sh"
