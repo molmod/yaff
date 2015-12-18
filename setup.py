@@ -73,7 +73,7 @@ setup(
     packages=['yaff', 'yaff/test', 'yaff/pes', 'yaff/pes/test', 'yaff/sampling',
               'yaff/sampling/test', 'yaff/analysis', 'yaff/analysis/test',
               'yaff/tune', 'yaff/tune/test', 'yaff/conversion',
-              'yaff/conversion/'],
+              'yaff/conversion/test'],
     cmdclass = {'build_ext': build_ext, 'install_data': my_install_data},
     data_files=[
         ('share/yaff/test', glob('data/test/*.*')),
