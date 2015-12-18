@@ -58,7 +58,7 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
         if (ksq > gcut) continue;
         cosfac = 0.0;
         sinfac = 0.0;
-        #pragma omp parallel for reduction(+:cosfac, sinfac) private(x, c, s) schedule(static)
+        #pragma omp parallel for reduction(+:cosfac, sinfac) private(c, s) schedule(static)
         for (i=0; i<natom; i++) {
           x = k[0]*pos[3*i] + k[1]*pos[3*i+1] + k[2]*pos[3*i+2];
           c = charges[i]*cos(x);
