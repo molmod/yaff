@@ -34,6 +34,12 @@ from molmod.io.xyz import XYZWriter
 from molmod.periodic import periodic as pd
 from yaff.log import log
 
+__all__ = [
+    'calc_cov_mat_internal', 'calc_cov_mat', 'calc_pca', 'pca_projection',
+    'write_principal_mode', 'pca_similarity', 'pca_convergence'
+]
+
+
 def calc_cov_mat_internal(q, q_ref=None):
     """
         Calculates the covariance matrix of a time-dependent matrix q,
@@ -187,7 +193,6 @@ def calc_pca(f_target, cov_mat=None, f=None, q_ref=None, start=0, end=None, step
         eigval = eigval[idx]
         eigvec = eigvec[:,idx]
 
-
         # Create output HDF5 file
         g = h5.File(f_target,'w')
         pca = g.create_group('pca')
@@ -216,7 +221,7 @@ def calc_pca(f_target, cov_mat=None, f=None, q_ref=None, start=0, end=None, step
         # (the zero frequencies are mentioned last so that their index corresponds to the principal modes)
         if temp is not None:
             log('Determining frequencies')
-            frequencies = np.append(np.sqrt(boltzmann*temp/eigval_reduced), np.repeat(0,3))
+            frequencies = np.append(np.sqrt(boltzmann*temp/eigval_reduced)/(2*np.pi), np.repeat(0,3))
             pca.create_dataset('freqs', data=frequencies)
 
     return eigval, eigvec

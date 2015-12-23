@@ -48,6 +48,8 @@ double forward_bend_cos(iclist_row_type* ic, dlist_row_type* deltas) {
 double forward_bend_angle(iclist_row_type* ic, dlist_row_type* deltas) {
   double c;
   c = forward_bend_cos(ic, deltas);
+  if (c>1.0) c = 1.0;
+  if (c<-1.0) c = -1.0;
   return acos(c);
 }
 
