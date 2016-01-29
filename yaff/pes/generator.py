@@ -40,7 +40,7 @@ from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldNeutralizing
 from yaff.pes.iclist import Bond, BendAngle, BendCos, \
     UreyBradley, DihedAngle, DihedCos, OopAngle, OopMeanAngle, OopCos, \
-    OopMeanCos, OopDist
+    OopMeanCos, OopDist, SqOopDist
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
 from yaff.pes.vlist import Harmonic, PolyFour, Fues, Cross, Cosine, \
@@ -767,6 +767,30 @@ class OopDistGenerator(ValenceGenerator):
     par_info = [('K', float), ('D0', float)]
     prefix = 'OOPDIST'
     ICClass = OopDist
+    VClass = Harmonic
+    allow_superposition = False
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield (key[2],key[0],key[1],key[3])
+        yield (key[1],key[2],key[0],key[3])
+        yield (key[2],key[1],key[0],key[3])
+        yield (key[1],key[0],key[2],key[3])
+        yield (key[0],key[2],key[1],key[3])
+
+    def iter_indexes(self, system):
+        #Loop over all atoms; if an atom has 3 neighbors,
+        #it is candidate for an OopDist term
+        for atom in system.neighs1.keys():
+            neighbours = list(system.neighs1[atom])
+            if len(neighbours)==3:
+                yield neighbours[0],neighbours[1],neighbours[2],atom
+
+class SquareOopDistGenerator(ValenceGenerator):
+    nffatype = 4
+    par_info = [('K', float), ('D0', float)]
+    prefix = 'SQOOPDIST'
+    ICClass = SqOopDist
     VClass = Harmonic
     allow_superposition = False
 
