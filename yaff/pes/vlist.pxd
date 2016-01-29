@@ -28,7 +28,7 @@ cimport iclist
 cdef extern from "vlist.h":
     ctypedef struct vlist_row_type:
         long kind
-        double par0, par1, par2, par3
+        double par0, par1, par2, par3, par4, par5
         long ic0, ic1
         double energy
 

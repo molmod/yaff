@@ -43,7 +43,7 @@ from yaff.pes.iclist import Bond, BendAngle, BendCos, \
     OopMeanCos, OopDist
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
-from yaff.pes.vlist import Harmonic, Fues, Cross, Cosine, \
+from yaff.pes.vlist import Harmonic, PolyFour, Fues, Cross, Cosine, \
     Chebychev1, Chebychev2, Chebychev3, Chebychev4, Chebychev6, PolySix, \
     MM3Quartic, MM3Bend
 
@@ -51,10 +51,10 @@ from yaff.pes.vlist import Harmonic, Fues, Cross, Cosine, \
 __all__ = [
     'FFArgs', 'Generator',
 
-    'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator', 'BondDoubleWellGenerator',
+    'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator', 'DoubleWellGenerator',
     'BondFuesGenerator', 'MM3QuarticGenerator',
     'BendGenerator', 'BendAngleHarmGenerator', 'BendCosHarmGenerator', 'BendCosGenerator', 'MM3BendGenerator',
-    'TorsionGenerator', #'TorsionCosHarmGenerator',
+    'TorsionGenerator', 'TorsionCosHarmGenerator', 'TorsionCos2HarmGenerator',
     'UreyBradleyHarmGenerator', 'OopAngleGenerator', 'OopMeanAngleGenerator',
     'OopCosGenerator', 'OopMeanCosGenerator', 'OopDistGenerator',
 
@@ -447,13 +447,17 @@ class BondFuesGenerator(BondGenerator):
     prefix = 'BONDFUES'
     VClass = Fues
 
+class MM3QuarticGenerator(BondGenerator):
+    prefix = 'MM3QUART'
+    VClass = MM3Quartic
 
-class BondDoubleWellGenerator(ValenceGenerator):
-    par_info = [('K', float), ('R1', float), ('R2', float)]
+
+class DoubleWellGenerator(ValenceGenerator):
     nffatype = 2
-    ICClass = Bond
     prefix = 'DOUBWELL'
+    ICClass = Bond
     VClass = PolySix
+    par_info = [('K', float), ('R1', float), ('R2', float)]
 
     def iter_alt_keys(self, key):
         yield key
@@ -462,10 +466,30 @@ class BondDoubleWellGenerator(ValenceGenerator):
     def iter_indexes(self, system):
         return system.iter_bonds()
 
-
-class MM3QuarticGenerator(BondGenerator):
-    prefix = 'MM3QUART'
-    VClass = MM3Quartic
+    def process_pars(self, pardef, conversions, nffatype, par_info=None):
+        '''
+            Transform the 3 parameters given in the parameter file to the 6
+            parameters required by PolySix. The parameters of PolySix are
+            given as a single argument (a list) containing all 6 parameters, not
+            6 arguments with each a parameter.
+        '''
+        tmp = Generator.process_pars(self, pardef, conversions, nffatype, par_info=par_info)
+        par_table = {}
+        
+        for key, oldpars in tmp.iteritems():
+            K = oldpars[0][0]
+            r0 = oldpars[0][1]
+            r1 = oldpars[0][2]
+            a = K/(2.0*(r0-r1)**4)
+            c1 = -2.0*r0*r1**4 - 4.0*r0**2*r1**3
+            c2 = r1**4 + 8.0*r0*r1**3 + 6.0*r0**2*r1**2
+            c3 = -4.0*r1**3 - 12.0*r0*r1**2 - 4.0*r1*r0**2
+            c4 = 6.0*r1**2 + 8.0*r0*r1 + r0**2
+            c5 = -4.0*r1 - 2.0*r0
+            c6 = 1.0
+            pars = [a*c1, a*c2, a*c3, a*c4, a*c5, a*c6]
+            par_table[key] = [(pars,)]
+        return par_table
 
 
 class BendGenerator(ValenceGenerator):
@@ -609,6 +633,37 @@ class TorsionGenerator(ValenceGenerator):
             return Chebychev6(pars[1], ic, sign=1)
         else:
             return ValenceGenerator.get_vterm(self, pars, indexes)
+
+
+class TorsionCos2HarmGenerator(ValenceGenerator):
+    'A term harmonic in the cos(2*psi)'
+    nffatype = 4
+    par_info = [('A', float), ('COS0', float)]
+    prefix = 'TORSC2HARM'
+    ICClass = DihedCos
+    VClass = PolyFour
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        return system.iter_dihedrals()
+
+    def process_pars(self, pardef, conversions, nffatype, par_info=None):
+        '''
+            Transform the 2 parameters given in the parameter file to the 4
+            parameters required by PolyFour. The parameters of PolyFour are
+            given as a single argument (a list) containing all 4 parameters, not
+            4 arguments with each a parameter.
+        '''
+        tmp = Generator.process_pars(self, pardef, conversions, nffatype, par_info=par_info)
+        par_table = {}
+        for key, oldpars in tmp.iteritems():
+            pars = [0.0, -4*oldpars[0][0]*oldpars[0][1]**2, 0.0, 2.0*oldpars[0][0]]
+            par_table[key] = [(pars,)]
+        return par_table
+
 
 class OopAngleGenerator(ValenceGenerator):
     nffatype = 4
