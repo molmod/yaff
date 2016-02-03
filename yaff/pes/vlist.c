@@ -101,11 +101,23 @@ double forward_mm3bend(vlist_row_type* term, iclist_row_type* ictab) {
   return 0.5*((*term).par0)*x2*(1-0.14*x+0.000056*x2-0.0000007*x2*x+0.000000022*x2*x2);
 }
 
-v_forward_type v_forward_fns[13] = {
+double forward_bonddoublewell(vlist_row_type* term, iclist_row_type* ictab) {
+  double K, temp;
+  double x, y;
+  temp = ((*term).par1-(*term).par2)*((*term).par1-(*term).par2);
+  temp *= temp;
+  K = (*term).par0/temp;
+  x = ictab[(*term).ic0].value - (*term).par1;
+  y = ictab[(*term).ic0].value - (*term).par2;
+  y *= y;
+  return 0.5*K*x*x*y*y;
+}
+
+v_forward_type v_forward_fns[14] = {
   forward_harmonic, forward_polyfour, forward_fues, forward_cross,
   forward_cosine, forward_chebychev1, forward_chebychev2, forward_chebychev3,
   forward_chebychev4, forward_chebychev6, forward_polysix,
-  forward_mm3quartic, forward_mm3bend
+  forward_mm3quartic, forward_mm3bend, forward_bonddoublewell
 };
 
 double vlist_forward(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
@@ -187,13 +199,28 @@ void back_mm3bend(vlist_row_type* term, iclist_row_type* ictab) {
   double q = (ictab[(*term).ic0].value - (*term).par1);
   double q2 = q*q;
   ictab[(*term).ic0].grad += ((*term).par0)*(q-0.21*q2+0.00012*q2*q-0.00000175*q2*q2+0.000000066*q2*q2*q);
+
+
 }
 
-v_back_type v_back_fns[13] = {
+void back_bonddoublewell(vlist_row_type* term, iclist_row_type* ictab) {
+  double K, temp;
+  double x, y, z;
+  temp = ((*term).par1-(*term).par2)*((*term).par1-(*term).par2);
+  temp *= temp;
+  K = (*term).par0/(temp);
+  x = ictab[(*term).ic0].value - (*term).par1;
+  y = ictab[(*term).ic0].value - (*term).par2;
+  y *= y;
+  z = ictab[(*term).ic0].value - (*term).par2;
+  ictab[(*term).ic0].grad += 0.5*K*(2*x*y*y+4*x*x*y*z);
+}
+
+v_back_type v_back_fns[14] = {
   back_harmonic, back_polyfour, back_fues, back_cross, back_cosine,
   back_chebychev1, back_chebychev2, back_chebychev3, back_chebychev4,
   back_chebychev6, back_polysix, back_mm3quartic,
-  back_mm3bend
+  back_mm3bend, back_bonddoublewell
 };
 
 void vlist_back(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
@@ -277,7 +304,6 @@ v_hessian_type v_hessian_fns[11] = {
   hessian_chebychev1, hessian_chebychev2, hessian_chebychev3, hessian_chebychev4,
   hessian_chebychev6, hessian_polysix
 };
-
 
 void vlist_hessian(iclist_row_type* ictab, vlist_row_type* vtab, long nv, long nic, double* hessian) {
   long i;

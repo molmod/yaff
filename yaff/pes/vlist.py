@@ -64,7 +64,7 @@ from yaff.pes.ext import vlist_forward, vlist_back
 __all__ = [
     'ValenceList', 'ValenceTerm', 'Harmonic', 'PolyFour', 'Fues', 'Cross',
     'Cosine', 'Chebychev1', 'Chebychev2', 'Chebychev3', 'Chebychev4',
-    'Chebychev6', 'PolySix', 'MM3Quartic', 'MM3Bend'
+    'Chebychev6', 'PolySix', 'MM3Quartic', 'MM3Bend', 'BondDoubleWell'
 ]
 
 
@@ -592,4 +592,29 @@ class MM3Bend(ValenceTerm):
             self.__class__.__name__,
             self.pars[0]/(log.energy.conversion/c**2),
             self.pars[1]/c
+        )
+
+class BondDoubleWell(ValenceTerm):
+    '''Sixth-order polynomial term: K/(2*(r1-r2)^4)*(r-r1)^2*(r-r2)^4'''
+    kind = 13
+    def __init__(self, K, r1, r2, ic):
+        '''
+            **Arguments:**
+
+            K
+                Force constant corresponding with V-O double bond
+            r1, r2
+                Two rest values for the V-O chain (r1, 'double bond', r2, 'weak bond')
+            ic
+                An "InternalCoordinate" object (here bond distance)
+        '''
+        ValenceTerm.__init__(self, [K,r1,r2], [ic])
+
+    def get_log(self):
+        c = self.ics[0].get_conversion()
+        return '%s(K=%.5e,R1=%.5e,R2=%.5e)' % (
+            self.__class__.name__,
+            self.pars[0]/(log.energy.conversion/c**2),
+            self.pars[1]/c,
+            self.pars[2]/c
         )

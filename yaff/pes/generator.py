@@ -45,14 +45,14 @@ from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
 from yaff.pes.vlist import Harmonic, PolyFour, Fues, Cross, Cosine, \
     Chebychev1, Chebychev2, Chebychev3, Chebychev4, Chebychev6, PolySix, \
-    MM3Quartic, MM3Bend
+    MM3Quartic, MM3Bend, BondDoubleWell
 
 
 __all__ = [
     'FFArgs', 'Generator',
 
-    'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator', 'DoubleWellGenerator',
-    'BondFuesGenerator', 'MM3QuarticGenerator',
+    'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator', 'BondDoubleWellGenerator',
+    'BondDoubleWell2Generator', 'BondFuesGenerator', 'MM3QuarticGenerator',
     'BendGenerator', 'BendAngleHarmGenerator', 'BendCosHarmGenerator', 'BendCosGenerator', 'MM3BendGenerator',
     'TorsionGenerator', 'TorsionCosHarmGenerator', 'TorsionCos2HarmGenerator',
     'UreyBradleyHarmGenerator', 'OopAngleGenerator', 'OopMeanAngleGenerator',
@@ -447,14 +447,30 @@ class BondFuesGenerator(BondGenerator):
     prefix = 'BONDFUES'
     VClass = Fues
 
+
 class MM3QuarticGenerator(BondGenerator):
     prefix = 'MM3QUART'
     VClass = MM3Quartic
 
 
-class DoubleWellGenerator(ValenceGenerator):
+class BondDoubleWellGenerator(ValenceGenerator):
+    par_info = [('K', float), ('R1', float), ('R2', float)]
     nffatype = 2
+    ICClass = Bond
     prefix = 'DOUBWELL'
+    VClass = BondDoubleWell
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        return system.iter_bonds()
+
+
+class BondDoubleWell2Generator(ValenceGenerator):
+    nffatype = 2
+    prefix = 'DOUBWELL2'
     ICClass = Bond
     VClass = PolySix
     par_info = [('K', float), ('R1', float), ('R2', float)]
