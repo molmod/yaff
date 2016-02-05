@@ -532,19 +532,13 @@ class BendCosHarmGenerator(BendGenerator):
     prefix = 'BENDCHARM'
     ICClass = BendCos
 
+
 class MM3BendGenerator(BendGenerator):
     nffatype = 3
     par_info = [('K', float), ('THETA0', float)]
     ICClass = BendAngle
     VClass = MM3Bend
     prefix = 'MM3BENDA'
-
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
-
-    def iter_indexes(self, system):
-        return system.iter_angles()
 
 
 class UreyBradleyHarmGenerator(BendGenerator):
@@ -553,7 +547,7 @@ class UreyBradleyHarmGenerator(BendGenerator):
     ICClass = UreyBradley
 
 
-class BendCosGenerator(ValenceGenerator):
+class BendCosGenerator(BendGenerator):
     par_info = [('M', int), ('A', float), ('PHI0', float)]
     prefix = 'BENDCOS'
     ICClass = BendAngle

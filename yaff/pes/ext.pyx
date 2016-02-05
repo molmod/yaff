@@ -54,8 +54,7 @@ __all__ = [
     'PairPotOlpSlater1s1s','PairPotChargeTransferSlater1s1s', 
     'compute_ewald_reci', 'compute_ewald_reci_dd',  'compute_ewald_corr_dd', 
     'compute_ewald_corr', 'dlist_forward', 'dlist_back', 'iclist_forward', 
-    'iclist_back', 'iclist_jacobian', 'iclist_hessian', 'vlist_forward', 
-    'vlist_back', 'vlist_hessian', 'compute_grid3d',
+    'iclist_back', 'vlist_forward', 'vlist_back', 'compute_grid3d',
 ]
 
 
