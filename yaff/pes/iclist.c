@@ -535,7 +535,7 @@ void back_oop_squaredist(iclist_row_type* ic, dlist_row_type* deltas, double val
   // Dot product of the crossproduct of first two vectors with the third vector
   n_dot_d2 = n[0]*(*delta2).dx + n[1]*(*delta2).dy + n[2]*(*delta2).dz;
   fac = 2*n_dot_d2/n_norm*grad/n_norm;
-  tmp0 = n_dot_d2/n_norm;
+  tmp0 = n_dot_d2/n_norm/n_norm;
 
   (*delta0).gx += fac*( d1_cross_d2[0] -  tmp0*( (*delta1).dy*n[2] - (*delta1).dz*n[1] ) );
   (*delta0).gy += fac*( d1_cross_d2[1] -  tmp0*( (*delta1).dz*n[0] - (*delta1).dx*n[2] ) );

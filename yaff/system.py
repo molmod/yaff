@@ -607,6 +607,17 @@ class System(object):
                         if i0==i3: continue
                         yield i0, i1, i2, i3
 
+    def iter_oops(self):
+        """Iterative over all possible oop patterns."
+
+           This routine is based on the attribute ``bonds``.
+        """
+        if self.bonds is not None:
+            for i3 in xrange(self.natom):
+                if len(self.neighs1[i3])==3:
+                    i0, i1, i2 = self.neighs1[i3]
+                    yield i0, i1, i2, i3
+
     def detect_bonds(self, exceptions=None):
         """Initialize the ``bonds`` attribute based on inter-atomic distances
 
