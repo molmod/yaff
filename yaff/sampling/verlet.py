@@ -69,7 +69,6 @@ class VerletIntegrator(Iterative):
         AttributeStateItem('cons_err'),
         AttributeStateItem('ptens'),
         AttributeStateItem('vtens'),
-        AttributeStateItem('vtens_parts'),
         AttributeStateItem('press'),
         DipoleStateItem(),
         DipoleVelStateItem(),
@@ -375,8 +374,6 @@ class VerletIntegrator(Iterative):
         for hook in self.hooks:
             if isinstance(hook, VerletHook):
                 self.econs += hook.econs_correction
-        self.gpos_parts = self.ff.gpos_parts
-        self.vtens_parts = self.ff.vtens_parts
         if restart_h5 is not None:
             self.econs = restart_h5['trajectory/econs'][-1]
         else:

@@ -47,13 +47,13 @@ from yaff.log import log
 __all__ = [
     'Cell', 'nlist_status_init', 'nlist_build', 'nlist_status_finish',
     'nlist_recompute', 'nlist_inc_r', 'Hammer', 'Switch3', 'PairPot',
-    'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep', 
-    'PairPotQMDFFRep', 'PairPotLJCross', 'PairPotDampDisp', 
-    'PairPotDisp68BJDamp', 'PairPotEI', 'PairPotEIDip', 
-    'PairPotEiSlater1s1sCorr', 'PairPotEiSlater1sp1spCorr', 
-    'PairPotOlpSlater1s1s','PairPotChargeTransferSlater1s1s', 
-    'compute_ewald_reci', 'compute_ewald_reci_dd',  'compute_ewald_corr_dd', 
-    'compute_ewald_corr', 'dlist_forward', 'dlist_back', 'iclist_forward', 
+    'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep',
+    'PairPotQMDFFRep', 'PairPotLJCross', 'PairPotDampDisp',
+    'PairPotDisp68BJDamp', 'PairPotEI', 'PairPotEIDip',
+    'PairPotEiSlater1s1sCorr', 'PairPotEiSlater1sp1spCorr',
+    'PairPotOlpSlater1s1s','PairPotChargeTransferSlater1s1s',
+    'compute_ewald_reci', 'compute_ewald_reci_dd',  'compute_ewald_corr_dd',
+    'compute_ewald_corr', 'dlist_forward', 'dlist_back', 'iclist_forward',
     'iclist_back', 'vlist_forward', 'vlist_back', 'compute_grid3d',
 ]
 
@@ -1606,7 +1606,7 @@ cdef class PairPotDisp68BJDamp(PairPot):
         return pair_pot.pair_data_disp68bjdamp_get_bj_b(self._c_pair_pot)
 
     bj_b = property(_get_bj_b)
-    
+
     def _get_global_pars(self):
         '''Global parameters'''
         return [self.c6_scale,self.c8_scale,self.bj_a,self.bj_b]

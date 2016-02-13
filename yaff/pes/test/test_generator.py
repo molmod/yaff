@@ -515,7 +515,7 @@ def test_generator_water32_d3bj():
     c8HH = 5.74321564987e+00
     c8HO = 5.01673173654e+00
     c8OO = 3.13071058512e+00
-    
+
     c6_cross = d3bj.pair_pot.c6_cross
     assert c6_cross.shape == (2,2)
     assert abs(c6_cross[0,0] - c6HH) < 1e-10
@@ -536,7 +536,7 @@ def test_generator_water32_d3bj():
     assert abs(gps[1] - 2.0) < 1e-10
     assert abs(gps[2] - 3.0) < 1e-10
     assert abs(gps[3] - 4.0) < 1e-10
-    
+
     R_cross = d3bj.pair_pot.R_cross
     assert R_cross.shape == (2,2)
     assert abs(R_cross[0,0] - np.sqrt(c8HH/c6HH)) < 1e-10
@@ -552,7 +552,7 @@ def test_generator_water32_qmdffrep():
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     qmdffrep = ff.part_pair_qmdffrep
-    # check parameters  
+    # check parameters
     A_cross = qmdffrep.pair_pot.amp_cross
     assert A_cross.shape == (2,2)
     print A_cross
@@ -567,8 +567,8 @@ def test_generator_water32_qmdffrep():
     assert abs(B_cross[0,1] - 5.00924416592e+00) < 1e-10
     assert abs(B_cross[1,0] - 5.00924416592e+00) < 1e-10
     assert abs(B_cross[1,1] - 6.34212100945e+00) < 1e-10
-    
-    # check scalings  
+
+    # check scalings
     scalings = qmdffrep.scalings
     assert abs(scalings.scale1 - 0.0) < 1e-10
     assert abs(scalings.scale2 - 0.0) < 1e-10

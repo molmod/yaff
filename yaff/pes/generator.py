@@ -491,7 +491,7 @@ class BondDoubleWell2Generator(ValenceGenerator):
         '''
         tmp = Generator.process_pars(self, pardef, conversions, nffatype, par_info=par_info)
         par_table = {}
-        
+
         for key, oldpars in tmp.iteritems():
             K = oldpars[0][0]
             r0 = oldpars[0][1]
