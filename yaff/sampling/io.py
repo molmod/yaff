@@ -136,7 +136,7 @@ class XYZWriter(Hook):
                 symbols = [periodic[numbers[i]].symbol for i in self.select]
             self.xyz_writer = XYZWriter(self.fn_xyz, symbols)
         rvecs = iterative.ff.system.cell.rvecs.copy()
-        rvecs_string = " ".join([str(x[0]) for x in rvecs.reshape((-1,1))])
+        rvecs_string = " ".join([str(x[0]/angstrom) for x in rvecs.reshape((-1,1))])
         title = '%7i E_pot = %.10f    %s' % (iterative.counter, iterative.epot, rvecs_string)
         if self.select is None:
             pos = iterative.ff.system.pos
