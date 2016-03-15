@@ -64,7 +64,7 @@ def find_all_data_files(dn):
 
 setup(
     name='yaff',
-    version='1.0',
+    version='1.0.develop.2.13',
     description='YAFF is yet another force-field code.',
     author='Toon Verstraelen',
     author_email='Toon.Verstraelen@UGent.be',

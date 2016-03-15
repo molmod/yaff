@@ -1025,7 +1025,7 @@ def get_part_4113_01WaterWater_disp68bjdamp():
     #system = system.subsystem([2,3])
     #print system.radii
     nlist = NeighborList(system)
-    scalings = Scalings(system, 0.0, 0.0, 1.0)
+    scalings = Scalings(system, 0.0, 0.0, 1.0, 1.0)
     rcut = 20*angstrom
     # Define some parameters for the dispersion
     c6_cross = np.array([[  0.        ,   4.19523224,   4.28064173,  23.14022933,   4.20534285,    4.2056618 ],
@@ -1049,7 +1049,7 @@ def get_part_4113_01WaterWater_disp68bjdamp():
     pair_pot = PairPotDisp68BJDamp(system.ffatype_ids, c6_cross, c8_cross, R_cross, rcut, c8_scale=c8_scale,bj_a=bj_a,bj_b=bj_b)
     part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
     def pair_fn(i, j, R, alpha, beta):
-        if c6_cross[i,j] != 0.0: R0 = np.sqrt(c8_scale*c8_cross[i,j]/c6_cross[i,j])
+        if c6_cross[i,j] != 0.0: R0 = np.sqrt(c8_cross[i,j]/c6_cross[i,j])
         else: R0 = 0.0
         E = -c6_cross[i,j]/(R**6+(bj_a*R0+bj_b)**6) - c8_scale*c8_cross[i,j]/(R**8+(bj_a*R0+bj_b)**8)
         return E
