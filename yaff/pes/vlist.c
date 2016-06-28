@@ -205,7 +205,7 @@ void back_mm3quartic(vlist_row_type* term, iclist_row_type* ictab) {
 void back_mm3bend(vlist_row_type* term, iclist_row_type* ictab) {
   double q = (ictab[(*term).ic0].value - (*term).par1);
   double q2 = q*q;
-  ictab[(*term).ic0].grad += ((*term).par0)*(q-0.21*q2+0.00012*q2*q-0.00000175*q2*q2+0.000000066*q2*q2*q);
+  ictab[(*term).ic0].grad += ((*term).par0)*(q-0.21*q2+0.000112*q2*q-0.00000175*q2*q2+0.000000066*q2*q2*q);
 
 
 }
