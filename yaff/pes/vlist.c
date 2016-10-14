@@ -113,11 +113,18 @@ double forward_bonddoublewell(vlist_row_type* term, iclist_row_type* ictab) {
   return 0.5*K*x*x*y*y;
 }
 
-v_forward_type v_forward_fns[14] = {
+double forward_morse(vlist_row_type* term, iclist_row_type* ictab) {
+  double a;
+  a = (*term).par1*(ictab[(*term).ic0].value-(*term).par2);
+  return (*term).par0*(exp(-2.0*a)-2.0*exp(-a));
+}
+
+v_forward_type v_forward_fns[15] = {
   forward_harmonic, forward_polyfour, forward_fues, forward_cross,
   forward_cosine, forward_chebychev1, forward_chebychev2, forward_chebychev3,
   forward_chebychev4, forward_chebychev6, forward_polysix,
-  forward_mm3quartic, forward_mm3bend, forward_bonddoublewell
+  forward_mm3quartic, forward_mm3bend, forward_bonddoublewell,
+  forward_morse,
 };
 
 double vlist_forward(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
@@ -216,11 +223,17 @@ void back_bonddoublewell(vlist_row_type* term, iclist_row_type* ictab) {
   ictab[(*term).ic0].grad += 0.5*K*(2*x*y*y+4*x*x*y*z);
 }
 
-v_back_type v_back_fns[14] = {
+void back_morse(vlist_row_type* term, iclist_row_type* ictab) {
+  double a;
+  a = (*term).par1*(ictab[(*term).ic0].value-(*term).par2);
+  ictab[(*term).ic0].grad += -2.0*(*term).par1*(*term).par0*(exp(-2.0*a)-exp(-a));
+}
+
+v_back_type v_back_fns[15] = {
   back_harmonic, back_polyfour, back_fues, back_cross, back_cosine,
   back_chebychev1, back_chebychev2, back_chebychev3, back_chebychev4,
   back_chebychev6, back_polysix, back_mm3quartic,
-  back_mm3bend, back_bonddoublewell
+  back_mm3bend, back_bonddoublewell, back_morse
 };
 
 void vlist_back(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
@@ -299,10 +312,23 @@ void hessian_polysix(vlist_row_type* term, iclist_row_type* ictab, long nic, dou
   hessian[index] += 2.0*(*term).par1 + 6.0*(*term).par2*q + 12.0*(*term).par3*q*q + 20.0*(*term).par4*q*q*q + 30.0*(*term).par5*q*q*q*q;
 }
 
-v_hessian_type v_hessian_fns[11] = {
+void hessian_morse(vlist_row_type* term, iclist_row_type* ictab, long nic, double* hessian) {
+  long index = (*term).ic0*(nic+1);
+  double a;
+  a = (*term).par1*(ictab[(*term).ic0].value-(*term).par2);
+  hessian[index] += 2.0*(*term).par1*(*term).par0*(*term).par0*(2.0*exp(-2.0*a)-exp(-a));
+}
+
+void hessian_nan(vlist_row_type* term, iclist_row_type* ictab, long nic, double* hessian) {
+  // Stub function for when people code new terms without implementing the hessian!
+  long index = (*term).ic0*(nic+1);
+  hessian[index] += NAN;
+}
+
+v_hessian_type v_hessian_fns[15] = {
   hessian_harmonic, hessian_polyfour, hessian_fues, hessian_cross, hessian_cosine,
   hessian_chebychev1, hessian_chebychev2, hessian_chebychev3, hessian_chebychev4,
-  hessian_chebychev6, hessian_polysix
+  hessian_chebychev6, hessian_polysix, hessian_nan, hessian_nan, hessian_nan, hessian_morse
 };
 
 void vlist_hessian(iclist_row_type* ictab, vlist_row_type* vtab, long nv, long nic, double* hessian) {

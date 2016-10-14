@@ -64,7 +64,8 @@ from yaff.pes.ext import vlist_forward, vlist_back
 __all__ = [
     'ValenceList', 'ValenceTerm', 'Harmonic', 'PolyFour', 'Fues', 'Cross',
     'Cosine', 'Chebychev1', 'Chebychev2', 'Chebychev3', 'Chebychev4',
-    'Chebychev6', 'PolySix', 'MM3Quartic', 'MM3Bend', 'BondDoubleWell'
+    'Chebychev6', 'PolySix', 'MM3Quartic', 'MM3Bend', 'BondDoubleWell',
+    'Morse',
 ]
 
 
@@ -617,4 +618,31 @@ class BondDoubleWell(ValenceTerm):
             self.pars[0]/(log.energy.conversion/c**2),
             self.pars[1]/c,
             self.pars[2]/c
+        )
+
+class Morse(ValenceTerm):
+    ''' The morse potential: E0*( exp(-2*k*(r-r1)) - 2*exp(-k*(r-r1)) )'''
+    kind = 14
+    def __init__(self, E0, k, r1, ic):
+        '''
+            **Arguments:**
+
+            E0
+                The well depth
+            k
+                The well width
+            r1
+                The rest value
+            ic
+                An "InternalCoordinate" object, typically a distance
+        '''
+        ValenceTerm.__init__(self, [E0,k,r1], [ic])
+
+    def get_log(self):
+        c = self.ics[0].get_conversion()
+        return '%s(E0=%.5e,k=%.5e,r1=%.5e)' %  (
+            self.__class__.__name__,
+            self.pars[0]/(log.energy.conversion),
+            self.pars[1]*c,
+            self.pars[2]/c,
         )

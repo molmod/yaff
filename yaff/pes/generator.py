@@ -45,7 +45,7 @@ from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
 from yaff.pes.vlist import Harmonic, PolyFour, Fues, Cross, Cosine, \
     Chebychev1, Chebychev2, Chebychev3, Chebychev4, Chebychev6, PolySix, \
-    MM3Quartic, MM3Bend, BondDoubleWell
+    MM3Quartic, MM3Bend, BondDoubleWell, Morse
 
 
 __all__ = [
@@ -56,7 +56,7 @@ __all__ = [
     'BendGenerator', 'BendAngleHarmGenerator', 'BendCosHarmGenerator', 'BendCosGenerator', 'MM3BendGenerator',
     'TorsionGenerator', 'TorsionCosHarmGenerator', 'TorsionCos2HarmGenerator',
     'UreyBradleyHarmGenerator', 'OopAngleGenerator', 'OopMeanAngleGenerator',
-    'OopCosGenerator', 'OopMeanCosGenerator', 'OopDistGenerator',
+    'OopCosGenerator', 'OopMeanCosGenerator', 'OopDistGenerator', 'BondMorseGenerator',
 
     'ValenceCrossGenerator', 'CrossGenerator',
 
@@ -459,6 +459,21 @@ class BondDoubleWellGenerator(ValenceGenerator):
     ICClass = Bond
     prefix = 'DOUBWELL'
     VClass = BondDoubleWell
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        return system.iter_bonds()
+
+
+class BondMorseGenerator(ValenceGenerator):
+    prefix = 'BONDMORSE'
+    par_info = [('E0', float), ('K', float), ('R0', float)]
+    nffatype = 2
+    ICClass = Bond
+    VClass = Morse
 
     def iter_alt_keys(self, key):
         yield key
