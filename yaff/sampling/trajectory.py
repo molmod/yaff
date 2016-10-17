@@ -112,6 +112,7 @@ class RefTrajectory(Iterative):
         return self.counter==self.nframes
 
     def finalize(self):
+        Iterative.finalize(self)
         self.traj.close()
         if log.do_medium:
             log.hline()

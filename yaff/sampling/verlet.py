@@ -384,6 +384,7 @@ class VerletIntegrator(Iterative):
             self.press = np.trace(self.ptens)/3
 
     def finalize(self):
+        Iterative.finalize(self)
         if log.do_medium:
             log.hline()
 
@@ -475,7 +476,7 @@ class ConsErrTracker(object):
             self.econs_sumsq = 0.0
         else:
             tgrp = restart_h5['trajectory']
-            self.counter = tgrp['econs_counter'][-1]
+            self.counter = tgrp['counter'][-1]+1
             self.ekin_sum = tgrp['ekin_sum'][-1]
             self.ekin_sumsq = tgrp['ekin_sumsq'][-1]
             self.econs_sum = tgrp['econs_sum'][-1]

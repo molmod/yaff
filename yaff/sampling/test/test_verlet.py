@@ -127,6 +127,40 @@ def test_hdf5_simple():
         f.close()
 
 
+def test_hdf5_restart():
+    # Basic test for RestartWriter; original coder of that Class should write
+    # unit tests! Yes, Sven Rogge that will be you!
+    f0 = h5.File('yaff.sampling.test.test_verlet.test_hdf5_restart0.h5', driver='core', backing_store=False)
+    f1 = h5.File('yaff.sampling.test.test_verlet.test_hdf5_restart1.h5', driver='core', backing_store=False)
+    f2 = h5.File('yaff.sampling.test.test_verlet.test_hdf5_restart2.h5', driver='core', backing_store=False)
+    np.random.seed(3)
+    try:
+        hdf5 = HDF5Writer(f0)
+        # Write a checkpoint every three steps
+        restart = RestartWriter(f1, step=3)
+        # Run reference simulation for 5 steps
+        nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[hdf5,restart])
+        nve.run(5)
+        # Run restart simulation for 2 additional steps, starting from restart after three steps
+        hdf5_restart = HDF5Writer(f2)
+        nver = VerletIntegrator(get_ff_water32(), restart_h5=f1, hooks=[hdf5_restart])
+        nver.run(2)
+        # Check that resumed simulation gives same results as original
+        assert nve.counter == 5
+        assert nver.counter == 5
+        print f2['trajectory/econs'][:]
+        print f0['trajectory/econs'][:]
+        print f0['trajectory'].keys()
+        nsteps = f2['trajectory/counter'][:].shape[0]
+        for item in 'counter','pos','epot','econs':
+            assert np.all( f0['trajectory/%s'%item][-nsteps:]==f2['trajectory/%s'%item][:] )
+        assert False
+    finally:
+        f0.close()
+        f1.close()
+        f2.close()
+
+
 def test_xyz():
     xyz = XYZWriter('/dev/null')
     nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[xyz])
