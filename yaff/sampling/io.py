@@ -23,6 +23,7 @@
 #--
 '''Trajectory writers'''
 
+import numpy as np
 
 from yaff.sampling.iterative import Hook, AttributeStateItem, PosStateItem, CellStateItem, ConsErrStateItem
 from yaff.sampling.nvt import NHCThermostat, NHCAttributeStateItem
@@ -33,7 +34,7 @@ __all__ = ['HDF5Writer', 'XYZWriter', 'RestartWriter']
 
 
 class HDF5Writer(Hook):
-    def __init__(self, f, start=0, step=1, flush=None):
+    def __init__(self, f, start=0, step=1, bufsize=1000):
         """
            **Argument:**
 
@@ -48,14 +49,14 @@ class HDF5Writer(Hook):
            step
                 The hook will be called every `step` iterations.
 
-            flush
-                Flush the h5.File object every `flush` iterations so it can be
-                read up to the latest flush. This is useful to avoid data loss
-                for long calculations or to monitor running calculations.
-                Note that flushing too often might impact performance of hdf5.
+           bufsize
+                Data is stored in a buffer until 'bufsize' rows are written. At
+                that point the buffer is dumped to the HDF5 file.
         """
         self.f = f
-        self.flush = flush
+        self.bufsize = bufsize
+        self.buffer = None
+        self.state = {}
         Hook.__init__(self, start, step)
 
     def __call__(self, iterative):
@@ -63,40 +64,163 @@ class HDF5Writer(Hook):
             self.dump_system(iterative.ff.system)
         if 'trajectory' not in self.f:
             self.init_trajectory(iterative)
-        tgrp = self.f['trajectory']
-        # determine the row to write the current iteration to. If a previous
-        # iterations was not completely written, then the last row is reused.
-        row = min(tgrp[key].shape[0] for key in iterative.state if key in tgrp.keys())
-        for key, item in iterative.state.iteritems():
+        if self.buffer is None:
+            self.init_buffer(iterative)
+        for key, item in dict(iterative.state.iteritems(), **self.state).iteritems():
             if item.value is None:
                 continue
             if len(item.shape) > 0 and min(item.shape) == 0:
                 continue
             if item.dtype is type(None):
                 continue
-            ds = tgrp[key]
-            if ds.shape[0] <= row:
-                # do not over-allocate. hdf5 works with chunks internally.
-                ds.resize(row+1, axis=0)
-            ds[row] = item.value
-        if self.flush is not None:
-            if row%self.flush == 0: self.f.flush()
+            self.buffer[key][self.row] = item.value
+        self.row += 1
+        if self.row%self.bufsize==0: self.dump_buffer(self.bufsize)
 
     def dump_system(self, system):
         system.to_hdf5(self.f)
 
     def init_trajectory(self, iterative):
         tgrp = self.f.create_group('trajectory')
-        for key, item in iterative.state.iteritems():
+        for key, item in dict(iterative.state.iteritems(), **self.state).iteritems():
             if len(item.shape) > 0 and min(item.shape) == 0:
                 continue
             if item.dtype is type(None):
                 continue
-            maxshape = (None,) + item.shape
             shape = (0,) + item.shape
+            maxshape = (None,) + item.shape
             dset = tgrp.create_dataset(key, shape, maxshape=maxshape, dtype=item.dtype)
             for name, value in item.iter_attrs(iterative):
                tgrp.attrs[name] = value
+
+    def dump_buffer(self, nrows):
+        tgrp = self.f['trajectory']
+        # determine the row to write the current iteration to. If a previous
+        # iterations was not completely written, then the last row is reused.
+        row = min(tgrp[key].shape[0] for key in self.buffer.keys())
+        for key, item in self.buffer.iteritems():
+            if len(item.shape) > 0 and min(item.shape) == 0:
+                continue
+            if item.dtype is type(None):
+                continue
+            ds = tgrp[key]
+            ds.resize(row+nrows, axis=0)
+            ds[row:] = self.buffer[key][:nrows]
+            # Reset buffer
+            self.buffer[key][:] = 0.0
+        self.f.flush()
+        self.row = 0
+
+    def init_buffer(self, iterative):
+        self.buffer = {}
+        self.row = 0
+        for key, item in dict(iterative.state.iteritems(), **self.state).iteritems():
+            if len(item.shape) > 0 and min(item.shape) == 0:
+                continue
+            if item.dtype is type(None):
+                continue
+            shape = (self.bufsize,) + item.shape
+            self.buffer[key] = np.zeros(shape, dtype=item.dtype)
+
+    def finalize(self):
+        # Dump what is left in the buffer to file, if ther is anything:
+        if self.buffer is not None:
+            self.dump_buffer(self.row)
+
+
+class RestartWriter(HDF5Writer):
+    def __init__(self, f, start=0, step=1000, bufsize=1):
+        """
+            **Argument:**
+
+            f
+                A h5.File object to write the restart information to.
+
+            **Optional arguments:**
+
+           start
+                The first iteration at which this hook should be called.
+
+           step
+                The hook will be called every `step` iterations.
+
+           bufsize
+                Data is stored in a buffer until 'bufsize' rows are written. At
+                that point the buffer is dumped to the HDF5 file.
+        """
+        self.state = None
+        self.default_state = None
+        HDF5Writer.__init__(self, f, start, step, bufsize)
+
+    def init_state(self, iterative):
+        # Basic properties needed for the restart
+        self.default_state = [
+            AttributeStateItem('counter'),
+            AttributeStateItem('time'),
+            PosStateItem(),
+            AttributeStateItem('vel'),
+            CellStateItem(),
+            AttributeStateItem('econs'),
+            ConsErrStateItem('ekin_sum'),
+            ConsErrStateItem('ekin_sumsq'),
+            ConsErrStateItem('econs_sum'),
+            ConsErrStateItem('econs_sumsq')
+        ]
+
+        # Dump the timestep
+        rgrp = self.f.create_group('restart')
+        rgrp.create_dataset('timestep', data = iterative.timestep)
+
+        # Verify whether there are any deterministic thermostats / barostats, and add them if present
+        thermo = None
+        baro = None
+
+        for hook in iterative.hooks:
+            if hook.kind == 'deterministic':
+                if hook.method == 'thermostat': thermo = hook
+                elif hook.method == 'barostat': baro = hook
+            elif hook.name == 'TBCombination':
+                if hook.thermostat.kind == 'deterministic': thermo = hook.thermostat
+                if hook.barostat.kind == 'deterministic': baro = hook.barostat
+
+        if thermo is not None:
+            self.dump_restart(thermo)
+            if thermo.name == 'NHC':
+                self.default_state.append(NHCAttributeStateItem('pos'))
+                self.default_state.append(NHCAttributeStateItem('vel'))
+        if baro is not None:
+            self.dump_restart(baro)
+            if baro.name == 'MTTK':
+                self.default_state.append(MTKAttributeStateItem('vel_press'))
+                if baro.baro_thermo is not None:
+                    self.default_state.append(MTKAttributeStateItem('chain_pos'))
+                    self.default_state.append(MTKAttributeStateItem('chain_vel'))
+
+        # Finalize the restart state items
+        self.state_list = [state_item.copy() for state_item in self.default_state]
+        self.state = dict((item.key, item) for item in self.state_list)
+
+    def dump_restart(self, hook):
+        rgrp = self.f['/restart']
+        if hook.method == 'thermostat':
+            # Dump the thermostat properties
+            rgrp.create_dataset('thermo_name', data = hook.name)
+            rgrp.create_dataset('thermo_temp', data = hook.temp)
+            rgrp.create_dataset('thermo_timecon', data = hook.chain.timecon)
+        elif hook.method == 'barostat':
+            # Dump the barostat properties
+            rgrp.create_dataset('baro_name', data = hook.name)
+            rgrp.create_dataset('baro_timecon', data = hook.timecon_press)
+            rgrp.create_dataset('baro_temp', data = hook.temp)
+            rgrp.create_dataset('baro_press', data = hook.press)
+            rgrp.create_dataset('baro_anisotropic', data = hook.anisotropic)
+            rgrp.create_dataset('vol_constraint', data = hook.vol_constraint)
+            if hook.name == 'Berendsen':
+                rgrp.create_dataset('beta', data = hook.beta)
+            if hook.name == 'MTTK' and hook.baro_thermo is not None:
+                # Dump the barostat thermostat properties
+                rgrp.create_dataset('baro_chain_temp', data = hook.baro_thermo.temp)
+                rgrp.create_dataset('baro_chain_timecon', data = hook.baro_thermo.chain.timecon)
 
 
 class XYZWriter(Hook):
@@ -143,144 +267,3 @@ class XYZWriter(Hook):
         else:
             pos = iterative.ff.system.pos[self.select]
         self.xyz_writer.dump(title, pos)
-
-
-class RestartWriter(Hook):
-    def __init__(self, f, start=0, step=1000, flush=None):
-        """
-            **Argument:**
-
-            f
-                A h5.File object to write the restart information to.
-
-            **Optional arguments:**
-
-            start
-                The first iteration at which this hook should be called.
-
-            step
-                The hook will be called every `step` iterations.
-
-            flush
-                Flush the h5.File object every `flush` iterations so it can be
-                read up to the latest flush. This is useful to avoid data loss
-                for long calculations or to monitor running calculations.
-                Note that flushing too often might impact performance of hdf5.
-        """
-        self.f = f
-        self.flush = flush
-        self.state = None
-        self.default_state = None
-        Hook.__init__(self, start, step)
-
-    def init_state(self, iterative):
-        # Basic properties needed for the restart
-        self.default_state = [
-            AttributeStateItem('counter'),
-            AttributeStateItem('time'),
-            PosStateItem(),
-            AttributeStateItem('vel'),
-            CellStateItem(),
-            AttributeStateItem('econs'),
-            ConsErrStateItem('econs_counter'),
-            ConsErrStateItem('ekin_sum'),
-            ConsErrStateItem('ekin_sumsq'),
-            ConsErrStateItem('econs_sum'),
-            ConsErrStateItem('econs_sumsq')
-        ]
-
-        # Dump the timestep
-        rgrp = self.f.create_group('restart')
-        rgrp.create_dataset('timestep', data = iterative.timestep)
-
-        # Verify whether there are any deterministic thermostats / barostats, and add them if present
-        thermo = None
-        baro = None
-
-        for hook in iterative.hooks:
-            if hook.kind == 'deterministic':
-                if hook.method == 'thermostat': thermo = hook
-                elif hook.method == 'barostat': baro = hook
-            elif hook.name == 'TBCombination':
-                if hook.thermostat.kind == 'deterministic': thermo = hook.thermostat
-                if hook.barostat.kind == 'deterministic': baro = hook.barostat
-
-        if thermo is not None:
-            self.dump_restart(thermo)
-            if thermo.name == 'NHC':
-                self.default_state.append(NHCAttributeStateItem('pos'))
-                self.default_state.append(NHCAttributeStateItem('vel'))
-        if baro is not None:
-            self.dump_restart(baro)
-            if baro.name == 'MTTK':
-                self.default_state.append(MTKAttributeStateItem('vel_press'))
-                if baro.baro_thermo is not None:
-                    self.default_state.append(MTKAttributeStateItem('chain_pos'))
-                    self.default_state.append(MTKAttributeStateItem('chain_vel'))
-
-        # Finalize the restart state items
-        self.state_list = [state_item.copy() for state_item in self.default_state]
-        self.state = dict((item.key, item) for item in self.state_list)
-
-
-    def __call__(self, iterative):
-        if 'system' not in self.f:
-            self.dump_system(iterative.ff.system)
-        if 'trajectory' not in self.f:
-            self.init_trajectory(iterative)
-        tgrp = self.f['trajectory']
-        # determine the row to write the current iteration to. If a previous
-        # iterations was not completely written, then the last row is reused.
-        row = min(tgrp[key].shape[0] for key in self.state if key in tgrp.keys())
-        for key, item in self.state.iteritems():
-            if item.value is None:
-                continue
-            if len(item.shape) > 0 and min(item.shape) == 0:
-                continue
-            if item.dtype is type(None):
-                continue
-            ds = tgrp[key]
-            if ds.shape[0] <= row:
-                # do not over-allocate. hdf5 works with chunks internally.
-                ds.resize(row+1, axis=0)
-            ds[row] = item.value
-        if self.flush is not None:
-            if row%self.flush == 0: self.f.flush()
-
-    def dump_system(self, system):
-        system.to_hdf5(self.f)
-
-    def init_trajectory(self, iterative):
-        tgrp = self.f.create_group('trajectory')
-        for key, item in self.state.iteritems():
-            if len(item.shape) > 0 and min(item.shape) == 0:
-                continue
-            if item.dtype is type(None):
-                continue
-            maxshape = (None,) + item.shape
-            shape = (0,) + item.shape
-            dset = tgrp.create_dataset(key, shape, maxshape=maxshape, dtype=item.dtype)
-            for name, value in item.iter_attrs(iterative):
-               tgrp.attrs[name] = value
-
-    def dump_restart(self, hook):
-        rgrp = self.f['/restart']
-        if hook.method == 'thermostat':
-            # Dump the thermostat properties
-            rgrp.create_dataset('thermo_name', data = hook.name)
-            rgrp.create_dataset('thermo_temp', data = hook.temp)
-            rgrp.create_dataset('thermo_timecon', data = hook.chain.timecon)
-        elif hook.method == 'barostat':
-            # Dump the barostat properties
-            rgrp.create_dataset('baro_name', data = hook.name)
-            rgrp.create_dataset('baro_timecon', data = hook.timecon_press)
-            rgrp.create_dataset('baro_temp', data = hook.temp)
-            rgrp.create_dataset('baro_press', data = hook.press)
-            rgrp.create_dataset('baro_anisotropic', data = hook.anisotropic)
-            rgrp.create_dataset('vol_constraint', data = hook.vol_constraint)
-            if hook.name == 'Berendsen':
-                rgrp.create_dataset('beta', data = hook.beta)
-            if hook.name == 'MTTK' and hook.baro_thermo is not None:
-                # Dump the barostat thermostat properties
-                rgrp.create_dataset('baro_chain_temp', data = hook.baro_thermo.temp)
-                rgrp.create_dataset('baro_chain_timecon', data = hook.baro_thermo.chain.timecon)

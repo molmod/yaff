@@ -131,8 +131,9 @@ class Iterative(object):
         self.counter += 1
         self.call_hooks()
 
-    def finalize():
-        raise NotImplementedError
+    def finalize(self):
+        # Finalize the hooks
+        for hook in self.hooks: hook.finalize()
 
 
 class StateItem(object):
@@ -396,3 +397,7 @@ class Hook(object):
 
     def __call__(self, iterative):
         raise NotImplementedError
+
+    def finalize(self):
+        # In many cases there is nothing to finalize
+        pass

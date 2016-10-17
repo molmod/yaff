@@ -135,6 +135,7 @@ class BaseOptimizer(Iterative):
         return self.dof.converged
 
     def finalize(self):
+        Iterative.finalize(self)
         if log.do_medium:
             self.dof.log()
             log.hline()
