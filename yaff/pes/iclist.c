@@ -172,7 +172,7 @@ double forward_oop_distance(iclist_row_type* ic, dlist_row_type* deltas) {
   if (n_norm == 0) return 0.0;
   n_dot_d2 = n[0]*delta2[0] + n[1]*delta2[1] + n[2]*delta2[2];
   // Distance from point to plane spanned by first and second vector
-  return n_dot_d2/n_norm;
+  return n_dot_d2/n_norm*(*ic).sign0*(*ic).sign1*(*ic).sign2;
 }
 
 double forward_oop_squaredist(iclist_row_type* ic, dlist_row_type* deltas) {
@@ -494,7 +494,7 @@ void back_oop_distance(iclist_row_type* ic, dlist_row_type* deltas, double value
   //if (n_norm == 0) ???;
   // Dot product of the crossproduct of first two vectors with the third vector
   n_dot_d2 = n[0]*(*delta2).dx + n[1]*(*delta2).dy + n[2]*(*delta2).dz;
-  fac = grad/n_norm;
+  fac = grad/n_norm*(*ic).sign0*(*ic).sign1*(*ic).sign2;
   tmp0 = n_dot_d2/n_norm/n_norm;
 
   (*delta0).gx += fac*( d1_cross_d2[0] -  tmp0*( (*delta1).dy*n[2] - (*delta1).dz*n[1] ) );

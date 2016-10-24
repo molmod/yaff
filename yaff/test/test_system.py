@@ -27,7 +27,9 @@ import tempfile, shutil, numpy as np, h5py as h5
 
 from yaff import System, Cell, angstrom
 
-from common import get_system_water32, get_system_glycine, get_system_quartz, get_system_cyclopropene, get_system_peroxide
+from common import get_system_water32, get_system_glycine, get_system_quartz, \
+    get_system_cyclopropene, get_system_peroxide, get_system_graphene8, \
+    get_system_polyethylene4
 
 
 def compare_water32(system0, system1, eps=0, xyz=False):
@@ -258,6 +260,29 @@ def test_supercell_quartz_222():
     assert issubclass(system222.bonds.dtype.type, int)
 
 
+def test_supercell_graphene_22():
+    system11 = get_system_graphene8()
+    system22 = system11.supercell(2, 2)
+    assert abs(system22.cell.volume - system11.cell.volume*4) < 1e-10
+    assert abs(system22.cell.rvecs - system11.cell.rvecs*2).max() < 1e-10
+    assert system22.natom == system11.natom*4
+    assert system22.nbond == system11.nbond*4
+    assert abs(system22.pos[8:16] - system11.pos - system11.cell.rvecs[1]).max() < 1e-10
+    assert abs(system22.pos[-8:] - system11.pos - system11.cell.rvecs.sum(axis=0)).max() < 1e-10
+    assert issubclass(system22.bonds.dtype.type, int)
+
+
+def test_supercell_polyethylene_2():
+    system1 = get_system_polyethylene4()
+    system2 = system1.supercell(2)
+    assert abs(system2.cell.volume - system1.cell.volume*2) < 1e-10
+    assert abs(system2.cell.rvecs - system1.cell.rvecs*2).max() < 1e-10
+    assert system2.natom == system1.natom*2
+    assert system2.nbond == system1.nbond*2
+    assert abs(system2.pos[12:24] - system1.pos - system1.cell.rvecs[0]).max() < 1e-10
+    assert issubclass(system2.bonds.dtype.type, int)
+
+
 def test_supercell_mil53_121():
     system111 = get_system_quartz()
     system121 = system111.supercell(1, 2, 1)
@@ -298,9 +323,9 @@ def test_supercell_charges():
         radii=np.array([0.0,2.0]),
         rvecs=np.identity(3)*cellpar,
     )
-    sys333 = sys111.supercell(3,3,3)
-    assert np.all(sys333.charges==np.repeat(np.array([0.1,1.0]),9))==0.0
-    assert np.all(sys333.radii==np.repeat(np.array([0.0,2.0]),9))==0.0
+    sys333 = sys111.supercell(3, 3, 3)
+    assert (sys333.charges == np.tile(np.array([0.1,1.0]), 27)).all()
+    assert (sys333.radii == np.tile(np.array([0.0,2.0]), 27)).all()
 
 
 def test_supercell_dipoles():
@@ -314,8 +339,8 @@ def test_supercell_dipoles():
         rvecs=np.identity(3)*cellpar,
     )
     sys333 = sys111.supercell(3,3,3)
-    assert np.all(sys333.charges==np.tile(np.array([[0.1,1.0,2.0],[0.5,0.7,0.9]]),(9,1)))==0.0
-    assert np.all(sys333.radii==np.repeat(np.array([0.0,2.0]),9))==0.0
+    assert (sys333.dipoles == np.tile(np.array([[0.1,1.0,2.0],[0.5,0.7,0.9]]), (27,1))).all()
+    assert (sys333.radii2 == np.tile(np.array([0.0,2.0]), 27)).all()
 
 
 def test_remove_duplicate1():

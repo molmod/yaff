@@ -33,6 +33,7 @@ from yaff.test.common import get_system_quartz, get_system_peroxide, \
     get_system_amoniak
 
 
+
 def test_iclist_quartz_bonds():
     system = get_system_quartz()
     dlist = DeltaList(system)
@@ -104,6 +105,7 @@ def test_iclist_linear_bend_angle():
     # calculation of the cosine of the angle works.
     theta = iclist.ictab[0]['value']
     assert np.isfinite(theta)
+
 
 def test_iclist_peroxide_dihedral_cos():
     number_of_tests=50
@@ -305,10 +307,14 @@ def test_oop_dist_formaldehyde():
     system.pos[0,0] += 1.2*angstrom
     dlist = DeltaList(system)
     iclist = InternalCoordinateList(dlist)
+    # Add a dummy ic to the iclist, so some delta vectors are stored with a
+    # minus sign. This enables to check that the (*ic).signs are implemented
+    # correctly.
+    iclist.add_ic(OopDist(1,3,2,0))
     iclist.add_ic(OopDist(2,3,1,0))
     dlist.forward()
     iclist.forward()
-    assert abs( iclist.ictab[0]['value'] - 1.2*angstrom ) < 1e-8
+    assert abs( iclist.ictab[1]['value'] - 1.2*angstrom ) < 1e-8
     # Check if the distance is invariant for permutations of the first three atoms
     from itertools import permutations
     for perm in permutations((1,2,3)):

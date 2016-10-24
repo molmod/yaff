@@ -1,7 +1,8 @@
+# Lennard-Jones parameters for the CHARMM TIP3P variant
 LJ:UNIT SIGMA angstrom
 LJ:UNIT EPSILON kcalmol
 LJ:SCALE 1 0.0
 LJ:SCALE 2 0.0
 LJ:SCALE 3 1.0
-LJ:PARS O 1.7 0.12
-LJ:PARS H 0.2 0.04
+LJ:PARS O 3.15 0.1521
+LJ:PARS H 0.4 0.046

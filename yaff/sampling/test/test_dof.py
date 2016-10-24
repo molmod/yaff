@@ -25,62 +25,106 @@
 
 import numpy as np
 
+from molmod.minimizer import check_delta
 from yaff import *
-from yaff.sampling.test.common import get_ff_bks
+from yaff.sampling.test.common import get_ff_bks, get_ff_graphene, \
+    get_ff_polyethylene, get_ff_nacl
 
-def test_check_delta_cartesian():
+
+def test_delta_cartesian():
     dof = CartesianDOF(get_ff_bks())
     dof.check_delta()
 
 
-def test_check_delta_cartesian_partial():
+def test_delta_cartesian_partial():
     dof = CartesianDOF(get_ff_bks(), select=[0, 1, 2])
     dof.check_delta()
 
 
-def test_check_delta_full_cell():
-    ff = get_ff_bks()
-    dof = FullCellDOF(ff)
+def check_delta_cell(ff, DOFClass, kwargs):
+    dof = DOFClass(ff, **kwargs)
     dof.check_delta()
     zero = np.zeros(dof.ndof, dtype=bool)
-    zero[:9] = True
+    zero[:dof.ncelldof] = True
     dof.check_delta(zero=zero)
     dof.check_delta(zero=~zero)
-    dof = FullCellDOF(ff, do_frozen=True)
+    kwargs['do_frozen'] = True
+    dof = DOFClass(ff, **kwargs)
     dof.check_delta()
 
 
-def test_check_delta_iso_cell():
-    ff = get_ff_bks()
-    dof = IsoCellDOF(ff)
-    dof.check_delta()
-    zero = np.zeros(dof.ndof, dtype=bool)
-    zero[:1] = True
-    dof.check_delta(zero=zero)
-    dof.check_delta(zero=~zero)
-    dof = IsoCellDOF(ff, do_frozen=True)
-    dof.check_delta()
+def check_cell_jacobian(ff, DOFClass, kwargs):
+    kwargs['do_frozen'] = True
+    dof = DOFClass(ff, **kwargs)
+
+    def fun(celldofs, do_gradient=False):
+        rvecs = dof._cellvars_to_rvecs(dof._expand_celldofs(celldofs))
+        if do_gradient:
+            dof._update(celldofs)
+            return rvecs.ravel(), dof._get_celldofs_jacobian(celldofs)
+        else:
+            return rvecs.ravel()
+
+    x = dof._reduce_cellvars(dof.cellvars0)
+    eps = 1e-5
+    dxs = np.random.uniform(-eps, eps, (100, len(x)))
+    check_delta(fun, x, dxs)
 
 
-def test_check_delta_aniso_cell():
-    ff = get_ff_bks()
-    dof = AnisoCellDOF(ff)
-    dof.check_delta()
-    zero = np.zeros(dof.ndof, dtype=bool)
-    zero[:3] = True
-    dof.check_delta(zero=zero)
-    dof.check_delta(zero=~zero)
-    dof = AnisoCellDOF(ff, do_frozen=True)
-    dof.check_delta()
+def check_ff(ff, DOFClass, ncellvar, kwargs):
+    check_cell_jacobian(ff, DOFClass, kwargs)
+    check_delta_cell(ff, DOFClass, kwargs)
+    if ncellvar > 1:
+        freemask = np.ones(ncellvar, dtype=bool)
+        freemask[1::2] = False
+        kwargs['freemask'] = freemask
+        check_cell_jacobian(ff, DOFClass, kwargs)
+        check_delta_cell(ff, DOFClass, kwargs)
 
 
-def test_check_delta_fixedbc_cell():
-    ff = get_ff_bks()
-    dof = FixedBCDOF(ff)
-    dof.check_delta()
-    zero = np.zeros(dof.ndof, dtype=bool)
-    zero[:1] = True
-    dof.check_delta(zero=zero)
-    dof.check_delta(zero=~zero)
-    dof = FixedBCDOF(ff, do_frozen=True)
-    dof.check_delta()
+def test_full_3d():
+    check_ff(get_ff_bks(), FullCellDOF, 9, {})
+
+def test_full_2d():
+    check_ff(get_ff_graphene(), FullCellDOF, 6, {})
+
+def test_full_1d():
+    check_ff(get_ff_polyethylene(), FullCellDOF, 3, {})
+
+
+def test_strain_3d():
+    check_ff(get_ff_bks(), StrainCellDOF, 6, {})
+
+def test_strain_2d():
+    check_ff(get_ff_graphene(), StrainCellDOF, 3, {})
+
+def test_strain_1d():
+    check_ff(get_ff_polyethylene(), StrainCellDOF, 1, {})
+
+
+def test_aniso_3d():
+    check_ff(get_ff_bks(), AnisoCellDOF, 3, {})
+
+def test_aniso_2d():
+    check_ff(get_ff_graphene(), AnisoCellDOF, 2, {})
+
+def test_aniso_1d():
+    check_ff(get_ff_polyethylene(), AnisoCellDOF, 1, {})
+
+
+def test_iso_3d():
+    check_ff(get_ff_bks(), IsoCellDOF, 1, {})
+
+def test_iso_2d():
+    check_ff(get_ff_graphene(), IsoCellDOF, 1, {})
+
+def test_iso_1d():
+    check_ff(get_ff_polyethylene(), IsoCellDOF, 1, {})
+
+
+def test_fixedbc_3d():
+    check_ff(get_ff_bks(align_ax=True), FixedBCDOF, 1, {})
+
+
+def test_fixedvolortho_3d():
+    check_ff(get_ff_nacl(), FixedVolOrthoCellDOF, 1, {})

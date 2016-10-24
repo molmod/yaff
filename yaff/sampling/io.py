@@ -48,7 +48,7 @@ class HDF5Writer(Hook):
            step
                 The hook will be called every `step` iterations.
 
-            flush
+           flush
                 Flush the h5.File object every `flush` iterations so it can be
                 read up to the latest flush. This is useful to avoid data loss
                 for long calculations or to monitor running calculations.
