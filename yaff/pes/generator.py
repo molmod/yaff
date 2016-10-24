@@ -34,32 +34,34 @@ from molmod.units import parse_unit
 
 from yaff.log import log
 from yaff.pes.ext import PairPotEI, PairPotLJ, PairPotMM3, PairPotExpRep, \
-    PairPotDampDisp, Switch3
+    PairPotQMDFFRep, PairPotDampDisp, PairPotDisp68BJDamp, Switch3
 from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
     ForcePartEwaldNeutralizing
 from yaff.pes.iclist import Bond, BendAngle, BendCos, \
     UreyBradley, DihedAngle, DihedCos, OopAngle, OopMeanAngle, OopCos, \
-    OopMeanCos, OopDist
+    OopMeanCos, OopDist, SqOopDist
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
-from yaff.pes.vlist import Harmonic, Fues, Cross, Cosine, \
-    Chebychev1, Chebychev2, Chebychev3, Chebychev4, Chebychev6
+from yaff.pes.vlist import Harmonic, PolyFour, Fues, Cross, Cosine, \
+    Chebychev1, Chebychev2, Chebychev3, Chebychev4, Chebychev6, PolySix, \
+    MM3Quartic, MM3Bend, BondDoubleWell, Morse
 
 
 __all__ = [
     'FFArgs', 'Generator',
 
-    'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator',
-    'BondFuesGenerator', 'BendGenerator', 'BendAngleHarmGenerator',
-    'BendCosHarmGenerator', 'TorsionGenerator', 'TorsionCosHarmGenerator',
+    'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator', 'BondDoubleWellGenerator',
+    'BondDoubleWell2Generator', 'BondFuesGenerator', 'MM3QuarticGenerator',
+    'BendGenerator', 'BendAngleHarmGenerator', 'BendCosHarmGenerator', 'BendCosGenerator', 'MM3BendGenerator',
+    'TorsionGenerator', 'TorsionCosHarmGenerator', 'TorsionCos2HarmGenerator',
     'UreyBradleyHarmGenerator', 'OopAngleGenerator', 'OopMeanAngleGenerator',
-    'OopCosGenerator', 'OopMeanCosGenerator', 'OopDistGenerator',
+    'OopCosGenerator', 'OopMeanCosGenerator', 'OopDistGenerator', 'BondMorseGenerator',
 
     'ValenceCrossGenerator', 'CrossGenerator',
 
     'NonbondedGenerator', 'LJGenerator', 'MM3Generator', 'ExpRepGenerator',
-    'DampDispGenerator', 'FixedChargeGenerator',
+    'DampDispGenerator', 'FixedChargeGenerator', 'D3BJGenerator',
 
     'apply_generators',
 ]
@@ -404,7 +406,7 @@ class ValenceGenerator(Generator):
                 part_valence.add_term(vterm)
 
     def get_vterm(self, pars, indexes):
-        '''Return an instane of the ValenceTerm class with the proper InternalCoordinate instance
+        '''Return an instance of the ValenceTerm class with the proper InternalCoordinate instance
 
            **Arguments:**
 
@@ -412,13 +414,13 @@ class ValenceGenerator(Generator):
                 The parameters for the ValenceTerm class.
 
            indexes
-                The atom indexes used to define the internal coordinate
+                The atom indices used to define the internal coordinate
         '''
         args = pars + (self.ICClass(*indexes),)
         return self.VClass(*args)
 
     def iter_indexes(self, system):
-        '''Iterate over all tuples of indexes for the internal coordinate'''
+        '''Iterate over all tuples of indices for the internal coordinate'''
         raise NotImplementedError
 
 
@@ -446,6 +448,81 @@ class BondFuesGenerator(BondGenerator):
     VClass = Fues
 
 
+class MM3QuarticGenerator(BondGenerator):
+    prefix = 'MM3QUART'
+    VClass = MM3Quartic
+
+
+class BondDoubleWellGenerator(ValenceGenerator):
+    par_info = [('K', float), ('R1', float), ('R2', float)]
+    nffatype = 2
+    ICClass = Bond
+    prefix = 'DOUBWELL'
+    VClass = BondDoubleWell
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        return system.iter_bonds()
+
+
+class BondMorseGenerator(ValenceGenerator):
+    prefix = 'BONDMORSE'
+    par_info = [('E0', float), ('K', float), ('R0', float)]
+    nffatype = 2
+    ICClass = Bond
+    VClass = Morse
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        return system.iter_bonds()
+
+
+class BondDoubleWell2Generator(ValenceGenerator):
+    nffatype = 2
+    prefix = 'DOUBWELL2'
+    ICClass = Bond
+    VClass = PolySix
+    par_info = [('K', float), ('R1', float), ('R2', float)]
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        return system.iter_bonds()
+
+    def process_pars(self, pardef, conversions, nffatype, par_info=None):
+        '''
+            Transform the 3 parameters given in the parameter file to the 6
+            parameters required by PolySix. The parameters of PolySix are
+            given as a single argument (a list) containing all 6 parameters, not
+            6 arguments with each a parameter.
+        '''
+        tmp = Generator.process_pars(self, pardef, conversions, nffatype, par_info=par_info)
+        par_table = {}
+
+        for key, oldpars in tmp.iteritems():
+            K = oldpars[0][0]
+            r0 = oldpars[0][1]
+            r1 = oldpars[0][2]
+            a = K/(2.0*(r0-r1)**4)
+            c1 = -2.0*r0*r1**4 - 4.0*r0**2*r1**3
+            c2 = r1**4 + 8.0*r0*r1**3 + 6.0*r0**2*r1**2
+            c3 = -4.0*r1**3 - 12.0*r0*r1**2 - 4.0*r1*r0**2
+            c4 = 6.0*r1**2 + 8.0*r0*r1 + r0**2
+            c5 = -4.0*r1 - 2.0*r0
+            c6 = 1.0
+            pars = [a*c1, a*c2, a*c3, a*c4, a*c5, a*c6]
+            par_table[key] = [(pars,)]
+        return par_table
+
+
 class BendGenerator(ValenceGenerator):
     nffatype = 3
     ICClass = None
@@ -471,10 +548,25 @@ class BendCosHarmGenerator(BendGenerator):
     ICClass = BendCos
 
 
+class MM3BendGenerator(BendGenerator):
+    nffatype = 3
+    par_info = [('K', float), ('THETA0', float)]
+    ICClass = BendAngle
+    VClass = MM3Bend
+    prefix = 'MM3BENDA'
+
+
 class UreyBradleyHarmGenerator(BendGenerator):
     par_info = [('K', float), ('R0', float)]
     prefix = 'UBHARM'
     ICClass = UreyBradley
+
+
+class BendCosGenerator(BendGenerator):
+    par_info = [('M', int), ('A', float), ('PHI0', float)]
+    prefix = 'BENDCOS'
+    ICClass = BendAngle
+    VClass = Cosine
 
 
 class TorsionCosHarmGenerator(ValenceGenerator):
@@ -543,6 +635,37 @@ class TorsionGenerator(ValenceGenerator):
             return Chebychev6(pars[1], ic, sign=1)
         else:
             return ValenceGenerator.get_vterm(self, pars, indexes)
+
+
+class TorsionCos2HarmGenerator(ValenceGenerator):
+    'A term harmonic in the cos(2*psi)'
+    nffatype = 4
+    par_info = [('A', float), ('COS0', float)]
+    prefix = 'TORSC2HARM'
+    ICClass = DihedCos
+    VClass = PolyFour
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        return system.iter_dihedrals()
+
+    def process_pars(self, pardef, conversions, nffatype, par_info=None):
+        '''
+            Transform the 2 parameters given in the parameter file to the 4
+            parameters required by PolyFour. The parameters of PolyFour are
+            given as a single argument (a list) containing all 4 parameters, not
+            4 arguments with each a parameter.
+        '''
+        tmp = Generator.process_pars(self, pardef, conversions, nffatype, par_info=par_info)
+        par_table = {}
+        for key, oldpars in tmp.iteritems():
+            pars = [0.0, -4*oldpars[0][0]*oldpars[0][1]**2, 0.0, 2.0*oldpars[0][0]]
+            par_table[key] = [(pars,)]
+        return par_table
+
 
 class OopAngleGenerator(ValenceGenerator):
     nffatype = 4
@@ -653,6 +776,30 @@ class OopDistGenerator(ValenceGenerator):
     par_info = [('K', float), ('D0', float)]
     prefix = 'OOPDIST'
     ICClass = OopDist
+    VClass = Harmonic
+    allow_superposition = False
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield (key[2],key[0],key[1],key[3])
+        yield (key[1],key[2],key[0],key[3])
+        yield (key[2],key[1],key[0],key[3])
+        yield (key[1],key[0],key[2],key[3])
+        yield (key[0],key[2],key[1],key[3])
+
+    def iter_indexes(self, system):
+        #Loop over all atoms; if an atom has 3 neighbors,
+        #it is candidate for an OopDist term
+        for atom in system.neighs1.keys():
+            neighbours = list(system.neighs1[atom])
+            if len(neighbours)==3:
+                yield neighbours[0],neighbours[1],neighbours[2],atom
+
+class SquareOopDistGenerator(ValenceGenerator):
+    nffatype = 4
+    par_info = [('K', float), ('D0', float)]
+    prefix = 'SQOOPDIST'
+    ICClass = SqOopDist
     VClass = Harmonic
     allow_superposition = False
 
@@ -844,10 +991,12 @@ class NonbondedGenerator(Generator):
             if scale < 0 or scale > 1:
                 pardef.complain(counter, 'has a scale that is not in the range [0,1].')
             result[num_bonds] = scale
-        if len(result) != 3:
-            pardef.complain(None, 'must contain three SCALE suffixes for each non-bonding term.')
+        if len(result) < 3 or len(result) > 4:
+            pardef.complain(None, 'must contain three or four SCALE suffixes for each non-bonding term.')
         if 1 not in result or 2 not in result or 3 not in result:
             pardef.complain(None, 'must contain a scale parameter for atoms separated by 1, 2 and 3 bonds, for each non-bonding term.')
+        if 4 not in result:
+            result[4] = 1.0
         return result
 
     def process_mix(self, pardef):
@@ -910,7 +1059,7 @@ class LJGenerator(NonbondedGenerator):
                 sigmas[i], epsilons[i] = par_list[0]
 
         # Prepare the global parameters
-        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
+        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3], scale_table[4])
 
         # Get the part. It should not exist yet.
         part_pair = ff_args.get_part_pair(PairPotLJ)
@@ -950,7 +1099,7 @@ class MM3Generator(NonbondedGenerator):
                 sigmas[i], epsilons[i], onlypaulis[i] = par_list[0]
 
         # Prepare the global parameters
-        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
+        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3], scale_table[4])
 
         # Get the part. It should not exist yet.
         part_pair = ff_args.get_part_pair(PairPotMM3)
@@ -1015,7 +1164,7 @@ class ExpRepGenerator(NonbondedGenerator):
                         amp_cross[i1,i0], b_cross[i1,i0] = cpar_list[0]
 
         # Prepare the global parameters
-        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
+        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3], scale_table[4])
         amp_mix, amp_mix_coeff = mixing_rules['A']
         if amp_mix == 0:
             amp_mix_coeff = 0.0
@@ -1035,6 +1184,54 @@ class ExpRepGenerator(NonbondedGenerator):
         pair_pot = PairPotExpRep(
             system.ffatype_ids, amp_cross, b_cross, ff_args.rcut, ff_args.tr,
             amps, amp_mix, amp_mix_coeff, bs, b_mix, b_mix_coeff,
+        )
+        nlist = ff_args.get_nlist(system)
+        part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+        ff_args.parts.append(part_pair)
+
+
+class QMDFFRepGenerator(NonbondedGenerator):
+    prefix = 'QMDFFREP'
+    suffixes = ['UNIT', 'SCALE', 'CPARS']
+    par_info = [('A', float), ('B', float)]
+    pairpar_info = [('A', float), ('B', float)]
+
+    def __call__(self, system, parsec, ff_args):
+        self.check_suffixes(parsec)
+        conversions = self.process_units(parsec['UNIT'])
+        cpar_table = self.process_pars(parsec['CPARS'], conversions, 2)
+        scale_table = self.process_scales(parsec['SCALE'])
+        self.apply(cpar_table, scale_table, system, ff_args)
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def apply(self, cpar_table, scale_table, system, ff_args):
+        # Prepare the cross parameters
+        amp_cross = np.zeros((system.nffatype, system.nffatype), float)
+        b_cross = np.zeros((system.nffatype, system.nffatype), float)
+        for i0 in xrange(system.nffatype):
+            for i1 in xrange(i0+1):
+                cpar_list = cpar_table.get((system.ffatypes[i0], system.ffatypes[i1]), [])
+                if len(cpar_list) == 0:
+                    if log.do_high:
+                        log('No EXPREP cross parameters found for ffatypes %s,%s.' % (system.ffatypes[i0], system.ffatypes[i1]))
+                else:
+                    amp_cross[i0,i1], b_cross[i0,i1] = cpar_list[0]
+                    if i0 != i1:
+                        amp_cross[i1,i0], b_cross[i1,i0] = cpar_list[0]
+
+        # Prepare the global parameters
+        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3], scale_table[4])
+
+        # Get the part. It should not exist yet.
+        part_pair = ff_args.get_part_pair(PairPotQMDFFRep)
+        if part_pair is not None:
+            raise RuntimeError('Internal inconsistency: the QMDFFREP part should not be present yet.')
+
+        pair_pot = PairPotQMDFFRep(
+            system.ffatype_ids, amp_cross, b_cross, ff_args.rcut, ff_args.tr
         )
         nlist = ff_args.get_nlist(system)
         part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
@@ -1088,7 +1285,7 @@ class DampDispGenerator(NonbondedGenerator):
                         c6_cross[i1,i0], b_cross[i1,i0] = cpar_list[0]
 
         # Prepare the global parameters
-        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
+        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3], scale_table[4])
 
         # Get the part. It should not exist yet.
         part_pair = ff_args.get_part_pair(PairPotDampDisp)
@@ -1096,6 +1293,57 @@ class DampDispGenerator(NonbondedGenerator):
             raise RuntimeError('Internal inconsistency: the DAMPDISP part should not be present yet.')
 
         pair_pot = PairPotDampDisp(system.ffatype_ids, c6_cross, b_cross, ff_args.rcut, ff_args.tr, c6s, bs, vols)
+        nlist = ff_args.get_nlist(system)
+        part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+        ff_args.parts.append(part_pair)
+
+
+class D3BJGenerator(NonbondedGenerator):
+    prefix = 'D3BJ'
+    suffixes = ['UNIT', 'SCALE', 'CPARS', 'GLOBALPARS']
+    par_info = [('C6', float), ('C8', float),('S6', float), ('S8', float),('A1', float), ('A2', float)]
+    pairpar_info = [('C6', float), ('C8', float)]
+    globalpar_info = [('S6', float), ('S8', float),('A1', float), ('A2', float)]
+
+    def __call__(self, system, parsec, ff_args):
+        self.check_suffixes(parsec)
+        conversions = self.process_units(parsec['UNIT'])
+        #Parameters for every couple of ffatypes
+        par_table = self.process_pars(parsec['CPARS'], conversions, 2, self.pairpar_info)
+        #Global parameters, specifically for D3BJ these are s6,s8,a1,a2
+        globalpar_table = self.process_pars(parsec['GLOBALPARS'], conversions, 0, self.globalpar_info)
+        scale_table = self.process_scales(parsec['SCALE'])
+        self.apply(par_table, globalpar_table, scale_table, system, ff_args)
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def apply(self, par_table, globalpar_table, scale_table, system, ff_args):
+        # Prepare the cross parameters
+        c6_cross = np.zeros((system.nffatype, system.nffatype), float)
+        c8_cross = np.zeros((system.nffatype, system.nffatype), float)
+        R_cross = np.zeros((system.nffatype, system.nffatype), float)
+        for i0 in xrange(system.nffatype):
+            for i1 in xrange(i0+1):
+                par_list = par_table.get((system.ffatypes[i0], system.ffatypes[i1]), [])
+                if len(par_list) == 0:
+                    if log.do_high:
+                        log('No D3BJ cross parameters found for ffatypes %s,%s. Parameters reset to zero.' % (system.ffatypes[i0], system.ffatypes[i1]))
+                else:
+                    c6_cross[i0,i1], c8_cross[i0,i1] = par_list[0]
+                    if i0 != i1:
+                        c6_cross[i1,i0], c8_cross[i1,i0] = par_list[0]
+        # Prepare the global parameters
+        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3], scale_table[4])
+        gps = globalpar_table.get(())[0]
+        s6,s8,a1,a2 = gps[0],gps[1],gps[2],gps[3]
+        # Get the part. It should not exist yet.
+        part_pair = ff_args.get_part_pair(PairPotDampDisp)
+        if part_pair is not None:
+            raise RuntimeError('Internal inconsistency: the DAMPDISP part should not be present yet.')
+
+        pair_pot = PairPotDisp68BJDamp(system.ffatype_ids, c6_cross, c8_cross, R_cross, c6_scale=s6, c8_scale=s8, bj_a=a1, bj_b=a2, rcut=ff_args.rcut, tr=ff_args.tr)
         nlist = ff_args.get_nlist(system)
         part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
         ff_args.parts.append(part_pair)
@@ -1194,7 +1442,7 @@ class FixedChargeGenerator(NonbondedGenerator):
                 system.charges[i1] -= charge_transfer
 
         # prepare other parameters
-        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3])
+        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3], scale_table[4])
 
         # Setup the electrostatic pars
         ff_args.add_electrostatic_parts(system, scalings, dielectric)

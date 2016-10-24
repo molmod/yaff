@@ -72,7 +72,9 @@ class Iterative(object):
         if state is None:
             self.state_list = [state_item.copy() for state_item in self.default_state]
         else:
-            self.state_list = state
+            #self.state_list = state
+            self.state_list = [state_item.copy() for state_item in self.default_state]
+            self.state_list += state
         self.state = dict((item.key, item) for item in self.state_list)
         if hooks is None:
             self.hooks = []
@@ -81,9 +83,16 @@ class Iterative(object):
         else:
             self.hooks = [hooks]
         self._add_default_hooks()
+        self.counter0 = counter0
         self.counter = counter0
         with log.section(self.log_name), timer.section(self.log_name):
             self.initialize()
+
+        # Initialize restart hook if present
+        from yaff.sampling.io import RestartWriter
+        for hook in self.hooks:
+            if isinstance(hook, RestartWriter):
+                hook.init_state(self)
 
     def _add_default_hooks(self):
         pass
@@ -94,12 +103,16 @@ class Iterative(object):
     def call_hooks(self):
         with timer.section('%s hooks' % self.log_name):
             state_updated = False
+            from yaff.sampling.io import RestartWriter
             for hook in self.hooks:
-                if hook.expects_call(self.counter):
+                if hook.expects_call(self.counter) and not (isinstance(hook, RestartWriter) and self.counter==self.counter0):
                     if not state_updated:
                         for item in self.state_list:
                             item.update(self)
                         state_updated = True
+                    if isinstance(hook, RestartWriter):
+                        for item in hook.state_list:
+                            item.update(self)
                     hook(self)
 
     def run(self, nstep=None):
@@ -156,6 +169,14 @@ class AttributeStateItem(StateItem):
         return self.__class__(self.key)
 
 
+class ConsErrStateItem(StateItem):
+    def get_value(self, iterative):
+        return getattr(iterative._cons_err_tracker, self.key, None)
+
+    def copy(self):
+        return self.__class__(self.key)
+
+
 class PosStateItem(StateItem):
     def __init__(self):
         StateItem.__init__(self, 'pos')
@@ -170,9 +191,7 @@ class DipoleStateItem(StateItem):
 
     def get_value(self, iterative):
         sys = iterative.ff.system
-        if sys.charges is None:
-            return np.zeros(3, float)
-        else:
+        if sys.charges is not None:
             return np.dot(sys.charges, sys.pos)
 
 
@@ -182,9 +201,7 @@ class DipoleVelStateItem(StateItem):
 
     def get_value(self, iterative):
         charges = iterative.ff.system.charges
-        if charges is None:
-            return np.zeros(3, float)
-        else:
+        if charges is not None:
             return np.dot(iterative.ff.system.charges, iterative.vel)
 
 
@@ -358,6 +375,9 @@ class EpotDihedsStateItem(StateItem):
 
 
 class Hook(object):
+    name = None
+    kind = None
+    method = None
     def __init__(self, start=0, step=1):
         """
            **Optional arguments:**

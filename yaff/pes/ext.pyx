@@ -48,10 +48,13 @@ __all__ = [
     'Cell', 'nlist_status_init', 'nlist_build', 'nlist_status_finish',
     'nlist_recompute', 'nlist_inc_r', 'Hammer', 'Switch3', 'PairPot',
     'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep',
-    'PairPotDampDisp', 'PairPotEI', 'PairPotEIDip' ,'compute_ewald_reci',
-    'compute_ewald_reci_dd', 'compute_ewald_corr_dd',
+    'PairPotQMDFFRep', 'PairPotLJCross', 'PairPotDampDisp',
+    'PairPotDisp68BJDamp', 'PairPotEI', 'PairPotEIDip',
+    'PairPotEiSlater1s1sCorr', 'PairPotEiSlater1sp1spCorr',
+    'PairPotOlpSlater1s1s','PairPotChargeTransferSlater1s1s',
+    'compute_ewald_reci', 'compute_ewald_reci_dd',  'compute_ewald_corr_dd',
     'compute_ewald_corr', 'dlist_forward', 'dlist_back', 'iclist_forward',
-    'iclist_back', 'vlist_forward', 'vlist_back', 'compute_grid3d'
+    'iclist_back', 'vlist_forward', 'vlist_back', 'compute_grid3d',
 ]
 
 
@@ -1046,6 +1049,255 @@ cdef class PairPotExpRep(PairPot):
     b_cross = property(_get_b_cross)
 
 
+cdef class PairPotQMDFFRep(PairPot):
+    r'''Exponential repulsion from QMDFF force field of Grimme
+
+        .. math:: E_\text{EXPREP} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} \frac{A_{ij}}{d_{ij}} \exp(-B_{ij} d_{ij})
+
+        The pair parameters can be provided explicitly, or can be derived from atomic
+        parameters using two possible mixing rules for each parameter:
+
+        * ``GEOMETRIC`` mixing for :math:`A_{ij}`: :math:`A_{ij} = \sqrt{A_i A_j}`
+
+        * ``GEOMETRIC_COR`` mixing for :math:`A_{ij}`: :math:`\ln A_{ij} = (\ln A_i + \ln A_j)\frac{1-x\vert\ln(A_i/A_j)\vert}{2}` where :math:`x` is a configurable parameter
+
+        * ``ARITHMETIC`` mixing for :math:`B_{ij}`: :math:`B_{ij} = \frac{B_i + B_j}{2}`
+
+        * ``ARITHMETIC_COR`` mixing for :math:`B_{ij}`: :math:`B_{ij} = (B_i + B_j)\frac{1-x\vert\ln(A_i/A_j)\vert}{2}` where :math:`x` is a configurable parameter
+
+        **Arguments:**
+
+        ffatype_ids
+            An array with atom type IDs for each atom. The IDs are integer
+            indexes for the atom types that start counting from zero. shape =
+            (natom,).
+
+        amp_cross
+            A 2D array of amplitude cross parameters (:math:`A_{ij}`)
+
+        b_cross
+            A 2D array of decay cross parameters (:math:`B_{ij}`)
+
+        rcut
+             The cutoff radius
+
+        **Optional arguments:**
+
+        tr
+            The truncation scheme, an instance of a subclass of ``Truncation``.
+            When not given, no truncation is applied
+
+        amps
+            A 1D array of amplitude diagonal parameters (:math:`A_{i}`)
+
+        amp_mix
+            An integer ID that determines the mixing rule for the a parameter.
+            0=GEOMETRIC, 1=GEOMETRIC_COR.
+
+        amp_mix_coeff
+            The parameter :math:`x` for the corrected geometric mixing rule.
+
+        bs
+            A 1D array of decay diagonal parameters (:math:`B_{i}`)
+
+        b_mix
+            An integer ID that determines the mixing rule for the B parameter.
+            0=ARITHMETIC, 1=ARITHMETIC_COR.
+
+        b_mix_coeff
+            The parameter :math:`x` for the corrected arithmetic mixing rule.
+
+        The mixing rules are only in effect when the optional diagonal
+        parameters are given. Only when the cross parameters are zero (in the
+        arguments ``amp_cross`` and ``b_cross``), these numbers would be
+        overwritten by the mixing rules.
+    '''
+    cdef long _c_nffatype
+    cdef np.ndarray _c_ffatype_ids
+    cdef np.ndarray _c_amp_cross
+    cdef np.ndarray _c_b_cross
+    name = 'qmdffrep'
+
+    def __cinit__(self, np.ndarray[long, ndim=1] ffatype_ids not None,
+                  np.ndarray[double, ndim=2] amp_cross not None,
+                  np.ndarray[double, ndim=2] b_cross not None,
+                  double rcut, Truncation tr=None,
+                  np.ndarray[double, ndim=1] amps=None, long amp_mix=-1, double amp_mix_coeff=-1,
+                  np.ndarray[double, ndim=1] bs=None, long b_mix=-1, double b_mix_coeff=-1):
+        assert ffatype_ids.flags['C_CONTIGUOUS']
+        assert amp_cross.flags['C_CONTIGUOUS']
+        assert b_cross.flags['C_CONTIGUOUS']
+        nffatype = amp_cross.shape[0]
+        assert amp_cross.shape[1] == nffatype
+        assert b_cross.shape[0] == nffatype
+        assert b_cross.shape[1] == nffatype
+        assert ffatype_ids.min() >= 0
+        assert ffatype_ids.max() < nffatype
+        if amps is not None:
+            assert amps.shape[0] == nffatype
+            assert amp_mix == 0 or amp_mix == 1
+            assert amp_mix_coeff >= 0 and amp_mix_coeff <= 1
+            self._init_amp_cross(nffatype, amp_cross, amps, amp_mix, amp_mix_coeff)
+        assert (amp_cross == amp_cross.T).all()
+        if bs is not None:
+            assert bs.shape[0] == nffatype
+            assert b_mix == 0 or b_mix == 1
+            assert b_mix_coeff >= 0 and b_mix_coeff <= 1
+            self._init_b_cross(nffatype, b_cross, bs, b_mix, b_mix_coeff, amps)
+        assert (b_cross == b_cross.T).all()
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        self.set_truncation(tr)
+        pair_pot.pair_data_qmdffrep_init(
+            self._c_pair_pot, nffatype, <long*> ffatype_ids.data,
+            <double*> amp_cross.data, <double*> b_cross.data
+        )
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_nffatype = nffatype
+        self._c_amp_cross = amp_cross
+        self._c_b_cross = b_cross
+
+    def _init_amp_cross(self, nffatype, amp_cross, amps, amp_mix, amp_mix_coeff):
+        for i0 in xrange(nffatype):
+            for i1 in xrange(i0+1):
+                if amp_cross[i0, i1] == 0.0:
+                    if amp_mix == 0:
+                        amp_cross[i0, i1] = np.sqrt(amps[i0]*amps[i1])
+                    elif amps[i0] == 0.0 or amps[i1] == 0.0:
+                        amp = 0.0
+                    else:
+                        amp = (np.log(amps[i0])+np.log(amps[i1]))/2;
+                        amp *= 1 - amp_mix_coeff*abs(np.log(amps[i0]/amps[i1]));
+                        amp_cross[i0, i1] = np.exp(amp)
+                    amp_cross[i1, i0] = amp_cross[i0, i1]
+
+    def _init_b_cross(self, nffatype, b_cross, bs, b_mix, b_mix_coeff, amps):
+        for i0 in xrange(nffatype):
+            for i1 in xrange(i0+1):
+                if b_cross[i0, i1] == 0.0:
+                    if b_mix == 0:
+                        b_cross[i0, i1] = (bs[i0] + bs[i1])/2
+                    elif amps[i0] == 0.0 or amps[i1] == 0.0:
+                        b = 0.0
+                    else:
+                        b = (bs[i0] + bs[i1])/2;
+                        b *= 1 - b_mix_coeff*abs(np.log(amps[i0]/amps[i1]));
+                        b_cross[i0, i1] = b
+                    b_cross[i1, i0] = b_cross[i0, i1]
+
+    def log(self):
+        '''Print suitable initialization info on screen.'''
+        if log.do_high:
+            log.hline()
+            log('ffatype_id0 ffatype_id1          A          B')
+            log.hline()
+            for i0 in xrange(self._c_nffatype):
+                for i1 in xrange(i0+1):
+                    log('%11i %11i %s %s' % (i0, i1, log.energy(self._c_amp_cross[i0, i1]), log.invlength(self._c_b_cross[i0,i1])))
+
+    def _get_amp_cross(self):
+        '''The amplitude cross parameters'''
+        return self._c_amp_cross.view()
+
+    amp_cross = property(_get_amp_cross)
+
+    def _get_b_cross(self):
+        '''The decay cross parameters'''
+        return self._c_b_cross.view()
+
+    b_cross = property(_get_b_cross)
+
+
+
+cdef class PairPotLJCross(PairPot):
+    r'''Lennard Jones with explicit cross parameters.
+
+       **Energy:**
+
+       .. math:: E_\text{LJ} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} 4 s_{ij} \epsilon_{ij} \left[
+                 \left(\frac{\sigma_{ij}}{d_{ij}}\right)^{12} - \left(\frac{\sigma_{ij}}{d_{ij}}\right)^6
+                 \right]
+
+       with
+
+       .. math:: s_{ij} = \text{the short-range scaling factor}
+
+
+       **Arguments:**
+
+        ffatype_ids
+            An array with atom type IDs for each atom. The IDs are integer
+            indexes for the atom types that start counting from zero. shape =
+            (natom,).
+
+       eps_cross
+            An array with epsilon parameters, one for each combination of atom types, shape (nffatype,nffatype)
+
+       sig_cross
+            An array with epsilon parameters, one for each combination of atom types, shape (nffatype,nffatype)
+
+       rcut
+            The cutoff radius
+
+       **Optional arguments:**
+
+       tr
+            The truncation scheme, an instance of a subclass of ``Truncation``.
+            When not given, no truncation is applied
+    '''
+    cdef long _c_nffatype
+    cdef np.ndarray _c_eps_cross
+    cdef np.ndarray _c_sig_cross
+    name = 'ljcross'
+
+    def __cinit__(self, np.ndarray[long, ndim=1] ffatype_ids not None,
+                  np.ndarray[double, ndim=2] eps_cross not None,
+                  np.ndarray[double, ndim=2] sig_cross not None,
+                  double rcut, Truncation tr=None):
+        assert ffatype_ids.flags['C_CONTIGUOUS']
+        assert eps_cross.flags['C_CONTIGUOUS']
+        assert sig_cross.flags['C_CONTIGUOUS']
+        nffatype = eps_cross.shape[0]
+        assert ffatype_ids.min() >= 0
+        assert ffatype_ids.max() < nffatype
+        assert eps_cross.shape[1] == nffatype
+        assert sig_cross.shape[0] == nffatype
+        assert sig_cross.shape[1] == nffatype
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        self.set_truncation(tr)
+        pair_pot.pair_data_ljcross_init(
+            self._c_pair_pot, nffatype, <long*> ffatype_ids.data,
+            <double*> eps_cross.data, <double*> sig_cross.data,
+        )
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_nffatype = nffatype
+        self._c_eps_cross = eps_cross
+        self._c_sig_cross = sig_cross
+
+    def log(self):
+        '''Print suitable initialization info on screen.'''
+        if log.do_high:
+            log.hline()
+            log('ffatype_id0 ffatype_id1         eps          sig')
+            log.hline()
+            for i0 in xrange(self._c_nffatype):
+                for i1 in xrange(i0+1):
+                    log('%11i %11i %s %s' % (i0, i1, log.energy(self._c_eps_cross[i0,i1]), log.length(self._c_sig_cross[i0,i1])))
+
+    def _get_eps_cross(self):
+        '''The C6 cross parameters'''
+        return self._c_eps_cross.view()
+
+    eps_cross = property(_get_eps_cross)
+
+    def _get_sig_cross(self):
+        '''The damping cross parameters'''
+        return self._c_sig_cross.view()
+
+    sig_cross = property(_get_sig_cross)
+
+
 cdef class PairPotDampDisp(PairPot):
     r'''Damped dispersion interaction
 
@@ -1183,6 +1435,183 @@ cdef class PairPotDampDisp(PairPot):
         return self._c_b_cross.view()
 
     b_cross = property(_get_b_cross)
+
+
+cdef class PairPotDisp68BJDamp(PairPot):
+    r'''Dispersion term with r^-6 and r^-8 term and Becke-Johnson damping
+
+        **Arguments:**
+
+        ffatype_ids
+            An array with atom type IDs for each atom. The IDs are integer
+            indexes for the atom types that start counting from zero. shape =
+            (natom,).
+
+        c6_cross
+            The :math:`C_{6,ij}` cross parameters.
+
+        c8_cross
+            The :math:`C_{8,ij}` cross parameters.
+
+        R_cross
+            The R cross parameters. If not supplied, these are computed as
+            sqrt(C8/C6).
+
+        rcut
+            The cutoff radius
+
+        **Optional arguments:**
+
+        tr
+            The truncation scheme, an instance of a subclass of ``Truncation``.
+            When not given, no truncation is applied
+
+        c6s
+            The diagonal :math:`C_{6,i}` parameters
+
+        c8s
+            The diagonal :math:`C_{8,i}` parameters
+
+        Rs
+            The diagonal parameters
+
+        c6_scale
+            Overall scaling of c6 energy. (Default=1.0)
+
+        c8_scale
+            Overall scaling of c8 energy. (Default=1.0)
+
+        bj_a
+            Parameter to control Becke-Johnson damping.
+
+        bj_b
+            Another parameter to control Becke Johnson damping
+
+        The three last optional arguments are used to determine pair parameters
+        from the mixing rules. These mixing rules are only applied if the
+        corresponding cross parameters are initially set to zero in the arrays
+        ``c6_cross``, ``c8_cross`` and ``R_cross``.
+    '''
+    cdef long _c_nffatype
+    cdef np.ndarray _c_c6_cross
+    cdef np.ndarray _c_c8_cross
+    cdef np.ndarray _c_R_cross
+    name = 'disp68bjdamp'
+
+    def __cinit__(self, np.ndarray[long, ndim=1] ffatype_ids not None,
+                  np.ndarray[double, ndim=2] c6_cross not None,
+                  np.ndarray[double, ndim=2] c8_cross not None,
+                  np.ndarray[double, ndim=2] R_cross not None,
+                  double rcut, Truncation tr=None,
+                  np.ndarray[double, ndim=1] c6s=None,
+                  np.ndarray[double, ndim=1] c8s=None,
+                  np.ndarray[double, ndim=1] Rs=None,
+                  double c6_scale=1.0, double c8_scale=1.0, double bj_a=0.0, double bj_b=0.0):
+        assert ffatype_ids.flags['C_CONTIGUOUS']
+        assert c6_cross.flags['C_CONTIGUOUS']
+        assert c8_cross.flags['C_CONTIGUOUS']
+        assert R_cross.flags['C_CONTIGUOUS']
+        nffatype = c6_cross.shape[0]
+        assert ffatype_ids.min() >= 0
+        assert ffatype_ids.max() < nffatype
+        assert c6_cross.shape[1] == nffatype
+        assert c8_cross.shape[0] == nffatype
+        assert c8_cross.shape[1] == nffatype
+        assert R_cross.shape[0] == nffatype
+        assert R_cross.shape[1] == nffatype
+        if c6s is not None:
+            assert c6s.flags['C_CONTIGUOUS']
+            assert c6s.shape[0] == nffatype
+            raise NotImplementedError
+        if c8s is not None:
+            assert c8s.flags['C_CONTIGUOUS']
+            assert c8s.shape[0] == nffatype
+            raise NotImplementedError
+        if Rs is not None:
+            assert Rs.flags['C_CONTIGUOUS']
+            assert Rs.shape[0] == nffatype
+            raise NotImplementedError
+        if np.all(R_cross==0.0):
+            # We need to mask out zero c6 coefficients
+            mask = c6_cross != 0.0
+            #R_cross[mask] = np.sqrt(c8_scale*c8_cross[mask]/c6_cross[mask]/c6_scale)
+            R_cross[mask] = np.sqrt(c8_cross[mask]/c6_cross[mask])
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        self.set_truncation(tr)
+        pair_pot.pair_data_disp68bjdamp_init(
+            self._c_pair_pot, nffatype, <long*> ffatype_ids.data,
+            <double*> c6_cross.data, <double*> c8_cross.data,
+            <double*> R_cross.data, c6_scale, c8_scale, bj_a, bj_b,
+        )
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_nffatype = nffatype
+        self._c_c6_cross = c6_cross
+        self._c_c8_cross = c8_cross
+        self._c_R_cross = R_cross
+
+    def log(self):
+        '''Print suitable initialization info on screen.'''
+        if log.do_medium:
+            log('  c6_scale:             %s' % ("%10.5f"%self.c6_scale))
+            log('  c8_scale:             %s' % ("%10.5f"%self.c8_scale))
+            log('  bj_a:             %s' % ("%10.5f"%self.bj_a))
+            log('  bj_b:             %s' % ("%10.5f"%self.bj_b))
+        if log.do_high:
+            log.hline()
+            log('ffatype_id0 ffatype_id1         C6         C8          R')
+            log.hline()
+            for i0 in xrange(self._c_nffatype):
+                for i1 in xrange(i0+1):
+                    log('%11i %11i %s %s %s' % (i0, i1, log.c6(self._c_c6_cross[i0,i1]), "%10.5f"%self._c_c8_cross[i0,i1], log.length(self._c_R_cross[i0,i1])))
+
+    def _get_c6_cross(self):
+        '''The C6 cross parameters'''
+        return self._c_c6_cross.view()
+
+    c6_cross = property(_get_c6_cross)
+
+    def _get_c8_cross(self):
+        '''The C8 cross parameters'''
+        return self._c_c8_cross.view()
+
+    c8_cross = property(_get_c8_cross)
+
+    def _get_R_cross(self):
+        '''The R cross parameters'''
+        return self._c_R_cross.view()
+
+    R_cross = property(_get_R_cross)
+
+    def _get_c6_scale(self):
+        '''Global scaling of C6 coefficients'''
+        return pair_pot.pair_data_disp68bjdamp_get_c6_scale(self._c_pair_pot)
+
+    c6_scale = property(_get_c6_scale)
+
+    def _get_c8_scale(self):
+        '''Global scaling of C8 coefficients'''
+        return pair_pot.pair_data_disp68bjdamp_get_c8_scale(self._c_pair_pot)
+
+    c8_scale = property(_get_c8_scale)
+
+    def _get_bj_a(self):
+        '''First parameter of Becke-Johnson damping'''
+        return pair_pot.pair_data_disp68bjdamp_get_bj_a(self._c_pair_pot)
+
+    bj_a = property(_get_bj_a)
+
+    def _get_bj_b(self):
+        '''Global scaling of C6 coefficients'''
+        return pair_pot.pair_data_disp68bjdamp_get_bj_b(self._c_pair_pot)
+
+    bj_b = property(_get_bj_b)
+
+    def _get_global_pars(self):
+        '''Global parameters'''
+        return [self.c6_scale,self.c8_scale,self.bj_a,self.bj_b]
+
+    global_pars = property(_get_global_pars)
 
 
 cdef class PairPotEI(PairPot):
@@ -1376,6 +1805,388 @@ cdef class PairPotEIDip(PairPot):
         return pair_pot.pair_data_eidip_get_alpha(self._c_pair_pot)
 
     alpha = property(_get_alpha)
+
+cdef class PairPotEiSlater1s1sCorr(PairPot):
+    r'''Electrostatic interaction between sites with a point core charge and a
+        1s Slater charge density MINUS the electrostatic interaction between
+        the resulting net point charges.
+        TODO: explain this properly
+
+        **Arguments:**
+
+        slater1s_widths
+            An array of Slater widths, shape = (natom,)
+
+        slater1s_N
+            An array of Slater populations, shape = (natom,)
+
+        slater1s_Z
+            An array of effective core charges, shape = (natom,)
+
+        rcut
+            The cutoff radius
+
+        **Optional arguments:**
+
+        tr
+            The truncation scheme, an instance of a subclass of ``Truncation``.
+            When not given, no truncation is applied
+    '''
+    cdef np.ndarray _c_slater1s_widths
+    cdef np.ndarray _c_slater1s_N
+    cdef np.ndarray _c_slater1s_Z
+    name = 'eislater1s1scorr'
+
+    def __cinit__(self, np.ndarray[double, ndim=1] slater1s_widths,
+                  np.ndarray[double, ndim=1] slater1s_N, np.ndarray[double, ndim=1] slater1s_Z,
+                  double rcut, Truncation tr=None):
+        assert slater1s_widths.flags['C_CONTIGUOUS']
+        assert slater1s_N.flags['C_CONTIGUOUS']
+        assert slater1s_Z.flags['C_CONTIGUOUS']
+        # Precompute some factors here???
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        self.set_truncation(tr)
+        pair_pot.pair_data_eislater1s1scorr_init(self._c_pair_pot, <double*>slater1s_widths.data,  <double*>slater1s_N.data,  <double*>slater1s_Z.data)
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_slater1s_widths = slater1s_widths
+        self._c_slater1s_N = slater1s_N
+        self._c_slater1s_Z = slater1s_Z
+
+    def log(self):
+        '''Print suitable initialization info on screen.'''
+        if log.do_high:
+            log.hline()
+            log('   Atom  Slater charge  Core charge   Slater width')
+            log.hline()
+            for i in xrange(self._c_slater1s_widths.shape[0]):
+                log('%7i     %s   %s     %s' % (i, log.charge(self._c_slater1s_N[i]),log.charge(self._c_slater1s_Z[i]),log.length(self._c_slater1s_widths[i])))
+
+    def _get_slater1s_widths(self):
+        '''The atomic charges'''
+        return self._c_slater1s_widths.view()
+
+    slater1s_widths = property(_get_slater1s_widths)
+
+    def _get_slater1s_N(self):
+        '''The atomic charges'''
+        return self._c_slater1s_N.view()
+
+    slater1s_N = property(_get_slater1s_N)
+
+    def _get_slater1s_Z(self):
+        '''The atomic charges'''
+        return self._c_slater1s_Z.view()
+
+    slater1s_Z = property(_get_slater1s_Z)
+
+
+cdef class PairPotEiSlater1sp1spCorr(PairPot):
+    r'''Electrostatic interaction between sites with a point charge, a
+        1s Slater charge density, a point dipole and a 1p Slater charge density
+        MINUS the electrostatic interaction between
+        the resulting net point monopoles and dipoles.
+        TODO: explain this properly
+
+        **Arguments:**
+
+        slater1s_widths
+            An array of Slater widths, shape = (natom,)
+
+        slater1s_N
+            An array of Slater populations, shape = (natom,)
+
+        slater1s_Z
+            An array of effective core charges, shape = (natom,)
+
+        slater1p_widths
+            An array of Slater widths, shape = (natom,3)
+
+        slater1p_N
+            An array of Slater populations, shape = (natom,3)
+
+        slater1p_Z
+            An array of point dipoles, shape = (natom,3)
+
+        rcut
+            The cutoff radius
+
+        **Optional arguments:**
+
+        tr
+            The truncation scheme, an instance of a subclass of ``Truncation``.
+            When not given, no truncation is applied
+    '''
+    cdef np.ndarray _c_slater1s_widths
+    cdef np.ndarray _c_slater1s_N
+    cdef np.ndarray _c_slater1s_Z
+    cdef np.ndarray _c_slater1p_widths
+    cdef np.ndarray _c_slater1p_N
+    cdef np.ndarray _c_slater1p_Z
+    name = 'eislater1sp1spcorr'
+
+    def __cinit__(self, np.ndarray[double, ndim=1] slater1s_widths,
+                  np.ndarray[double, ndim=1] slater1s_N, np.ndarray[double, ndim=1] slater1s_Z,
+                  np.ndarray[double, ndim=2] slater1p_widths, np.ndarray[double, ndim=2] slater1p_N,
+                  np.ndarray[double, ndim=2] slater1p_Z, double rcut, Truncation tr=None):
+        assert slater1s_widths.flags['C_CONTIGUOUS']
+        assert slater1s_N.flags['C_CONTIGUOUS']
+        assert slater1s_Z.flags['C_CONTIGUOUS']
+        assert slater1p_widths.flags['C_CONTIGUOUS']
+        assert slater1p_N.flags['C_CONTIGUOUS']
+        assert slater1p_Z.flags['C_CONTIGUOUS']
+        # Precompute some factors here???
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        self.set_truncation(tr)
+        pair_pot.pair_data_eislater1sp1spcorr_init(self._c_pair_pot, <double*>slater1s_widths.data,  <double*>slater1s_N.data,  <double*>slater1s_Z.data,
+                                                   <double*>slater1p_widths.data, <double*>slater1p_N.data, <double*>slater1p_Z.data)
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_slater1s_widths = slater1s_widths
+        self._c_slater1s_N = slater1s_N
+        self._c_slater1s_Z = slater1s_Z
+        self._c_slater1p_widths = slater1p_widths
+        self._c_slater1p_N = slater1p_N
+        self._c_slater1p_Z = slater1p_Z
+
+
+    def log(self):
+        '''Print suitable initialization info on screen.'''
+        if log.do_high:
+            log.hline()
+            log('   Atom  Slater charge  Core charge   Slater width')
+            log.hline()
+            for i in xrange(self._c_slater1s_widths.shape[0]):
+                log('%7i     %s   %s     %s' % (i, log.charge(self._c_slater1s_N[i]),log.charge(self._c_slater1s_Z[i]),log.length(self._c_slater1s_widths[i])))
+
+    def _get_slater1s_widths(self):
+        '''The atomic charges'''
+        return self._c_slater1s_widths.view()
+
+    slater1s_widths = property(_get_slater1s_widths)
+
+    def _get_slater1s_N(self):
+        '''The atomic charges'''
+        return self._c_slater1s_N.view()
+
+    slater1s_N = property(_get_slater1s_N)
+
+    def _get_slater1s_Z(self):
+        '''The atomic charges'''
+        return self._c_slater1s_Z.view()
+
+    slater1s_Z = property(_get_slater1s_Z)
+
+    def _get_slater1p_widths(self):
+        '''The atomic charges'''
+        return self._c_slater1p_widths.view()
+
+    slater1p_widths = property(_get_slater1p_widths)
+
+    def _get_slater1p_N(self):
+        '''The atomic charges'''
+        return self._c_slater1p_N.view()
+
+    slater1p_N = property(_get_slater1p_N)
+
+    def _get_slater1p_Z(self):
+        '''The atomic charges'''
+        return self._c_slater1p_Z.view()
+
+    slater1p_Z = property(_get_slater1p_Z)
+
+
+cdef class PairPotOlpSlater1s1s(PairPot):
+    r'''Overlap between two Slater 1s densities. This can for instance be used
+        to represent an exchange energy by defining a suitable scaling factor
+        to convert overlap to energy. Furthermore it is possible to add some
+        correction factors defined in following expression:
+
+            E = ex_scale * slater_overlap * (1+corr_c*(N1+N2))*(1-exp(corr_a-corr_b*r/sqrt(sigma1*sigma2)))
+
+        **Arguments:**
+
+        slater1s_widths
+            An array of Slater widths, shape = (natom,)
+
+        slater1s_N
+            An array of Slater populations, shape = (natom,)
+
+        ex_scale
+            A scaling factor to relate overlap and exchange energy
+
+        rcut
+            The cutoff radius
+
+        **Optional arguments:**
+
+        tr
+            The truncation scheme, an instance of a subclass of ``Truncation``.
+            When not given, no truncation is applied
+
+        corr_a
+            Correction factor to modify overlap expression (default=0.0)
+
+        corr_b
+            Correction factor to modify overlap expression (default=0.0)
+
+        corr_c
+            Correction factor to modify overlap expression (default=0.0)
+    '''
+    cdef np.ndarray _c_slater1s_widths
+    cdef np.ndarray _c_slater1s_N
+    name = 'olpslater1s1s'
+
+    def __cinit__(self, np.ndarray[double, ndim=1] slater1s_widths,
+                  np.ndarray[double, ndim=1] slater1s_N, double ex_scale,
+                  double rcut, Truncation tr=None, double corr_a=0.0,
+                  double corr_b=0.0, double corr_c=0.0):
+        assert slater1s_widths.flags['C_CONTIGUOUS']
+        assert slater1s_N.flags['C_CONTIGUOUS']
+        # Precompute some factors here???
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        self.set_truncation(tr)
+        pair_pot.pair_data_olpslater1s1s_init(self._c_pair_pot, <double*>slater1s_widths.data,  <double*>slater1s_N.data,  ex_scale, corr_a, corr_b, corr_c)
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_slater1s_widths = slater1s_widths
+        self._c_slater1s_N = slater1s_N
+
+    def log(self):
+        '''Print suitable initialization info on screen.'''
+        if log.do_medium:
+            log('  ex_scale:             %s' % ("%10.5f"%self.ex_scale))
+            log('  corr_a:             %s' % ("%10.5f"%self.corr_a))
+            log('  corr_b:             %s' % ("%10.5f"%self.corr_b))
+            log('  corr_c:             %s' % ("%10.5f"%self.corr_c))
+        if log.do_high:
+            log.hline()
+            log('   Atom  Slater charge   Slater width')
+            log.hline()
+            for i in xrange(self._c_slater1s_widths.shape[0]):
+                log('%7i     %s     %s' % (i, log.charge(self._c_slater1s_N[i]),log.length(self._c_slater1s_widths[i])))
+
+    def _get_slater1s_widths(self):
+        '''The atomic charges'''
+        return self._c_slater1s_widths.view()
+
+    slater1s_widths = property(_get_slater1s_widths)
+
+    def _get_slater1s_N(self):
+        '''The atomic charges'''
+        return self._c_slater1s_N.view()
+
+    slater1s_N = property(_get_slater1s_N)
+
+    def _get_ex_scale(self):
+        '''The ex_scale parameter in the exchange energy expression'''
+        return pair_pot.pair_data_olpslater1s1s_get_ex_scale(self._c_pair_pot)
+
+    ex_scale = property(_get_ex_scale)
+
+    def _get_corr_a(self):
+        '''The corr_a parameter in the exchange energy expression'''
+        return pair_pot.pair_data_olpslater1s1s_get_corr_a(self._c_pair_pot)
+
+    corr_a = property(_get_corr_a)
+
+    def _get_corr_b(self):
+        '''The corr_b parameter in the exchange energy expression'''
+        return pair_pot.pair_data_olpslater1s1s_get_corr_b(self._c_pair_pot)
+
+    corr_b = property(_get_corr_b)
+
+    def _get_corr_c(self):
+        '''The corr_c parameter in the exchange energy expression'''
+        return pair_pot.pair_data_olpslater1s1s_get_corr_c(self._c_pair_pot)
+
+    corr_c = property(_get_corr_c)
+
+
+cdef class PairPotChargeTransferSlater1s1s(PairPot):
+    r'''Model for charge transfer energy proportional to the overlap of two 1s
+        Slater densities and a certain power of the product of Slater widths:
+
+            E = ct_scale * slater_overlap / (sigma1*sigma2)**width_power
+
+        **Arguments:**
+
+        slater1s_widths
+            An array of Slater widths, shape = (natom,)
+
+        slater1s_N
+            An array of Slater populations, shape = (natom,)
+
+        ct_scale
+            A scaling factor to relate overlap and exchange energy
+
+        rcut
+            The cutoff radius
+
+        **Optional arguments:**
+
+        tr
+            The truncation scheme, an instance of a subclass of ``Truncation``.
+            When not given, no truncation is applied
+
+        width_power
+            Correction factor to modify overlap expression (default=3.0)
+
+    '''
+    cdef np.ndarray _c_slater1s_widths
+    cdef np.ndarray _c_slater1s_N
+    name = 'chargetransferslater1s1s'
+
+    def __cinit__(self, np.ndarray[double, ndim=1] slater1s_widths,
+                  np.ndarray[double, ndim=1] slater1s_N, double ct_scale,
+                  double rcut, Truncation tr=None, double width_power=3.0):
+        assert slater1s_widths.flags['C_CONTIGUOUS']
+        assert slater1s_N.flags['C_CONTIGUOUS']
+        # Precompute some factors here???
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        self.set_truncation(tr)
+        pair_pot.pair_data_chargetransferslater1s1s_init(self._c_pair_pot, <double*>slater1s_widths.data,  <double*>slater1s_N.data, ct_scale, width_power)
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_slater1s_widths = slater1s_widths
+        self._c_slater1s_N = slater1s_N
+
+    def log(self):
+        '''Print suitable initialization info on screen.'''
+        if log.do_medium:
+            log('  ct_scale:             %s' % ("%10.5f"%self.ct_scale))
+            log('  width_power:             %s' % ("%10.5f"%self.width_power))
+        if log.do_high:
+            log.hline()
+            log('   Atom  Slater charge   Slater width')
+            log.hline()
+            for i in xrange(self._c_slater1s_widths.shape[0]):
+                log('%7i     %s     %s' % (i, log.charge(self._c_slater1s_N[i]),log.length(self._c_slater1s_widths[i])))
+
+    def _get_slater1s_widths(self):
+        '''The atomic charges'''
+        return self._c_slater1s_widths.view()
+
+    slater1s_widths = property(_get_slater1s_widths)
+
+    def _get_slater1s_N(self):
+        '''The atomic charges'''
+        return self._c_slater1s_N.view()
+
+    slater1s_N = property(_get_slater1s_N)
+
+    def _get_ct_scale(self):
+        '''The ct_scale parameter in the charge transfer energy expression'''
+        return pair_pot.pair_data_chargetransferslater1s1s_get_ct_scale(self._c_pair_pot)
+
+    ct_scale = property(_get_ct_scale)
+
+    def _get_width_power(self):
+        '''The corr_a parameter in the charge transfer energy expression'''
+        return pair_pot.pair_data_chargetransferslater1s1s_get_width_power(self._c_pair_pot)
+
+    width_power = property(_get_width_power)
+
 
 
 #

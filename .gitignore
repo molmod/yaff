@@ -9,6 +9,7 @@ ext.c
 # compiled stuff
 build
 dist
+doc/_build
 
 # output of the examples
 data/examples/000_overview/traj.xyz

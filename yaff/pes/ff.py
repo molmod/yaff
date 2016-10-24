@@ -219,7 +219,7 @@ class ForceField(ForcePart):
            parameters
                 Three types are accepted: (i) the filename of the parameter
                 file, which is a text file that adheres to YAFF parameter
-                format, (ii) a list of such filenames, or (ii) an instance of
+                format, (ii) a list of such filenames, or (iii) an instance of
                 the Parameters class.
 
            See the constructor of the :class:`yaff.pes.generator.FFArgs` class
