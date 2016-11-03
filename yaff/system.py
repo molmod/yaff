@@ -1084,16 +1084,21 @@ class System(object):
         """
         # Use Molmod to construct graph distance matrices.
         from molmod.graphs import Graph
-        dm0 = Graph(self.bonds).distances
-        dm1 = Graph(other.bonds).distances
+        with log.section('SYS'):
+            log('Building graph distance matrix for self.')
+            dm0 = Graph(self.bonds).distances
+            log('Building graph distance matrix for other.')
+            dm1 = Graph(other.bonds).distances
         # The allowed permutations is just based on the chemical elements, not the atom
         # types.
         allowed = []
         for number1 in other.numbers:
             allowed.append((self.numbers == number1).nonzero()[0])
         # Yield the solutions
-        for match in iter_matches(dm0, dm1, allowed):
-            yield match
+        with log.section('SYS'):
+            log('Generating renumberings.')
+            for match in iter_matches(dm0, dm1, allowed):
+                yield match
 
     def to_file(self, fn):
         """Write the system to a file
