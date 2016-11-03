@@ -29,7 +29,7 @@
 """
 
 __all__ = [
-    'check_name', 'find_first', 'lex_find', 'lex_split', 'atsel_compile'
+    'check_name', 'find_first', 'lex_find', 'lex_split', 'atsel_compile', 'iter_matches',
 ]
 
 
@@ -366,3 +366,83 @@ def _compile_low(s):
         if result is not None:
             return result
     raise ValueError('Do not know how to compile: %s' % s)
+
+
+def _iter_matches_low(dm0, dm1, allowed, partial_match, partial_error_sq, threshold_sq):
+    """Low-level function of iter_matches, starting from partial solution.
+
+    Parameters
+    ----------
+    dm0 : np.ndarray, shape=(n0, n0, ...)
+        A reference distance matrix (or analogeous object).
+    dm1 : np.ndarray, shape=(n1, n1, ...), n1 <= n0
+        A distance matrix of the system to be reordered.
+    allowed : list of lists of integer indexes
+        For each element in system 1, the allowed corresponding indexes in system 0. This
+        can be based on corresponding chemical elements, atom types, etc. The more
+        specific, the more efficient this function becomes.
+    partial_match : tuple
+        A partial solution, tuple of new integer indexes.
+    partial_error_sq : float
+        The squared error associated with the re-ordering so far.
+    threshold_sq : float
+        An allowed deviation (squared L2-norm) between the distance matrix of the
+        reference and the reordered system 1.
+
+    Yields
+    ------
+    match : tuple
+        All possible renumberings of elements in system 1 that match with (a subset of)
+        system 0. All elements of the tuple are integers.
+    """
+    if len(allowed) == 0:
+        yield partial_match
+    else:
+        index1 = len(partial_match)
+        for index0 in allowed[0]:
+            # Propose extended partial solution
+            new_partial_match = partial_match + (index0,)
+            # Compute updated error
+            new_partial_error_sq = partial_error_sq
+            acceptable = True
+            for index1_prev, index0_prev in enumerate(partial_match):
+                new_partial_error_sq += ((
+                    dm0[index0, index0_prev] -
+                    dm1[index1, index1_prev]
+                )**2).sum()
+                if new_partial_error_sq > threshold_sq:
+                    acceptable = False
+                    break
+            # Only continue with the newly proposed partial solution if the error is
+            # acceptable
+            if acceptable:
+                for match in _iter_matches_low(dm0, dm1, allowed[1:], new_partial_match,
+                                               new_partial_error_sq, threshold_sq):
+                    yield match
+
+
+def iter_matches(dm0, dm1, allowed, threshold=1e-3):
+    """Iterate over all possible renumberings of system 1 that are present in system 0.
+
+    Parameters
+    ----------
+    dm0 : np.ndarray, shape=(n0, n0, ...)
+        A reference distance matrix (or analogeous object).
+    dm1 : np.ndarray, shape=(n1, n1, ...), n1 <= n0
+        A distance matrix of the system to be reordered.
+    allowed : list of lists of integer indexes
+        For each element in system 1, the allowed corresponding indexes in system 0. This
+        can be based on corresponding chemical elements, atom types, etc. The more
+        specific, the more efficient this function becomes.
+    threshold : float
+        An allowed deviation (L2-norm) between the distance matrix of the
+        reference and the reordered system 1.
+
+    Yields
+    ------
+    match : tuple
+        All possible renumberings of elements in system 1 that match with (a subset of)
+        system 0. All elements of the tuple are integers.
+    """
+    for match in _iter_matches_low(dm0, dm1, allowed, (), 0.0, threshold**2):
+        yield match
