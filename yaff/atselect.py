@@ -368,57 +368,61 @@ def _compile_low(s):
     raise ValueError('Do not know how to compile: %s' % s)
 
 
-def _iter_matches_low(dm0, dm1, allowed, partial_match, partial_error_sq, threshold_sq):
-    """Low-level function of iter_matches, starting from partial solution.
+class Stack(object):
+    """Stack object used by iter_matches to build up partial solutions."""
 
-    Parameters
-    ----------
-    dm0 : np.ndarray, shape=(n0, n0, ...)
-        A reference distance matrix (or analogeous object).
-    dm1 : np.ndarray, shape=(n1, n1, ...), n1 <= n0
-        A distance matrix of the system to be reordered.
-    allowed : list of lists of integer indexes
-        For each element in system 1, the allowed corresponding indexes in system 0. This
-        can be based on corresponding chemical elements, atom types, etc. The more
-        specific, the more efficient this function becomes.
-    partial_match : tuple
-        A partial solution, tuple of new integer indexes.
-    partial_error_sq : float
-        The squared error associated with the re-ordering so far.
-    threshold_sq : float
-        An allowed deviation (squared L2-norm) between the distance matrix of the
-        reference and the reordered system 1.
+    def __init__(self, dm0, dm1, allowed, threshold_sq):
+        """Initialize Stack instance.
 
-    Yields
-    ------
-    match : tuple
-        All possible renumberings of elements in system 1 that match with (a subset of)
-        system 0. All elements of the tuple are integers.
-    """
-    if len(allowed) == 0:
-        yield partial_match
-    else:
-        index1 = len(partial_match)
-        for index0 in allowed[0]:
-            # Propose extended partial solution
-            new_partial_match = partial_match + (index0,)
-            # Compute updated error
-            new_partial_error_sq = partial_error_sq
-            acceptable = True
-            for index1_prev, index0_prev in enumerate(partial_match):
-                new_partial_error_sq += ((
-                    dm0[index0, index0_prev] -
-                    dm1[index1, index1_prev]
-                )**2).sum()
-                if new_partial_error_sq > threshold_sq:
-                    acceptable = False
-                    break
-            # Only continue with the newly proposed partial solution if the error is
-            # acceptable
-            if acceptable:
-                for match in _iter_matches_low(dm0, dm1, allowed[1:], new_partial_match,
-                                               new_partial_error_sq, threshold_sq):
-                    yield match
+        See iter_matches for the meaning of the parameters.
+        """
+        self._dm0 = dm0
+        self._dm1 = dm1
+        self._allowed = allowed
+        self._threshold_sq = threshold_sq
+        self._state = [((), 0.0, list(allowed[0]))]
+
+    def grow(self):
+        """Extend the current partial solution with a new element, taken from allowed."""
+        assert not self.is_complete()
+        prev_match, prev_error_sq, prev_allowed = self._state[-1]
+        assert len(prev_allowed) > 0
+        new_index0 = prev_allowed.pop()
+        new_index1 = len(self._state) - 1
+        new_error_sq = prev_error_sq
+        for prev_index1, prev_index0 in enumerate(prev_match):
+            new_error_sq += ((
+                self._dm0[prev_index0, new_index0] -
+                self._dm1[prev_index1, new_index1]
+            )**2).sum()
+        new_match = prev_match + (new_index0,)
+        if len(self._state) == len(self._allowed):
+            new_allowed = None
+        else:
+            new_allowed = list(self._allowed[new_index1+1])
+        self._state.append((new_match, new_error_sq, new_allowed))
+
+    def shrink(self):
+        """Discard the current partial solution and prepare stack for adding new element."""
+        self._state.pop(-1)
+        while len(self._state) > 0 and len(self._state[-1][2]) == 0:
+            self._state.pop(-1)
+
+    def is_acceptable(self):
+        """Return True if the partial solution is acceptable."""
+        return self._state[-1][1] < self._threshold_sq
+
+    def is_complete(self):
+        """Return True if the partial solution is actually a complete one."""
+        return self._state[-1][2] is None
+
+    def is_done(self):
+        """Return True when no more reorderings are available for testing."""
+        return len(self._state) == 0
+
+    def get_match(self):
+        """Return the current (partial) match."""
+        return self._state[-1][0]
 
 
 def iter_matches(dm0, dm1, allowed, threshold=1e-3):
@@ -444,5 +448,15 @@ def iter_matches(dm0, dm1, allowed, threshold=1e-3):
         All possible renumberings of elements in system 1 that match with (a subset of)
         system 0. All elements of the tuple are integers.
     """
-    for match in _iter_matches_low(dm0, dm1, allowed, (), 0.0, threshold**2):
-        yield match
+
+    stack = Stack(dm0, dm1, allowed, threshold**2)
+    while not stack.is_done():
+        # Try to add something to stack
+        stack.grow()
+        if not stack.is_acceptable():
+            # Discard new partial solution of the error becomes too big.
+            stack.shrink()
+        elif stack.is_complete():
+            yield stack.get_match()
+            # Discard current solution because it is already generated.
+            stack.shrink()
