@@ -1096,15 +1096,11 @@ class System(object):
                 if not (set(self.ffatypes) >= set(other.ffatypes)):
                     return
                 ffatype_ids0 = self.ffatype_ids
-                print ffatype_ids0
                 ffatypes0 = list(self.ffatypes)
                 order = np.array([ffatypes0.index(ffatype) for ffatype in other.ffatypes])
-                print order
                 ffatype_ids1 = order[other.ffatype_ids]
-                print ffatype_ids1
                 for ffatype_id1 in ffatype_ids1:
                     allowed.append((ffatype_ids0 == ffatype_id1).nonzero()[0])
-                    print allowed[-1]
             # Use Molmod to construct graph distance matrices.
             log('Building graph distance matrix for self.')
             dm0 = Graph(self.bonds).distances

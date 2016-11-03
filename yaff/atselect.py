@@ -28,6 +28,10 @@
    ATSELECT rule.
 """
 
+
+from collections import namedtuple
+
+
 __all__ = [
     'check_name', 'find_first', 'lex_find', 'lex_split', 'atsel_compile', 'iter_matches',
 ]
@@ -368,6 +372,9 @@ def _compile_low(s):
     raise ValueError('Do not know how to compile: %s' % s)
 
 
+Slice = namedtuple('Slice', ['match', 'error_sq', 'next_index1', 'next_allowed_index0'])
+
+
 class Stack(object):
     """Stack object used by iter_matches to build up partial solutions."""
 
@@ -380,43 +387,67 @@ class Stack(object):
         self._dm1 = dm1
         self._allowed = allowed
         self._threshold_sq = threshold_sq
-        self._state = [((), 0.0, list(allowed[0]))]
+        # Each element in _state is a tuple with the following elements:
+        # - partial solution so far, internally stored as pairs (index1, index0)
+        # - error_sq so far
+        # - next index1
+        # - list of allowed index0 values to be paired with index1
+        self._state = [Slice((), 0.0, 0, list(allowed[0]))]
 
     def grow(self):
         """Extend the current partial solution with a new element, taken from allowed."""
+        # Sanity check
         assert not self.is_complete()
-        prev_match, prev_error_sq, prev_allowed = self._state[-1]
-        assert len(prev_allowed) > 0
-        new_index0 = prev_allowed.pop()
-        new_index1 = len(self._state) - 1
+        # Take the latest partial solution and prepare next element.
+        prev_match, prev_error_sq, new_index1, new_allowed_index0 = self._state[-1]
+        assert len(new_allowed_index0) > 0
+        new_index0 = new_allowed_index0.pop(0)
+        # Compute the updated error_sq
         new_error_sq = prev_error_sq
-        for prev_index1, prev_index0 in enumerate(prev_match):
+        for prev_index1, prev_index0 in prev_match:
             new_error_sq += ((
                 self._dm0[prev_index0, new_index0] -
                 self._dm1[prev_index1, new_index1]
             )**2).sum()
-        new_match = prev_match + (new_index0,)
+        new_match = prev_match + ((new_index1, new_index0),)
+        # Prepare for next grow call: new list of allowed atoms
         if len(self._state) == len(self._allowed):
-            new_allowed = None
+            next_index1 = None
+            next_allowed_index0 = None
         else:
+            # Take as next index1 the one that is closest to the new_index1.
+            used_index1 = set([index1 for index1, index0 in new_match])
+            next_allowed_index1 = set(range(len(self._allowed))) - used_index1
+            distances_sq = self._get_sorted_indexes(self._dm1, new_index1, next_allowed_index1)
+            next_index1 = distances_sq[0]
             # The new indexes to try is the given set of indexes, minus the ones already
             # used.
-            new_allowed = list(set(self._allowed[new_index1+1]) - set(new_match))
-        self._state.append((new_match, new_error_sq, new_allowed))
+            used_index0 = set([index0 for index1, index0 in new_match])
+            next_allowed_index0 = list(set(self._allowed[next_index1]) - set(used_index0))
+            distances_sq = self._get_sorted_indexes(self._dm0, new_index0, next_allowed_index0)
+            next_allowed_index0 = self._get_sorted_indexes(self._dm0, new_index0, next_allowed_index0)
+        self._state.append(Slice(new_match, new_error_sq, next_index1, next_allowed_index0))
+
+    @staticmethod
+    def _get_sorted_indexes(dm, new_index, next_allowed_index):
+        distances_sq = [((dm[new_index, next_index]**2).sum(), next_index)
+                        for next_index in next_allowed_index]
+        return [index for d, index in sorted(distances_sq)]
+
 
     def shrink(self):
         """Discard the current partial solution and prepare stack for adding new element."""
         self._state.pop(-1)
-        while len(self._state) > 0 and len(self._state[-1][2]) == 0:
+        while len(self._state) > 0 and len(self._state[-1].next_allowed_index0) == 0:
             self._state.pop(-1)
 
     def is_acceptable(self):
         """Return True if the partial solution is acceptable."""
-        return self._state[-1][1] < self._threshold_sq
+        return self._state[-1].error_sq < self._threshold_sq
 
     def is_complete(self):
         """Return True if the partial solution is actually a complete one."""
-        return self._state[-1][2] is None
+        return self._state[-1].next_index1 is None
 
     def is_done(self):
         """Return True when no more reorderings are available for testing."""
@@ -424,7 +455,7 @@ class Stack(object):
 
     def get_match(self):
         """Return the current (partial) match."""
-        return self._state[-1][0]
+        return tuple([index0 for index1, index0 in sorted(self._state[-1].match)])
 
 
 def iter_matches(dm0, dm1, allowed, threshold=1e-3):
@@ -466,7 +497,7 @@ def iter_matches(dm0, dm1, allowed, threshold=1e-3):
         # Try to add something to stack
         stack.grow()
         if not stack.is_acceptable():
-            # Discard new partial solution of the error becomes too big.
+            # Discard new partial solution if the error becomes too big.
             stack.shrink()
         elif stack.is_complete():
             yield stack.get_match()
