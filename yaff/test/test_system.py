@@ -430,3 +430,9 @@ def test_iter_matches_quartz_quartz():
     assert len(result) == 48
     for match in result:
         np.testing.assert_equal(system.numbers, system.numbers[list(match)])
+
+
+def test_iter_matches_peroxide_graphene8():
+    system0 = get_system_graphene8()
+    system1 = get_system_peroxide()
+    assert len(list(system0.iter_matches(system1))) == 0

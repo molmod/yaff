@@ -399,7 +399,9 @@ class Stack(object):
         if len(self._state) == len(self._allowed):
             new_allowed = None
         else:
-            new_allowed = list(self._allowed[new_index1+1])
+            # The new indexes to try is the given set of indexes, minus the ones already
+            # used.
+            new_allowed = list(set(self._allowed[new_index1+1]) - set(new_match))
         self._state.append((new_match, new_error_sq, new_allowed))
 
     def shrink(self):
@@ -448,6 +450,16 @@ def iter_matches(dm0, dm1, allowed, threshold=1e-3):
         All possible renumberings of elements in system 1 that match with (a subset of)
         system 0. All elements of the tuple are integers.
     """
+
+    # Convert allowed to lists of lists, if needed.
+    allowed = [list(a) for a in allowed]
+    # There is no hope of finding a solution if one of the allowed lists is empty
+    if any(len(a) == 0 for a in allowed):
+        return
+    # There is no hope of finding a solution if some indexes of the reference are never
+    # present in the allowed lists.
+    if range(dm0.shape[0]) != sorted(set(sum(allowed, []))):
+        return
 
     stack = Stack(dm0, dm1, allowed, threshold**2)
     while not stack.is_done():
