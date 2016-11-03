@@ -27,7 +27,7 @@
 import numpy as np, h5py as h5
 
 from yaff.log import log
-from yaff.atselect import check_name, atsel_compile
+from yaff.atselect import check_name, atsel_compile, iter_matches
 from yaff.pes.ext import Cell
 
 
@@ -1069,6 +1069,31 @@ class System(object):
             if not ((i0 in indexes) ^ (i1 in indexes)):
                 new_bonds.append([i0, i1])
         self.bonds = np.array(new_bonds)
+
+    def iter_matches(self, other):
+        """Yield all renumberings of atoms that map the given system on the current.
+
+        Parameters
+        ----------
+        other : yaff.System
+            Another system with the same number of atoms (and chemical formula), or less
+            atoms.
+
+        The graph distance is used to perform the mapping, so bonds must be defined in
+        the current and the given system.
+        """
+        # Use Molmod to construct graph distance matrices.
+        from molmod.graphs import Graph
+        dm0 = Graph(self.bonds).distances
+        dm1 = Graph(other.bonds).distances
+        # The allowed permutations is just based on the chemical elements, not the atom
+        # types.
+        allowed = []
+        for number1 in other.numbers:
+            allowed.append((self.numbers == number1).nonzero()[0])
+        # Yield the solutions
+        for match in iter_matches(dm0, dm1, allowed):
+            yield match
 
     def to_file(self, fn):
         """Write the system to a file

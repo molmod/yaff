@@ -404,3 +404,29 @@ def test_cut_bonds():
     system = get_system_peroxide()
     system.cut_bonds([0,2])
     assert (system.bonds == [[0,2],[1,3]]).all()
+
+
+def test_iter_matches_cyclopropene_cyclopropene():
+    system = get_system_cyclopropene()
+    result = sorted(system.iter_matches(system))
+    assert result == [
+        (0, 1, 2, 3, 4, 5, 6),
+        (0, 1, 2, 4, 3, 5, 6),
+        (0, 2, 1, 3, 4, 6, 5),
+        (0, 2, 1, 4, 3, 6, 5),
+    ]
+
+
+def test_iter_matches_cyclopropene_ch():
+    system0 = get_system_cyclopropene()
+    system1 = system0.subsystem([0, 4])
+    result = sorted(system0.iter_matches(system1))
+    assert result == [(0, 3), (0, 4), (1, 5), (2, 6)]
+
+
+def test_iter_matches_quartz_quartz():
+    system = get_system_quartz()
+    result = list(system.iter_matches(system))
+    assert len(result) == 48
+    for match in result:
+        np.testing.assert_equal(system.numbers, system.numbers[list(match)])
