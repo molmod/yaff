@@ -1082,20 +1082,35 @@ class System(object):
         The graph distance is used to perform the mapping, so bonds must be defined in
         the current and the given system.
         """
-        # Use Molmod to construct graph distance matrices.
         from molmod.graphs import Graph
         with log.section('SYS'):
+            log('Generating allowed indexes for renumbering.')
+            # The allowed permutations is just based on the chemical elements, not the atom
+            # types, which could also be useful.
+            allowed = []
+            if self.ffatypes is None or other.ffatypes is None:
+                for number1 in other.numbers:
+                    allowed.append((self.numbers == number1).nonzero()[0])
+            else:
+                # Only continue if other.ffatypes is a subset of self.ffatypes
+                if not (set(self.ffatypes) >= set(other.ffatypes)):
+                    return
+                ffatype_ids0 = self.ffatype_ids
+                print ffatype_ids0
+                ffatypes0 = list(self.ffatypes)
+                order = np.array([ffatypes0.index(ffatype) for ffatype in other.ffatypes])
+                print order
+                ffatype_ids1 = order[other.ffatype_ids]
+                print ffatype_ids1
+                for ffatype_id1 in ffatype_ids1:
+                    allowed.append((ffatype_ids0 == ffatype_id1).nonzero()[0])
+                    print allowed[-1]
+            # Use Molmod to construct graph distance matrices.
             log('Building graph distance matrix for self.')
             dm0 = Graph(self.bonds).distances
             log('Building graph distance matrix for other.')
             dm1 = Graph(other.bonds).distances
-        # The allowed permutations is just based on the chemical elements, not the atom
-        # types.
-        allowed = []
-        for number1 in other.numbers:
-            allowed.append((self.numbers == number1).nonzero()[0])
-        # Yield the solutions
-        with log.section('SYS'):
+            # Yield the solutions
             log('Generating renumberings.')
             for match in iter_matches(dm0, dm1, allowed):
                 yield match

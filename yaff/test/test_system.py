@@ -426,10 +426,18 @@ def test_iter_matches_cyclopropene_ch():
 
 def test_iter_matches_quartz_quartz():
     system = get_system_quartz()
-    result = list(system.iter_matches(system))
-    assert len(result) == 48
-    for match in result:
+    assert system.ffatypes is not None
+    result0 = list(system.iter_matches(system))
+    assert len(result0) == 48
+    for match in result0:
         np.testing.assert_equal(system.numbers, system.numbers[list(match)])
+    system.ffatypes = None
+    system.ffatype_ids = None
+    result1 = list(system.iter_matches(system))
+    assert len(result1) == 48
+    for match in result1:
+        np.testing.assert_equal(system.numbers, system.numbers[list(match)])
+    assert sorted(result0) == sorted(result1)
 
 
 def test_iter_matches_peroxide_graphene8():
