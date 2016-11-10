@@ -56,7 +56,7 @@ class Scalings(object):
     '''Describes the scaling of short-range pairwise interactions for atom pairs
        involved in covalent energy terms.
     '''
-    def __init__(self, system, scale1=0.0, scale2=0.0, scale3=1.0):
+    def __init__(self, system, scale1=0.0, scale2=0.0, scale3=1.0, scale4=1.0):
         '''
            **Arguments:**
 
@@ -70,12 +70,15 @@ class Scalings(object):
         if scale1 < 0 or scale1 > 1:
             raise ValueError('scale1 must be in the range [0,1].')
         if scale2 < 0 or scale2 > 1:
-            raise ValueError('scale1 must be in the range [0,1].')
+            raise ValueError('scale2 must be in the range [0,1].')
         if scale3 < 0 or scale3 > 1:
-            raise ValueError('scale1 must be in the range [0,1].')
+            raise ValueError('scale3 must be in the range [0,1].')
+        if scale4 < 0 or scale4 > 1:
+            raise ValueError('scale4 must be in the range [0,1].')
         self.scale1 = scale1
         self.scale2 = scale2
         self.scale3 = scale3
+        self.scale4 = scale4
         stab = []
         for i0 in xrange(system.natom):
             if scale1 < 1.0:
@@ -90,6 +93,10 @@ class Scalings(object):
                 for i3 in system.neighs3[i0]:
                     if i0 > i3:
                         stab.append((i0, i3, scale3, 3))
+            if scale4 < 1.0:
+                for i4 in system.neighs4[i0]:
+                    if i0 > i4:
+                        stab.append((i0, i4, scale4, 4))
         stab.sort()
         self.stab = np.array(stab, dtype=scaling_dtype)
         self.check_mic(system)

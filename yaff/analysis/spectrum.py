@@ -109,7 +109,7 @@ class Spectrum(AnalysisHook):
            When f is None, or when the path does not exist in the HDF5 file, the
            class can be used as an on-line analysis hook for the iterative
            algorithms in yaff.sampling package. This means that the spectrum
-           is built up as the itertive algorithm progresses. The end option is
+           is built up as the iterative algorithm progresses. The end option is
            ignored for an on-line analysis.
         """
         self.bsize = bsize
@@ -143,7 +143,7 @@ class Spectrum(AnalysisHook):
             return self.weights[indexes]
 
     def init_timestep(self):
-        self.freqs = np.arange(self.ssize)/(self.timestep*self.ssize)
+        self.freqs = np.arange(self.ssize)/(self.timestep*self.bsize)
         self.time = np.arange(self.ssize)*self.timestep
         if self.outg is not None:
             self.outg['freqs'][:] = self.freqs
@@ -208,7 +208,12 @@ class Spectrum(AnalysisHook):
             self.outg['ac'][:] = self.ac
             self.outg.attrs['nfft'] = self.nfft
 
-    def plot(self, fn_png='spectrum.png', do_wavenum=True, xlim=None):
+    def plot(self, fn_png='spectrum.png', do_wavenum=True, xlim=None, verticals=None, thermostat=None, ndof=None):
+        """
+            verticals: array containing as first entry the timeconstant of the original
+            system, and as following entries the wavenumbers of the original system.
+        """
+
         import matplotlib.pyplot as pt
         if do_wavenum:
             xunit = lightspeed/centimeter
@@ -218,10 +223,27 @@ class Spectrum(AnalysisHook):
             xlabel = 'Frequency [1/%s]' % log.time.notation
         pt.clf()
         pt.plot(self.freqs/xunit, self.amps)
+        if verticals is not None:
+            thermo_freq = 1.0/verticals[0]/lightspeed*centimeter
+            #plot frequencies original system, and coupling to thermostat
+            for i in np.arange(1, len(verticals)):
+                pt.axvline(verticals[i], color='r', ls='--')
+                pt.axvline(verticals[i] + thermo_freq, color='g', ls='--')
+                pt.axvline(verticals[i] - thermo_freq, color='g', ls='--')
+        if thermostat is not None and ndof is not None:
+            thermo_freq = 1.0/thermostat/lightspeed*centimeter
+            pt.axvline(thermo_freq, color='k', ls='--')
+            pt.axvline(thermo_freq/np.sqrt(ndof), color='k', ls='--')
+            pt.axvline(thermo_freq+thermo_freq/np.sqrt(ndof), color='r', ls='--')
+            pt.axvline(thermo_freq+2.0*thermo_freq/np.sqrt(ndof), color='r', ls='--')
+
         if xlim is not None:
             pt.xlim(xlim[0]/xunit, xlim[1]/xunit)
         else:
             pt.xlim(0, self.freqs[-1]/xunit)
+
+
+
         pt.xlabel(xlabel)
         pt.ylabel('Amplitude')
         pt.savefig(fn_png)

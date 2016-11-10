@@ -32,6 +32,8 @@ import numpy as np
 __all__ = [
     'get_random_vel', 'remove_com_moment', 'remove_angular_moment',
     'clean_momenta', 'angular_moment', 'get_ndof_internal_md',
+    'cell_symmetrize', 'get_random_vel_press', 'get_ndof_baro',
+    'stabilized_cholesky_decomp'
 ]
 
 
@@ -43,7 +45,7 @@ def get_random_vel(temp0, scalevel0, masses, select=None):
        temp0
             The temperature for the Maxwell-Boltzmann distribution.
 
-       svalevel0
+       scalevel0
             When set to True, the velocities are rescaled such that the
             instantaneous temperature coincides with temp0.
 
@@ -90,7 +92,6 @@ def remove_com_moment(vel, masses):
     com_vel = np.dot(masses, vel)/masses.sum()
     # subtract this com velocity vector from each atomic velocity
     vel[:] -= com_vel
-
 
 def remove_angular_moment(pos, vel, masses):
     '''Zero the global angular momentum.
@@ -262,7 +263,7 @@ def get_ndof_internal_md(natom, nper):
             The number of atoms
 
        nper
-            The number of periodic boundary conditions. (0 for isolated systems)
+            The number of periodic boundary conditions (0 for isolated systems)
     '''
     if nper == 0:
         # isolated systems
@@ -282,3 +283,133 @@ def get_ndof_internal_md(natom, nper):
     else:
         # 2D and 3D periodic
         return 3*natom - 3
+
+def cell_symmetrize(ff, vector_list = None, tensor_list = None):
+    '''Symmetrizes the unit cell tensor, and updates the position vectors
+
+    **Arguments:**
+
+    ff
+        A ForceField instance
+
+    **Optional arguments:**
+
+    vector_list
+        A list of numpy vectors which should be transformed under the
+        symmetrization. Note that the positions are already transformed
+        automatically
+
+    tensor_list
+        A list of numpy tensors of rank 2 which should be transformed
+        under the symmetrization.
+    '''
+    # store the unit cell tensor
+    cell = ff.system.cell.rvecs.copy()
+    # SVD decomposition of cell tensor
+    U, s, Vt = np.linalg.svd(cell)
+    # definition of the rotation matrix to symmetrize cell tensor
+    rot_mat = np.dot(Vt.T, U.T)
+    # symmetrize cell tensor and update cell
+    cell = np.dot(cell, rot_mat)
+    ff.update_rvecs(cell)
+    # also update the new atomic positions
+    pos_new = np.dot(ff.system.pos, rot_mat)
+    ff.update_pos(pos_new)
+    # initialize the new vector and tensor lists
+    new_vector_list = []
+    new_tensor_list = []
+    # update the additional vectors from vector_list
+    if vector_list is not None:
+        for i in xrange(len(vector_list)):
+            new_vector_list.append(np.dot(vector_list[i], rot_mat))
+    # update the additional tensors from tensor_list
+    if tensor_list is not None:
+        for i in xrange(len(tensor_list)):
+            new_tensor_list.append(np.dot(np.dot(rot_mat.T, tensor_list[i]), rot_mat))
+    return new_vector_list, new_tensor_list
+
+def get_random_vel_press(mass, temp):
+    '''Generates symmetric tensor of barostat velocities
+
+    **Arguments:**
+
+    mass
+        The Barostat mass
+
+    temp
+        The temperature at which the velocities are selected
+    '''
+    shape = 3, 3
+    # generate random 3x3 tensor
+    rand = np.random.normal(0, np.sqrt(mass*boltzmann*temp), shape)/mass
+    vel_press = np.zeros(shape)
+    # create initial symmetric pressure velocity tensor
+    for i in xrange(3):
+        for j in xrange(3):
+            if i >= j:
+                vel_press[i,j] = rand[i,j]
+            else:
+                vel_press[i,j] = rand[j,i]
+            # correct for p_ab = p_ba, hence only 1 dof if a != b
+            if i != j:
+                vel_press[i,j] /= np.sqrt(2)
+    return vel_press
+
+
+def get_ndof_baro(dim, anisotropic, vol_constraint):
+    '''Calculates the number of degrees of freedom associated with the cell fluctuation
+
+    **Arguments:**
+
+    dim
+        The dimension of the system
+
+    anisotropic
+        Boolean value determining whether anisotropic cell fluctuations are allowed
+
+    vol_constraint
+        Boolean value determining whether the cell volume can change
+    '''
+    baro_ndof = 1
+    # degrees of freedom for a symmetric cell tensor
+    if anisotropic:
+        baro_ndof = dim*(dim+1)/2
+    # decrease the number of dof by one if volume is constant
+    if vol_constraint:
+        baro_ndof -= 1
+    # verify at least one degree of freedom is left
+    if baro_ndof == 0:
+        raise AssertionError('Isotropic barostat called with a volume constraint')
+    return baro_ndof
+
+def stabilized_cholesky_decomp(mat):
+    '''
+    Do LDL^T and transform to MM^T with negative diagonal entries of D put equal to zero
+    Assume mat is square and symmetric (but not necessarily positive definite).
+    '''
+    if np.all(np.linalg.eigvals(mat) > 0):
+        return np.linalg.cholesky(mat)  #usual cholesky decomposition
+    else:
+        n = int(mat.shape[0])
+        D = np.zeros(n)
+        L = np.zeros(mat.shape)
+
+        for i in np.arange(n):
+            L[i, i] = 1
+
+            for j in np.arange(i):
+                L[i, j] = mat[i, j]
+                for k in np.arange(j):
+                    L[i, j] -= L[i, k] * L[j, k] * D[k]
+
+                if abs(D[j]) > 1e-12:
+                    L[i, j] *= 1.0/D[j]
+                else:
+                    L[i, j] = 0
+
+            D[i] = mat[i, i]
+            for k in np.arange(i):
+                D[i] -= L[i, k] * L[i, k] * D[k]
+
+        D = np.sqrt(D.clip(min=0))
+        return L*D

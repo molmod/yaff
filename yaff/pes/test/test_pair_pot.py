@@ -30,7 +30,8 @@ from nose.tools import assert_raises
 from molmod import angstrom, kcalmol
 
 from yaff.test.common import get_system_water32, get_system_caffeine, \
-    get_system_2atoms, get_system_quartz, get_system_water
+    get_system_2atoms, get_system_quartz, get_system_water, \
+    get_system_4113_01WaterWater
 from yaff.pes.test.common import check_gpos_part, check_vtens_part
 
 from yaff import *
@@ -792,6 +793,43 @@ def test_pair_pot_exprep_caffeine_5A_case2():
     check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, 1e-15)
 
 
+def get_part_caffeine_ljcross_9A():
+    # Get a system and define scalings
+    system = get_system_caffeine()
+    nlist = NeighborList(system)
+    scalings = Scalings(system, 0.0, 0.0, 1.0)
+    # Initialize (very random) parameters
+    assert system.nffatype == 4
+    eps_cross = np.array([[1.0,3.5,4.6,9.4],
+                          [3.5,2.0,4.4,4.1],
+                          [4.6,4.4,5.0,3.3],
+                          [9.4,4.1,3.3,0.1]])
+    sig_cross = np.array([[0.2,0.5,1.6,1.4],
+                          [0.5,1.0,2.4,1.1],
+                          [1.6,2.4,1.0,2.3],
+                          [1.4,1.1,2.3,0.9]])
+    assert np.all( np.abs( sig_cross - np.transpose(sig_cross) ) < 1e-15 )
+    assert np.all( np.abs( eps_cross - np.transpose(eps_cross) ) < 1e-15 )
+    # Construct the pair potential and part
+    pair_pot = PairPotLJCross(system.ffatype_ids, eps_cross, sig_cross, 9*angstrom)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    # The pair function
+    def pair_fn(i0, i1, d):
+        ffat0 = system.ffatype_ids[i0]
+        ffat1 = system.ffatype_ids[i1]
+        epsilon = eps_cross[ffat0,ffat1]
+        sigma = sig_cross[ffat0,ffat1]
+        E = 4.0*epsilon*( (sigma/d)**12.0 - (sigma/d)**6.0 )
+        #print "%2d %2d %4.1f %+7.4f" % (i0,i1,d,E)
+        return E
+    return system, nlist, scalings, part_pair, pair_fn
+
+
+def test_pair_pot_ljcross_caffeine_9A():
+    system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_ljcross_9A()
+    check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, 1e-15)
+
+
 def get_part_caffeine_dampdisp_9A():
     # Get a system and define scalings
     system = get_system_caffeine()
@@ -916,6 +954,194 @@ def test_pair_pot_ei3_caffeine_10A():
 
 
 #
+# 4113_01WaterWater tests
+#
+
+
+def get_part_4113_01WaterWater_eislater1s1scorr():
+    # Get a system and define scalings
+    system = get_system_4113_01WaterWater()
+    nlist = NeighborList(system)
+    scalings = Scalings(system, 0.0, 1.0, 1.0)
+    rcut = 20*angstrom
+    pair_pot = PairPotEiSlater1s1sCorr(system.radii, system.valence_charges, system.charges - system.valence_charges, rcut)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    def pair_fn(i, j, R, alpha, beta):
+        E = 0.0
+        delta = beta-alpha
+        if alpha==0.0 or beta==0.0:
+            if beta!=0.0:
+                E = -np.exp(-R/beta)/R - 0.5/beta*np.exp(-R/beta)
+            elif alpha!=0.0:
+                E = -np.exp(-R/alpha)/R - 0.5/alpha*np.exp(-R/alpha)
+        elif np.abs(delta)<0.025:
+            alphaR = R/alpha
+            T0 = -np.exp(-alphaR)/R - np.exp(-alphaR)/48.0/R*(alphaR**3 + 9.0*alphaR**2 + 33.0*alphaR)
+            T1 = -1.0/96.0/alpha**2*( alphaR**3 + 6.0*alphaR**2 + 15.0*alphaR + 15.0)*np.exp(-alphaR)
+            T2 = -1.0/480.0/alpha**3*( 3.0*alphaR**4 + 5.0*alphaR**3 - 15.0*alphaR**2 - 60.0*alphaR - 60.0)*np.exp(-alphaR)
+            E = T0 + T1*delta + T2*delta**2/2.0
+        else:
+            E -= ( beta**3*np.exp(-R/beta) + alpha**3*np.exp(-R/alpha) ) / (2.0*(alpha**2-beta**2)**2)
+            E -= ( beta**4*(3.0*alpha**2-beta**2)*np.exp(-R/beta) - alpha**4*(3.0*beta**2-alpha**2)*np.exp(-R/alpha) ) / (R*(alpha**2-beta**2)**3)
+        return E
+    return system, nlist, scalings, part_pair, pair_fn
+
+
+def get_part_4113_01WaterWater_olpslater1s1s():
+    # Get a system and define scalings
+    system = get_system_4113_01WaterWater()
+    #system = system.subsystem([2,3])
+    #print system.radii
+    nlist = NeighborList(system)
+    scalings = Scalings(system, 0.0, 1.0, 1.0)
+    rcut = 20*angstrom
+    # Define some parameters for the exchange term
+    ex_scale = 1.0
+    corr_a = 16.0
+    corr_b = 2.4
+    corr_c = -0.2
+    # Make the pair potential
+    pair_pot = PairPotOlpSlater1s1s(system.radii, system.valence_charges, ex_scale, rcut, corr_a=corr_a, corr_b=corr_b, corr_c=corr_c)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    def pair_fn(i, j, R, alpha, beta):
+        E = 0.0
+        delta = beta-alpha
+        if np.abs(delta)<0.025:
+            alphaR = R/alpha
+            T0 = (alphaR**2+3.0*alphaR+3.0)*np.exp(-alphaR)/192.0/np.pi/alpha**3
+            T1 = (alphaR**3-2.0*alphaR**2-9.0*alphaR-9.0)*np.exp(-alphaR)/384.0/np.pi/alpha**4
+            T2 = (3.0*alphaR**4-25.0*alphaR**3+5.0*alphaR**2+90.0*alphaR+90.0)*np.exp(-alphaR)/1920.0/np.pi/alpha**5
+            E = T0 + T1*delta + 0.5*T2*delta**2
+        else:
+            E = (alpha*np.exp(-R/alpha) + beta*np.exp(-R/beta))/8.0/np.pi/(alpha-beta)**2/(alpha+beta)**2
+            E += alpha**2*beta**2*(np.exp(-R/beta) - np.exp(-R/alpha))/2.0/np.pi/R/(alpha-beta)**3/(alpha+beta)**3
+        return E*ex_scale*(1.0+corr_c*(system.valence_charges[i]+system.valence_charges[j]))*(1.0-np.exp(corr_a-corr_b*R/np.sqrt(alpha*beta)))
+    return system, nlist, scalings, part_pair, pair_fn
+
+
+def get_part_4113_01WaterWater_disp68bjdamp():
+    # Get a system and define scalings
+    system = get_system_4113_01WaterWater()
+    #system = system.subsystem([2,3])
+    #print system.radii
+    nlist = NeighborList(system)
+    scalings = Scalings(system, 0.0, 0.0, 1.0, 1.0)
+    rcut = 20*angstrom
+    # Define some parameters for the dispersion
+    c6_cross = np.array([[  0.        ,   4.19523224,   4.28064173,  23.14022933,   4.20534285,    4.2056618 ],
+                         [  4.19523224,   0.        ,   0.82846012,   4.19857256,   0.81388705,    0.81394877],
+                         [  4.28064173,   0.82846012,   0.        ,   4.28405005,   0.83045673,    0.83051972],
+                         [ 23.14022933,   4.19857256,   4.28405005,   0.        ,   4.20869122,    4.20901042],
+                         [  4.20534285,   0.81388705,   0.83045673,   4.20869122,   0.        ,    0.81591041],
+                         [  4.2056618 ,   0.81394877,   0.83051972,   4.20901042,   0.81591041,    0.        ]] )
+    c8_cross = np.array([[   0.       ,    35.7352303,    36.7355119,   372.3924437 ,   35.85391291,    35.85754569],
+                         [  35.7352303,     0.        ,    3.76477196,   35.77871306,    3.67442289,     3.67479519],
+                         [  36.7355119,     3.76477196,    0.        ,   36.78021181,    3.77727539,     3.77765811],
+                         [ 372.3924437,    35.77871306,   36.78021181,    0.        ,   35.89754009,    35.90117729],
+                         [  35.85391291,    3.67442289,    3.77727539,   35.89754009,    0.        ,     3.68699979],
+                         [  35.85754569,    3.67479519,    3.77765811,   35.90117729,    3.68699979,     0.        ]] )
+    R_cross = np.zeros((system.natom,system.natom))
+    c8_scale = 1.71910290
+    bj_a = 0.818471488
+    bj_b = 0.0
+
+    # Make the pair potential
+    pair_pot = PairPotDisp68BJDamp(system.ffatype_ids, c6_cross, c8_cross, R_cross, rcut, c8_scale=c8_scale,bj_a=bj_a,bj_b=bj_b)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    def pair_fn(i, j, R, alpha, beta):
+        if c6_cross[i,j] != 0.0: R0 = np.sqrt(c8_cross[i,j]/c6_cross[i,j])
+        else: R0 = 0.0
+        E = -c6_cross[i,j]/(R**6+(bj_a*R0+bj_b)**6) - c8_scale*c8_cross[i,j]/(R**8+(bj_a*R0+bj_b)**8)
+        return E
+    return system, nlist, scalings, part_pair, pair_fn
+
+
+def get_part_4113_01WaterWater_chargetransferslater1s1s():
+    # Get a system and define scalings
+    system = get_system_4113_01WaterWater()
+    #system = system.subsystem([2,3])
+    #print system.radii
+    nlist = NeighborList(system)
+    scalings = Scalings(system, 0.0, 0.0, 1.0)
+    rcut = 20*angstrom
+    # Define some parameters for the exchange term
+    ct_scale = 0.01363842
+    width_power = 3.0
+    # Make the pair potential
+    pair_pot = PairPotChargeTransferSlater1s1s(system.radii, system.valence_charges, ct_scale, rcut, width_power=width_power)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    def pair_fn(i, j, R, alpha, beta):
+        E = 0.0
+        delta = beta-alpha
+        if np.abs(delta)<0.025:
+            alphaR = R/alpha
+            T0 = (alphaR**2+3.0*alphaR+3.0)*np.exp(-alphaR)/192.0/np.pi/alpha**3
+            T1 = (alphaR**3-2.0*alphaR**2-9.0*alphaR-9.0)*np.exp(-alphaR)/384.0/np.pi/alpha**4
+            T2 = (3.0*alphaR**4-25.0*alphaR**3+5.0*alphaR**2+90.0*alphaR+90.0)*np.exp(-alphaR)/1920.0/np.pi/alpha**5
+            E = T0 + T1*delta + 0.5*T2*delta**2
+        else:
+            E = (alpha*np.exp(-R/alpha) + beta*np.exp(-R/beta))/8.0/np.pi/(alpha-beta)**2/(alpha+beta)**2
+            E += alpha**2*beta**2*(np.exp(-R/beta) - np.exp(-R/alpha))/2.0/np.pi/R/(alpha-beta)**3/(alpha+beta)**3
+        return -E*ct_scale/(alpha*beta)**width_power
+    return system, nlist, scalings, part_pair, pair_fn
+
+
+def check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn, eps, do_cores=False, mult_pop=True):
+    nlist.update() # update the neighborlists, once the rcuts are known.
+    # Compute the energy using yaff.
+    energy1 = part_pair.compute()
+    gpos = np.zeros(system.pos.shape, float)
+    energy2 = part_pair.compute(gpos)
+    # Compute the energy manually
+    check_energy = 0.0
+    srow = 0
+    core_charges = system.charges - system.valence_charges
+    for a in xrange(system.natom):
+        # compute the distances in the neighborlist manually and check.
+        for b in xrange(a):
+            delta = system.pos[b] - system.pos[a]
+            # find the scaling
+            srow, fac = get_scaling(scalings, srow, a, b)
+            # continue if scaled to zero
+            if fac == 0.0:
+                continue
+            d = np.linalg.norm(delta)
+            if d < nlist.rcut:
+                energy  = fac*pair_fn(a, b, d, system.radii[a], system.radii[b])
+                if mult_pop:
+                    energy *= system.valence_charges[a]*system.valence_charges[b]
+                if do_cores:
+                    energy += fac*pair_fn(a, b, d, 0.0, system.radii[b])*core_charges[a]*system.valence_charges[b]
+                    energy += fac*pair_fn(a, b, d, system.radii[a], 0.0)*system.valence_charges[a]*core_charges[b]
+                    energy += fac*pair_fn(a, b, d, 0.0, 0.0)*core_charges[a]*core_charges[b]
+                check_energy += energy
+    print "energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy)
+    print "energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy)
+    assert abs(energy1 - check_energy) < eps
+    assert abs(energy2 - check_energy) < eps
+
+
+def test_pair_pot_4113_01WaterWater_eislater1s1scorr():
+    system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_eislater1s1scorr()
+    check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn, 1e-8, do_cores=True)
+
+
+def test_pair_pot_4113_01WaterWater_olpslater1s1s():
+    system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_olpslater1s1s()
+    check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn, 1e-8)
+
+
+def test_pair_pot_4113_01WaterWater_disp68bjdamp():
+    system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_disp68bjdamp()
+    check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn, 1e-8, mult_pop=False)
+
+
+def test_pair_pot_4113_01WaterWater_chargetransferslater1s1s():
+    system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_chargetransferslater1s1s()
+    check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn, 1e-8)
+
+
+#
 # Water derivative tests
 #
 
@@ -968,6 +1194,12 @@ def test_gpos_vtens_pair_pot_caffeine_exprep_5A_case2():
     check_vtens_part(system, part_pair, nlist)
 
 
+def test_gpos_vtens_pair_pot_caffeine_ljcross_9A():
+    system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_ljcross_9A()
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist)
+
+
 def test_gpos_vtens_pair_pot_caffeine_dampdisp_9A():
     system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_dampdisp_9A()
     check_gpos_part(system, part_pair, nlist)
@@ -991,6 +1223,29 @@ def test_gpos_vtens_pair_pot_caffeine_ei2_10A():
     check_gpos_part(system, part_pair, nlist)
     check_vtens_part(system, part_pair, nlist)
 
+
+def test_gpos_vtens_pot_4113_01WaterWater_eislater1s1scorr():
+    system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_eislater1s1scorr()
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist)
+
+
+def test_gpos_vtens_pot_4113_01WaterWater_olpslater1s1s():
+    system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_olpslater1s1s()
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist)
+
+
+def test_gpos_vtens_pot_4113_01WaterWater_disp68bjdamp():
+    system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_disp68bjdamp()
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist)
+
+
+def test_gpos_vtens_pot_4113_01WaterWater_chargetransferslater1s1s():
+    system, nlist, scalings, part_pair, pair_fn = get_part_4113_01WaterWater_chargetransferslater1s1s()
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist)
 
 #
 # Tests for special cases
@@ -1037,3 +1292,124 @@ def test_bks_vtens_gpos_parts():
     for part in ff.parts:
         check_vtens_part(system, part, ff.nlist)
         check_gpos_part(system, part, ff.nlist)
+
+#
+# Tests for toy systems
+#
+def check_dipole_finite_difference(system, nlist, part_pair, eps):
+    # Collect data about the dipoles
+    a1s = part_pair.pair_pot.slater1s_widths
+    a1p = part_pair.pair_pot.slater1p_widths
+    N1s = part_pair.pair_pot.slater1s_N
+    Z1s = part_pair.pair_pot.slater1s_Z
+    N1p = part_pair.pair_pot.slater1p_N
+    Z1p = part_pair.pair_pot.slater1p_Z
+    # Construct a new system with at every site charges to approximate the dipoles + the original charges
+    # Those damn Slater dipole are however not that easy to approximate with
+    # Slater monopole, oh no. You need the recurrence relation for the Slater
+    # densities, which involves a derivative to alpha and to x. This leads to
+    # a finite difference approximation with 4 sites for each dipole.
+
+    # Set finite difference interval
+    delta = 0.001*angstrom
+    sigma = 0.001
+    pos = []
+    bonds = []
+    widths = []
+    Ns = []
+    Zs = []
+    for i in xrange(system.natom):
+        pos.append(system.pos[i])
+        for j in xrange(2): pos.append(system.pos[i] + delta*np.array([1.0,0.0,0.0]))
+        for j in xrange(2): pos.append(system.pos[i] - delta*np.array([1.0,0.0,0.0]))
+        for j in xrange(2): pos.append(system.pos[i] + delta*np.array([0.0,1.0,0.0]))
+        for j in xrange(2): pos.append(system.pos[i] - delta*np.array([0.0,1.0,0.0]))
+        for j in xrange(2): pos.append(system.pos[i] + delta*np.array([0.0,0.0,1.0]))
+        for j in xrange(2): pos.append(system.pos[i] - delta*np.array([0.0,0.0,1.0]))
+        # Connect all these charges so they do not get accounted in the pair pot.
+        for j in xrange(13):
+            for k in xrange(j+1,13):
+                bonds.append([13*i+j,13*i+k])
+        widths.append(a1s[i])
+        Ns.append(N1s[i])
+        Zs.append(Z1s[i])
+        for j in xrange(3):
+            for k in xrange(2):
+                widths.append(a1p[i,j]+sigma)
+                widths.append(a1p[i,j]-sigma)
+            Ns.append( 0.25/sigma/delta*N1p[i,j]*a1p[i,j]**-3*(a1p[i,j]+sigma)**4*0.25)
+            Ns.append(-0.25/sigma/delta*N1p[i,j]*a1p[i,j]**-3*(a1p[i,j]-sigma)**4*0.25)
+            Ns.append(-0.25/sigma/delta*N1p[i,j]*a1p[i,j]**-3*(a1p[i,j]+sigma)**4*0.25)
+            Ns.append( 0.25/sigma/delta*N1p[i,j]*a1p[i,j]**-3*(a1p[i,j]-sigma)**4*0.25)
+            Zs.append(0.5/delta*Z1p[i,j])
+            Zs.append(0.0)
+            Zs.append(-0.5/delta*Z1p[i,j])
+            Zs.append(0.0)
+    pos = np.asarray(pos)
+    numbers = np.repeat(system.numbers,13)
+    bonds = np.asarray(bonds)
+    widths = np.asarray(widths)
+    Ns = np.asarray(Ns)
+    Zs = np.asarray(Zs)
+    # Construct a new system
+    system_fd = System(numbers,pos,bonds=bonds)
+    # Construct a new pair potential
+    nlist_fd = NeighborList(system_fd)
+    scalings = Scalings(system_fd, 0.0, 0.0, 0.0)
+    rcut = 20.0*angstrom
+    pair_pot_fd = PairPotEiSlater1s1sCorr(widths,Ns,Zs,rcut)
+    part_pair_fd = ForcePartPair(system_fd, nlist_fd, scalings, pair_pot_fd)
+    nlist.update() # update the neighborlists, once the rcuts are known.
+    nlist_fd.update()
+    # Finally compare the energy of the two approaches
+    energy1 = part_pair.compute()
+    energy2 = part_pair_fd.compute()
+    rel_err = np.abs(energy1-energy2)/energy1
+    assert rel_err < eps
+
+
+def test_pair_pot_eislater1sp1spcorr():
+    # """Test dipole implementation by approximating dipole with monopoles"""
+    # Make a toy system with just two atoms
+    system = System(np.array([1,2]),np.array([[0.0,0.0,0.0],[0.4,0.7,0.5]]),bonds=np.array([]))
+    nlist = NeighborList(system)
+    scalings = Scalings(system, 0.0, 0.0, 0.0)
+    rcut = 20.0*angstrom
+    # Multipole sizes
+    N1s = np.array([0.5,2.0])
+    N1p = np.array([[0.9,4.0,3.0],[1.2,1.1,0.45]])
+    Z1s = np.array([2.0,8.0])
+    Z1p = np.array([[2.0,0.0,3.0],[3.0,4.0,06.0]])
+    # Slater-widths, very different
+    a1s = np.array([0.5,0.6])
+    a1p = np.array([[0.5,0.5,0.5],[0.6,0.6,0.6]])
+    pair_pot = PairPotEiSlater1sp1spCorr(a1s,N1s,Z1s,a1p,N1p,Z1p,rcut)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    # Check with finite difference (don't expect impressive accuracy!)
+    nlist.update()
+    check_dipole_finite_difference(system, nlist, part_pair, 1e-4)
+    # Check gradient and virial tensor
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist, symm_vtens=False)
+    # Slater-widths, nearly equal
+    a1s = np.array([0.5,0.501])
+    a1p = np.array([[0.5,0.5,0.5],[0.501,0.501,0.501]])
+    pair_pot = PairPotEiSlater1sp1spCorr(a1s,N1s,Z1s,a1p,N1p,Z1p,rcut)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    # Check with finite difference (don't expect impressive accuracy!)
+    nlist.update()
+    check_dipole_finite_difference(system, nlist, part_pair, 1e-4)
+    # Check gradient and virial tensor
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist, symm_vtens=False)
+    # Slater-widths, equal
+    a1s = np.array([0.5,0.5])
+    a1p = np.array([[0.5,0.5,0.5],[0.5,0.5,0.5]])
+    pair_pot = PairPotEiSlater1sp1spCorr(a1s,N1s,Z1s,a1p,N1p,Z1p,rcut)
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    # Check with finite difference (don't expect impressive accuracy!)
+    nlist.update()
+    check_dipole_finite_difference(system, nlist, part_pair, 1e-4)
+    # Check gradient and virial tensor
+    check_gpos_part(system, part_pair, nlist)
+    check_vtens_part(system, part_pair, nlist, symm_vtens=False)

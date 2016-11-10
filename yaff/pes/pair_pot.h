@@ -27,6 +27,7 @@
 
 #include "nlist.h"
 #include "truncation.h"
+#include "slater.h"
 
 
 typedef double (*pair_fn_type)(void*, long, long, double, double*, double*, double*);
@@ -101,12 +102,55 @@ double pair_fn_exprep(void *pair_data, long center_index, long other_index, doub
 typedef struct {
   long nffatype;
   long *ffatype_ids;
+  double *amp_cross;
+  double *b_cross;
+} pair_data_qmdffrep_type;
+
+void pair_data_qmdffrep_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *amp_cross, double *b_cross);
+double pair_fn_qmdffrep(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
+
+
+typedef struct {
+  long nffatype;
+  long *ffatype_ids;
+  double *eps_cross;
+  double *sig_cross;
+} pair_data_ljcross_type;
+
+
+void pair_data_ljcross_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *eps_cross, double *sig_cross);
+double pair_fn_ljcross(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
+
+
+typedef struct {
+  long nffatype;
+  long *ffatype_ids;
   double *c6_cross;
   double *b_cross;
 } pair_data_dampdisp_type;
 
 void pair_data_dampdisp_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *c6_cross, double *b_cross);
 double pair_fn_dampdisp(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
+
+
+typedef struct {
+  long nffatype;
+  long *ffatype_ids;
+  double *c6_cross;
+  double *c8_cross;
+  double *R_cross;
+  double c6_scale;
+  double c8_scale;
+  double bj_a;
+  double bj_b;
+} pair_data_disp68bjdamp_type;
+
+void pair_data_disp68bjdamp_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *c6_cross, double *c8_cross, double *R_cross, double c6_scale, double c8_scale, double bj_a, double bj_b);
+double pair_fn_disp68bjdamp(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
+double pair_data_disp68bjdamp_get_c6_scale(pair_pot_type *pair_pot);
+double pair_data_disp68bjdamp_get_c8_scale(pair_pot_type *pair_pot);
+double pair_data_disp68bjdamp_get_bj_a(pair_pot_type *pair_pot);
+double pair_data_disp68bjdamp_get_bj_b(pair_pot_type *pair_pot);
 
 
 typedef struct {
@@ -134,4 +178,56 @@ void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipo
 double pair_fn_eidip(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
 double pair_data_eidip_get_alpha(pair_pot_type *pair_pot);
 
+
+typedef struct {
+  double *Ns;
+  double *Zs;
+  double *widthss;
+  double *Np;
+  double *Zp;
+  double *widthsp;
+} pair_data_eislater1sp1spcorr_type;
+
+void pair_data_eislater1sp1spcorr_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double *slater1s_Z, double *slater1p_widths, double *slater1p_N, double *slater1p_Z);
+double pair_fn_eislater1sp1spcorr(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
+
+
+typedef struct {
+  double *N;
+  double *Z;
+  double *widths;
+} pair_data_eislater1s1scorr_type;
+
+void pair_data_eislater1s1scorr_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double *slater1s_Z);
+double pair_fn_eislater1s1scorr(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
+
+
+typedef struct {
+  double *N;
+  double *widths;
+  double ex_scale;
+  double corr_a;
+  double corr_b;
+  double corr_c;
+} pair_data_olpslater1s1s_type;
+
+void pair_data_olpslater1s1s_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double ex_scale, double corr_a, double corr_b, double corr_c);
+double pair_fn_olpslater1s1s(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
+double pair_data_olpslater1s1s_get_ex_scale(pair_pot_type *pair_pot);
+double pair_data_olpslater1s1s_get_corr_a(pair_pot_type *pair_pot);
+double pair_data_olpslater1s1s_get_corr_b(pair_pot_type *pair_pot);
+double pair_data_olpslater1s1s_get_corr_c(pair_pot_type *pair_pot);
+
+
+typedef struct {
+  double *N;
+  double *widths;
+  double ct_scale;
+  double width_power;
+} pair_data_chargetransferslater1s1s_type;
+
+void pair_data_chargetransferslater1s1s_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double ct_scale, double width_power);
+double pair_fn_chargetransferslater1s1s(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
+double pair_data_chargetransferslater1s1s_get_ct_scale(pair_pot_type *pair_pot);
+double pair_data_chargetransferslater1s1s_get_width_power(pair_pot_type *pair_pot);
 #endif

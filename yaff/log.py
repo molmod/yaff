@@ -57,7 +57,7 @@ __________________\///______\///________\///___\///______________\///___________
       Toon Verstraelen(1)*, Louis Vanduyfhuys(1) and Steven Vandenbrande(1)
 
 (1) Center for Molecular Modeling, Ghent University Belgium.
-* mailto: Toon.Vesrtraelen@UGent.be
+* mailto: Toon.Verstraelen@UGent.be
 
 In a not-too-distant future, this program will be renamed to NINJAFF, which
 stands for 'NINJAFF is not just another force field code'. Please, bear with us.

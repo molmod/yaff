@@ -430,6 +430,33 @@ def test_vlist_dihedral_cos_mil53():
         raise AssertionError("Energy should be %10.9e, instead it is %10.9e" %(check_energy, energy))
 
 
+def test_vlist_quartz_morse():
+    system = get_system_quartz()
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    vlist = ValenceList(iclist)
+    for i, j in system.bonds:
+        vlist.add_term(Morse(2.3+i, 0.5, 2.0, Bond(i, j)))
+    assert dlist.ndelta == len(system.bonds)
+    assert iclist.nic == len(system.bonds)
+    assert vlist.nv == len(system.bonds)
+    dlist.forward()
+    iclist.forward()
+    energy = vlist.forward()
+    # compute energy manually
+    check_energy = 0.0
+    counter = 0
+    for i, j in system.bonds:
+        delta = system.pos[i] - system.pos[j]
+        system.cell.mic(delta)
+        d = np.linalg.norm(delta)
+        check_term = (2.3+i)*(np.exp(-2*0.5*(d-2.0)) - 2.0*np.exp(-0.5*(d-2.0)))
+        assert abs(check_term - vlist.vtab[counter]['energy']) < 1e-10
+        check_energy += check_term
+        counter += 1
+    assert abs(energy - check_energy) < 1e-8
+
+
 def test_gpos_vtens_bond_water32():
     system = get_system_water32()
     part = ForcePartValence(system)
@@ -725,6 +752,15 @@ def test_gpos_vtens_ub_water():
             for i2 in system.neighs1[i1]:
                 if i0 > i2:
                     part.add_term(Harmonic(2.1,2.0*angstrom,UreyBradley(i0, i1, i2)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
+
+
+def test_gpos_vtens_morse_water32():
+    system = get_system_water32()
+    part = ForcePartValence(system)
+    for i, j in system.bonds:
+        part.add_term(Morse(0.3, 1.7, 2.0, Bond(i, j)))
     check_gpos_part(system, part)
     check_vtens_part(system, part)
 

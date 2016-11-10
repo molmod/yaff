@@ -64,7 +64,8 @@ from yaff.pes.ext import vlist_forward, vlist_back
 __all__ = [
     'ValenceList', 'ValenceTerm', 'Harmonic', 'PolyFour', 'Fues', 'Cross',
     'Cosine', 'Chebychev1', 'Chebychev2', 'Chebychev3', 'Chebychev4',
-    'Chebychev6',
+    'Chebychev6', 'PolySix', 'MM3Quartic', 'MM3Bend', 'BondDoubleWell',
+    'Morse',
 ]
 
 
@@ -72,7 +73,7 @@ vlist_dtype = [
     ('kind', int),                      # The kind of energy term, e.g. harmonic, fues, ...
     ('par0', float), ('par1', float),   # The parameters for the energy term. Meaning of par0, par1, ... depends on kind.
     ('par2', float), ('par3', float),
-#    ('par4', float), ('par5', float),
+    ('par4', float), ('par5', float),
     ('ic0', int), ('ic1', int),         # Indexes of rows in the table of internal coordinates. (See InternalCoordinatList class.)
 #    ('ic2', int),
     ('energy', float),                  # The computed value of the energy, output of forward method.
@@ -229,6 +230,7 @@ class PolyFour(ValenceTerm):
             self.pars[2]/(log.energy.conversion/u**3),
             self.pars[3]/(log.energy.conversion/u**4),
         )
+
 
 class Fues(ValenceTerm):
     '''The Fues energy term: 0.5*K*q0^2*(1-q/q0)^2'''
@@ -468,7 +470,6 @@ class Chebychev4(ValenceTerm):
             self.pars[1],
         )
 
-
 class Chebychev6(ValenceTerm):
     '''A sixth degree polynomial: 0.5*A*(1 -+ T6)
        where T6=32*x**6-48*x**4+18*x**2-1 is the sixth Chebychev polynomial of
@@ -504,4 +505,144 @@ class Chebychev6(ValenceTerm):
             self.__class__.__name__,
             self.pars[0]/(log.energy.conversion/c**2),
             self.pars[1],
+        )
+
+
+class PolySix(ValenceTerm):
+    '''Sixth-order polynomical term: par0*q + par1*q^2 + par2*q^3 + par3*q^4 + par4*q^5 + par5*q^6'''
+    kind = 10
+    def __init__(self, pars, ic):
+        '''
+           **Arguments:**
+
+           pars
+                The constant linear coefficients of the polynomial, in atomic
+                units, starting from first order. This list may at most contain
+                six coefficients.
+
+           ic
+                An ``InternalCoordinate`` object.
+        '''
+        if len(pars)>6:
+            raise ValueError("PolySix term can have maximum 6 parameters, received %i" %len(pars))
+        while len(pars)<6:
+            pars.append(0.0)
+        ValenceTerm.__init__(self, pars, [ic])
+
+    def get_log(self):
+        u = self.ics[0].get_conversion()
+        return '%s(C1=%.5e,C2=%.5e,C3=%.5e,C4=%.5e,C5=%.5e,C6=%.5e)' % (
+            self.__class__.__name__,
+            self.pars[0]/(log.energy.conversion/u),
+            self.pars[1]/(log.energy.conversion/u**2),
+            self.pars[2]/(log.energy.conversion/u**3),
+            self.pars[3]/(log.energy.conversion/u**4),
+            self.pars[4]/(log.energy.conversion/u**5),
+            self.pars[5]/(log.energy.conversion/u**6),
+        )
+
+
+class MM3Quartic(ValenceTerm):
+    '''The quartic energy term used for the bond stretch in MM3: 0.5*K*(q-q0)^2*(1-2.55*(q-q0)^2+7/12*(2.55*(q-q0))^2)'''
+    kind = 11
+    def __init__(self, fc, rv, ic):
+        '''
+           **Arguments:**
+
+           fc
+                The force constant (in atomic units).
+
+           rv
+                The rest value (in atomic units).
+
+           ic
+                An ``InternalCoordinate`` object.
+        '''
+        ValenceTerm.__init__(self, [fc, rv], [ic])
+
+    def get_log(self):
+        c = self.ics[0].get_conversion()
+        return '%s(FC=%.5e,RV=%.5e)' % (
+            self.__class__.__name__,
+            self.pars[0]/(log.energy.conversion/c**2),
+            self.pars[1]/c
+        )
+
+
+class MM3Bend(ValenceTerm):
+    '''The sixth-order energy term used for the bends in MM3: 0.5*K*(q-q0)^2*(1-0.14*(q-q0)+5.6*10^(-5)*(q-q0)^2-7*10^(-7)*(q-q0)^3+2.2*10^(-7)*(q-q0)^4)'''
+    kind = 12
+    def __init__(self, fc, rv, ic):
+        '''
+           **Arguments:**
+
+           fc
+                The force constant (in atomic units).
+
+           rv
+                The rest value (in atomic units).
+
+           ic
+                An ``InternalCoordinate`` object.
+        '''
+        ValenceTerm.__init__(self, [fc, rv], [ic])
+
+    def get_log(self):
+        c = self.ics[0].get_conversion()
+        return '%s(FC=%.5e,RV=%.5e)' % (
+            self.__class__.__name__,
+            self.pars[0]/(log.energy.conversion/c**2),
+            self.pars[1]/c
+        )
+
+class BondDoubleWell(ValenceTerm):
+    '''Sixth-order polynomial term: K/(2*(r1-r2)^4)*(r-r1)^2*(r-r2)^4'''
+    kind = 13
+    def __init__(self, K, r1, r2, ic):
+        '''
+            **Arguments:**
+
+            K
+                Force constant corresponding with V-O double bond
+            r1, r2
+                Two rest values for the V-O chain (r1, 'double bond', r2, 'weak bond')
+            ic
+                An "InternalCoordinate" object (here bond distance)
+        '''
+        ValenceTerm.__init__(self, [K,r1,r2], [ic])
+
+    def get_log(self):
+        c = self.ics[0].get_conversion()
+        return '%s(K=%.5e,R1=%.5e,R2=%.5e)' % (
+            self.__class__.name__,
+            self.pars[0]/(log.energy.conversion/c**2),
+            self.pars[1]/c,
+            self.pars[2]/c
+        )
+
+class Morse(ValenceTerm):
+    ''' The morse potential: E0*( exp(-2*k*(r-r1)) - 2*exp(-k*(r-r1)) )'''
+    kind = 14
+    def __init__(self, E0, k, r1, ic):
+        '''
+            **Arguments:**
+
+            E0
+                The well depth
+            k
+                The well width
+            r1
+                The rest value
+            ic
+                An "InternalCoordinate" object, typically a distance
+        '''
+        ValenceTerm.__init__(self, [E0,k,r1], [ic])
+
+    def get_log(self):
+        c = self.ics[0].get_conversion()
+        return '%s(E0=%.5e,k=%.5e,r1=%.5e)' %  (
+            self.__class__.__name__,
+            self.pars[0]/(log.energy.conversion),
+            self.pars[1]*c,
+            self.pars[2]/c,
         )

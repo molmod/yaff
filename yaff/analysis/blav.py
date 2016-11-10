@@ -25,9 +25,11 @@
 
 
 import numpy as np
+from molmod.units import *
+import matplotlib.pyplot as pt
 
 
-__all__ = ['blav']
+__all__ = ['blav', 'inefficiency']
 
 
 def blav(signal, minblock=100, fn_png=None, unit=None):
@@ -42,7 +44,7 @@ def blav(signal, minblock=100, fn_png=None, unit=None):
        **Arguments:**
 
        signal
-            An array containing time-depedendent data.
+            An array containing time-dependent data.
 
        **Optional arguments:**
 
@@ -99,7 +101,7 @@ def blav(signal, minblock=100, fn_png=None, unit=None):
             conversion = 1
             notation = '1'
         else:
-            converions = unit.conversion
+            conversion = unit.conversion
             notation = unit.notation
         pt.clf()
         pt.plot(x[:-l], e[:-l]/conversion, 'k+', alpha=0.5)
@@ -111,3 +113,87 @@ def blav(signal, minblock=100, fn_png=None, unit=None):
         pt.savefig(fn_png)
 
     return error, sinef
+
+
+def inefficiency(signal, time = None, fn_png = 'stat_ineff.png', taus = None, eq_limits = None):
+    """
+        Analyze the signal to determine the statistical inefficiency. The statistical
+        inefficiency of a signal is defined as the limiting ratio of the observed
+        variance of its long-term averages to their expected variance. It can hence be
+        regarded as the factor (>1) with which the sample size should be multiplied in
+        order to compensate for correlation. This is derived in:
+
+            Friedberg, R; Cameron, J.E. J. Chem. Phys. 1970, 52, 6049-6058.
+
+
+        **Arguments:**
+
+        signal
+            An array containing time-dependent data.
+
+        **Optional arguments:**
+
+        time
+            An array containing the time information of the provided signal.
+
+        fn_png
+            Name of the plot to which the data is written.
+
+        taus
+            An array, where for each element tau the block averages with this
+            block size are determined.
+
+        eq_limits
+            An array containing the fractions of the signal to be considered
+            as equilibration.
+
+       **Returns:**
+    """
+
+    total_length = len(signal)
+    if taus is None:
+        # By default, take the block lengths between 0.02 % and 1%
+        # of the total simulation time, and make sure that all entries are integers
+        taus = np.arange(total_length/5000, total_length/100, total_length/5000)
+        taus = taus.astype(int)
+    if eq_limits is None:
+        # By default, take the equilibration time between 0 % and 80 %
+        # of the total simulation time with a stepsize of 10 %,
+        # and make sure that all entries are integers
+        eq_limits = np.arange(0, 0.8*total_length, 0.1*total_length)
+        eq_limits = eq_limits.astype(int)
+
+    # Initialize the statistical inefficiency phi
+    phi = np.zeros((len(eq_limits), len(taus)))
+    varX = np.var(signal)
+
+    # Calculate the statisticial inefficiencies
+    for i in xrange(len(eq_limits)):
+        eq_limit = eq_limits[i]
+        for j in xrange(len(taus)):
+            tau = taus[j]
+            nblock = (len(signal)-eq_limit)/tau
+            total_size = nblock*tau
+            averages = signal[eq_limit:eq_limit+total_size].reshape((nblock, tau)).mean(axis=1)
+            phi[i,j] = 1.*tau*np.var(averages)/varX
+
+    # Plot the statistical ineffiency
+    if time is not None:
+        xlabel = 'Length of segment [ps]'
+        unit = 1./((time[1]-time[0])/picosecond)
+        unit_ab = 'ps'
+    else:
+        xlabel = 'Length of segment []'
+        unit = 1
+        unit_ab = 'steps'
+
+    pt.clf()
+    comap = pt.cm.get_cmap(name='jet')
+    pt.xlabel(xlabel)
+    pt.ylabel('Statistical inefficiency')
+
+    for i in xrange(len(eq_limits)):
+        clr = 1.*i/len(eq_limits)
+        pt.plot(taus/unit, phi[i,:], color=comap(clr), label='Equilibrated for %i %s' %(eq_limits[i]/unit, unit_ab))
+    pt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    pt.savefig(fn_png, bbox_inches='tight')

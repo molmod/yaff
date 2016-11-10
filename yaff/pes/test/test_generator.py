@@ -501,6 +501,80 @@ def test_generator_glycine_dampdisp1():
     assert (b_cross == b_cross.T).all()
     assert (b_cross > 0).all()
 
+def test_generator_water32_d3bj():
+    system = get_system_water32()
+    fn_pars = context.get_fn('test/parameters_fake_d3bj.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert len(ff.parts) == 1
+    d3bj = ff.part_pair_disp68bjdamp
+    gps = d3bj.pair_pot.global_pars
+    # check parameters
+    c6HH = 1.4633211522e+01
+    c6HO = 2.5121581791e+01
+    c6OO = 2.4261074778e+00
+    c8HH = 5.74321564987e+00
+    c8HO = 5.01673173654e+00
+    c8OO = 3.13071058512e+00
+
+    c6_cross = d3bj.pair_pot.c6_cross
+    assert c6_cross.shape == (2,2)
+    assert abs(c6_cross[0,0] - c6HH) < 1e-10
+    assert abs(c6_cross[0,1] - c6HO) < 1e-10
+    assert abs(c6_cross[1,0] - c6HO) < 1e-10
+    assert abs(c6_cross[1,1] - c6OO) < 1e-10
+
+    c8_cross = d3bj.pair_pot.c8_cross
+    assert c8_cross.shape == (2,2)
+    assert abs(c8_cross[0,0] - c8HH) < 1e-10
+    assert abs(c8_cross[0,1] - c8HO) < 1e-10
+    assert abs(c8_cross[1,0] - c8HO) < 1e-10
+    assert abs(c8_cross[1,1] - c8OO) < 1e-10
+
+    gps = d3bj.pair_pot.global_pars
+    assert len(gps) == 4
+    assert abs(gps[0] - 1.0) < 1e-10
+    assert abs(gps[1] - 2.0) < 1e-10
+    assert abs(gps[2] - 3.0) < 1e-10
+    assert abs(gps[3] - 4.0) < 1e-10
+
+    R_cross = d3bj.pair_pot.R_cross
+    assert R_cross.shape == (2,2)
+    assert abs(R_cross[0,0] - np.sqrt(c8HH/c6HH)) < 1e-10
+    assert abs(R_cross[0,1] - np.sqrt(c8HO/c6HO)) < 1e-10
+    assert abs(R_cross[1,0] - np.sqrt(c8HO/c6HO)) < 1e-10
+    assert abs(R_cross[1,1] - np.sqrt(c8OO/c6OO)) < 1e-10
+
+def test_generator_water32_qmdffrep():
+    system = get_system_water32()
+    print system.ffatypes
+    print system.ffatype_ids
+    fn_pars = context.get_fn('test/parameters_fake_qmdffrep.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert len(ff.parts) == 1
+    qmdffrep = ff.part_pair_qmdffrep
+    # check parameters
+    A_cross = qmdffrep.pair_pot.amp_cross
+    assert A_cross.shape == (2,2)
+    print A_cross
+    assert abs(A_cross[0,0] - 3.2490000000e+01) < 1e-10
+    assert abs(A_cross[0,1] - 1.3395000000e+01) < 1e-10
+    assert abs(A_cross[1,0] - 1.3395000000e+01) < 1e-10
+    assert abs(A_cross[1,1] - 5.5225000000e+00) < 1e-10
+
+    B_cross = qmdffrep.pair_pot.b_cross
+    assert B_cross.shape == (2,2)
+    assert abs(B_cross[0,0] - 4.08560961303e+00) < 1e-10
+    assert abs(B_cross[0,1] - 5.00924416592e+00) < 1e-10
+    assert abs(B_cross[1,0] - 5.00924416592e+00) < 1e-10
+    assert abs(B_cross[1,1] - 6.34212100945e+00) < 1e-10
+
+    # check scalings
+    scalings = qmdffrep.scalings
+    assert abs(scalings.scale1 - 0.0) < 1e-10
+    assert abs(scalings.scale2 - 0.0) < 1e-10
+    assert abs(scalings.scale3 - 0.5) < 1e-10
+    assert abs(scalings.scale4 - 0.5) < 1e-10
+
 
 def test_generator_water32_fixq():
     system = get_system_water32()

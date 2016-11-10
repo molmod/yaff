@@ -23,14 +23,13 @@
 #--
 
 
-cimport iclist
+cimport numpy as np
+cimport nlist
+cimport truncation
 
-cdef extern from "vlist.h":
-    ctypedef struct vlist_row_type:
-        long kind
-        double par0, par1, par2, par3, par4, par5
-        long ic0, ic1
-        double energy
-
-    double vlist_forward(iclist.iclist_row_type* ictab, vlist_row_type* vtab, long nv)
-    void vlist_back(iclist.iclist_row_type* ictab, vlist_row_type* vtab, long nv)
+cdef extern from "slater.h":
+    double slaterei_0_0(double a, double b, double Na, double Za, double Nb, double Zb, double d, double *g)
+    double slaterei_1_0(double a, double b, double Na, double Za, double Nb, double Zb, double d, double *g)
+    double slaterei_1_1(double a, double b, double Na, double Za, double Nb, double Zb, double d, double *g)
+    double slaterei_1_1_kronecker(double a, double b, double Na, double Za, double Nb, double Zb, double d, double *g)
+    double slaterolp_0_0(double a, double b, double d, double *g)

@@ -28,8 +28,12 @@
    ATSELECT rule.
 """
 
+
+from collections import namedtuple
+
+
 __all__ = [
-    'check_name', 'find_first', 'lex_find', 'lex_split', 'atsel_compile'
+    'check_name', 'find_first', 'lex_find', 'lex_split', 'atsel_compile', 'iter_matches',
 ]
 
 
@@ -366,3 +370,136 @@ def _compile_low(s):
         if result is not None:
             return result
     raise ValueError('Do not know how to compile: %s' % s)
+
+
+Slice = namedtuple('Slice', ['match', 'error_sq', 'next_index1', 'next_allowed_index0'])
+
+
+class Stack(object):
+    """Stack object used by iter_matches to build up partial solutions."""
+
+    def __init__(self, dm0, dm1, allowed, threshold_sq):
+        """Initialize Stack instance.
+
+        See iter_matches for the meaning of the parameters.
+        """
+        self._dm0 = dm0
+        self._dm1 = dm1
+        self._allowed = allowed
+        self._threshold_sq = threshold_sq
+        # Each element in _state is a tuple with the following elements:
+        # - partial solution so far, internally stored as pairs (index1, index0)
+        # - error_sq so far
+        # - next index1
+        # - list of allowed index0 values to be paired with index1
+        self._state = [Slice((), 0.0, 0, list(allowed[0]))]
+
+    def grow(self):
+        """Extend the current partial solution with a new element, taken from allowed."""
+        # Sanity check
+        assert not self.is_complete()
+        # Take the latest partial solution and prepare next element.
+        prev_match, prev_error_sq, new_index1, new_allowed_index0 = self._state[-1]
+        assert len(new_allowed_index0) > 0
+        new_index0 = new_allowed_index0.pop(0)
+        # Compute the updated error_sq
+        new_error_sq = prev_error_sq
+        for prev_index1, prev_index0 in prev_match:
+            new_error_sq += (
+                self._dm0[prev_index0, new_index0] -
+                self._dm1[prev_index1, new_index1]
+            )**2
+        new_match = prev_match + ((new_index1, new_index0),)
+        # Prepare for next grow call: new list of allowed atoms
+        if len(self._state) == len(self._allowed):
+            next_index1 = None
+            next_allowed_index0 = None
+        else:
+            # Take as next index1 the one that is closest to the new_index1.
+            used_index1 = set([index1 for index1, index0 in new_match])
+            next_allowed_index1 = set(range(len(self._allowed))) - used_index1
+            distances_sq = self._get_sorted_indexes(self._dm1, new_index1, next_allowed_index1)
+            next_index1 = distances_sq[0]
+            # The new indexes to try is the given set of indexes, minus the ones already
+            # used.
+            used_index0 = set([index0 for index1, index0 in new_match])
+            next_allowed_index0 = list(set(self._allowed[next_index1]) - set(used_index0))
+            distances_sq = self._get_sorted_indexes(self._dm0, new_index0, next_allowed_index0)
+            next_allowed_index0 = self._get_sorted_indexes(self._dm0, new_index0, next_allowed_index0)
+        self._state.append(Slice(new_match, new_error_sq, next_index1, next_allowed_index0))
+
+    @staticmethod
+    def _get_sorted_indexes(dm, new_index, next_allowed_index):
+        distances_sq = [((dm[new_index, next_index]**2).sum(), next_index)
+                        for next_index in next_allowed_index]
+        return [index for d, index in sorted(distances_sq)]
+
+
+    def shrink(self):
+        """Discard the current partial solution and prepare stack for adding new element."""
+        self._state.pop(-1)
+        while len(self._state) > 0 and len(self._state[-1].next_allowed_index0) == 0:
+            self._state.pop(-1)
+
+    def is_acceptable(self):
+        """Return True if the partial solution is acceptable."""
+        return self._state[-1].error_sq < self._threshold_sq
+
+    def is_complete(self):
+        """Return True if the partial solution is actually a complete one."""
+        return self._state[-1].next_index1 is None
+
+    def is_done(self):
+        """Return True when no more reorderings are available for testing."""
+        return len(self._state) == 0
+
+    def get_match(self):
+        """Return the current (partial) match."""
+        return tuple([index0 for index1, index0 in sorted(self._state[-1].match)])
+
+
+def iter_matches(dm0, dm1, allowed, threshold=1e-3):
+    """Iterate over all possible renumberings of system 1 that are present in system 0.
+
+    Parameters
+    ----------
+    dm0 : np.ndarray, shape=(n0, n0)
+        A reference distance matrix (or analogeous object).
+    dm1 : np.ndarray, shape=(n1, n1), n1 <= n0
+        A distance matrix of the system to be reordered.
+    allowed : list of lists of integer indexes
+        For each element in system 1, the allowed corresponding indexes in system 0. This
+        can be based on corresponding chemical elements, atom types, etc. The more
+        specific, the more efficient this function becomes.
+    threshold : float
+        An allowed deviation (L2-norm) between the distance matrix of the
+        reference and the reordered system 1.
+
+    Yields
+    ------
+    match : tuple
+        All possible renumberings of elements in system 1 that match with (a subset of)
+        system 0. All elements of the tuple are integers.
+    """
+
+    # Convert allowed to lists of lists, if needed.
+    allowed = [list(a) for a in allowed]
+    # There is no hope of finding a solution if one of the allowed lists is empty
+    if any(len(a) == 0 for a in allowed):
+        return
+    # There is no hope of finding a solution if some indexes of the reference are never
+    # present in the allowed lists.
+    if range(dm0.shape[0]) != sorted(set(sum(allowed, []))):
+        return
+
+    stack = Stack(dm0, dm1, allowed, threshold**2)
+    while not stack.is_done():
+        # Try to add something to stack
+        stack.grow()
+        if not stack.is_acceptable():
+            # Discard new partial solution if the error becomes too big.
+            stack.shrink()
+        elif stack.is_complete():
+            yield stack.get_match()
+            # Discard current solution because it is already generated.
+            stack.shrink()

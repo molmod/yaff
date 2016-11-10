@@ -30,3 +30,4 @@ from yaff.analysis.diffusion import *
 from yaff.analysis.rdf import *
 from yaff.analysis.spectrum import *
 from yaff.analysis.utils import *
+from yaff.analysis.pca import *

@@ -21,20 +21,12 @@
 //
 //--
 
+#include <stdlib.h>
+#include <math.h>
+#include "constants.h"
 
-#ifndef YAFF_VLIST_H
-#define YAFF_VLIST_H
-
-#include "iclist.h"
-
-typedef struct {
-  long kind;
-  double par0, par1, par2, par3, par4, par5;
-  long ic0, ic1;//, ic2;
-  double energy;
-} vlist_row_type;
-
-double vlist_forward(iclist_row_type* ictab, vlist_row_type* vtab, long nv);
-void vlist_back(iclist_row_type* ictab, vlist_row_type* vtab, long nv);
-
-#endif
+double slaterei_0_0(double a, double b, double Na, double Za, double Nb, double Zb, double d, double *g);
+double slaterei_1_0(double a, double b, double Na, double Za, double Nb, double Zb, double d, double *g);
+double slaterei_1_1(double a, double b, double Na, double Za, double Nb, double Zb, double d, double *g);
+double slaterei_1_1_kronecker(double a, double b, double Na, double Za, double Nb, double Zb, double d, double *g);
+double slaterolp_0_0(double a, double b, double d, double *g);

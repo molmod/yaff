@@ -26,6 +26,7 @@
 cimport numpy as np
 cimport nlist
 cimport truncation
+cimport slater
 
 cdef extern from "pair_pot.h":
     ctypedef struct scaling_row_type:
@@ -57,7 +58,17 @@ cdef extern from "pair_pot.h":
 
     void pair_data_exprep_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *amp_cross, double *b_cross)
 
+    void pair_data_qmdffrep_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *amp_cross, double *b_cross)
+
+    void pair_data_ljcross_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *eps_cross, double *sig_cross)
+
     void pair_data_dampdisp_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *c6_cross, double *b_cross)
+
+    void pair_data_disp68bjdamp_init(pair_pot_type *pair_pot, long nffatype, long* ffaype_ids, double *c6_cross, double *c8_cross, double *R_cross, double c6_scale, double c8_scale, double bj_a, double bj_b)
+    double pair_data_disp68bjdamp_get_c6_scale(pair_pot_type *pair_pot)
+    double pair_data_disp68bjdamp_get_c8_scale(pair_pot_type *pair_pot)
+    double pair_data_disp68bjdamp_get_bj_a(pair_pot_type *pair_pot)
+    double pair_data_disp68bjdamp_get_bj_b(pair_pot_type *pair_pot)
 
     void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha, double dielectric, double *radii)
     double pair_data_ei_get_alpha(pair_pot_type *pair_pot)
@@ -65,3 +76,17 @@ cdef extern from "pair_pot.h":
 
     void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipoles, double alpha, double *radii, double *radii2)
     double pair_data_eidip_get_alpha(pair_pot_type *pair_pot)
+
+    void pair_data_eislater1s1scorr_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double *slater1s_Z)
+
+    void pair_data_eislater1sp1spcorr_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double *slater1s_Z, double *slater1p_widths, double *slater1p_N, double *slater1p_Z)
+
+    void pair_data_olpslater1s1s_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double ex_scale, double corr_a, double corr_b, double corr_c)
+    double pair_data_olpslater1s1s_get_ex_scale(pair_pot_type *pair_pot)
+    double pair_data_olpslater1s1s_get_corr_a(pair_pot_type *pair_pot)
+    double pair_data_olpslater1s1s_get_corr_b(pair_pot_type *pair_pot)
+    double pair_data_olpslater1s1s_get_corr_c(pair_pot_type *pair_pot)
+
+    void pair_data_chargetransferslater1s1s_init(pair_pot_type *pair_pot, double *slater1s_widths, double *slater1s_N, double ct_scale, double width_power)
+    double pair_data_chargetransferslater1s1s_get_ct_scale(pair_pot_type *pair_pot)
+    double pair_data_chargetransferslater1s1s_get_width_power(pair_pot_type *pair_pot)

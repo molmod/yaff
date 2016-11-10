@@ -27,7 +27,7 @@
 import numpy as np, h5py as h5
 
 from yaff.log import log
-from yaff.atselect import check_name, atsel_compile
+from yaff.atselect import check_name, atsel_compile, iter_matches
 from yaff.pes.ext import Cell
 
 
@@ -47,8 +47,9 @@ def _unravel_triangular(i):
 
 class System(object):
     def __init__(self, numbers, pos, scopes=None, scope_ids=None, ffatypes=None,
-                 ffatype_ids=None, bonds=None, rvecs=None, charges=None, radii=None,
-                 dipoles=None, radii2=None, masses=None):
+                 ffatype_ids=None, bonds=None, rvecs=None, charges=None,
+                 radii=None, valence_charges=None, dipoles=None, radii2=None,
+                 masses=None):
         '''
            **Arguments:**
 
@@ -100,6 +101,12 @@ class System(object):
                 distribution
                 rho[i]=charges[i]/(sqrt(pi)radii[i]**3)*exp(-(|r-pos[i]|/radii[i])**2)
 
+           valence_charges
+                In case a point-core + distribute valence charge is used, this
+                vector contains the valence charges. The core charges can be
+                computed by subtracting the valence charges from the net
+                charges.
+
            dipoles
                 An array of atomic dipoles
 
@@ -137,6 +144,7 @@ class System(object):
         self.cell = Cell(rvecs)
         self.charges = charges
         self.radii = radii
+        self.valence_charges = valence_charges
         self.dipoles = dipoles
         self.radii2 = radii2
         self.masses = masses
@@ -199,6 +207,16 @@ class System(object):
                     if i3 != i0 and i3 not in self.neighs1[i0] and i3 not in self.neighs2[i0]:
                         self.neighs3[i0].add(i3)
                         self.neighs3[i3].add(i0)
+        # 4-bond neighbors
+        self.neighs4 = dict((i,set([])) for i in xrange(self.natom))
+        for i0, n0 in self.neighs1.iteritems():
+            for i1 in n0:
+                for i4 in self.neighs3[i1]:
+                    # Require that there are no shorter paths than three bonds
+                    # between i0 and i4. Also avoid duplicates.
+                    if i4 != i0 and i4 not in self.neighs1[i0] and i4 not in self.neighs2[i0] and i4 not in self.neighs3[i0]:
+                        self.neighs4[i0].add(i4)
+                        self.neighs4[i4].add(i0)
         # report some basic stuff on screen
         if log.do_medium:
             log('Analysis of the bonds:')
@@ -417,7 +435,7 @@ class System(object):
                     allowed_keys = [
                         'numbers', 'pos', 'scopes', 'scope_ids', 'ffatypes',
                         'ffatype_ids', 'bonds', 'rvecs', 'charges', 'radii',
-                        'dipoles','radii2','masses',
+                        'valence_charges', 'dipoles', 'radii2', 'masses',
                     ]
                     for key, value in load_chk(fn).iteritems():
                         if key in allowed_keys:
@@ -588,6 +606,17 @@ class System(object):
                         if i1==i3: continue
                         if i0==i3: continue
                         yield i0, i1, i2, i3
+
+    def iter_oops(self):
+        """Iterative over all possible oop patterns."
+
+           This routine is based on the attribute ``bonds``.
+        """
+        if self.bonds is not None:
+            for i3 in xrange(self.natom):
+                if len(self.neighs1[i3])==3:
+                    i0, i1, i2 = self.neighs1[i3]
+                    yield i0, i1, i2, i3
 
     def detect_bonds(self, exceptions=None):
         """Initialize the ``bonds`` attribute based on inter-atomic distances
@@ -798,7 +827,8 @@ class System(object):
 
         # B) Simple repetitions
         rep_all = np.product(reps)
-        for attrname in 'numbers', 'ffatype_ids', 'scope_ids', 'charges', 'radii', 'radii2', 'masses':
+        for attrname in 'numbers', 'ffatype_ids', 'scope_ids', 'charges', \
+                        'radii', 'valence_charges', 'radii2', 'masses':
             value = getattr(self, attrname)
             if value is not None:
                 new_args[attrname] = np.tile(value, rep_all)
@@ -948,6 +978,7 @@ class System(object):
         ffatype_ids = reduce_int_array(self.ffatype_ids)
         charges = reduce_float_array(self.charges)
         radii = reduce_float_array(self.radii)
+        valence_charges = reduce_float_array(self.valence_charges)
         dipoles = reduce_float_matrix(self.dipoles)
         radii2 = reduce_float_array(self.radii2)
         masses = reduce_float_array(self.masses)
@@ -973,7 +1004,7 @@ class System(object):
             bonds = set((oldnew[ia], oldnew[ib]) for ia, ib in self.bonds)
             bonds = np.array([bond for bond in bonds])
 
-        return self.__class__(numbers, pos, self.scopes, scope_ids, self.ffatypes, ffatype_ids, bonds, self.cell.rvecs, charges, radii, dipoles, radii2, masses)
+        return self.__class__(numbers, pos, self.scopes, scope_ids, self.ffatypes, ffatype_ids, bonds, self.cell.rvecs, charges, radii, valence_charges, dipoles, radii2, masses)
 
     def subsystem(self, indexes):
         '''Return a System instance in which only the given atom are retained.'''
@@ -1018,6 +1049,7 @@ class System(object):
             rvecs=self.cell.rvecs,
             charges=reduce_array(self.charges),
             radii=reduce_array(self.radii),
+            valence_charges=reduce_array(self.valence_charges),
             dipoles=reduce_array(self.dipoles),
             radii2=reduce_array(self.radii2),
             masses=reduce_array(self.masses),
@@ -1037,6 +1069,47 @@ class System(object):
             if not ((i0 in indexes) ^ (i1 in indexes)):
                 new_bonds.append([i0, i1])
         self.bonds = np.array(new_bonds)
+
+    def iter_matches(self, other):
+        """Yield all renumberings of atoms that map the given system on the current.
+
+        Parameters
+        ----------
+        other : yaff.System
+            Another system with the same number of atoms (and chemical formula), or less
+            atoms.
+
+        The graph distance is used to perform the mapping, so bonds must be defined in
+        the current and the given system.
+        """
+        from molmod.graphs import Graph
+        with log.section('SYS'):
+            log('Generating allowed indexes for renumbering.')
+            # The allowed permutations is just based on the chemical elements, not the atom
+            # types, which could also be useful.
+            allowed = []
+            if self.ffatypes is None or other.ffatypes is None:
+                for number1 in other.numbers:
+                    allowed.append((self.numbers == number1).nonzero()[0])
+            else:
+                # Only continue if other.ffatypes is a subset of self.ffatypes
+                if not (set(self.ffatypes) >= set(other.ffatypes)):
+                    return
+                ffatype_ids0 = self.ffatype_ids
+                ffatypes0 = list(self.ffatypes)
+                order = np.array([ffatypes0.index(ffatype) for ffatype in other.ffatypes])
+                ffatype_ids1 = order[other.ffatype_ids]
+                for ffatype_id1 in ffatype_ids1:
+                    allowed.append((ffatype_ids0 == ffatype_id1).nonzero()[0])
+            # Use Molmod to construct graph distance matrices.
+            log('Building graph distance matrix for self.')
+            dm0 = Graph(self.bonds).distances
+            log('Building graph distance matrix for other.')
+            dm1 = Graph(other.bonds).distances
+            # Yield the solutions
+            log('Generating renumberings.')
+            for match in iter_matches(dm0, dm1, allowed):
+                yield match
 
     def to_file(self, fn):
         """Write the system to a file
@@ -1075,6 +1148,7 @@ class System(object):
                 'rvecs': self.cell.rvecs,
                 'charges': self.charges,
                 'radii': self.radii,
+                'valence_charges': self.valence_charges,
                 'dipoles': self.dipoles,
                 'radii2': self.radii2,
                 'masses': self.masses,
@@ -1120,6 +1194,8 @@ class System(object):
             sgrp.create_dataset('charges', data=self.charges)
         if self.radii is not None:
             sgrp.create_dataset('radii', data=self.radii)
+        if self.valence_charges is not None:
+            sgrp.create_dataset('valence_charges', data=self.charges)
         if self.dipoles is not None:
             sgrp.create_dataset('dipoles', data=self.dipoles)
         if self.radii2 is not None:

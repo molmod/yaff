@@ -63,7 +63,7 @@ class AnalysisInput(object):
 class AnalysisHook(Hook):
     def __init__(self, f=None, start=0, end=-1, max_sample=None, step=None,
                  analysis_inputs={}, outpath='trajectory/noname', do_timestep=False):
-        """Base class for the ansysis hooks.
+        """Base class for the analysis hooks.
 
            Analysis hooks in Yaff support both off-line and on-line analysis.
 

@@ -160,3 +160,42 @@ def test_atselect_scope():
     assert (system.get_indexes('WAT:1|WAT:8')==np.array([0, 1, 2])).all()
     assert (system.get_indexes('O')==np.array([0, 7])).all()
     assert (system.get_indexes('8')==np.array([0, 7])).all()
+
+
+def test_iter_matches_water_water():
+    # Water molecule with oxygen in center
+    dm0 = np.array([
+        [0, 1, 2],
+        [1, 0, 1],
+        [2, 1, 0],
+    ])
+    # Water molecule with oxygen first
+    dm1 = np.array([
+        [0, 1, 1],
+        [1, 0, 2],
+        [1, 2, 0],
+    ])
+    # Allowed new indexes
+    allowed = [[1], [0, 2], [0, 2]]
+    # Get all solutions
+    solutions = np.array(sorted(iter_matches(dm0, dm1, allowed)))
+    np.testing.assert_equal(solutions, [[1, 0, 2], [1, 2, 0]])
+
+
+def test_iter_matches_water_hydroxyl():
+    # Water molecule with oxygen in center
+    dm0 = np.array([
+        [0, 1, 2],
+        [1, 0, 1],
+        [2, 1, 0],
+    ])
+    # Hydroxyl group
+    dm1 = np.array([
+        [0, 1],
+        [1, 0],
+    ])
+    # Allowed new indexes
+    allowed = [[1], [0, 2]]
+    # Get all solutions
+    solutions = np.array(sorted(iter_matches(dm0, dm1, allowed)))
+    np.testing.assert_equal(solutions, [[1, 0], [1, 2]])
