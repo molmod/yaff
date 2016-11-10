@@ -405,10 +405,10 @@ class Stack(object):
         # Compute the updated error_sq
         new_error_sq = prev_error_sq
         for prev_index1, prev_index0 in prev_match:
-            new_error_sq += ((
+            new_error_sq += (
                 self._dm0[prev_index0, new_index0] -
                 self._dm1[prev_index1, new_index1]
-            )**2).sum()
+            )**2
         new_match = prev_match + ((new_index1, new_index0),)
         # Prepare for next grow call: new list of allowed atoms
         if len(self._state) == len(self._allowed):
@@ -463,9 +463,9 @@ def iter_matches(dm0, dm1, allowed, threshold=1e-3):
 
     Parameters
     ----------
-    dm0 : np.ndarray, shape=(n0, n0, ...)
+    dm0 : np.ndarray, shape=(n0, n0)
         A reference distance matrix (or analogeous object).
-    dm1 : np.ndarray, shape=(n1, n1, ...), n1 <= n0
+    dm1 : np.ndarray, shape=(n1, n1), n1 <= n0
         A distance matrix of the system to be reordered.
     allowed : list of lists of integer indexes
         For each element in system 1, the allowed corresponding indexes in system 0. This
