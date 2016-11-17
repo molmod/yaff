@@ -1303,18 +1303,18 @@ cdef class PairPotDampDisp(PairPot):
 
         **Energy:**
 
-        .. math:: E_\text{DAMPDISP} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} C_{6,ij} f_\text{damp,6}(d_{ij}) d_{ij}^{-6}
+        .. math:: E_\text{DAMPDISP} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} C_{n,ij} f_\text{damp,n}(d_{ij}) d_{ij}^{-n}
 
         where the damping factor :math:`f_\text{damp}(d_{ij})` is optional. When used
         it has the Tang-Toennies form:
 
         .. math:: f_\text{damp,n}(d_{ij}) = 1 - \exp(-B_{ij}r)\sum_{k=0}^n\frac{(B_{ij}r)^k}{k!}
 
-        The pair parameters :math:`C_{6,ij}` and :math:`B_{ij}` are derived from atomic
+        The pair parameters :math:`C_{n,ij}` and :math:`B_{ij}` are derived from atomic
         parameters using mixing rules, unless they are provided explicitly for a given
         pair of atom types. These are the mixing rules:
 
-        .. math:: C_{6,ij} = \frac{2 C_{6,i} C_{6,j}}{\left(\frac{V_j}{V_i}\right)^2 C_{6,i} + \left(\frac{V_i}{V_j}\right)^2 C_{6,j}}
+        .. math:: C_{n,ij} = \frac{2 C_{n,i} C_{n,j}}{\left(\frac{V_j}{V_i}\right)^2 C_{n,i} + \left(\frac{V_i}{V_j}\right)^2 C_{n,j}}
 
         .. math:: B_{ij} = \frac{B_i+B_j}{2}
 
@@ -1325,8 +1325,8 @@ cdef class PairPotDampDisp(PairPot):
             indexes for the atom types that start counting from zero. shape =
             (natom,).
 
-        c6_cross
-            The :math:`C_{6,ij}` cross parameters.
+        cn_cross
+            The :math:`C_{n,ij}` cross parameters.
 
         b_cross
             The :math:`B_{ij}` cross parameters. When zero, the damping factor
@@ -1341,8 +1341,8 @@ cdef class PairPotDampDisp(PairPot):
             The truncation scheme, an instance of a subclass of ``Truncation``.
             When not given, no truncation is applied
 
-        c6s
-            The diagonal :math:`C_{6,i}` parameters
+        cns
+            The diagonal :math:`C_{n,i}` parameters
 
         bs
             The diagonal :math:`B_{i}` parameters
@@ -1350,62 +1350,70 @@ cdef class PairPotDampDisp(PairPot):
         vols
             The atomic volumes, :math:`V_i`.
 
+        power
+            The power to which :math:`1/d_{ij}` is raised.
+            Default value is 6, which corresponds to the first term in a
+            perturbation expansion of the dispersion energy.
+
         The three last optional arguments are used to determine pair parameters
         from the mixing rules. These mixing rules are only applied of the
         corresponding cross parameters are initially set to zero in the arrays
-        ``c6_corss`` and ``b_cross``.
+        ``cn_cross`` and ``b_cross``.
     '''
     cdef long _c_nffatype
-    cdef np.ndarray _c_c6_cross
+    cdef long _c_power
+    cdef np.ndarray _c_cn_cross
     cdef np.ndarray _c_b_cross
     name = 'dampdisp'
 
     def __cinit__(self, np.ndarray[long, ndim=1] ffatype_ids not None,
-                  np.ndarray[double, ndim=2] c6_cross not None,
+                  np.ndarray[double, ndim=2] cn_cross not None,
                   np.ndarray[double, ndim=2] b_cross not None,
                   double rcut, Truncation tr=None,
-                  np.ndarray[double, ndim=1] c6s=None,
+                  np.ndarray[double, ndim=1] cns=None,
                   np.ndarray[double, ndim=1] bs=None,
-                  np.ndarray[double, ndim=1] vols=None):
+                  np.ndarray[double, ndim=1] vols=None,
+                  long power=6):
         assert ffatype_ids.flags['C_CONTIGUOUS']
-        assert c6_cross.flags['C_CONTIGUOUS']
+        assert cn_cross.flags['C_CONTIGUOUS']
         assert b_cross.flags['C_CONTIGUOUS']
-        nffatype = c6_cross.shape[0]
+        nffatype = cn_cross.shape[0]
         assert ffatype_ids.min() >= 0
         assert ffatype_ids.max() < nffatype
-        assert c6_cross.shape[1] == nffatype
+        assert cn_cross.shape[1] == nffatype
         assert b_cross.shape[0] == nffatype
         assert b_cross.shape[1] == nffatype
-        if c6s is not None or vols is not None:
-            assert c6s is not None
+        if cns is not None or vols is not None:
+            assert cns is not None
             assert vols is not None
-            assert c6s.flags['C_CONTIGUOUS']
+            assert cns.flags['C_CONTIGUOUS']
             assert vols.flags['C_CONTIGUOUS']
-            assert c6s.shape[0] == nffatype
+            assert cns.shape[0] == nffatype
             assert bs.shape[0] == nffatype
-            self._init_c6_cross(nffatype, c6_cross, c6s, vols)
+            self._init_cn_cross(nffatype, cn_cross, cns, vols)
         if bs is not None:
             assert bs.flags['C_CONTIGUOUS']
             self._init_b_cross(nffatype, b_cross, bs)
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
         self.set_truncation(tr)
         pair_pot.pair_data_dampdisp_init(
-            self._c_pair_pot, nffatype, <long*> ffatype_ids.data,
-            <double*> c6_cross.data, <double*> b_cross.data,
+            self._c_pair_pot, nffatype, power, <long*> ffatype_ids.data,
+            <double*> cn_cross.data, <double*> b_cross.data,
         )
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
         self._c_nffatype = nffatype
-        self._c_c6_cross = c6_cross
+        self._c_power = power
+        self._c_cn_cross = cn_cross
         self._c_b_cross = b_cross
 
-    def _init_c6_cross(self, nffatype, c6_cross, c6s, vols):
+    def _init_cn_cross(self, nffatype, cn_cross, cns, vols):
         for i0 in xrange(nffatype):
             for i1 in xrange(i0+1):
-                if c6_cross[i0, i1] == 0.0 and vols[i0] != 0.0 and vols[i1] != 0.0:
+                if cn_cross[i0, i1] == 0.0 and vols[i0] != 0.0 and vols[i1] != 0.0:
                     ratio = vols[i0]/vols[i1]
-                    c6_cross[i0, i1] = 2.0*c6s[i0]*c6s[i1]/(c6s[i0]/ratio+c6s[i1]*ratio)
-                    c6_cross[i1, i0] = c6_cross[i0, i1]
+                    cn_cross[i0, i1] = 2.0*cns[i0]*cns[i1]/(cns[i0]/ratio+cns[i1]*ratio)
+                    cn_cross[i1, i0] = cn_cross[i0, i1]
 
     def _init_b_cross(self, nffatype, b_cross, bs):
         for i0 in xrange(nffatype):
@@ -1418,17 +1426,17 @@ cdef class PairPotDampDisp(PairPot):
         '''Print suitable initialization info on screen.'''
         if log.do_high:
             log.hline()
-            log('ffatype_id0 ffatype_id1         C6          B')
+            log('ffatype_id0 ffatype_id1         cn[au]        B')
             log.hline()
             for i0 in xrange(self._c_nffatype):
                 for i1 in xrange(i0+1):
-                    log('%11i %11i %s %s' % (i0, i1, log.c6(self._c_c6_cross[i0,i1]), log.invlength(self._c_b_cross[i0,i1])))
+                    log('%11i %11i %10.5f %s' % (i0, i1, self._c_cn_cross[i0,i1], log.invlength(self._c_b_cross[i0,i1])))
 
-    def _get_c6_cross(self):
-        '''The C6 cross parameters'''
-        return self._c_c6_cross.view()
+    def _get_cn_cross(self):
+        '''The cn cross parameters'''
+        return self._c_cn_cross.view()
 
-    c6_cross = property(_get_c6_cross)
+    cn_cross = property(_get_cn_cross)
 
     def _get_b_cross(self):
         '''The damping cross parameters'''
