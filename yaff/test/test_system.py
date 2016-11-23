@@ -25,7 +25,7 @@
 
 import tempfile, shutil, numpy as np, h5py as h5
 
-from yaff import System, Cell, angstrom
+from yaff import System, Cell, angstrom, context
 
 from common import get_system_water32, get_system_glycine, get_system_quartz, \
     get_system_cyclopropene, get_system_peroxide, get_system_graphene8, \
@@ -444,3 +444,12 @@ def test_iter_matches_peroxide_graphene8():
     system0 = get_system_graphene8()
     system1 = get_system_peroxide()
     assert len(list(system0.iter_matches(system1))) == 0
+
+
+def test_iter_matches_guaianolide():
+    system = System.from_file(context.get_fn('test/guaianolide.xyz'))
+    system.detect_bonds()
+    system_ref = System.from_file(context.get_fn('test/guaianolide_framework_ordered.xyz'))
+    system_ref.detect_bonds()
+    order = np.array(system.iter_matches(system_ref).next())
+    np.testing.assert_equal(order, [8, 9, 4, 7, 14, 12, 11, 10, 5, 6, 13, 16, 15, 2, 0, 1, 3])

@@ -467,7 +467,7 @@ def iter_matches(dm0, dm1, allowed, threshold=1e-3):
         A reference distance matrix (or analogeous object).
     dm1 : np.ndarray, shape=(n1, n1), n1 <= n0
         A distance matrix of the system to be reordered.
-    allowed : list of lists of integer indexes
+    allowed : list (length n1) of lists of integer indexes
         For each element in system 1, the allowed corresponding indexes in system 0. This
         can be based on corresponding chemical elements, atom types, etc. The more
         specific, the more efficient this function becomes.
@@ -487,9 +487,11 @@ def iter_matches(dm0, dm1, allowed, threshold=1e-3):
     # There is no hope of finding a solution if one of the allowed lists is empty
     if any(len(a) == 0 for a in allowed):
         return
-    # There is no hope of finding a solution if some indexes of the reference are never
-    # present in the allowed lists.
-    if range(dm0.shape[0]) != sorted(set(sum(allowed, []))):
+    # The length of the allowed list should be correct for a solution to exist.
+    if dm1.shape[0] != len(allowed):
+        return
+    # The allowed indexes must be present in the reference
+    if not set(sum(allowed, [])).issubset(range(dm0.shape[0])):
         return
 
     stack = Stack(dm0, dm1, allowed, threshold**2)
