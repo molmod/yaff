@@ -433,7 +433,7 @@ def test_generator_water32_dampdisp1():
     assert len(ff.parts) == 1
     part_pair_dampdisp = ff.part_pair_dampdisp
     # check parameters
-    c6_cross = part_pair_dampdisp.pair_pot.c6_cross
+    c6_cross = part_pair_dampdisp.pair_pot.cn_cross
     assert c6_cross.shape == (2,2)
     assert abs(c6_cross[0,0] - 1.9550248340e+01) < 1e-10
     assert abs(c6_cross[1,1] - 2.7982205915e+00) < 1e-10
@@ -458,7 +458,7 @@ def test_generator_water32_dampdisp2():
     assert len(ff.parts) == 1
     part_pair_dampdisp = ff.part_pair_dampdisp
     # check parameters
-    c6_cross = part_pair_dampdisp.pair_pot.c6_cross
+    c6_cross = part_pair_dampdisp.pair_pot.cn_cross
     assert abs(c6_cross[0,0] - 1.9550248340e+01) < 1e-10
     assert abs(c6_cross[0,1] - 6.4847208208e+00) < 1e-10
     assert abs(c6_cross[1,1] - 2.7982205915e+00) < 1e-10
@@ -479,7 +479,7 @@ def test_generator_glycine_dampdisp1():
     assert len(ff.parts) == 1
     part_pair_dampdisp = ff.part_pair_dampdisp
     # check parameters
-    c6_cross = part_pair_dampdisp.pair_pot.c6_cross
+    c6_cross = part_pair_dampdisp.pair_pot.cn_cross
     assert c6_cross.shape == (4, 4)
     assert abs(c6_cross[0,0] - 2.0121581791e+01) < 1e-10
     assert abs(c6_cross[1,1] - 2.5121581791e+01) < 1e-10
@@ -682,7 +682,7 @@ def test_generator_water32():
     part_ewald_cor = ff.part_ewald_cor
     part_ewald_neut = ff.part_ewald_neut
     # check dampdisp parameters
-    c6_cross = part_pair_dampdisp.pair_pot.c6_cross
+    c6_cross = part_pair_dampdisp.pair_pot.cn_cross
     assert abs(c6_cross[0,0] - 1.9550248340e+01) < 1e-10
     assert abs(c6_cross[1,1] - 2.7982205915e+00) < 1e-10
     assert (c6_cross == c6_cross.T).all()

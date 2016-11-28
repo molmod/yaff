@@ -830,49 +830,59 @@ def test_pair_pot_ljcross_caffeine_9A():
     check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, 1e-15)
 
 
-def get_part_caffeine_dampdisp_9A():
+def get_part_caffeine_dampdisp_9A(power=6):
     # Get a system and define scalings
     system = get_system_caffeine()
     nlist = NeighborList(system)
     scalings = Scalings(system, 0.0, 1.0, 1.0)
     # Initialize (very random) parameters
-    c6s = np.array([2.5, 27.0, 18.0, 13.0])
+    cns = np.array([2.5, 27.0, 18.0, 13.0])
     bs = np.array([2.5, 2.0, 0.0, 1.8])
     vols = np.array([5, 3, 4, 5])*angstrom**3
     # Allocate some arrays
     assert system.nffatype == 4
-    c6_cross = np.zeros((4, 4), float)
+    cn_cross = np.zeros((4, 4), float)
     b_cross = np.zeros((4, 4), float)
     # Construct the pair potential and part
-    pair_pot = PairPotDampDisp(system.ffatype_ids, c6_cross, b_cross, 9*angstrom, None, c6s, bs, vols)
+    pair_pot = PairPotDampDisp(system.ffatype_ids, cn_cross, b_cross, 9*angstrom, None, cns, bs, vols, power=power)
     part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
     # The pair function
     def pair_fn(i0, i1, d):
-        c60 = c6s[system.ffatype_ids[i0]]
-        c61 = c6s[system.ffatype_ids[i1]]
+        cn0 = cns[system.ffatype_ids[i0]]
+        cn1 = cns[system.ffatype_ids[i1]]
         b0 = bs[system.ffatype_ids[i0]]
         b1 = bs[system.ffatype_ids[i1]]
         vol0 = vols[system.ffatype_ids[i0]]
         vol1 = vols[system.ffatype_ids[i1]]
         ratio = vol0/vol1
-        c6 = 2*c60*c61/(c60/ratio+c61*ratio)
+        cn = 2*cn0*cn1/(cn0/ratio+cn1*ratio)
         if b0 != 0 and b1 != 0:
             b = 0.5*(b0+b1)
             damp = 0
             fac = 1
-            for k in xrange(7):
+            for k in xrange(power+1):
                 damp += (b*d)**k/fac
                 fac *= k+1
             damp = 1 - np.exp(-b*d)*damp
-            return -c6/d**6*damp
+            return -cn/d**power*damp
         else:
             damp = 1
-            return -c6/d**6
+            return -cn/d**power
     return system, nlist, scalings, part_pair, pair_fn
 
 
 def test_pair_pot_dampdisp_caffeine_9A():
     system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_dampdisp_9A()
+    check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, 1e-15)
+
+
+def test_pair_pot_dampdisp8_caffeine_9A():
+    system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_dampdisp_9A(power=8)
+    check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, 1e-15)
+
+
+def test_pair_pot_dampdisp10_caffeine_9A():
+    system, nlist, scalings, part_pair, pair_fn = get_part_caffeine_dampdisp_9A(power=10)
     check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, 1e-15)
 
 
@@ -1273,7 +1283,7 @@ def test_bks_isfinite():
     system = get_system_quartz()
     fn_pars = context.get_fn('test/parameters_bks.txt')
     ff = ForceField.generate(system, fn_pars)
-    assert np.isfinite(ff.part_pair_dampdisp.pair_pot.c6_cross).all()
+    assert np.isfinite(ff.part_pair_dampdisp.pair_pot.cn_cross).all()
     assert np.isfinite(ff.part_pair_dampdisp.pair_pot.b_cross).all()
     ff.compute()
     assert np.isfinite(ff.part_pair_exprep.energy)
