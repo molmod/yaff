@@ -166,7 +166,7 @@ def estimate_elastic(ff, eps=1e-4, do_frozen=False, ridge=1e-4):
     """
     cell = ff.system.cell
     if cell.nvec == 0:
-        raise VelueError('The elastic constants can only be computed if the system is periodic.')
+        raise ValueError('The elastic constants can only be computed if the system is periodic.')
     dof = StrainCellDOF(ff, do_frozen=do_frozen)
     vol0 = cell.volume
     if do_frozen:
