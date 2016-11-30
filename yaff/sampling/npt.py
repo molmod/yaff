@@ -635,7 +635,10 @@ class MTKBarostat(VerletHook):
         # propagate the barostat
         self.baro(iterative, chainvel0)
         # calculate the correction due to the barostat alone
-        self.econs_correction = self.press*iterative.ff.system.cell.volume + self._compute_ekin_baro()
+        self.econs_correction = self._compute_ekin_baro()
+        # add the PV term if the volume is not constrained
+        if not self.vol_constraint:
+            self.econs_correction += self.press*iterative.ff.system.cell.volume
         if self.baro_thermo is not None:
             # add the correction due to the barostat thermostat
             self.econs_correction += self.baro_thermo.chain.get_econs_correction()

@@ -493,7 +493,7 @@ class ConsErrTracker(object):
         if self.counter > 0:
             ekin_var = self.ekin_sumsq/self.counter - (self.ekin_sum/self.counter)**2
             max_contrib = max(self.ekin_sumsq/self.counter, (self.ekin_sum/self.counter)**2)
-            if np.abs(ekin_var)/max_contrib > 10.*self.eps:
+            if max_contrib > 10.*self.eps and np.abs(ekin_var)/max_contrib > 10.*self.eps:
             # only calculate further if the variance is substantially different from zero,
             # to mediate precision errors
                 econs_var = self.econs_sumsq/self.counter - (self.econs_sum/self.counter)**2
