@@ -524,6 +524,7 @@ class BondDoubleWell2Generator(ValenceGenerator):
             par_table[key] = [(pars,)]
         return par_table
 
+
 class PolySixGenerator(ValenceGenerator):
     nffatype = 2
     prefix = 'POLYSIX'
@@ -593,6 +594,7 @@ class BendCLinGenerator(BendGenerator):
     def get_vterm(self, pars, indexes):
         args = pars + (self.ICClass(*indexes),)
         return self.VClass(*args, sign=1.0)
+
 
 class TorsionAngleHarmGenerator(ValenceGenerator):
     nffatype = 4
@@ -755,6 +757,7 @@ class OopMeanAngleGenerator(ValenceGenerator):
             if len(neighbours)==3:
                 yield neighbours[0],neighbours[1],neighbours[2],atom
 
+
 class OopCosGenerator(ValenceGenerator):
     nffatype = 4
     par_info = [('A', float)]
@@ -782,6 +785,7 @@ class OopCosGenerator(ValenceGenerator):
     def get_vterm(self, pars, indexes):
         ic = OopCos(*indexes)
         return Chebychev1(pars[0], ic)
+
 
 class OopMeanCosGenerator(ValenceGenerator):
     nffatype = 4
@@ -811,6 +815,7 @@ class OopMeanCosGenerator(ValenceGenerator):
         ic = OopMeanCos(*indexes)
         return Chebychev1(pars[0], ic)
 
+
 class OopDistGenerator(ValenceGenerator):
     nffatype = 4
     par_info = [('K', float), ('D0', float)]
@@ -834,6 +839,7 @@ class OopDistGenerator(ValenceGenerator):
             neighbours = list(system.neighs1[atom])
             if len(neighbours)==3:
                 yield neighbours[0],neighbours[1],neighbours[2],atom
+
 
 class SquareOopDistGenerator(ValenceGenerator):
     nffatype = 4
@@ -859,6 +865,7 @@ class SquareOopDistGenerator(ValenceGenerator):
             if len(neighbours)==3:
                 yield neighbours[0],neighbours[1],neighbours[2],atom
 
+
 class ImproperGenerator(ValenceGenerator):
     nffatype = 4
     par_info = [('M', int), ('A', float), ('PHI0', float)]
@@ -881,6 +888,7 @@ class ImproperGenerator(ValenceGenerator):
                     yield atom, i1, i2, i3
                 for i1, i2, i3 in permutations([1,2,3]):
                     yield i1, atom, i2, i3
+
 
 class ValenceCrossGenerator(Generator):
     '''All generators for cross valence terms derive from this class.
@@ -993,6 +1001,7 @@ class ValenceCrossGenerator(Generator):
         '''Get the indexes for the third internal coordinate from the whole'''
         raise NotImplementedError
 
+
 class CrossGenerator(ValenceCrossGenerator):
     prefix = 'CROSS'
     par_info = [('KSS', float), ('KBS0', float), ('KBS1', float), ('R0', float), ('R1', float), ('THETA0', float)]
@@ -1018,6 +1027,7 @@ class CrossGenerator(ValenceCrossGenerator):
 
     def get_indexes2(self, indexes):
         return indexes
+
 
 class NonbondedGenerator(Generator):
     '''All generators for the non-bonding interactions derive from this class
