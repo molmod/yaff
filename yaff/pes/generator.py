@@ -32,6 +32,8 @@ import numpy as np
 
 from molmod.units import parse_unit
 
+from itertools import permutations
+
 from yaff.log import log
 from yaff.pes.ext import PairPotEI, PairPotLJ, PairPotMM3, PairPotExpRep, \
     PairPotQMDFFRep, PairPotDampDisp, PairPotDisp68BJDamp, Switch3
@@ -522,6 +524,20 @@ class BondDoubleWell2Generator(ValenceGenerator):
             par_table[key] = [(pars,)]
         return par_table
 
+class PolySixGenerator(ValenceGenerator):
+    nffatype = 2
+    prefix = 'POLYSIX'
+    ICClass = Bond
+    VClass = PolySix
+    par_info = [('C0', float), ('C1', float), ('C2', float), ('C3', float), ('C4', float), ('C5', float), ('C6', float)]
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        return system.iter_bonds()
+
 
 class BendGenerator(ValenceGenerator):
     nffatype = 3
@@ -567,6 +583,30 @@ class BendCosGenerator(BendGenerator):
     prefix = 'BENDCOS'
     ICClass = BendAngle
     VClass = Cosine
+
+class BendCLinGenerator(BendGenerator):
+    par_info = [('A', float)]
+    prefix = 'BENDCLIN'
+    ICClass = BendCos
+    VClass = Chebychev1
+
+    def get_vterm(self, pars, indexes):
+        args = pars + (self.ICClass(*indexes),)
+        return self.VClass(*args, sign=1.0)
+
+class TorsionAngleHarmGenerator(ValenceGenerator):
+    nffatype = 4
+    par_info = [('A', float), ('PHI0', float)]
+    prefix = 'TORSAHARM'
+    ICClass = DihedAngle
+    VClass = Harmonic
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        return system.iter_dihedrals()
 
 
 class TorsionCosHarmGenerator(ValenceGenerator):
@@ -819,6 +859,29 @@ class SquareOopDistGenerator(ValenceGenerator):
             if len(neighbours)==3:
                 yield neighbours[0],neighbours[1],neighbours[2],atom
 
+class ImproperGenerator(ValenceGenerator):
+    nffatype = 4
+    par_info = [('M', int), ('A', float), ('PHI0', float)]
+    prefix = 'IMPROPER'
+    ICClass = DihedAngle
+    VClass = Cosine
+    allow_superposition = True
+
+    def iter_alt_keys(self, key):
+        yield key
+        yield key[::-1]
+
+    def iter_indexes(self, system):
+        #Loop over all atoms; if an atom has 3 neighbors,
+        #it is candidate for an Improper term
+        for atom in system.neighs1.keys():
+            neighbours = list(system.neighs1[atom])
+            if len(neighbours)==3:
+                for i1, i2, i3 in permutations([1,2,3]):
+                    yield atom, i1, i2, i3
+                for i1, i2, i3 in permutations([1,2,3]):
+                    yield i1, atom, i2, i3
+
 class ValenceCrossGenerator(Generator):
     '''All generators for cross valence terms derive from this class.
 
@@ -1063,6 +1126,47 @@ class LJGenerator(NonbondedGenerator):
 
         # Get the part. It should not exist yet.
         part_pair = ff_args.get_part_pair(PairPotLJ)
+        if part_pair is not None:
+            raise RuntimeError('Internal inconsistency: the LJ part should not be present yet.')
+
+        pair_pot = PairPotLJ(sigmas, epsilons, ff_args.rcut, ff_args.tr)
+        nlist = ff_args.get_nlist(system)
+        part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+        ff_args.parts.append(part_pair)
+
+
+class LJCrossGenerator(NonbondedGenerator):
+    prefix = 'LJCROSS'
+    suffixes = ['UNIT', 'SCALE', 'PARS']
+    par_info = [('SIGMA', float), ('EPSILON', float)]
+
+    def __call__(self, system, parsec, ff_args):
+        self.check_suffixes(parsec)
+        conversions = self.process_units(parsec['UNIT'])
+        par_table = self.process_pars(parsec['PARS'], conversions, 1)
+        scale_table = self.process_scales(parsec['SCALE'])
+        self.apply(par_table, scale_table, system, ff_args)
+
+    def apply(self, par_table, scale_table, system, ff_args):
+        #TODO:
+        # Prepare the atomic parameters
+        sigmas = np.zeros([system.natom,system.natom])
+        epsilons = np.zeros([system.natom,system.natom])
+        for i in xrange(system.natom):
+            for j in xrange(system.natom):
+                key = (system.get_ffatype(i),system.get_ffatype(j))
+                par_list = par_table.get(key, [])
+                if len(par_list) == 0:
+                    if log.do_warning:
+                        log.warn('No LJ cross parameters found for atom tupple %i,%i with fftypes %s,%s.' % (i, system.get_ffatype(i)))
+                else:
+                    sigmas[i,j], epsilons[i,j] = par_list[0]
+
+        # Prepare the global parameters
+        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3], scale_table[4])
+
+        # Get the part. It should not exist yet.
+        part_pair = ff_args.get_part_pair(PairPotLJCross)
         if part_pair is not None:
             raise RuntimeError('Internal inconsistency: the LJ part should not be present yet.')
 
