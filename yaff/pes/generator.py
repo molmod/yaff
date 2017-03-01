@@ -1029,6 +1029,33 @@ class CrossGenerator(ValenceCrossGenerator):
         return indexes
 
 
+class CrossCosBendGenerator(ValenceCrossGenerator):
+    prefix = 'CROSSCBEND'
+    par_info = [('KSS', float), ('KBS0', float), ('KBS1', float), ('R0', float), ('R1', float), ('COS0', float)]
+    nffatype = 3
+    ICClass0 = Bond
+    ICClass1 = Bond
+    ICClass2 = BendCos
+    VClass01 = Cross
+    VClass02 = Cross
+    VClass12 = Cross
+
+    def iter_alt_keys(self, key):
+        yield key
+
+    def iter_indexes(self, system):
+        return system.iter_angles()
+
+    def get_indexes0(self, indexes):
+        return indexes[:2]
+
+    def get_indexes1(self, indexes):
+        return indexes[1:]
+
+    def get_indexes2(self, indexes):
+        return indexes
+
+
 class NonbondedGenerator(Generator):
     '''All generators for the non-bonding interactions derive from this class
 
