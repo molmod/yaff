@@ -151,7 +151,93 @@ def test_iclist_peroxide_dihedral_angle():
         assert iclist.ictab[3]['kind']==4 #assert the third ic is DihedralAngle
         assert abs(iclist.ictab[3]['value'] - dihed_angle(system.pos)[0]) < 1e-5
 
+def test_iclist_peroxide_dihedral_cos2():
+    number_of_tests=50
+    for i in xrange(number_of_tests):
+        system = get_system_peroxide()
+        system.pos += np.random.normal(0.0, 0.1, system.pos.shape)*angstrom
+        dlist = DeltaList(system)
+        iclist = InternalCoordinateList(dlist)
+        # The bonds are added randomly to get different situations in the delta list
+        bonds=[]
+        while len(bonds)<3:
+            i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
+            if i0==i1 or (i0,i1) in bonds or (i1,i0) in bonds: continue
+            if (i0,i1) in system.bonds or (i1,i0) in system.bonds:
+                iclist.add_ic(Bond(i0,i1))
+                bonds.append((i0,i1))
+        iclist.add_ic(DihedCos2(0,1,2,3))
+        dlist.forward()
+        iclist.forward()
+        angle = dihed_angle(system.pos)[0]
+        print 'psi=%.3f deg:    target=%.6f  value=%.6f' %(angle/deg, np.cos(2*angle), iclist.ictab[3]['value'])
+        assert abs(iclist.ictab[3]['value'] - np.cos(2*angle)) < 1e-5
 
+def test_iclist_peroxide_dihedral_cos3():
+    number_of_tests=50
+    for i in xrange(number_of_tests):
+        system = get_system_peroxide()
+        system.pos += np.random.normal(0.0, 0.1, system.pos.shape)*angstrom
+        dlist = DeltaList(system)
+        iclist = InternalCoordinateList(dlist)
+        # The bonds are added randomly to get different situations in the delta list
+        bonds=[]
+        while len(bonds)<3:
+            i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
+            if i0==i1 or (i0,i1) in bonds or (i1,i0) in bonds: continue
+            if (i0,i1) in system.bonds or (i1,i0) in system.bonds:
+                iclist.add_ic(Bond(i0,i1))
+                bonds.append((i0,i1))
+        iclist.add_ic(DihedCos3(0,1,2,3))
+        dlist.forward()
+        iclist.forward()
+        angle = dihed_angle(system.pos)[0]
+        print 'psi=%.3f deg:    target=%.6f  value=%.6f' %(angle/deg, np.cos(3*angle), iclist.ictab[3]['value'])
+        assert abs(iclist.ictab[3]['value'] - np.cos(3*angle)) < 1e-5
+
+def test_iclist_peroxide_dihedral_cos4():
+    number_of_tests=50
+    for i in xrange(number_of_tests):
+        system = get_system_peroxide()
+        system.pos += np.random.normal(0.0, 0.1, system.pos.shape)*angstrom
+        dlist = DeltaList(system)
+        iclist = InternalCoordinateList(dlist)
+        # The bonds are added randomly to get different situations in the delta list
+        bonds=[]
+        while len(bonds)<3:
+            i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
+            if i0==i1 or (i0,i1) in bonds or (i1,i0) in bonds: continue
+            if (i0,i1) in system.bonds or (i1,i0) in system.bonds:
+                iclist.add_ic(Bond(i0,i1))
+                bonds.append((i0,i1))
+        iclist.add_ic(DihedCos4(0,1,2,3))
+        dlist.forward()
+        iclist.forward()
+        angle = dihed_angle(system.pos)[0]
+        print 'psi=%.3f deg:    target=%.6f  value=%.6f' %(angle/deg, np.cos(4*angle), iclist.ictab[3]['value'])
+        assert abs(iclist.ictab[3]['value'] - np.cos(4*angle)) < 1e-5
+
+def test_iclist_peroxide_dihedral_cos6():
+    number_of_tests=50
+    for i in xrange(number_of_tests):
+        system = get_system_peroxide()
+        system.pos += np.random.normal(0.0, 0.1, system.pos.shape)*angstrom
+        dlist = DeltaList(system)
+        iclist = InternalCoordinateList(dlist)
+        # The bonds are added randomly to get different situations in the delta list
+        bonds=[]
+        while len(bonds)<3:
+            i0, i1 = [int(x) for x in np.random.uniform(low=0,high=4,size=2)] #pick 2 random atoms
+            if i0==i1 or (i0,i1) in bonds or (i1,i0) in bonds: continue
+            if (i0,i1) in system.bonds or (i1,i0) in system.bonds:
+                iclist.add_ic(Bond(i0,i1))
+                bonds.append((i0,i1))
+        iclist.add_ic(DihedCos6(0,1,2,3))
+        dlist.forward()
+        iclist.forward()
+        angle = dihed_angle(system.pos)[0]
+        print 'psi=%.3f deg:    target=%.6f  value=%.6f' %(angle/deg, np.cos(6*angle), iclist.ictab[3]['value'])
+        assert abs(iclist.ictab[3]['value'] - np.cos(6*angle)) < 1e-5
 
 def test_iclist_grad_dihedral_cos_mil53():
     system = get_system_mil53()

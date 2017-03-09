@@ -510,6 +510,33 @@ def test_gpos_vtens_dihed_cos_peroxide():
     check_gpos_part(system, part)
     check_vtens_part(system, part)
 
+def test_gpos_vtens_dihed_cos2_peroxide():
+    system = get_system_peroxide()
+    part = ForcePartValence(system)
+    part.add_term(Harmonic(1.1, -0.92, DihedCos2(0,1,2,3)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
+
+def test_gpos_vtens_dihed_cos3_peroxide():
+    system = get_system_peroxide()
+    part = ForcePartValence(system)
+    part.add_term(Harmonic(1.1, 0.568, DihedCos3(0,1,2,3)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
+
+def test_gpos_vtens_dihed_cos4_peroxide():
+    system = get_system_peroxide()
+    part = ForcePartValence(system)
+    part.add_term(Harmonic(1.1, -0.2, DihedCos4(0,1,2,3)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
+
+def test_gpos_vtens_dihed_cos6_peroxide():
+    system = get_system_peroxide()
+    part = ForcePartValence(system)
+    part.add_term(Harmonic(1.1, -0.2, DihedCos6(0,1,2,3)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
 
 def test_gpos_vtens_dihed_cos_chebychev1_peroxide():
     #Test for positive sign in polynomial

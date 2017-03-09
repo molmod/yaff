@@ -69,7 +69,8 @@ from yaff.pes.ext import iclist_dtype, iclist_forward, iclist_back
 __all__ = [
     'InternalCoordinateList', 'InternalCoordinate', 'Bond', 'BendAngle',
     'BendCos', 'DihedAngle', 'DihedCos', 'UreyBradley', 'OopAngle',
-    'OopMeanAngle', 'OopCos', 'OopMeanCos', 'OopDist',
+    'OopMeanAngle', 'OopCos', 'OopMeanCos', 'OopDist', 'DihedCos2', 'DihedCos3',
+    'DihedCos4', 'DihedCos6' 
 ]
 
 
@@ -409,3 +410,63 @@ class SqOopDist(InternalCoordinate):
 
     def get_conversion(self):
         return log.length.conversion
+
+class DihedCos2(InternalCoordinate):
+    '''Cos(2*psi) with psi the dihedral (or torsion) angle.'''
+    kind = 12
+    def __init__(self, i, j, k, l):
+        '''
+           **Arguments:**
+
+           i, j, k, l
+                The indexes of the atoms involved in the dihedral angle. (i-j-k-l)
+        '''
+        InternalCoordinate.__init__(self, [(j,i), (j,k), (k,l)])
+
+    def get_conversion(self):
+        return 1.0
+
+class DihedCos3(InternalCoordinate):
+    '''Cos(3*psi) with psi the dihedral (or torsion) angle.'''
+    kind = 13
+    def __init__(self, i, j, k, l):
+        '''
+           **Arguments:**
+
+           i, j, k, l
+                The indexes of the atoms involved in the dihedral angle. (i-j-k-l)
+        '''
+        InternalCoordinate.__init__(self, [(j,i), (j,k), (k,l)])
+
+    def get_conversion(self):
+        return 1.0
+
+class DihedCos4(InternalCoordinate):
+    '''Cos(4*psi) with psi the dihedral (or torsion) angle.'''
+    kind = 14
+    def __init__(self, i, j, k, l):
+        '''
+           **Arguments:**
+
+           i, j, k, l
+                The indexes of the atoms involved in the dihedral angle. (i-j-k-l)
+        '''
+        InternalCoordinate.__init__(self, [(j,i), (j,k), (k,l)])
+
+    def get_conversion(self):
+        return 1.0
+
+class DihedCos6(InternalCoordinate):
+    '''Cos(6*psi) with psi the dihedral (or torsion) angle.'''
+    kind = 15
+    def __init__(self, i, j, k, l):
+        '''
+           **Arguments:**
+
+           i, j, k, l
+                The indexes of the atoms involved in the dihedral angle. (i-j-k-l)
+        '''
+        InternalCoordinate.__init__(self, [(j,i), (j,k), (k,l)])
+
+    def get_conversion(self):
+        return 1.0
