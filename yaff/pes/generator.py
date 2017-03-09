@@ -30,7 +30,7 @@
 
 import numpy as np
 
-from molmod.units import parse_unit
+from molmod.units import parse_unit, kjmol, angstrom
 
 from itertools import permutations
 
@@ -42,7 +42,7 @@ from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldNeutralizing
 from yaff.pes.iclist import Bond, BendAngle, BendCos, \
     UreyBradley, DihedAngle, DihedCos, OopAngle, OopMeanAngle, OopCos, \
-    OopMeanCos, OopDist, SqOopDist
+    OopMeanCos, OopDist, SqOopDist, DihedCos2, DihedCos3, DihedCos4, DihedCos6
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
 from yaff.pes.vlist import Harmonic, PolyFour, Fues, Cross, Cosine, \
@@ -60,7 +60,14 @@ __all__ = [
     'UreyBradleyHarmGenerator', 'OopAngleGenerator', 'OopMeanAngleGenerator',
     'OopCosGenerator', 'OopMeanCosGenerator', 'OopDistGenerator', 'BondMorseGenerator',
 
-    'ValenceCrossGenerator', 'CrossGenerator',
+    'ValenceCrossGenerator', 'CrossGenerator', 'CrossCosBendGenerator', 
+    'CrossBondDihedralGenerator', 'CrossBondDihedral2Generator', 
+    'CrossBondDihedral3Generator', 'CrossBondDihedral4Generator',
+    'CrossBondDihedral6Generator',
+    'CrossBendDihedralGenerator', 'CrossBendDihedral2Generator',
+    'CrossBendDihedral4Generator', 'CrossBendDihedral3Generator',
+    'CrossBendDihedral6Generator',
+    'CrossBendCosDihedralGenerator',
 
     'NonbondedGenerator', 'LJGenerator', 'MM3Generator', 'ExpRepGenerator',
     'DampDispGenerator', 'FixedChargeGenerator', 'D3BJGenerator',
@@ -900,25 +907,11 @@ class ValenceCrossGenerator(Generator):
             this is also the number ffatypes in a single row in the force field
             parameter file.
 
-       ICClass0
-            The first ``InternalCoordinate`` class. See ``yaff.pes.iclist``.
+       ICClass$i
+            The i-th ``InternalCoordinate`` class. See ``yaff.pes.iclist``.
 
-       ICClass1
-            The second ``InternalCoordinate`` class. See ``yaff.pes.iclist``.
-
-       ICClass2
-            The third ``InternalCoordinate`` class. See ``yaff.pes.iclist``.
-
-       VClass01
-            The ``ValenceTerm`` class for the cross term between IC0 and IC1.
-            See ``yaff.pes.vlist``.
-
-       VClass02
-            The ``ValenceTerm`` class for the cross term between IC0 and IC2.
-            See ``yaff.pes.vlist``.
-
-       VClass12
-            The ``ValenceTerm`` class for the cross term between IC1 and IC2.
+       VClass$i$j
+            The ``ValenceTerm`` class for the cross term between IC$i and IC$j.
             See ``yaff.pes.vlist``.
     '''
     suffixes = ['UNIT', 'PARS']
@@ -926,9 +919,24 @@ class ValenceCrossGenerator(Generator):
     ICClass0 = None
     ICClass1 = None
     ICClass2 = None
+    ICClass3 = None
+    ICClass4 = None
+    ICClass5 = None
     VClass01 = None
     VClass02 = None
+    VClass03 = None
+    VClass04 = None
+    VClass05 = None
     VClass12 = None
+    VClass13 = None
+    VClass14 = None
+    VClass15 = None
+    VClass23 = None
+    VClass24 = None
+    VClass25 = None
+    VClass34 = None
+    VClass35 = None
+    VClass45 = None
 
     def __call__(self, system, parsec, ff_args):
         '''Add contributions to the force field from a ValenceCrossGenerator
@@ -968,6 +976,21 @@ class ValenceCrossGenerator(Generator):
         if system.bonds is None:
             raise ValueError('The system must have bonds in order to define valence cross terms.')
         part_valence = ff_args.get_part_valence(system)
+        vterms = []
+        ics = []
+        for i in xrange(6):
+            for j in xrange(i+1,6):
+                VClass = self.__class__.__dict__['VClass%i%i' %(i,j)]
+                if VClass is not None:
+                    vterms.append([i,j,VClass])
+                    if i not in ics: ics.append(i)
+                    if j not in ics: ics.append(j)
+        ics = sorted(ics)
+        #dict for get_indexes routines
+        get_indexes = {
+            0: self.get_indexes0, 1: self.get_indexes1, 2: self.get_indexes2,
+            3: self.get_indexes3, 4: self.get_indexes4, 5: self.get_indexes5,
+        }
         for indexes in self.iter_indexes(system):
             key = tuple(system.get_ffatype(i) for i in indexes)
             par_list = par_table.get(key, [])
@@ -975,15 +998,16 @@ class ValenceCrossGenerator(Generator):
                 log.warn('No valence %s parameters found for atoms %s with key %s' % (self.prefix, indexes, key))
                 continue
             for pars in par_list:
-                indexes0 = self.get_indexes0(indexes)
-                indexes1 = self.get_indexes1(indexes)
-                indexes2 = self.get_indexes2(indexes)
-                args_01 = (pars[0], pars[3], pars[4]) + (self.ICClass0(*indexes0), self.ICClass1(*indexes1))
-                args_02 = (pars[1], pars[3], pars[5]) + (self.ICClass0(*indexes0), self.ICClass2(*indexes2))
-                args_12 = (pars[2], pars[4], pars[5]) + (self.ICClass1(*indexes1), self.ICClass2(*indexes2))
-                part_valence.add_term(self.VClass01(*args_01))
-                part_valence.add_term(self.VClass02(*args_02))
-                part_valence.add_term(self.VClass12(*args_12))
+                for i, j, VClass_ij in vterms:
+                    ICClass_i = self.__class__.__dict__['ICClass%i' %i]
+                    assert ICClass_i is not None, 'IC%i has no ICClass defined' %i
+                    ICClass_j = self.__class__.__dict__['ICClass%i' %j]
+                    assert ICClass_i is not None, 'IC%i has no ICClass defined' %j
+                    K_ij = pars[vterms.index([i,j,VClass_ij])]
+                    rv_i = pars[len(vterms)+ics.index(i)]
+                    rv_j = pars[len(vterms)+ics.index(j)]
+                    args_ij = (K_ij, rv_i, rv_j, ICClass_i(*get_indexes[i](indexes)), ICClass_j(*get_indexes[j](indexes)))
+                    part_valence.add_term(VClass_ij(*args_ij))
 
     def iter_indexes(self, system):
         '''Iterate over all tuples of indexes for the pair of internal coordinates'''
@@ -1001,6 +1025,18 @@ class ValenceCrossGenerator(Generator):
         '''Get the indexes for the third internal coordinate from the whole'''
         raise NotImplementedError
 
+    def get_indexes3(self, indexes):
+        '''Get the indexes for the third internal coordinate from the whole'''
+        raise NotImplementedError
+
+    def get_indexes4(self, indexes):
+        '''Get the indexes for the third internal coordinate from the whole'''
+        raise NotImplementedError
+
+    def get_indexes5(self, indexes):
+        '''Get the indexes for the third internal coordinate from the whole'''
+        raise NotImplementedError
+
 
 class CrossGenerator(ValenceCrossGenerator):
     prefix = 'CROSS'
@@ -1009,9 +1045,24 @@ class CrossGenerator(ValenceCrossGenerator):
     ICClass0 = Bond
     ICClass1 = Bond
     ICClass2 = BendAngle
+    ICClass3 = None
+    ICClass4 = None
+    ICClass5 = None
     VClass01 = Cross
     VClass02 = Cross
+    VClass03 = None
+    VClass04 = None
+    VClass05 = None
     VClass12 = Cross
+    VClass13 = None
+    VClass14 = None
+    VClass15 = None
+    VClass23 = None
+    VClass24 = None
+    VClass25 = None
+    VClass34 = None
+    VClass35 = None
+    VClass45 = None
 
     def iter_alt_keys(self, key):
         yield key
@@ -1029,25 +1080,370 @@ class CrossGenerator(ValenceCrossGenerator):
         return indexes
 
 
-class CrossCosBendGenerator(ValenceCrossGenerator):
+class CrossCosBendGenerator(CrossGenerator):
     prefix = 'CROSSCBEND'
     par_info = [('KSS', float), ('KBS0', float), ('KBS1', float), ('R0', float), ('R1', float), ('COS0', float)]
     nffatype = 3
     ICClass0 = Bond
     ICClass1 = Bond
     ICClass2 = BendCos
+    ICClass3 = None
+    ICClass4 = None
+    ICClass5 = None
     VClass01 = Cross
     VClass02 = Cross
+    VClass03 = None
+    VClass04 = None
+    VClass05 = None
     VClass12 = Cross
+    VClass13 = None
+    VClass14 = None
+    VClass15 = None
+    VClass23 = None
+    VClass24 = None
+    VClass25 = None
+    VClass34 = None
+    VClass35 = None
+    VClass45 = None
+
+
+class CrossBondDihedralGenerator(ValenceCrossGenerator):
+    prefix = 'CROSSBONDDIH'
+    par_info = [('KSS', float), ('KSD0', float), ('KSD1', float), ('KSD2', float), ('R0', float), ('R1', float), ('R2', float), ('CPSI0', float)]
+    nffatype = 4
+    ICClass0 = Bond
+    ICClass1 = Bond
+    ICClass2 = Bond
+    ICClass3 = DihedCos
+    ICClass4 = None
+    ICClass5 = None
+    VClass01 = None  #bond01,bond12    already in angle012 cross term
+    VClass02 = Cross #bond01,bond23
+    VClass03 = Cross #bond01,dihed0123
+    VClass04 = None
+    VClass05 = None
+    VClass12 = None  #bond12,bond23    already in angle123 cross term  
+    VClass13 = Cross #bond12,dihed0123
+    VClass14 = None
+    VClass15 = None
+    VClass23 = Cross #bond23,dihed0123
+    VClass24 = None
+    VClass25 = None
+    VClass34 = None
+    VClass35 = None
+    VClass45 = None
 
     def iter_alt_keys(self, key):
         yield key
 
     def iter_indexes(self, system):
-        return system.iter_angles()
+        return system.iter_dihedrals()
 
     def get_indexes0(self, indexes):
         return indexes[:2]
+
+    def get_indexes1(self, indexes):
+        return indexes[1:3]
+
+    def get_indexes2(self, indexes):
+        return indexes[2:4]
+
+    def get_indexes3(self, indexes):
+        return indexes  
+
+
+class CrossBondDihedral2Generator(CrossBondDihedralGenerator):
+    prefix = 'CROSSBONDDIH2'
+    par_info = [('KSS', float), ('KSD0', float), ('KSD1', float), ('KSD2', float), ('R0', float), ('R1', float), ('R2', float), ('CPSI0', float)]
+    nffatype = 4
+    ICClass0 = Bond
+    ICClass1 = Bond
+    ICClass2 = Bond
+    ICClass3 = DihedCos2
+    ICClass4 = None
+    ICClass5 = None
+    VClass01 = None  #bond01,bond12    already in angle012 cross term
+    VClass02 = Cross #bond01,bond23
+    VClass03 = Cross #bond01,dihed0123
+    VClass04 = None
+    VClass05 = None
+    VClass12 = None  #bond12,bond23    already in angle123 cross term  
+    VClass13 = Cross #bond12,dihed0123
+    VClass14 = None
+    VClass15 = None
+    VClass23 = Cross #bond23,dihed0123
+    VClass24 = None
+    VClass25 = None
+    VClass34 = None
+    VClass35 = None
+    VClass45 = None
+
+
+class CrossBondDihedral3Generator(CrossBondDihedralGenerator):
+    prefix = 'CROSSBONDDIH3'
+    par_info = [('KSS', float), ('KSD0', float), ('KSD1', float), ('KSD2', float), ('R0', float), ('R1', float), ('R2', float), ('CPSI0', float)]
+    nffatype = 4
+    ICClass0 = Bond
+    ICClass1 = Bond
+    ICClass2 = Bond
+    ICClass3 = DihedCos3
+    ICClass4 = None
+    ICClass5 = None
+    VClass01 = None  #bond01,bond12    already in angle012 cross term
+    VClass02 = Cross #bond01,bond23
+    VClass03 = Cross #bond01,dihed0123
+    VClass04 = None
+    VClass05 = None
+    VClass12 = None  #bond12,bond23    already in angle123 cross term  
+    VClass13 = Cross #bond12,dihed0123
+    VClass14 = None
+    VClass15 = None
+    VClass23 = Cross #bond23,dihed0123
+    VClass24 = None
+    VClass25 = None
+    VClass34 = None
+    VClass35 = None
+    VClass45 = None
+
+
+class CrossBondDihedral4Generator(CrossBondDihedralGenerator):
+    prefix = 'CROSSBONDDIH4'
+    par_info = [('KSS', float), ('KSD0', float), ('KSD1', float), ('KSD2', float), ('R0', float), ('R1', float), ('R2', float), ('CPSI0', float)]
+    nffatype = 4
+    ICClass0 = Bond
+    ICClass1 = Bond
+    ICClass2 = Bond
+    ICClass3 = DihedCos4
+    ICClass4 = None
+    ICClass5 = None
+    VClass01 = None  #bond01,bond12    already in angle012 cross term
+    VClass02 = Cross #bond01,bond23
+    VClass03 = Cross #bond01,dihed0123
+    VClass04 = None
+    VClass05 = None
+    VClass12 = None  #bond12,bond23    already in angle123 cross term  
+    VClass13 = Cross #bond12,dihed0123
+    VClass14 = None
+    VClass15 = None
+    VClass23 = Cross #bond23,dihed0123
+    VClass24 = None
+    VClass25 = None
+    VClass34 = None
+    VClass35 = None
+    VClass45 = None
+
+
+class CrossBondDihedral6Generator(CrossBondDihedralGenerator):
+    prefix = 'CROSSBONDDIH6'
+    par_info = [('KSS', float), ('KSD0', float), ('KSD1', float), ('KSD2', float), ('R0', float), ('R1', float), ('R2', float), ('CPSI0', float)]
+    nffatype = 4
+    ICClass0 = Bond
+    ICClass1 = Bond
+    ICClass2 = Bond
+    ICClass3 = DihedCos6
+    ICClass4 = None
+    ICClass5 = None
+    VClass01 = None  #bond01,bond12    already in angle012 cross term
+    VClass02 = Cross #bond01,bond23
+    VClass03 = Cross #bond01,dihed0123
+    VClass04 = None
+    VClass05 = None
+    VClass12 = None  #bond12,bond23    already in angle123 cross term  
+    VClass13 = Cross #bond12,dihed0123
+    VClass14 = None
+    VClass15 = None
+    VClass23 = Cross #bond23,dihed0123
+    VClass24 = None
+    VClass25 = None
+    VClass34 = None
+    VClass35 = None
+    VClass45 = None
+
+
+class CrossBendDihedralGenerator(ValenceCrossGenerator):
+    prefix = 'CROSSBENDDIH'
+    par_info = [('KBB', float), ('KBD0', float), ('KBD1', float), ('THETA0', float), ('THETA1', float), ('CPSI0', float)]
+    nffatype = 4
+    ICClass0 = BendAngle
+    ICClass1 = BendAngle
+    ICClass2 = DihedCos
+    ICClass3 = None
+    ICClass4 = None
+    ICClass5 = None
+    VClass01 = Cross #bend012,bend122
+    VClass02 = Cross #bend012,dihed0123
+    VClass03 = None
+    VClass04 = None
+    VClass05 = None
+    VClass12 = None  #bend123,dihed0123
+    VClass13 = None
+    VClass14 = None
+    VClass15 = None
+    VClass23 = None
+    VClass24 = None
+    VClass25 = None
+    VClass34 = None
+    VClass35 = None
+    VClass45 = None
+
+    def iter_alt_keys(self, key):
+        yield key
+
+    def iter_indexes(self, system):
+        return system.iter_dihedrals()
+
+    def get_indexes0(self, indexes):
+        return indexes[:3]
+
+    def get_indexes1(self, indexes):
+        return indexes[1:]
+
+    def get_indexes2(self, indexes):
+        return indexes
+
+
+class CrossBendDihedral2Generator(CrossBendDihedralGenerator):
+    prefix = 'CROSSBENDDIH2'
+    par_info = [('KBB', float), ('KBD0', float), ('KBD1', float), ('THETA0', float), ('THETA1', float), ('CPSI0', float)]
+    nffatype = 4
+    ICClass0 = BendAngle
+    ICClass1 = BendAngle
+    ICClass2 = DihedCos2
+    ICClass3 = None
+    ICClass4 = None
+    ICClass5 = None
+    VClass01 = Cross #bend012,bend122
+    VClass02 = Cross #bend012,dihed0123
+    VClass03 = None
+    VClass04 = None
+    VClass05 = None
+    VClass12 = None  #bend123,dihed0123
+    VClass13 = None
+    VClass14 = None
+    VClass15 = None
+    VClass23 = None
+    VClass24 = None
+    VClass25 = None
+    VClass34 = None
+    VClass35 = None
+    VClass45 = None
+
+
+class CrossBendDihedral3Generator(CrossBendDihedralGenerator):
+    prefix = 'CROSSBENDDIH3'
+    par_info = [('KBB', float), ('KBD0', float), ('KBD1', float), ('THETA0', float), ('THETA1', float), ('CPSI0', float)]
+    nffatype = 4
+    ICClass0 = BendAngle
+    ICClass1 = BendAngle
+    ICClass2 = DihedCos3
+    ICClass3 = None
+    ICClass4 = None
+    ICClass5 = None
+    VClass01 = Cross #bend012,bend122
+    VClass02 = Cross #bend012,dihed0123
+    VClass03 = None
+    VClass04 = None
+    VClass05 = None
+    VClass12 = None  #bend123,dihed0123
+    VClass13 = None
+    VClass14 = None
+    VClass15 = None
+    VClass23 = None
+    VClass24 = None
+    VClass25 = None
+    VClass34 = None
+    VClass35 = None
+    VClass45 = None
+
+
+class CrossBendDihedral4Generator(CrossBendDihedralGenerator):
+    prefix = 'CROSSBENDDIH4'
+    par_info = [('KBB', float), ('KBD0', float), ('KBD1', float), ('THETA0', float), ('THETA1', float), ('CPSI0', float)]
+    nffatype = 4
+    ICClass0 = BendAngle
+    ICClass1 = BendAngle
+    ICClass2 = DihedCos4
+    ICClass3 = None
+    ICClass4 = None
+    ICClass5 = None
+    VClass01 = Cross #bend012,bend122
+    VClass02 = Cross #bend012,dihed0123
+    VClass03 = None
+    VClass04 = None
+    VClass05 = None
+    VClass12 = None  #bend123,dihed0123
+    VClass13 = None
+    VClass14 = None
+    VClass15 = None
+    VClass23 = None
+    VClass24 = None
+    VClass25 = None
+    VClass34 = None
+    VClass35 = None
+    VClass45 = None
+
+
+class CrossBendDihedral6Generator(CrossBendDihedralGenerator):
+    prefix = 'CROSSBENDDIH6'
+    par_info = [('KBB', float), ('KBD0', float), ('KBD1', float), ('THETA0', float), ('THETA1', float), ('CPSI0', float)]
+    nffatype = 4
+    ICClass0 = BendAngle
+    ICClass1 = BendAngle
+    ICClass2 = DihedCos6
+    ICClass3 = None
+    ICClass4 = None
+    ICClass5 = None
+    VClass01 = Cross #bend012,bend122
+    VClass02 = Cross #bend012,dihed0123
+    VClass03 = None
+    VClass04 = None
+    VClass05 = None
+    VClass12 = None  #bend123,dihed0123
+    VClass13 = None
+    VClass14 = None
+    VClass15 = None
+    VClass23 = None
+    VClass24 = None
+    VClass25 = None
+    VClass34 = None
+    VClass35 = None
+    VClass45 = None
+
+
+class CrossBendCosDihedralGenerator(ValenceCrossGenerator):
+    prefix = 'CROSSCBENDDIH'
+    par_info = [('KBB', float), ('KBD0', float), ('KBD1', float), ('CTHETA0', float), ('CTHETA1', float), ('CPSI0', float)]
+    nffatype = 4
+    ICClass0 = BendCos
+    ICClass1 = BendCos
+    ICClass2 = DihedCos
+    ICClass3 = None
+    ICClass4 = None
+    ICClass5 = None
+    VClass01 = Cross #bend012,bend122
+    VClass02 = Cross #bend012,dihed0123
+    VClass03 = None
+    VClass04 = None
+    VClass05 = None
+    VClass12 = None  #bend123,dihed0123
+    VClass13 = None
+    VClass14 = None
+    VClass15 = None
+    VClass23 = None
+    VClass24 = None
+    VClass25 = None
+    VClass34 = None
+    VClass35 = None
+    VClass45 = None
+
+    def iter_alt_keys(self, key):
+        yield key
+
+    def iter_indexes(self, system):
+        return system.iter_dihedrals()
+
+    def get_indexes0(self, indexes):
+        return indexes[:3]
 
     def get_indexes1(self, indexes):
         return indexes[1:]

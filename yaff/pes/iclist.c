@@ -196,10 +196,36 @@ double forward_oop_squaredist(iclist_row_type* ic, dlist_row_type* deltas) {
   return n_dot_d2*n_dot_d2;
 }
 
-ic_forward_type ic_forward_fns[12] = {
+double forward_dihed_cos2(iclist_row_type* ic, dlist_row_type* deltas) {
+  double c;
+  c = forward_dihed_cos(ic, deltas);
+  return 2.0*c*c-1.0;
+}
+
+double forward_dihed_cos3(iclist_row_type* ic, dlist_row_type* deltas) {
+  double c;
+  c = forward_dihed_cos(ic, deltas);
+  return c*(4.0*c*c-3.0);
+}
+
+double forward_dihed_cos4(iclist_row_type* ic, dlist_row_type* deltas) {
+  double c;
+  c = forward_dihed_cos(ic, deltas);
+  c *= c;
+  return 8.0*c*(c-1.0)+1.0;
+}
+
+double forward_dihed_cos6(iclist_row_type* ic, dlist_row_type* deltas) {
+  double c;
+  c = forward_dihed_cos(ic, deltas);
+  c *= 2.0*c;
+  return c*(4.0*c*(c-3.0)+9.0)-1.0;
+}
+
+ic_forward_type ic_forward_fns[16] = {
   forward_bond, forward_bend_cos, forward_bend_angle, forward_dihed_cos, forward_dihed_angle, forward_bond,
   forward_oop_cos, forward_oop_meancos, forward_oop_angle, forward_oop_meanangle, forward_oop_distance,
-  forward_oop_squaredist
+  forward_oop_squaredist, forward_dihed_cos2, forward_dihed_cos3, forward_dihed_cos4, forward_dihed_cos6
 };
 
 void iclist_forward(dlist_row_type* deltas, iclist_row_type* ictab, long nic) {
@@ -548,10 +574,55 @@ void back_oop_squaredist(iclist_row_type* ic, dlist_row_type* deltas, double val
   (*delta2).gz += fac*( d0_cross_d1[2] );
 }
 
-ic_back_type ic_back_fns[12] = {
+void back_dihed_cos2(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  double c, tmp;
+  // First compute the dihed angle itself to allow to compute cos(phi) from
+  // cos(2*phi). Guard against round-off errors before taking the dot product.
+  c = forward_dihed_cos(ic, deltas);
+  // apply chain rule to transform grad (=dEdcos2) to dEdcos that can be used
+  // as grad argument for back_dihed_cos
+  tmp = 4.0*c*grad;
+  back_dihed_cos(ic, deltas, c, tmp);
+}
+
+void back_dihed_cos3(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  double c, tmp;
+  // First compute the dihed angle itself to allow to compute cos(phi) from
+  // cos(3*phi). Guard against round-off errors before taking the dot product.
+  c = forward_dihed_cos(ic, deltas);
+  // apply chain rule to transform grad (=dEdcos3) to dEdcos that can be used
+  // as grad argument for back_dihed_cos
+  tmp = (12.0*c*c-3.0)*grad;
+  back_dihed_cos(ic, deltas, c, tmp);
+}
+
+void back_dihed_cos4(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  double c, tmp;
+  // First compute the dihed angle itself to allow to compute cos(phi) from
+  // cos(4*phi). Guard against round-off errors before taking the dot product.
+  c = forward_dihed_cos(ic, deltas);
+  // apply chain rule to transform grad (=dEdcos4) to dEdcos that can be used
+  // as grad argument for back_dihed_cos
+  tmp = 16.0*c*(2.0*c*c-1.0)*grad;
+  back_dihed_cos(ic, deltas, c, tmp);
+}
+
+void back_dihed_cos6(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  double c, tmp;
+  // First compute the dihed angle itself to allow to compute cos(phi) from
+  // cos(6*phi). Guard against round-off errors before taking the dot product.
+  c = forward_dihed_cos(ic, deltas);
+  // apply chain rule to transform grad (=dEdcos6) to dEdcos that can be used
+  // as grad argument for back_dihed_cos
+  tmp = 12.0*c*(16.0*c*c*(c*c-1.0)+3.0)*grad;
+  back_dihed_cos(ic, deltas, c, tmp);
+}
+
+
+ic_back_type ic_back_fns[16] = {
   back_bond, back_bend_cos, back_bend_angle, back_dihed_cos, back_dihed_angle, back_bond,
   back_oop_cos, back_oop_meancos, back_oop_angle, back_oop_meanangle, back_oop_distance,
-  back_oop_squaredist
+  back_oop_squaredist, back_dihed_cos2, back_dihed_cos3, back_dihed_cos4, back_dihed_cos6
 };
 
 void iclist_back(dlist_row_type* deltas, iclist_row_type* ictab, long nic) {
