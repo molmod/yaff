@@ -570,7 +570,7 @@ class MM3Quartic(ValenceTerm):
 
 
 class MM3Bend(ValenceTerm):
-    '''The sixth-order energy term used for the bends in MM3: 0.5*K*(q-q0)^2*(1-0.14*(q-q0)+5.6*10^(-5)*(q-q0)^2-7*10^(-7)*(q-q0)^3+2.2*10^(-7)*(q-q0)^4)'''
+    '''The sixth-order energy term used for the bends in MM3: 0.5*K*(q-q0)^2*(1 - 0.014*(q-q0) + 5.6*10^(-5)*(q-q0)^2 - 7*10^(-7)*(q-q0)^3 + 9.0*10^(-10)*(q-q0)^4 )'''
     kind = 12
     def __init__(self, fc, rv, ic):
         '''

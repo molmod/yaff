@@ -792,6 +792,27 @@ def test_gpos_vtens_morse_water32():
     check_vtens_part(system, part)
 
 
+def test_gpos_vtens_mm3quartic_water32():
+    system = get_system_water32()
+    part = ForcePartValence(system)
+    for i, j in system.bonds:
+        part.add_term(MM3Quartic(1.5, 2.0+0.01*i, Bond(i, j)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
+
+
+def test_gpos_vtens_mm3benda_water32():
+    system = get_system_water32()
+    part = ForcePartValence(system)
+    for i1 in xrange(system.natom):
+        for i0 in system.neighs1[i1]:
+            for i2 in system.neighs1[i1]:
+                if i0 > i2:
+                    part.add_term(MM3Bend(1.5, 2.0+0.01*i2, BendAngle(i0, i1, i2)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
+
+
 def test_zero_dihed_steven():
     pos = np.array([
        [  3.99364178360816302e+00,   6.30763314754801546e-02,  -3.46387534695341159e+00],
