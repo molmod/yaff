@@ -413,20 +413,18 @@ class Stack(object):
         # Prepare for next grow call: new list of allowed atoms
         if len(self._state) == len(self._allowed):
             next_index1 = None
-            next_allowed_index0 = None
+            next_allowed_index0_sorted = None
         else:
             # Take as next index1 the one that is closest to the new_index1.
             used_index1 = set([index1 for index1, index0 in new_match])
             next_allowed_index1 = set(range(len(self._allowed))) - used_index1
-            distances_sq = self._get_sorted_indexes(self._dm1, new_index1, next_allowed_index1)
-            next_index1 = distances_sq[0]
+            next_index1 = self._get_sorted_indexes(self._dm1, new_index1, next_allowed_index1)[0]
             # The new indexes to try is the given set of indexes, minus the ones already
             # used.
             used_index0 = set([index0 for index1, index0 in new_match])
             next_allowed_index0 = list(set(self._allowed[next_index1]) - set(used_index0))
-            distances_sq = self._get_sorted_indexes(self._dm0, new_index0, next_allowed_index0)
-            next_allowed_index0 = self._get_sorted_indexes(self._dm0, new_index0, next_allowed_index0)
-        self._state.append(Slice(new_match, new_error_sq, next_index1, next_allowed_index0))
+            next_allowed_index0_sorted = self._get_sorted_indexes(self._dm0, new_index0, next_allowed_index0)
+        self._state.append(Slice(new_match, new_error_sq, next_index1, next_allowed_index0_sorted))
 
     @staticmethod
     def _get_sorted_indexes(dm, new_index, next_allowed_index):
@@ -484,13 +482,13 @@ def iter_matches(dm0, dm1, allowed, threshold=1e-3):
 
     # Convert allowed to lists of lists, if needed.
     allowed = [list(a) for a in allowed]
-    # There is no hope of finding a solution if one of the allowed lists is empty
+    # There is no hope of finding a solution if one of the allowed lists is empty.
     if any(len(a) == 0 for a in allowed):
         return
     # The length of the allowed list should be correct for a solution to exist.
     if dm1.shape[0] != len(allowed):
         return
-    # The allowed indexes must be present in the reference
+    # The allowed indexes must be present in the reference.
     if not set(sum(allowed, [])).issubset(range(dm0.shape[0])):
         return
 
