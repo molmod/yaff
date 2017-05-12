@@ -411,7 +411,9 @@ class Stack(object):
             )**2
         new_match = prev_match + ((new_index1, new_index0),)
         # Prepare for next grow call: new list of allowed atoms
-        if len(self._state) == len(self._allowed):
+        if len(self._state) == len(self._allowed) or new_error_sq >= self._threshold_sq:
+            # Don't prepare for the next iteration if all atoms of the subsystem have been
+            # assigned or when the error has gotten too large.
             next_index1 = None
             next_allowed_index0_sorted = None
         else:
