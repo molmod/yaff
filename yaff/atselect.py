@@ -422,7 +422,9 @@ class Stack(object):
             # The new indexes to try is the given set of indexes, minus the ones already
             # used.
             used_index0 = set([index0 for index1, index0 in new_match])
+            #   - unused index0 should be considered for matching
             next_allowed_index0 = list(set(self._allowed[next_index1]) - set(used_index0))
+            #   - nearby first
             next_allowed_index0_sorted = self._get_sorted_indexes(self._dm0, new_index0, next_allowed_index0)
         self._state.append(Slice(new_match, new_error_sq, next_index1, next_allowed_index0_sorted))
 
@@ -438,6 +440,15 @@ class Stack(object):
         self._state.pop(-1)
         while len(self._state) > 0 and len(self._state[-1].next_allowed_index0) == 0:
             self._state.pop(-1)
+
+    def exclude(self, match):
+        # Remove previously found atoms from the allowed lists.
+        self._allowed = [[i for i in a if i not in match] for a in self._allowed]
+        # Drop the current stack.
+        if any(len(a) == 0 for a in self._allowed):
+            self._state = []
+        else:
+            self._state = [Slice((), 0.0, 0, list(self._allowed[0]))]
 
     def is_acceptable(self):
         """Return True if the partial solution is acceptable."""
@@ -456,7 +467,7 @@ class Stack(object):
         return tuple([index0 for index1, index0 in sorted(self._state[-1].match)])
 
 
-def iter_matches(dm0, dm1, allowed, threshold=1e-3):
+def iter_matches(dm0, dm1, allowed, threshold=1e-3, overlapping=True):
     """Iterate over all possible renumberings of system 1 that are present in system 0.
 
     Parameters
@@ -472,6 +483,9 @@ def iter_matches(dm0, dm1, allowed, threshold=1e-3):
     threshold : float
         An allowed deviation (L2-norm) between the distance matrix of the
         reference and the reordered system 1.
+    permutations : bool
+        When set to False, the algorithm excludes matches that are permutations of
+        previous matches or that have a partial overlap with any previous match.
 
     Yields
     ------
@@ -500,6 +514,11 @@ def iter_matches(dm0, dm1, allowed, threshold=1e-3):
             # Discard new partial solution if the error becomes too big.
             stack.shrink()
         elif stack.is_complete():
-            yield stack.get_match()
-            # Discard current solution because it is already generated.
-            stack.shrink()
+            match = stack.get_match()
+            if overlapping:
+                # Discard current solution because it is already generated.
+                stack.shrink()
+            else:
+                # Discard the current stack and reduce the allowed lists.
+                stack.exclude(match)
+            yield match

@@ -1070,7 +1070,7 @@ class System(object):
                 new_bonds.append([i0, i1])
         self.bonds = np.array(new_bonds)
 
-    def iter_matches(self, other):
+    def iter_matches(self, other, overlapping=True):
         """Yield all renumberings of atoms that map the given system on the current.
 
         Parameters
@@ -1078,6 +1078,10 @@ class System(object):
         other : yaff.System
             Another system with the same number of atoms (and chemical formula), or less
             atoms.
+        overlapping : bool
+            When set to False, the returned matches are guaranteed to be mutually
+            exclusive. The result may not be unique when partially overlapping matches
+            would exist. Use with care.
 
         The graph distance is used to perform the mapping, so bonds must be defined in
         the current and the given system.
@@ -1108,7 +1112,7 @@ class System(object):
             dm1 = Graph(other.bonds).distances
             # Yield the solutions
             log('Generating renumberings.')
-            for match in iter_matches(dm0, dm1, allowed):
+            for match in iter_matches(dm0, dm1, allowed, overlapping=overlapping):
                 yield match
 
     def to_file(self, fn):

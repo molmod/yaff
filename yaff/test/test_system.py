@@ -453,3 +453,10 @@ def test_iter_matches_guaianolide():
     system_ref.detect_bonds()
     order = np.array(system.iter_matches(system_ref).next())
     np.testing.assert_equal(order, [8, 9, 4, 7, 14, 12, 11, 10, 5, 6, 13, 16, 15, 2, 0, 1, 3])
+
+
+def test_iter_matches_water4_nonoverlapping():
+    system = get_system_water32().subsystem(range(12))
+    water = system.subsystem([0, 1, 2])
+    assert len(list(system.iter_matches(water))) == 8
+    assert len(list(system.iter_matches(water, overlapping=False))) == 4
