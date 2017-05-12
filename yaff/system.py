@@ -1086,7 +1086,19 @@ class System(object):
         The graph distance is used to perform the mapping, so bonds must be defined in
         the current and the given system.
         """
-        from molmod.graphs import Graph
+        def make_incidence_matrix(system):
+            # Use Molmod to construct graph distance matrices.
+            #from molmod.graphs import Graph
+            #return Graph(system.bonds).distances
+            # Just use an incidence matrix, which contains only very local information,
+            # as opposed to graph distance. (The latter may not be transferable between
+            # self and other.)
+            result = np.zeros((system.natom, system.natom), float) + 1
+            for iatom0, iatom1 in system.bonds:
+                result[iatom0, iatom1] = 0
+                result[iatom1, iatom0] = 0
+            return result
+
         with log.section('SYS'):
             log('Generating allowed indexes for renumbering.')
             # The allowed permutations is just based on the chemical elements, not the atom
@@ -1105,11 +1117,8 @@ class System(object):
                 ffatype_ids1 = order[other.ffatype_ids]
                 for ffatype_id1 in ffatype_ids1:
                     allowed.append((ffatype_ids0 == ffatype_id1).nonzero()[0])
-            # Use Molmod to construct graph distance matrices.
-            log('Building graph distance matrix for self.')
-            dm0 = Graph(self.bonds).distances
-            log('Building graph distance matrix for other.')
-            dm1 = Graph(other.bonds).distances
+            dm0 = make_incidence_matrix(self)
+            dm1 = make_incidence_matrix(other)
             # Yield the solutions
             log('Generating renumberings.')
             for match in iter_matches(dm0, dm1, allowed, overlapping=overlapping):
