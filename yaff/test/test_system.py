@@ -453,3 +453,30 @@ def test_iter_matches_guaianolide():
     system_ref.detect_bonds()
     order = np.array(system.iter_matches(system_ref).next())
     np.testing.assert_equal(order, [8, 9, 4, 7, 14, 12, 11, 10, 5, 6, 13, 16, 15, 2, 0, 1, 3])
+
+
+def test_iter_matches_water4_nonoverlapping():
+    system = get_system_water32().subsystem(range(12))
+    water = system.subsystem([0, 1, 2])
+    assert len(list(system.iter_matches(water))) == 8
+    assert len(list(system.iter_matches(water, overlapping=False))) == 4
+
+
+def test_iter_matches_nobornane_rhodium():
+    rules = [
+        ('H', '1'),
+        ('C_H1', '6&=1%1'),
+        ('C_H2', '6&=2%1'),
+        ('C_H3', '6&=3%1'),
+        ('C', '6'), # all remaining carbons
+        ('P', '15'),
+        ('Rh', '45'),
+    ]
+    system = System.from_file(context.get_fn('test/rhodium_complex_nobornane.xyz'))
+    system.detect_bonds()
+    system.detect_ffatypes(rules)
+    system_ref = System.from_file(context.get_fn('test/nobornane.xyz'))
+    system_ref.detect_bonds()
+    system_ref.detect_ffatypes(rules)
+    order = np.array(system.iter_matches(system_ref).next())
+    np.testing.assert_equal(order, [77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95])
