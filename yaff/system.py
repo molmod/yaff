@@ -1087,12 +1087,9 @@ class System(object):
         the current and the given system.
         """
         def make_incidence_matrix(system):
-            # Use Molmod to construct graph distance matrices.
-            #from molmod.graphs import Graph
-            #return Graph(system.bonds).distances
             # Just use an incidence matrix, which contains only very local information,
-            # as opposed to graph distance. (The latter may not be transferable between
-            # self and other.)
+            # as opposed to graph distance in the old version of iter_matches.
+            # (The graph distance may not be transferable between self and other.)
             result = np.zeros((system.natom, system.natom), float) + 1
             for iatom0, iatom1 in system.bonds:
                 result[iatom0, iatom1] = 0

@@ -443,7 +443,9 @@ class Stack(object):
         while len(self._state) > 0 and len(self._state[-1].next_allowed_index0) == 0:
             self._state.pop(-1)
 
-    def exclude(self, match):
+    def drop(self):
+        """Remove the current match from the allowed atoms and drop partial solution."""
+        match = self.get_match()
         # Remove previously found atoms from the allowed lists.
         self._allowed = [[i for i in a if i not in match] for a in self._allowed]
         # Drop the current stack.
@@ -485,7 +487,7 @@ def iter_matches(dm0, dm1, allowed, threshold=1e-3, overlapping=True):
     threshold : float
         An allowed deviation (L2-norm) between the distance matrix of the
         reference and the reordered system 1.
-    permutations : bool
+    overlapping : bool
         When set to False, the algorithm excludes matches that are permutations of
         previous matches or that have a partial overlap with any previous match.
 
@@ -522,5 +524,5 @@ def iter_matches(dm0, dm1, allowed, threshold=1e-3, overlapping=True):
                 stack.shrink()
             else:
                 # Discard the current stack and reduce the allowed lists.
-                stack.exclude(match)
+                stack.drop()
             yield match
