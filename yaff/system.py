@@ -1111,8 +1111,8 @@ class System(object):
 
             Graph distances are not completely transferable between self and other, i.e. a
             shorter path may exist between two atoms in the big system (self) that is not
-            present in a fragment (other). Hence the absence or presence of a direct bond
-            must be compared.
+            present in a fragment (other). Hence, only the absence or presence of a direct
+            bond must be compared.
             """
             return (min(x - 1, 1) - min(y - 1, 1))**2
 

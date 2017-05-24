@@ -493,7 +493,7 @@ def iter_matches(dm0, dm1, allowed, threshold=1e-3, error_sq_fn=None, overlappin
         reference and the reordered system 1.
     error_sq_fn : function taking two arguments
         When not given, the squared difference is computed as error measure when comparing
-        two distance matrix elements (dm0 versus dm0). This can be replaced by any
+        two distance matrix elements (dm0 versus dm1). This can be replaced by any
         user-provided squared error function.
     overlapping : bool
         When set to False, the algorithm excludes matches that are permutations of
