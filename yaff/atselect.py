@@ -378,7 +378,7 @@ Slice = namedtuple('Slice', ['match', 'error_sq', 'next_index1', 'next_allowed_i
 class Stack(object):
     """Stack object used by iter_matches to build up partial solutions."""
 
-    def __init__(self, dm0, dm1, allowed, threshold_sq):
+    def __init__(self, dm0, dm1, allowed, threshold_sq, error_sq_fn):
         """Initialize Stack instance.
 
         See iter_matches for the meaning of the parameters.
@@ -387,6 +387,10 @@ class Stack(object):
         self._dm1 = dm1
         self._allowed = allowed
         self._threshold_sq = threshold_sq
+        if error_sq_fn is None:
+            self._error_sq_fn = lambda x, y: (x - y)**2
+        else:
+            self._error_sq_fn = error_sq_fn
         # Each element in _state is a tuple with the following elements:
         # - partial solution so far, internally stored as pairs (index1, index0)
         # - error_sq so far
@@ -405,10 +409,10 @@ class Stack(object):
         # Compute the updated error_sq
         new_error_sq = prev_error_sq
         for prev_index1, prev_index0 in prev_match:
-            new_error_sq += (
-                self._dm0[prev_index0, new_index0] -
+            new_error_sq += self._error_sq_fn(
+                self._dm0[prev_index0, new_index0],
                 self._dm1[prev_index1, new_index1]
-            )**2
+            )
         new_match = prev_match + ((new_index1, new_index0),)
         # Prepare for next grow call: new list of allowed atoms
         if len(self._state) == len(self._allowed) or new_error_sq >= self._threshold_sq:
@@ -471,7 +475,7 @@ class Stack(object):
         return tuple([index0 for index1, index0 in sorted(self._state[-1].match)])
 
 
-def iter_matches(dm0, dm1, allowed, threshold=1e-3, overlapping=True):
+def iter_matches(dm0, dm1, allowed, threshold=1e-3, error_sq_fn=None, overlapping=True):
     """Iterate over all possible renumberings of system 1 that are present in system 0.
 
     Parameters
@@ -487,6 +491,10 @@ def iter_matches(dm0, dm1, allowed, threshold=1e-3, overlapping=True):
     threshold : float
         An allowed deviation (L2-norm) between the distance matrix of the
         reference and the reordered system 1.
+    error_sq_fn : function taking two arguments
+        When not given, the squared difference is computed as error measure when comparing
+        two distance matrix elements (dm0 versus dm1). This can be replaced by any
+        user-provided squared error function.
     overlapping : bool
         When set to False, the algorithm excludes matches that are permutations of
         previous matches or that have a partial overlap with any previous match.
@@ -510,7 +518,7 @@ def iter_matches(dm0, dm1, allowed, threshold=1e-3, overlapping=True):
     if not set(sum(allowed, [])).issubset(range(dm0.shape[0])):
         return
 
-    stack = Stack(dm0, dm1, allowed, threshold**2)
+    stack = Stack(dm0, dm1, allowed, threshold**2, error_sq_fn)
     while not stack.is_done():
         # Try to add something to stack
         stack.grow()

@@ -478,5 +478,6 @@ def test_iter_matches_nobornane_rhodium():
     system_ref = System.from_file(context.get_fn('test/nobornane.xyz'))
     system_ref.detect_bonds()
     system_ref.detect_ffatypes(rules)
-    order = np.array(system.iter_matches(system_ref).next())
-    np.testing.assert_equal(order, [77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95])
+    selected = set(system.iter_matches(system_ref).next())
+    reference = set([77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95])
+    np.testing.assert_equal(selected, reference)

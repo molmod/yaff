@@ -1086,15 +1086,35 @@ class System(object):
         The graph distance is used to perform the mapping, so bonds must be defined in
         the current and the given system.
         """
-        def make_incidence_matrix(system):
-            # Just use an incidence matrix, which contains only very local information,
-            # as opposed to graph distance in the old version of iter_matches.
-            # (The graph distance may not be transferable between self and other.)
-            result = np.zeros((system.natom, system.natom), float) + 1
-            for iatom0, iatom1 in system.bonds:
-                result[iatom0, iatom1] = 0
-                result[iatom1, iatom0] = 0
-            return result
+        def make_graph_distance_matrix(system):
+            """Return a bond graph distance matrix.
+
+            Parameters
+            ----------
+            system : System
+                Molecule (with bonds) for which the graph distances must be computed.
+
+            The graph distance is used for comparison because it allows the pattern
+            matching to make optimal choices of which pairs of atoms to compare next, i.e.
+            both bonded or nearby the last matched pair.
+            """
+            from molmod.graphs import Graph
+            return Graph(system.bonds).distances
+
+        def error_sq_fn(x, y):
+            """Compare bonded versus not bonded, rather than the full graph distance.
+
+            Parameters
+            ----------
+            x, y: int
+                Graph distances from self and other, respectively.
+
+            Graph distances are not completely transferable between self and other, i.e. a
+            shorter path may exist between two atoms in the big system (self) that is not
+            present in a fragment (other). Hence, only the absence or presence of a direct
+            bond must be compared.
+            """
+            return (min(x - 1, 1) - min(y - 1, 1))**2
 
         with log.section('SYS'):
             log('Generating allowed indexes for renumbering.')
@@ -1114,11 +1134,13 @@ class System(object):
                 ffatype_ids1 = order[other.ffatype_ids]
                 for ffatype_id1 in ffatype_ids1:
                     allowed.append((ffatype_ids0 == ffatype_id1).nonzero()[0])
-            dm0 = make_incidence_matrix(self)
-            dm1 = make_incidence_matrix(other)
+            log('Building distance matrix for self.')
+            dm0 = make_graph_distance_matrix(self)
+            log('Building distance matrix for other.')
+            dm1 = make_graph_distance_matrix(other)
             # Yield the solutions
             log('Generating renumberings.')
-            for match in iter_matches(dm0, dm1, allowed, overlapping=overlapping):
+            for match in iter_matches(dm0, dm1, allowed, 1e-3, error_sq_fn, overlapping):
                 yield match
 
     def to_file(self, fn):
