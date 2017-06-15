@@ -1099,7 +1099,7 @@ class System(object):
             both bonded or nearby the last matched pair.
             """
             from molmod.graphs import Graph
-            return Graph(system.bonds).distances
+            return Graph(system.bonds, system.natom).distances
 
         def error_sq_fn(x, y):
             """Compare bonded versus not bonded, rather than the full graph distance.

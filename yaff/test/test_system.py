@@ -481,3 +481,13 @@ def test_iter_matches_nobornane_rhodium():
     selected = set(system.iter_matches(system_ref).next())
     reference = set([77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95])
     np.testing.assert_equal(selected, reference)
+
+
+def test_iter_matches_single_atom():
+    system = System.from_file(context.get_fn('test/rhodium_complex_nobornane.xyz'))
+    system.detect_bonds()
+    system_ref = System(pos=np.zeros((1, 3), float), numbers = np.array([45]))
+    system_ref.detect_bonds()
+    selected = set(system.iter_matches(system_ref).next())
+    reference = set([28])
+    np.testing.assert_equal(selected, reference)
