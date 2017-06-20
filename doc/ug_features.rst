@@ -1,5 +1,8 @@
+Features and release notes
+==========================
+
 Features
-========
+--------
 
 The main features of Yaff are:
 
@@ -25,4 +28,11 @@ Missing features (work in progress) include:
 
 * Parallel force evaluaton.
 * Parallel sampling schemes.
-* Constant-pressure sampling schemes: Martyna-Tuckerman-Tobias-Klein.
+
+
+Release notes
+-------------
+
+* Version 1.1.1
+
+    - Fixed a few bugs in `System.iter_matches`
