@@ -10,6 +10,7 @@ ext.c
 build
 dist
 doc/_build
+doc/rg_yaff*.rst
 
 # output of the examples
 data/examples/000_overview/traj.xyz

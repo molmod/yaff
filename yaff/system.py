@@ -50,7 +50,8 @@ class System(object):
                  ffatype_ids=None, bonds=None, rvecs=None, charges=None,
                  radii=None, valence_charges=None, dipoles=None, radii2=None,
                  masses=None):
-        '''
+        r'''Initialize a System object.
+
            **Arguments:**
 
            numbers
@@ -97,9 +98,14 @@ class System(object):
                 An array of atomic charges
 
            radii
-                An array of atomic radii that determine shape of charge
-                distribution
-                rho[i]=charges[i]/(sqrt(pi)radii[i]**3)*exp(-(|r-pos[i]|/radii[i])**2)
+                An array of atomic radii, :math:`R_{A,c}`, that determine shape of the atomic
+                charge distribution:
+
+                .. math::
+
+                    \rho_{A,c}(\mathbf{r}) = \frac{q_A}{\pi^{3/2}R_{A,c}^3} \exp\left(
+                    -\frac{|r - \mathbf{R}_A|^2}{R_{A,c}^2}
+                    \right)
 
            valence_charges
                 In case a point-core + distribute valence charge is used, this
@@ -111,9 +117,16 @@ class System(object):
                 An array of atomic dipoles
 
            radii2
-                An array of atomic radii that determine shape of dipole
-                distribution
-                rho[i]=-(dipoles[i] dot r-pos[i])*2.0/(sqrt(pi)radii2[i]**5)*exp(-(|r-pos[i]|/radii[i])**2)
+                An array of atomic radii, :math:`R_{A,d}`, that determine shape of the
+                atomic dipole distribution:
+
+                .. math::
+
+                   \rho_{A,d}(\mathbf{r}) = -2\frac{\mathbf{d}_A \cdot (\mathbf{r} - \mathbf{R}_A)}{
+                   \sqrt{\pi} R_{A,d}^5
+                   }\exp\left(
+                    -\frac{|r - \mathbf{R}_A|^2}{R_{A,d}^2}
+                    \right)
 
            masses
                 The atomic masses (in atomic units, i.e. m_e)
