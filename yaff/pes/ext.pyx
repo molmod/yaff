@@ -1726,6 +1726,7 @@ cdef class PairPotEIDip(PairPot):
 
         poltens_i
             An array that gives the inverse atomic polarizabilities, shape = (3natom, 3)
+
         TODO: What about other parameters, for example from EEM? More general way
         to include necessary parameters.
 

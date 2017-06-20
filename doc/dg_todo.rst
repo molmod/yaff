@@ -79,8 +79,6 @@ General
 
 * RefTraj derivative of the Iterative class.
 
-* NpT: Martyna Tuckerman Tobias Klein
-
 * Parallel sampling methods.
 
 
