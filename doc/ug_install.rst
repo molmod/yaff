@@ -59,15 +59,15 @@ Stable release
 
 The latest stable release of Yaff can be downloaded here:
 
-    http://users.ugent.be/~tovrstra/yaff/yaff-1.1.1.tar.gz.
+    https://github.com/molmod/yaff/releases/download/1.1.1/yaff-1.1.2.tar.gz
 
 Choose a suitable directory, e.g. ``~/build``, download and unpack the archive::
 
     mkdir -p ~/build
     cd ~/build
-    wget http://users.ugent.be/~tovrstra/yaff/yaff-1.1.1.tar.gz
-    tar -xvzf yaff-1.1.1.tar.gz
-    cd yaff-1.1.1
+    wget https://github.com/molmod/yaff/releases/download/1.1.1/yaff-1.1.2.tar.gz
+    tar -xvzf yaff-1.1.2.tar.gz
+    cd yaff-1.1.2
 
 Latest development code (experts only)
 --------------------------------------
