@@ -51,14 +51,14 @@ def test_h5_flush():
             # 1) Check that we can't read the trajectory group in the h5 file without flushing.
             # This must be done in a subprocess, otherwise the HDF5 library will fake
             # flushing while it does not really flush to disk.
-            command = ['python', '-c', 'import h5py as h5; f = h5.File(\'%s/output.h5\', 'r'); f.close()' % dn_tmp]
+            command = ['python', '-c', 'import h5py as h5; f = h5.File("%s/output.h5", "r"); f.close()' % dn_tmp]
             p = Popen(command, stdout=PIPE, stderr=STDOUT)
             output = p.communicate()[0]
             assert 'IOError' in output
             assert p.returncode != 0
 
             # 2) This should work in a subprocess.
-            command = ['python', '-c', 'import h5py as h5; f = h5.File(\'%s/output_flushed.h5\', 'r'); f.close()' % dn_tmp]
+            command = ['python', '-c', 'import h5py as h5; f = h5.File("%s/output_flushed.h5", "r"); f.close()' % dn_tmp]
             p = Popen(command, stdout=PIPE, stderr=STDOUT)
             output = p.communicate()[0]
             assert 'IOError' not in output
