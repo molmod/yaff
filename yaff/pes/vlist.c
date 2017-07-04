@@ -92,13 +92,13 @@ double forward_polysix(vlist_row_type* term, iclist_row_type* ictab) {
 double forward_mm3quartic(vlist_row_type* term, iclist_row_type* ictab) {
   double x = ictab[(*term).ic0].value - (*term).par1;
   double x2 = x*x;
-  return 0.5*((*term).par0)*x2*(1.0-2.55*x+3.793125*x2);
+  return 0.5*((*term).par0)*x2*(1.0-1.349402*x+1.062183*x2);
 }
 
 double forward_mm3bend(vlist_row_type* term, iclist_row_type* ictab) {
   double x = ictab[(*term).ic0].value - (*term).par1;
   double x2 = x*x;
-  return 0.5*((*term).par0)*x2*(1.0-0.014*x+0.000056*x2-0.0000007*x2*x+0.0000000009*x2*x2);
+  return 0.5*((*term).par0)*x2*(1.0-0.802141*x+0.183837*x2-0.131664*x2*x+0.237090*x2*x2);
 }
 
 double forward_bonddoublewell(vlist_row_type* term, iclist_row_type* ictab) {
