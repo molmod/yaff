@@ -199,15 +199,13 @@ void back_polysix(vlist_row_type* term, iclist_row_type* ictab) {
 
 void back_mm3quartic(vlist_row_type* term, iclist_row_type* ictab) {
   double q = (ictab[(*term).ic0].value - (*term).par1);
-  ictab[(*term).ic0].grad += ((*term).par0)*(q-3.825*q*q+7.58625*q*q*q);
+  ictab[(*term).ic0].grad += ((*term).par0)*(q-2.024103*q*q+2.124366*q*q*q);
 }
 
 void back_mm3bend(vlist_row_type* term, iclist_row_type* ictab) {
   double q = (ictab[(*term).ic0].value - (*term).par1);
   double q2 = q*q;
-  ictab[(*term).ic0].grad += ((*term).par0)*(q-0.21*q2+0.000112*q2*q-0.00000175*q2*q2+0.000000066*q2*q2*q);
-
-
+  ictab[(*term).ic0].grad += ((*term).par0)*(q-1.203211*q2+0.367674*q2*q-0.329159*q2*q2+0.948360*q2*q2*q);
 }
 
 void back_bonddoublewell(vlist_row_type* term, iclist_row_type* ictab) {
