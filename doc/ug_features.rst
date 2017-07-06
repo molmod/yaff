@@ -33,6 +33,14 @@ Missing features (work in progress) include:
 Release notes
 -------------
 
+* Version 1.1.3
+
+    - Correct anharmonic covalent MM3 terms.
+
+* Version 1.1.2
+
+    - Removed flush option from HDF5Writer.
+
 * Version 1.1.1
 
-    - Fixed a few bugs in `System.iter_matches`
+    - Fixed a few bugs in `System.iter_matches`.
