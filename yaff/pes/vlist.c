@@ -90,15 +90,26 @@ double forward_polysix(vlist_row_type* term, iclist_row_type* ictab) {
 }
 
 double forward_mm3quartic(vlist_row_type* term, iclist_row_type* ictab) {
+  //the unit of the number 2.55 in the original MM3 paper is 1/angstrom. In yaff
+  //we use atomic units as internal coordinates, hence a conversion of
+  //1/angstrom to 1/bohr is required.
+  //Finally, in the original MM3 paper, there is a typo in the quartic term, it 
+  //should be 2.55^2 instead of 2.55.
   double x = ictab[(*term).ic0].value - (*term).par1;
   double x2 = x*x;
-  return 0.5*((*term).par0)*x2*(1-2.55*x+3.793125*x2);
+  return 0.5*((*term).par0)*x2*(1.0-1.349402*x+1.062183*x2);
 }
 
 double forward_mm3bend(vlist_row_type* term, iclist_row_type* ictab) {
+  //the unit of the coefficients in the sixth order expansion in the original 
+  //MM3 paper is 1/deg for the fourth order term, 1/deg^2 for the fifth order
+  //term and so on. In yaff we use atomic units as internal coordinates, hence a
+  //conversion of 1/deg to 1/rad is required.
+  //Finally, in the original MM3 paper, there is a typo in the sixth order term, 
+  //it should be 2.2e-8 instead of 9e-10.
   double x = ictab[(*term).ic0].value - (*term).par1;
   double x2 = x*x;
-  return 0.5*((*term).par0)*x2*(1-0.14*x+0.000056*x2-0.0000007*x2*x+0.000000022*x2*x2);
+  return 0.5*((*term).par0)*x2*(1.0-0.802141*x+0.183837*x2-0.131664*x2*x+0.237090*x2*x2);
 }
 
 double forward_bonddoublewell(vlist_row_type* term, iclist_row_type* ictab) {
@@ -198,16 +209,16 @@ void back_polysix(vlist_row_type* term, iclist_row_type* ictab) {
 }
 
 void back_mm3quartic(vlist_row_type* term, iclist_row_type* ictab) {
+  //see comments in forward_mm3quartic
   double q = (ictab[(*term).ic0].value - (*term).par1);
-  ictab[(*term).ic0].grad += ((*term).par0)*(q-3.825*q*q+7.58625*q*q*q);
+  ictab[(*term).ic0].grad += ((*term).par0)*(q-2.024103*q*q+2.124366*q*q*q);
 }
 
 void back_mm3bend(vlist_row_type* term, iclist_row_type* ictab) {
+  //see comments in forward_mm3bend
   double q = (ictab[(*term).ic0].value - (*term).par1);
   double q2 = q*q;
-  ictab[(*term).ic0].grad += ((*term).par0)*(q-0.21*q2+0.000112*q2*q-0.00000175*q2*q2+0.000000066*q2*q2*q);
-
-
+  ictab[(*term).ic0].grad += ((*term).par0)*(q-1.203211*q2+0.367674*q2*q-0.329159*q2*q2+0.711270*q2*q2*q);
 }
 
 void back_bonddoublewell(vlist_row_type* term, iclist_row_type* ictab) {
