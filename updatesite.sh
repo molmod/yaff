@@ -1,5 +1,5 @@
 #!/bin/bash
-git checkout master && (
+(
   ./cleanfiles.sh
   (
     cd doc
@@ -17,4 +17,4 @@ git checkout master && (
     git commit --no-verify -a --amend -m 'Automatic documentation update'
     git push origin gh-pages:gh-pages -f
   )
-) && git checkout master
+)
