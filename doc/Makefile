@@ -39,8 +39,9 @@ autogendoc:
 	YAFFDATA=../data PYTHONPATH=../:$(PYTHONPATH) python updatelibdoc.py
 
 clean:
-	-rm -rf $(BUILDDIR)/*
-	rm -f rg_yaff*.rst
+	-rm -vrf $(BUILDDIR)/*
+	rm -vf rg_yaff*.rst
+	rm -vf .nojekyll
 
 html: autogendoc
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
