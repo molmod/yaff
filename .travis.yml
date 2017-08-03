@@ -38,6 +38,9 @@ install:
 # Install Conda package
 - conda install --use-local yaff
 
+# No visual backend for matplotlib
+- echo backend:agg > ~/.config/matplotlib/matplotlibrc
+
 # Compile documentation
 - (cd doc; make html)
 script:
