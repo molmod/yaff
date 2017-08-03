@@ -25,6 +25,8 @@ install:
 - conda install numpy cython sphinx
 # Install conda tools for packaging and uploading
 - conda install conda-build anaconda-client
+# Add the tovrstra channel to get access to the molmod dependency
+- conda config --add channels tovrstra
 - conda info -a
 
 # Build the conda package
