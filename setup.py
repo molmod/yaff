@@ -81,7 +81,7 @@ setup(
               'yaff/conversion/test'],
     cmdclass = {'build_ext': build_ext},
     include_package_data=True,
-    install_requires=['numpy', 'nose', 'cython', 'matplotlib', 'h5py', 'molmod'],
+    install_requires=['numpy', 'nose', 'cython', 'matplotlib', 'h5py', 'molmod', 'scipy'],
     ext_modules=[
         Extension("yaff.pes.ext",
             sources=['yaff/pes/ext.pyx', 'yaff/pes/nlist.c',
