@@ -21,7 +21,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 #--
-''' Toolkit for Principal Component Analysis (PCA) '''
+"""Toolkit for Principal Component Analysis (PCA)"""
 
 import h5py as h5
 import numpy as np
