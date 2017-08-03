@@ -7,21 +7,10 @@ Installation
 Disclaimer
 ==========
 
-Yaff is developed and tested on modern Linux environments. The
-installation instructions below are given for a Linux system only. If you want
-to use Yaff on other operating systems such as Windows or OSX, you should
-have a minimal computer geek status to get it working. We are always interested
-in hearing from your installation adventures.
-
-
-MolMod dependency
-=================
-
-`MolMod <http://molmod.github.com/molmod/>`_ is a Python library used by most
-Python programs developed at the CMM. It must be installed before Yaff can
-be used or installed. Installation and download instructions can be found in the
-`molmod documentation <http://molmod.github.com/molmod/tutorial/install.html>`_.
-The instructions below only work if the MolMod package is installed.
+Yaff is developed and tested on modern Linux environments. The installation instructions
+below are given for a Linux system only. If you want to use Yaff on other operating
+systems such as Windows or OSX, you should have a minimal computer geek status to get it
+working. We are always interested in hearing from your installation adventures.
 
 
 External dependencies
@@ -33,82 +22,53 @@ distribution to install these dependencies.
 
 The following software must be installed:
 
-* Python >= 2.7 (including the development files): http://www.python.org/
-* Numpy >= 1.0: http://numpy.scipy.org/
-* Cython >= 0.15.1 : http://www.cython.org/
-* h5py >= 2.0.0: http://code.google.com/p/h5py/
-* matplotlib >= 1.0.0: http://matplotlib.sourceforge.net/
+* Python >=2.7, <3.0 (including the development files): http://www.python.org/
+* A C++ compiler e.g. gcc: http://gcc.gnu.org/
+* Numpy >=1.0: http://www.numpy.org/
+* Scipy >=0.17.1: http://www.scipy.org/
+* Cython >=0.24.1 : http://www.cython.org/
+* h5py >=2.0.0: http://code.google.com/p/h5py/
+* matplotlib >=1.0.0: http://matplotlib.sourceforge.net/
 
 Most Linux distributions can install this software with just a single terminal
 command.
 
-* Ubuntu 12.4 and later::
+* **Ubuntu**
 
-    sudo apt-get install python-numpy cython python-h5py python-matplotlib python-nose python-sphinx
+  .. code:: bash
 
-* Fedora 17 and later::
+      sudo apt-get install gcc g++ python-devel python-numpy cython python-h5py python-matplotlib python-nose python-scipy
 
-    sudo yum install numpy cython h5py python-matplotlib python-nose sphinx
+* **Fedora pre 22**
 
+  .. code:: bash
 
-Download Yaff
-=============
+      sudo yum install gcc gcc-c++ redhat-rpm-config python-devel numpy cython h5py python-matplotlib python-nose sphinx scipy
 
-Stable release
---------------
+* **Fedora 22 and later**
 
-The latest stable release of Yaff can be downloaded here:
+  .. code:: bash
 
-    https://github.com/molmod/yaff/releases/download/1.1.1/yaff-1.1.3.tar.gz
-
-Choose a suitable directory, e.g. ``~/build``, download and unpack the archive::
-
-    mkdir -p ~/build
-    cd ~/build
-    wget https://github.com/molmod/yaff/releases/download/1.1.1/yaff-1.1.3.tar.gz
-    tar -xvzf yaff-1.1.3.tar.gz
-    cd yaff-1.1.3
-
-Latest development code (experts only)
---------------------------------------
-
-In order to get the latest development version of the source code, and to upload
-your own changes, you need to work with git. Git is a version control system
-that makes life easy when a group of people are working on a common source code.
-All information about git (including downloads and tutorials) can be found here:
-http://git-scm.com/. The official git URL of Yaff is:
-git://github.com/yaff/yaff.git. In order to `clone` the public Yaff
-repository, run this command::
-
-    git clone git://github.com/molmod/yaff.git
-    cd yaff
-
-The version history can be updated with the latest patches with the following
-command::
-
-    git pull
-
-There is also a web interface to Yaff's git repository:
-https://github.com/molmod/yaff
+      sudo dnf install gcc gcc-c++ redhat-rpm-config python-devel numpy cython h5py python-matplotlib python-nose sphinx scipy
 
 
-Install Yaff
+Installation
 ============
 
-The following command installs Yaff into your home directory. ::
+You can install Yaff with pip:
 
-    ./setup.py install --user
+.. code:: bash
 
-You are now ready to start using Yaff!
+    pip install --user yaff
 
 
 Test your installation
 ======================
 
-Execute the following commands to run the tests::
+Execute the following commands to run the tests:
 
-    cd
+.. code:: bash
+
     nosetests -v yaff
 
-If some tests fail, post the output of the tests on the `Yaff
-mailing list <https://groups.google.com/forum/#!forum/ninjaff>`_.
+If some tests fail, you can post on issue on https://github.com/molmod/yaff/issues
