@@ -26,11 +26,8 @@
 
 import numpy as np, time
 
-try:
-    # The implementation in scipy is often more robust
-    from scipy.linalg import eigh
-except ImportError:
-    eigh = np.linalg.eigh
+# The implementation in scipy is often more robust
+from scipy.linalg import eigh
 
 from molmod.minimizer import ConjugateGradient, QuasiNewton, NewtonLineSearch, \
     Minimizer

@@ -71,7 +71,7 @@ def test_xyz():
 
 def test_hdf5():
     system0 = get_system_water32()
-    with tmpdir(__name__, 'test_hdf5') as test_hdf5:
+    with tmpdir(__name__, 'test_hdf5') as dirname:
         fn = '%s/tmp.h5' % dirname
         system0.to_file(fn)
         with h5.File(fn) as f:

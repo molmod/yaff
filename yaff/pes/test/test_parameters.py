@@ -28,6 +28,7 @@ import tempfile
 import pkg_resources
 
 
+from molmod.test.common import tmpdir
 from yaff import *
 
 
