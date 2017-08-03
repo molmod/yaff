@@ -25,13 +25,12 @@
 import shutil, os, h5py as h5, numpy as np
 
 from yaff import *
-from yaff.analysis.test.common import get_nve_water32
+from yaff.analysis.test.common import run_nve_water32
 from yaff.sampling.test.common import get_ff_water32
 
 
 def test_spectrum_offline():
-    dn_tmp, nve, f = get_nve_water32()
-    try:
+    with run_nve_water32(__name__, 'test_spectrum_offline') as (dn_tmp, nve, f):
         for bsize in 2, 4, 5:
             spectrum = Spectrum(f, bsize=bsize)
             assert 'trajectory/vel_spectrum' in f
@@ -47,9 +46,6 @@ def test_spectrum_offline():
             assert os.path.isfile(fn_png)
             assert f['trajectory/vel_spectrum'].attrs['nfft'] == 3*3*32*(6/bsize)
             del f['trajectory/vel_spectrum']
-    finally:
-        shutil.rmtree(dn_tmp)
-        f.close()
 
 
 def test_spectrum_online():
@@ -57,8 +53,7 @@ def test_spectrum_online():
         # Setup a test FF
         ff = get_ff_water32()
         # Run a test simulation
-        f = h5.File('yaff.analysis.test.test_spectrum.test_spectrum_online_%i.h5' % bsize, driver='core', backing_store=False)
-        try:
+        with h5.File('yaff.analysis.test.test_spectrum.test_spectrum_online_%i.h5' % bsize, driver='core', backing_store=False) as f:
             hdf5 = HDF5Writer(f)
             spectrum0 = Spectrum(f, bsize=bsize)
             nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=[hdf5, spectrum0])
@@ -72,8 +67,6 @@ def test_spectrum_online():
             assert abs(spectrum0.ac - spectrum1.ac).max() < 1e-10
             assert abs(spectrum0.time - spectrum1.time).max() < 1e-10
             assert f['trajectory/vel_spectrum'].attrs['nfft'] == 3*3*32*(6/bsize)
-        finally:
-            f.close()
 
 
 def test_spectrum_online_blind():
@@ -97,9 +90,8 @@ def test_spectrum_online_weights():
 
 
 def test_spectrum_iter_indexes():
-    f = h5.File('yaff.analysis.test.test_spectrum.test_spectrum_iter_indexes.h5', driver='core', backing_store=False)
-    spectrum = Spectrum(f, bsize=10)
-    f.close()
+    with h5.File('yaff.analysis.test.test_spectrum.test_spectrum_iter_indexes.h5', driver='core', backing_store=False) as f:
+        spectrum = Spectrum(f, bsize=10)
     l = list(spectrum._iter_indexes(np.zeros((10, 5, 3), float)))
     assert l == [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1),
                  (2, 2), (3, 0), (3, 1), (3, 2), (4, 0), (4, 1), (4, 2)]

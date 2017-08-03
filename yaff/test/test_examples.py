@@ -22,51 +22,30 @@
 #
 #--
 
-import os, shlex, subprocess
+import os
+import shlex
+import subprocess
 
-from yaff import context
-
-
-def run_example(workdir, command):
-    env = dict(os.environ)
-    if os.path.isfile('setup.py') and os.path.isdir('data') and os.path.isdir('yaff'):
-        # Needed in case the tests are executed on an in-place build:
-        rootdir = os.getcwd()
-        env['PYTHONPATH'] = rootdir + ':' + env.get('PYTHONPATH', '')
-        env['YAFFDATA'] = os.path.join(rootdir, 'data')
-    workdir = context.get_fn(workdir)
-    proc = subprocess.Popen(shlex.split(command), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=workdir, env=env)
-    outdata, errdata = proc.communicate()
-    if proc.returncode != 0:
-        print 'Standard output'
-        print '+'*80
-        print outdata
-        print '+'*80
-        print 'Standard error'
-        print '+'*80
-        print errdata
-        print '+'*80
-        assert False
-    fn_clean = os.path.join(workdir, 'clean.sh')
-    if os.path.isfile(fn_clean):
-        assert os.system('cd %s; ./clean.sh &> /dev/null' % workdir) == 0
+from molmod.test.test_examples import check_example
 
 
 def test_example_000_overview():
-    run_example('examples/000_overview', './simulation.py')
+    check_example(__name__, '000_overview', 'simulation.py', ['parameters.txt', 'system.chk'])
 
 
 def test_example_001_tutorial_bks():
-    run_example('examples/001_tutorial_bks', './all.sh')
+    check_example(__name__, '001_tutorial_bks', 'all.sh', [
+        'bks.pot', 'init/mksystem.py', 'init/rvecs.txt', 'init/struct.xyz',
+        'nvt/analysis.py', 'nvt/simulation.py', 'opt/analysis.py', 'opt/simulation.py'])
 
 
 def test_example_002_external_trajectory():
-    run_example('examples/002_external_trajectory', './rdf.py')
+    check_example(__name__, '002_external_trajectory', 'rdf.py', ['trajectory.xyz'])
 
 
 def test_example_003_water_thermostat():
-    run_example('examples/003_water_thermostat', './md.py')
+    check_example(__name__, '003_water_thermostat', 'md.py', ['parameters.txt', 'system.chk'])
 
 
 def test_example_999_back_propagation():
-    run_example('examples/999_back_propagation', './bp.py')
+    check_example(__name__, '999_back_propagation', 'bp.py', [])

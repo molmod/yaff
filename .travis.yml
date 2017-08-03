@@ -14,9 +14,9 @@ install:
  - pip install --upgrade pip
  - pip install subprocess32 functools32
  - "pip install --only-binary :all: scipy matplotlib h5py cython"
+ - pip install molmod
  - mkdir -p ~/.config/matplotlib/
  - echo backend:agg > ~/.config/matplotlib/matplotlibrc
- - git clone https://github.com/molmod/molmod.git; cd molmod; python setup.py install; cd ..
- - python setup.py install
+ - python setup.py install --single-version-externally-managed --record=record.txt
 script:
  - "cd; nosetests -v yaff --processes=2 --process-timeout=100"

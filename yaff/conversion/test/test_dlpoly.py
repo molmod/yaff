@@ -22,8 +22,9 @@
 #
 #--
 
-from nose.plugins.skip import SkipTest
 
+from nose.plugins.skip import SkipTest
+import pkg_resources
 import h5py as h5
 
 from yaff import *
@@ -35,7 +36,7 @@ def test_dlpoly_history_uo():
     # Actual trajectory conversion, twice
     for i in xrange(2):
         offset = 3*i
-        fn = context.get_fn('test/dlpoly_HISTORY_uo')
+        fn = pkg_resources.resource_filename(__name__, '../../data/test/dlpoly_HISTORY_uo')
         dlpoly_history_to_hdf5(f, fn)
         assert 'trajectory' in f
         assert get_last_trajectory_row(f['trajectory']) == 3 + offset
@@ -62,7 +63,7 @@ def test_dlpoly_history_sam():
     # Actual trajectory conversion, twice
     for i in xrange(2):
         offset = 3*i
-        fn = context.get_fn('test/dlpoly_HISTORY_sam')
+        fn = pkg_resources.resource_filename(__name__, '../../data/test/dlpoly_HISTORY_sam')
         dlpoly_history_to_hdf5(f, fn)
         assert 'trajectory' in f
         assert get_last_trajectory_row(f['trajectory']) == 3+offset
@@ -84,13 +85,13 @@ def test_dlpoly_history_an():
     with h5.File('yaff.conversion.test.test_dlpoly.test_dlpoly_history_an.h5', driver='core', backing_store=False) as f:
         # Bad practice. The trajectory file has no system directory...
         # Actual trajectory conversion, par1
-        fn = context.get_fn('test/dlpoly_HISTORY_an1')
+        fn = pkg_resources.resource_filename(__name__, '../../data/test/dlpoly_HISTORY_an1')
         dlpoly_history_to_hdf5(f, fn)
         assert get_last_trajectory_row(f['trajectory']) == 2
         assert abs(f['trajectory/cell'][1]/angstrom - [[27.41, 0.000, 0.000], [-13.71, 23.84, 0.000], [-0.1021E-01, 0.9013E-02, 29.50]]).max() < 1e-10
         assert abs(f['trajectory/pos'][0,-1,-1]/angstrom - -1.4007E+01) < 1e-10
         # Actual trajectory conversion, par1
-        fn = context.get_fn('test/dlpoly_HISTORY_an2')
+        fn = pkg_resources.resource_filename(__name__, '../../data/test/dlpoly_HISTORY_an2')
         dlpoly_history_to_hdf5(f, fn)
         assert get_last_trajectory_row(f['trajectory']) == 4
         assert abs(f['trajectory/cell'][1]/angstrom - [[27.41, 0.000, 0.000], [-13.71, 23.84, 0.000], [-0.1021E-01, 0.9013E-02, 29.50]]).max() < 1e-10

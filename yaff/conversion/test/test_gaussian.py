@@ -23,7 +23,9 @@
 #--
 
 
-import numpy as np, h5py as h5
+import numpy as np
+import h5py as h5
+import pkg_resources
 
 from yaff import *
 from yaff.conversion.gaussian import _scan_g09_forces, _scan_g09_time, \
@@ -31,7 +33,7 @@ from yaff.conversion.gaussian import _scan_g09_forces, _scan_g09_time, \
 
 
 def test_scan_forces():
-    fn_log = context.get_fn('test/gaussian_sioh4_md.log')
+    fn_log = pkg_resources.resource_filename(__name__, '../../data/test/gaussian_sioh4_md.log')
     with open(fn_log) as f:
         numbers, frc = _scan_g09_forces(f)
 
@@ -46,7 +48,7 @@ def test_scan_forces():
 
 
 def test_scan_time():
-    fn_log = context.get_fn('test/gaussian_sioh4_md.log')
+    fn_log = pkg_resources.resource_filename(__name__, '../../data/test/gaussian_sioh4_md.log')
     with open(fn_log) as f:
         time, step, ekin, epot, etot = _scan_g09_time(f)
         assert time == 0.0
@@ -65,7 +67,7 @@ def test_scan_time():
 
 def test_scan_pos_vel():
     vel_unit = np.sqrt(amu)/second
-    fn_log = context.get_fn('test/gaussian_sioh4_md.log')
+    fn_log = pkg_resources.resource_filename(__name__, '../../data/test/gaussian_sioh4_md.log')
     with open(fn_log) as f:
         _scan_to_line(f, " Cartesian coordinates: (bohr)") # skip first one, has different format
         pos, vel = _scan_g09_pos_vel(f)
@@ -79,8 +81,8 @@ def test_scan_pos_vel():
 
 def test_to_hdf():
     vel_unit = np.sqrt(amu)/second
-    fn_xyz = context.get_fn('test/gaussian_sioh4_md.xyz')
-    fn_log = context.get_fn('test/gaussian_sioh4_md.log')
+    fn_xyz = pkg_resources.resource_filename(__name__, '../../data/test/gaussian_sioh4_md.xyz')
+    fn_log = pkg_resources.resource_filename(__name__, '../../data/test/gaussian_sioh4_md.log')
     with h5.File('yaff.conversion.test.test_gaussian.test_to_hdf5.h5', driver='core', backing_store=False) as f:
         system = System.from_file(fn_xyz)
         system.to_hdf5(f)

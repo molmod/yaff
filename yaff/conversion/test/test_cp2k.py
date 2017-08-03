@@ -24,6 +24,7 @@
 
 
 import h5py as h5
+import pkg_resources
 
 from yaff import *
 from molmod import femtosecond
@@ -35,7 +36,7 @@ def test_cp2k_ener_to_hdf5():
     # Actual trajectory conversion, twice
     for i in xrange(2):
         offset = i*9
-        fn = context.get_fn('test/cp2k-1.ener')
+        fn = pkg_resources.resource_filename(__name__, '../../data/test/cp2k-1.ener')
         cp2k_ener_to_hdf5(f, fn)
         assert 'trajectory' in f
         assert get_last_trajectory_row(f['trajectory']) == 9 + offset

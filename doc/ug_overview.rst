@@ -17,7 +17,7 @@ that one must write one or more small `main` programs that specify what type of
 simulation is carried out. A minimalistic example, which covers all four steps,
 is given in the file ``data/examples/000_overview/simulation.py``:
 
-.. literalinclude:: ../data/examples/000_overview/simulation.py
+.. literalinclude:: ../yaff/examples/000_overview/simulation.py
     :lines: 26-
 
 Yaff internally works with atomic units, although other unit systems can be used

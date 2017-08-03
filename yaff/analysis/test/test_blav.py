@@ -26,6 +26,7 @@
 import tempfile, shutil, os, numpy as np
 
 from yaff import *
+from molmod.test.common import tmpdir
 
 
 def test_blav():
@@ -35,10 +36,7 @@ def test_blav():
     eps1 = 1.0
     y = np.sin(np.random.normal(0, eps0, n).cumsum() + np.random.normal(0, eps1, n))
     # create a temporary directory to write the plot to
-    dn = tempfile.mkdtemp('yaff', 'test_blav')
-    try:
+    with tmpdir(__name__, 'test_blav') as dn:
         fn_png = '%s/blav.png' % dn
         error, sinef = blav(y, 100, fn_png)
         assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn)

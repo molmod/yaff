@@ -24,16 +24,24 @@
 #--
 
 
-import sys, argparse, traceback, numpy as np
+import sys
+import argparse
+import traceback
 from fnmatch import fnmatch
-from yaff import *
+
+import pkg_resources
+import numpy as np
+
+import yaff
+from molmod.units import *
+from molmod.constants import *
 
 
-#log.set_level(log.high)
+#yaff.log.set_level(yaff.log.high)
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(prog='opttest.py',
+    parser = argparse.ArgumentParser(prog='yaff-opttest',
         description='Test driver for the geometry/cell optimizer in YAFF.')
     parser.add_argument('test', default=None, nargs='?',
         help='Select one test to run. If not given, all tests are executed.')
@@ -54,17 +62,17 @@ fields = {
     'forcefield': (True, str),
     'maxiter': (True, int),
     'energy': (True, (lambda s: float(s)*kjmol)),
-    'dof': (True, {'cartesian': CartesianDOF, 'strain': StrainCellDOF}),
+    'dof': (True, {'cartesian': yaff.CartesianDOF, 'strain': yaff.StrainCellDOF}),
     'gpos_rms': (False, float),
     'neg_hessian_evals': (False, int),
 }
 
 
-def load_cases(fn, select_title=None):
+def load_cases(select_title=None):
     # 1) Load the file
-    log('Loading test cases from %s' % fn)
+    yaff.log('Loading test cases')
     cases_data = {}
-    with open(fn) as f:
+    with pkg_resources.resource_stream(yaff.__name__, 'data/opttest/cases.txt') as f:
         for line in f:
             # Read line, skip comments and empty lines
             line = line[:line.find('#')].strip()
@@ -116,13 +124,13 @@ def load_cases(fn, select_title=None):
     cases = []
     for args in cases_data.itervalues():
         title = args['case']
-        log('Preparing case \'%s\'.' % title)
-        system = System.from_file(context.get_fn(args['system']))
+        yaff.log('Preparing case \'%s\'.' % title)
+        system = yaff.System.from_file(pkg_resources.resource_filename(yaff.__name__, 'data/' + args['system']))
         if system.cell.nvec == 0:
             ff_args = {'rcut': 200.0}
         else:
             ff_args = {}
-        ff = ForceField.generate(system, context.get_fn(args['forcefield']), **ff_args)
+        ff = yaff.ForceField.generate(system, pkg_resources.resource_filename(yaff.__name__, 'data/' + args['forcefield']), **ff_args)
         dof_args = dict((key, data) for key, data in args.iteritems() if (key.endswith('_rms') or key.endswith('_max')))
         dof = args['dof'](ff, **dof_args)
         maxiter = args['maxiter']
@@ -146,14 +154,14 @@ class Case(object):
     def run(self, verbose, xyz):
         if not verbose:
             output = open('/dev/null', 'w')
-            log.set_file(output)
+            yaff.log.set_file(output)
 
         self._optimize(verbose, xyz)
         if self.neg_hessian_evals is not None:
             self._check_hessian()
 
         if not verbose:
-            log.set_file(sys.stdout)
+            yaff.log.set_file(sys.stdout)
             output.close()
 
         self._report()
@@ -164,16 +172,17 @@ class Case(object):
             hooks = []
             if xyz:
                 hooks.append(XYZWriter('trajectory_%s.xyz' % self.title))
-            opt = QNOptimizer(self.dof, hooks=hooks)
+            opt = yaff.QNOptimizer(self.dof, hooks=hooks)
             opt.run(self.maxiter)
+            self.niter = opt.counter
             self.error = False
         except:
             traceback.print_exc()
+            self.niter = -1
             self.error = True
             pass
         self.energy = self.ff.energy
         self.gpos = self.ff.gpos
-        self.niter = opt.counter
 
     def _check_hessian(self):
         if self.ff.system.cell.nvec != 0:
@@ -181,7 +190,7 @@ class Case(object):
             # 1D -> one external rotation, 2D and 3D -> no external rotation
             raise NotImplementedError('The hessian test is only working for isolated systems')
         # compute hessian
-        hessian = estimate_cart_hessian(self.ff)
+        hessian = yaff.estimate_cart_hessian(self.ff)
         # construct basis of external/internal degrees (rows)
         x, y, z = self.ff.system.pos.T
         natom = self.ff.system.natom
@@ -222,21 +231,21 @@ class Case(object):
             self.status = 'HESSIAN'
         else:
             self.status = 'SUCCESS'
-        log('%s %11s %5i %10s %3s' % (
+        yaff.log('%s %11s %5i %10s %3s' % (
             self.title.ljust(39),
             self.status, self.niter,
-            log.energy(self.energy),
+            yaff.log.energy(self.energy),
             '   ' if self.neg_hessian_evals is None else str(self.num_neg_evals),
         ))
 
 
 def main():
     args = parse_args()
-    with log.section('LOAD'):
-        cases = load_cases(context.get_fn('opttest/cases.txt'), args.test)
-    with log.section('RUN'):
-        log('Case                                         Status #iter     Energy Neg')
-        log.hline()
+    with yaff.log.section('LOAD'):
+        cases = load_cases(args.test)
+    with yaff.log.section('RUN'):
+        yaff.log('Case                                         Status #iter     Energy Neg')
+        yaff.log.hline()
         niters = []
         status_counts = {}
         success = True
@@ -245,14 +254,14 @@ def main():
             niters.append(case.niter)
             status_counts[case.status] = status_counts.get(case.status, 0) + 1
             success &= case.status == 'SUCCESS'
-        log.hline()
-        log('Total number of iterations:   %i' % sum(niters))
-        log('Maximum number of iterations: %i' % max(niters))
-        log('Number of tests:              %i' % len(cases))
+        yaff.log.hline()
+        yaff.log('Total number of iterations:   %i' % sum(niters))
+        yaff.log('Maximum number of iterations: %i' % max(niters))
+        yaff.log('Number of tests:              %i' % len(cases))
         if success:
-            log('OK')
+            yaff.log('OK')
         else:
-            log('Failure: %s' % ', '.join('%i %s' % (count, status) for status, count in sorted(status_counts.iteritems())))
+            yaff.log('Failure: %s' % ', '.join('%i %s' % (count, status) for status, count in sorted(status_counts.iteritems())))
             sys.exit(-1)
 
 

@@ -23,12 +23,14 @@
 #--
 
 
-from yaff import *
 import numpy as np
+import pkg_resources
+
+from yaff import *
 
 
 def test_simple_transform():
-    fn_pars = context.get_fn('test/parameters_water.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water.txt')
     pf0 = Parameters.from_file(fn_pars)
     rules = [ScaleRule('BONDFUES', 'PARS', 'O\s*H', 3)]
     mods = [ParameterModifier(rules)]
