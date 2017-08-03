@@ -23,9 +23,15 @@
 #--
 
 
-import tempfile, shutil, numpy as np, h5py as h5
+import tempfile
+import shutil
 
-from yaff import System, Cell, angstrom, context
+import pkg_resources
+import numpy as np
+import h5py as h5
+
+from molmod.test.common import tmpdir
+from yaff import System, Cell, angstrom
 
 from common import get_system_water32, get_system_glycine, get_system_quartz, \
     get_system_cyclopropene, get_system_peroxide, get_system_graphene8, \
@@ -49,38 +55,29 @@ def compare_water32(system0, system1, eps=0, xyz=False):
 
 def test_chk():
     system0 = get_system_water32()
-    dirname = tempfile.mkdtemp('yaff', 'test_chk')
-    try:
+    with tmpdir(__name__, 'test_chk') as dirname:
         system0.to_file('%s/tmp.chk' % dirname)
         system1 = System.from_file('%s/tmp.chk' % dirname)
         compare_water32(system0, system1, 1e-10)
-    finally:
-        shutil.rmtree(dirname)
 
 
 def test_xyz():
     system0 = get_system_water32()
-    dirname = tempfile.mkdtemp('yaff', 'test_xyz')
-    try:
+    with tmpdir(__name__, 'test_xyz') as dirname:
         system0.to_file('%s/tmp.xyz' % dirname)
         system1 = System.from_file('%s/tmp.xyz' % dirname, rvecs=system0.cell.rvecs, ffatypes=system0.ffatypes, ffatype_ids=system0.ffatype_ids)
         compare_water32(system0, system1, 1e-10, xyz=True)
-    finally:
-        shutil.rmtree(dirname)
 
 
 def test_hdf5():
     system0 = get_system_water32()
-    dirname = tempfile.mkdtemp('yaff', 'test_hdf5')
-    try:
+    with tmpdir(__name__, 'test_hdf5') as test_hdf5:
         fn = '%s/tmp.h5' % dirname
         system0.to_file(fn)
         with h5.File(fn) as f:
             assert 'system' in f
         system1 = System.from_file(fn)
         compare_water32(system0, system1)
-    finally:
-        shutil.rmtree(dirname)
 
 
 def test_ffatypes():
@@ -447,9 +444,9 @@ def test_iter_matches_peroxide_graphene8():
 
 
 def test_iter_matches_guaianolide():
-    system = System.from_file(context.get_fn('test/guaianolide.xyz'))
+    system = System.from_file(pkg_resources.resource_filename(__name__, '../data/test/guaianolide.xyz'))
     system.detect_bonds()
-    system_ref = System.from_file(context.get_fn('test/guaianolide_framework_ordered.xyz'))
+    system_ref = System.from_file(pkg_resources.resource_filename(__name__, '../data/test/guaianolide_framework_ordered.xyz'))
     system_ref.detect_bonds()
     order = np.array(system.iter_matches(system_ref).next())
     np.testing.assert_equal(order, [8, 9, 4, 7, 14, 12, 11, 10, 5, 6, 13, 16, 15, 2, 0, 1, 3])
@@ -472,10 +469,10 @@ def test_iter_matches_nobornane_rhodium():
         ('P', '15'),
         ('Rh', '45'),
     ]
-    system = System.from_file(context.get_fn('test/rhodium_complex_nobornane.xyz'))
+    system = System.from_file(pkg_resources.resource_filename(__name__, '../data/test/rhodium_complex_nobornane.xyz'))
     system.detect_bonds()
     system.detect_ffatypes(rules)
-    system_ref = System.from_file(context.get_fn('test/nobornane.xyz'))
+    system_ref = System.from_file(pkg_resources.resource_filename(__name__, '../data/test/nobornane.xyz'))
     system_ref.detect_bonds()
     system_ref.detect_ffatypes(rules)
     selected = set(system.iter_matches(system_ref).next())
@@ -484,7 +481,7 @@ def test_iter_matches_nobornane_rhodium():
 
 
 def test_iter_matches_single_atom():
-    system = System.from_file(context.get_fn('test/rhodium_complex_nobornane.xyz'))
+    system = System.from_file(pkg_resources.resource_filename(__name__, '../data/test/rhodium_complex_nobornane.xyz'))
     system.detect_bonds()
     system_ref = System(pos=np.zeros((1, 3), float), numbers = np.array([45]))
     system_ref.detect_bonds()

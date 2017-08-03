@@ -26,95 +26,63 @@
 import shutil, os
 
 from yaff import *
-from yaff.analysis.test.common import get_nve_water32, get_nvt_water32, get_opt_water32
+from yaff.analysis.test.common import run_nve_water32, run_nvt_water32, run_opt_water32
 
 
 def test_plot_energies_nve():
-    dn_tmp, nve, f = get_nve_water32()
-    try:
+    with run_nve_water32(__name__, 'test_plot_energies_nve') as (dn_tmp, nve, f):
         fn_png = '%s/energies1.png' % dn_tmp
         plot_energies(f, fn_png)
         assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn_tmp)
-        f.close()
 
 
 def test_plot_energies_opt():
-    dn_tmp, opt, f = get_opt_water32()
-    try:
+    with run_opt_water32(__name__, 'test_plot_energies_opt') as (dn_tmp, opt, f):
         fn_png = '%s/energies1.png' % dn_tmp
         plot_energies(f, fn_png)
         assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn_tmp)
-        f.close()
 
 
 def test_plot_temperature():
-    dn_tmp, nve, f = get_nve_water32()
-    try:
+    with run_nve_water32(__name__, 'test_plot_temperature') as (dn_tmp, nve, f):
         fn_png = '%s/temperature1.png' % dn_tmp
         plot_temperature(f, fn_png)
         assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn_tmp)
-        f.close()
 
 
 def test_plot_pressure():
-    dn_tmp, nvt, f = get_nvt_water32()
-    try:
+    with run_nvt_water32(__name__, 'test_plot_pressure') as (dn_tmp, nvt, f):
         fn_png = '%s/pressure1.png' % dn_tmp
         plot_pressure(f, fn_png)
         assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn_tmp)
-        f.close()
 
 
 def test_plot_temp_dist():
-    dn_tmp, nve, f = get_nve_water32()
-    try:
+    with run_nve_water32(__name__, 'test_plot_temp_dist') as (dn_tmp, nve, f):
         fn_png = '%s/temp_dist1.png' % dn_tmp
         plot_temp_dist(f, fn_png)
         assert os.path.isfile(fn_png)
         fn_png = '%s/temp_dist2.png' % dn_tmp
-        plot_temp_dist(f, fn_png, select=[0,1,2,6,7,8])
+        plot_temp_dist(f, fn_png, select=[0, 1, 2, 6, 7, 8])
         assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn_tmp)
-        f.close()
 
 
 def test_plot_density():
-    dn_tmp, nve, f = get_nve_water32()
-    try:
+    with run_nve_water32(__name__, 'test_plot_density') as (dn_tmp, nve, f):
         fn_png = '%s/density1.png' % dn_tmp
         plot_density(f, fn_png)
         assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn_tmp)
-        f.close()
 
 
 def test_plot_cell_pars():
-    dn_tmp, opt, f = get_opt_water32()
-    try:
+    with run_opt_water32(__name__, 'test_plot_cell_pars') as (dn_tmp, opt, f):
         fn_png = '%s/cell_pars1.png' % dn_tmp
         plot_cell_pars(f, fn_png)
         assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn_tmp)
-        f.close()
 
 
 def test_plot_epot_contribs_nve():
-    dn_tmp, nve, f = get_nve_water32()
-    try:
+    with run_nve_water32(__name__, 'test_plot_epot_contribs_nve') as (dn_tmp, nve, f):
         fn_png = '%s/epot_contribs.png' % dn_tmp
         plot_epot_contribs(f, fn_png)
         assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn_tmp)
-        f.close()

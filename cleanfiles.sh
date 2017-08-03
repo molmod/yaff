@@ -1,7 +1,7 @@
 #!/bin/bash
-for i in $(find yaff data/examples | egrep "\.pyc$|\.py~$|\.pyc~$|\.bak$|\.so$") ; do rm -v ${i}; done
+for i in $(find yaff | egrep "\.pyc$|\.py~$|\.pyc~$|\.bak$|\.so$") ; do rm -v ${i}; done
 
-for d in data/examples/*; do (cd $d; echo Claning in $d; ./clean.sh); done
+for d in yaff/examples/*; do (cd $d; echo Cleaning in $d; ./clean.sh); done
 
 rm -vr doctrees
 rm -v yaff/pes/ext.c

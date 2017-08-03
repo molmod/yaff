@@ -24,6 +24,7 @@
 
 
 import numpy as np
+import pkg_resources
 
 from yaff import *
 from yaff.test.common import get_system_peroxide
@@ -41,10 +42,10 @@ def test_icgroup_cases():
 
 
 def test_water_cost_dist_ic():
-    fn_xyz = context.get_fn('test/water_trajectory.xyz')
+    fn_xyz = pkg_resources.resource_filename(__name__, '../../data/test/water_trajectory.xyz')
     system = System.from_file(fn_xyz, ffatypes=['O', 'H', 'H'])
     system.detect_bonds()
-    fn_pars = context.get_fn('test/parameters_water.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water.txt')
     parameters = Parameters.from_file(fn_pars)
     del parameters.sections['FIXQ']
     del parameters.sections['DAMPDISP']
@@ -83,11 +84,11 @@ def test_water_cost_dist_ic():
 
 
 def test_water_cost_dist_fc():
-    fn_chk = context.get_fn('test/water_hessian.chk')
+    fn_chk = pkg_resources.resource_filename(__name__, '../../data/test/water_hessian.chk')
     sample = load_chk(fn_chk)
     system = System(pos=sample['pos'], numbers=sample['numbers'], ffatypes=['O', 'H', 'H'])
     system.detect_bonds()
-    fn_pars = context.get_fn('test/parameters_water.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water.txt')
     parameters = Parameters.from_file(fn_pars)
     del parameters.sections['FIXQ']
     del parameters.sections['DAMPDISP']
@@ -113,10 +114,10 @@ def test_water_cost_dist_fc():
 
 
 def test_water_cost_angle_ic():
-    fn_xyz = context.get_fn('test/water_trajectory.xyz')
+    fn_xyz = pkg_resources.resource_filename(__name__, '../../data/test/water_trajectory.xyz')
     system = System.from_file(fn_xyz, ffatypes=['O', 'H', 'H'])
     system.detect_bonds()
-    fn_pars = context.get_fn('test/parameters_water.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water.txt')
     parameters = Parameters.from_file(fn_pars)
     del parameters.sections['FIXQ']
     del parameters.sections['DAMPDISP']
@@ -148,11 +149,11 @@ def test_water_cost_angle_ic():
 
 
 def test_water_cost_angle_fc():
-    fn_chk = context.get_fn('test/water_hessian.chk')
+    fn_chk = pkg_resources.resource_filename(__name__, '../../data/test/water_hessian.chk')
     sample = load_chk(fn_chk)
     system = System(pos=sample['pos'], numbers=sample['numbers'], ffatypes=['O', 'H', 'H'])
     system.detect_bonds()
-    fn_pars = context.get_fn('test/parameters_water.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water.txt')
     parameters = Parameters.from_file(fn_pars)
     del parameters.sections['FIXQ']
     del parameters.sections['DAMPDISP']

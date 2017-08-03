@@ -28,6 +28,7 @@ import numpy as np
 from molmod import kcalmol, angstrom, rad, deg, femtosecond, boltzmann
 from molmod.periodic import periodic
 from molmod.io import XYZWriter
+from molmod.test.common import tmpdir
 
 from yaff import *
 
@@ -97,7 +98,6 @@ def test_vtens_water32_full():
 
 
 def test_md_water32_full():
-    dump = False
     ff = get_ff_water32(True, True, True, True)
     pos = ff.system.pos.copy()
     grad = np.zeros(pos.shape)
@@ -111,20 +111,19 @@ def test_md_water32_full():
     velh = vel + (-0.5*h)*grad/mass
     # prop
     cqs = []
-    if dump:
-        symbols = [system.get_ffatype(i) for i in xrange(system.natom)]
-        xyz_writer = XYZWriter('traj.xyz', symbols)
-    for i in xrange(100):
-        pos += velh*h
-        ff.update_pos(pos)
-        grad[:] = 0.0
-        epot = ff.compute(grad)
-        if dump:
+    symbols = [system.get_ffatype(i) for i in xrange(system.natom)]
+    with tmpdir(__name__, 'test_md_water32_full') as dn:
+        xyz_writer = XYZWriter('%s/traj.xyz' % dn, symbols)
+        for i in xrange(100):
+            pos += velh*h
+            ff.update_pos(pos)
+            grad[:] = 0.0
+            epot = ff.compute(grad)
             xyz_writer.dump('i = %i  energy = %.10f' % (i, epot), pos)
-        tmp = (-0.5*h)*grad/mass
-        vel = velh + tmp
-        ekin = 0.5*(mass*vel*vel).sum()
-        cqs.append(ekin + epot)
-        velh = vel + tmp
+            tmp = (-0.5*h)*grad/mass
+            vel = velh + tmp
+            ekin = 0.5*(mass*vel*vel).sum()
+            cqs.append(ekin + epot)
+            velh = vel + tmp
     cqs = np.array(cqs)
     assert cqs.std() < 5e-3

@@ -24,6 +24,7 @@
 
 
 import h5py as h5
+import pkg_resources
 
 from yaff import *
 from molmod import femtosecond
@@ -33,7 +34,7 @@ def test_xyz_to_hdf5():
     with h5.File('yaff.conversion.test.test_xyz.test_xyz_to_hdf5.h5', driver='core', backing_store=False) as f:
         # Bad practice. Proper use is to initialize the system object from a
         # different XYZ (or yet something else) with a single geometry.
-        fn_xyz = context.get_fn('test/water_trajectory.xyz')
+        fn_xyz = pkg_resources.resource_filename(__name__, '../../data/test/water_trajectory.xyz')
         system = System.from_file(fn_xyz)
         system.to_hdf5(f)
         # Actual trajectory conversion, twice
@@ -54,7 +55,7 @@ def test_xyz_to_hdf5_alt():
     with h5.File('yaff.conversion.test.test_xyz.test_xyz_to_hdf5_alt.h5', driver='core', backing_store=False) as f:
         # Bad practice. Proper use is to initialize the system object from a
         # different XYZ (or yet something else) with a single geometry.
-        fn_xyz = context.get_fn('test/water_trajectory.xyz')
+        fn_xyz = pkg_resources.resource_filename(__name__, '../../data/test/water_trajectory.xyz')
         system = System.from_file(fn_xyz)
         system.to_hdf5(f)
         # Actual trajectory conversion, twice

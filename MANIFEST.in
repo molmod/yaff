@@ -1,4 +1,9 @@
 include README
-include COPYING
-include yaff/pes/*.pxd
-include yaff/pes/*.h
+include LICENSE.txt
+recursive-include doc *.rst *.png
+include doc/conf.py
+include doc/Makefile
+recursive-include yaff *.pyx *.pxd *.h *.c
+recursive-exclude yaff ext.c
+recursive-include yaff/data *
+recursive-include yaff/examples *

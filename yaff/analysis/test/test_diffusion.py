@@ -25,13 +25,12 @@
 import shutil, os, h5py as h5
 
 from yaff import *
-from yaff.analysis.test.common import get_nve_water32
+from yaff.analysis.test.common import run_nve_water32
 from yaff.sampling.test.common import get_ff_water32
 
 
 def test_diff_offline():
-    dn_tmp, nve, f = get_nve_water32()
-    try:
+    with run_nve_water32(__name__, 'test_diff_offline') as (dn_tmp, nve, f):
         select = nve.ff.system.get_indexes('O')
         diff = Diffusion(f, select=select)
         assert 'trajectory/pos_diff' in f
@@ -43,17 +42,13 @@ def test_diff_offline():
         fn_png = '%s/msds.png' % dn_tmp
         diff.plot(fn_png)
         assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn_tmp)
-        f.close()
 
 
 def test_diff_online():
     # Setup a test FF
     ff = get_ff_water32()
     # Run a test simulation
-    f = h5.File('yaff.analysis.test.test_diffusion.test_diff_online.h5', driver='core', backing_store=False)
-    try:
+    with h5.File('yaff.analysis.test.test_diffusion.test_diff_online.h5', driver='core', backing_store=False) as f:
         hdf5 = HDF5Writer(f)
         select = ff.system.get_indexes('O')
         diff0 = Diffusion(f, select=select)
@@ -68,8 +63,6 @@ def test_diff_online():
         assert abs(diff0.msds - diff1.msds).max() < 1e-10
         assert abs(diff0.msdsums - diff1.msdsums).max() < 1e-10
         assert abs(diff0.msdcounters - diff1.msdcounters).max() < 1e-10
-    finally:
-        f.close()
 
 
 def test_diff_online_blind():

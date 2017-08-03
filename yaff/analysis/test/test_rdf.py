@@ -23,16 +23,21 @@
 #--
 
 
-import shutil, os, h5py as h5, numpy as np
+import shutil
+import os
+
+import h5py as h5
+import numpy as np
+import pkg_resources
+
 
 from yaff import *
-from yaff.analysis.test.common import get_nve_water32
+from yaff.analysis.test.common import run_nve_water32
 from yaff.sampling.test.common import get_ff_water32
 
 
 def test_rdf1_offline():
-    dn_tmp, nve, f = get_nve_water32()
-    try:
+    with run_nve_water32(__name__, 'test_rdf1_offline') as (dn_tmp, nve, f):
         select = nve.ff.system.get_indexes('O')
         rdf = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select)
         assert 'trajectory/pos_rdf' in f
@@ -41,17 +46,13 @@ def test_rdf1_offline():
         fn_png = '%s/rdf.png' % dn_tmp
         rdf.plot(fn_png)
         assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn_tmp)
-        f.close()
 
 
 def test_rdf1_online():
     # Setup a test FF
     ff = get_ff_water32()
     # Run a test simulation
-    f = h5.File('yaff.analysis.test.test_rdf.test_rdf1_online.h5', driver='core', backing_store=False)
-    try:
+    with h5.File(__name__ + 'test_rdf1_online.h5', driver='core', backing_store=False) as f:
         hdf5 = HDF5Writer(f)
         select = ff.system.get_indexes('O')
         rdf0 = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select)
@@ -63,13 +64,10 @@ def test_rdf1_online():
         assert rdf0.nsample == rdf1.nsample
         assert abs(rdf0.d - rdf1.d).max() < 1e-10
         assert abs(rdf0.rdf - rdf1.rdf).max() < 1e-10
-    finally:
-        f.close()
 
 
 def test_rdf2_offline():
-    dn_tmp, nve, f = get_nve_water32()
-    try:
+    with run_nve_water32(__name__, 'test_rdf2_offline') as (dn_tmp, nve, f):
         select0 = nve.ff.system.get_indexes('O')
         select1 = nve.ff.system.get_indexes('H')
         rdf = RDF(4.5*angstrom, 0.1*angstrom, f, select0=select0, select1=select1)
@@ -79,17 +77,13 @@ def test_rdf2_offline():
         fn_png = '%s/rdf.png' % dn_tmp
         rdf.plot(fn_png)
         assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn_tmp)
-        f.close()
 
 
 def test_rdf2_online():
     # Setup a test FF
     ff = get_ff_water32()
     # Run a test simulation
-    f = h5.File('yaff.analysis.test.test_rdf.test_rdf2_online.h5', driver='core', backing_store=False)
-    try:
+    with h5.File(__name__ + '.test_rdf2_online.h5', driver='core', backing_store=False) as f:
         hdf5 = HDF5Writer(f)
         select0 = ff.system.get_indexes('O')
         select1 = ff.system.get_indexes('H')
@@ -102,8 +96,6 @@ def test_rdf2_online():
         assert rdf0.nsample == rdf1.nsample
         assert abs(rdf0.d - rdf1.d).max() < 1e-10
         assert abs(rdf0.rdf - rdf1.rdf).max() < 1e-10
-    finally:
-        f.close()
 
 
 def test_rdf2_online_blind():
@@ -119,8 +111,7 @@ def test_rdf2_online_blind():
 
 
 def test_rdf2_offline_pairs_sr():
-    dn_tmp, nve, f = get_nve_water32()
-    try:
+    with run_nve_water32(__name__, 'test_rdf2_offline_pairs_sr') as (dn_tmp, nve, f):
         select0 = nve.ff.system.get_indexes('O')
         select1 = nve.ff.system.get_indexes('H')
         pairs_sr = []
@@ -137,14 +128,10 @@ def test_rdf2_offline_pairs_sr():
         fn_png = '%s/rdf.png' % dn_tmp
         rdf.plot(fn_png)
         assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn_tmp)
-        f.close()
 
 
 def test_rdf2_offline_pairs_sr_nimage():
-    dn_tmp, nve, f = get_nve_water32()
-    try:
+    with run_nve_water32(__name__, 'test_rdf2_offline_pairs_sr_nimage') as (dn_tmp, nve, f):
         select0 = nve.ff.system.get_indexes('O')
         select1 = nve.ff.system.get_indexes('H')
         pairs_sr = []
@@ -161,16 +148,13 @@ def test_rdf2_offline_pairs_sr_nimage():
         fn_png = '%s/rdf.png' % dn_tmp
         rdf.plot(fn_png)
         assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn_tmp)
-        f.close()
 
 
 def test_rdf_from_file_variable_cell():
-    fn_xyz = context.get_fn('test/chloro_pos.xyz')
-    fn_vol = context.get_fn('test/chloro_vol.txt')
+    fn_xyz = pkg_resources.resource_filename(__name__, '../../data/test/chloro_pos.xyz')
+    fn_vol = pkg_resources.resource_filename(__name__, '../../data/test/chloro_vol.txt')
     system = System.from_file(fn_xyz, rvecs=np.diag([48.877]*3))
-    with h5.File('yaff.analysis.test.test_rdf.test_rdf_from_file_variable_cell.h5', driver='core', backing_store=False) as f:
+    with h5.File(__name__ + '.test_rdf_from_file_variable_cell', driver='core', backing_store=False) as f:
         # Prepare in-memory HDF5 file
         system.to_hdf5(f)
         xyz_to_hdf5(f, fn_xyz)

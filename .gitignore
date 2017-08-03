@@ -11,12 +11,12 @@ build
 dist
 doc/_build
 doc/rg_yaff*.rst
-doc/.nojekyll
+yaff/version.py
 
 # output of the examples
-data/examples/000_overview/traj.xyz
-data/examples/001_tutorial_bks/init/init.chk
-data/examples/001_tutorial_bks/nvt/traj_0300_000310.h5.xyz
-data/examples/001_tutorial_bks/opt/opt.chk
-data/examples/001_tutorial_bks/opt/traj.xyz
-data/examples/003_water_thermostat/traj.xyz
+yaff/examples/000_overview/traj.xyz
+yaff/examples/001_tutorial_bks/init/init.chk
+yaff/examples/001_tutorial_bks/nvt/traj_0300_000310.h5.xyz
+yaff/examples/001_tutorial_bks/opt/opt.chk
+yaff/examples/001_tutorial_bks/opt/traj.xyz
+yaff/examples/003_water_thermostat/traj.xyz

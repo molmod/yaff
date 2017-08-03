@@ -23,7 +23,10 @@
 #--
 
 
-import shutil, tempfile
+import shutil
+import tempfile
+import pkg_resources
+
 
 from yaff import *
 
@@ -43,26 +46,23 @@ def check_consistent(pf1, pf2):
 
 
 def test_consistency_io():
-    for fn_parameters in 'test/parameters_bks.txt', 'test/parameters_water.txt':
-        pf1 = Parameters.from_file(context.get_fn(fn_parameters))
-        dirname = tempfile.mkdtemp('yaff', 'test_consistency_parameters')
-        try:
-            pf1.write_to_file('%s/parameters_foo.txt' % dirname)
-            pf2 = Parameters.from_file('%s/parameters_foo.txt' % dirname)
+    for fn_parameters in '../../data/test/parameters_bks.txt', '../../data/test/parameters_water.txt':
+        pf1 = Parameters.from_file(pkg_resources.resource_filename(__name__, fn_parameters))
+        with tmpdir(__name__, 'test_consistency_io') as dn:
+            pf1.write_to_file('%s/parameters_foo.txt' % dn)
+            pf2 = Parameters.from_file('%s/parameters_foo.txt' % dn)
             check_consistent(pf1, pf2)
-        finally:
-            shutil.rmtree(dirname)
 
 
 def test_consistency_copy():
-    for fn_parameters in 'test/parameters_bks.txt', 'test/parameters_water.txt':
-        pf1 = Parameters.from_file(context.get_fn(fn_parameters))
+    for fn_parameters in '../../data/test/parameters_bks.txt', '../../data/test/parameters_water.txt':
+        pf1 = Parameters.from_file(pkg_resources.resource_filename(__name__, fn_parameters))
         pf2 = pf1.copy()
         check_consistent(pf1, pf2)
 
 
 def test_from_file_bks():
-    fn_pars = context.get_fn('test/parameters_bks.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_bks.txt')
     pf = Parameters.from_file(fn_pars)
     assert pf['EXPREP'].complain.filename == fn_pars
     assert pf['EXPREP']['CPARS'].complain.filename == fn_pars
@@ -74,8 +74,8 @@ def test_from_file_bks():
 
 
 def test_from_file_water_2():
-    fn_pars1 = context.get_fn('test/parameters_water_dampdisp1.txt')
-    fn_pars2 = context.get_fn('test/parameters_water_exprep1.txt')
+    fn_pars1 = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_dampdisp1.txt')
+    fn_pars2 = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_exprep1.txt')
     pf = Parameters.from_file([fn_pars1, fn_pars2])
     assert pf['DAMPDISP'].complain.filename == fn_pars1
     assert pf['DAMPDISP']['SCALE'].complain.filename == fn_pars1
