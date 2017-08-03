@@ -81,6 +81,7 @@ setup(
               'yaff/conversion/test'],
     cmdclass = {'build_ext': build_ext},
     include_package_data=True,
+    setup_requires=['numpy>=1.0', 'cython>=0.24.1'],
     install_requires=['numpy>=1.0', 'nose>=0.11', 'cython>=0.24.1', 'matplotlib>1.0.0',
                       'h5py>=2.0.0', 'molmod>1.3.1', 'scipy>=0.17.1'],
     ext_modules=[
