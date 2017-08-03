@@ -1,0 +1,39 @@
+package:
+  version: "{{ load_setup_py_data().version }}"
+  name: 'yaff'
+
+source:
+  path: ../
+
+build:
+  number: 0
+  script: python setup.py install  --single-version-externally-managed --record=record.txt
+
+requirements:
+  run:
+    - python
+    - numpy
+    - nose
+    - molmod
+    - h5py
+    - scipy
+    - matplotlib
+  build:
+    - python
+    - numpy
+    - gcc
+    - cython >=0.24.1
+    - setuptools
+
+about:
+  dev_url: https://github.com/molmod/yaff
+  description: YAFF is yet another force-field code
+  license: GNU General Public License v3 or later (GPLv3+)
+  license_family: GPL3
+  summary: YAFF is yet another force-field code
+  home: http://molmod.github.io/yaff
+  license_file: LICENSE.txt
+  doc_url: http://molmod.github.io/yaff
+
+extra:
+  recipe-maintainers: Toon Verstraelen <toon.verstraelen@gmail.com>
