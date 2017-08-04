@@ -194,37 +194,38 @@ def calc_pca(f_target, cov_mat=None, f=None, q_ref=None, start=0, end=None, step
         eigvec = eigvec[:,idx]
 
         # Create output HDF5 file
-        g = h5.File(f_target,'w')
-        pca = g.create_group('pca')
-        # Output reference structure q_ref
-        pca.create_dataset('q_ref', data=q_ref)
-        # Output covariance matrix
-        pca.create_dataset('cov_matrix', data=cov_mat)
-        # Output eigenvectors in columns
-        pca.create_dataset('pm', data=eigvec)
-        # Output eigenvalues
-        pca.create_dataset('eigvals', data=eigval)
+        with h5.File(f_target, 'w') as g:
+            pca = g.create_group('pca')
+            # Output reference structure q_ref
+            pca.create_dataset('q_ref', data=q_ref)
+            # Output covariance matrix
+            pca.create_dataset('cov_matrix', data=cov_mat)
+            # Output eigenvectors in columns
+            pca.create_dataset('pm', data=eigvec)
+            # Output eigenvalues
+            pca.create_dataset('eigvals', data=eigval)
 
-        log('Determining inverse of the covariance matrix')
-        # Process matrix to determine inverse
-        # First, project out the three zero eigenvalues (translations)
-        eigvec_reduced = eigvec[:,:-3]
-        eigval_reduced = eigval[:-3]
+            log('Determining inverse of the covariance matrix')
+            # Process matrix to determine inverse
+            # First, project out the three zero eigenvalues (translations)
+            eigvec_reduced = eigvec[:,:-3]
+            eigval_reduced = eigval[:-3]
 
-        # Second, calculate the reduced covariance matrix and its inverse
-        cov_mat_reduced = np.dot(np.dot(eigvec_reduced, np.diag(eigval_reduced)), eigvec_reduced.T)
-        cov_mat_inverse = np.dot(np.dot(eigvec_reduced, np.diag(1/eigval_reduced)), eigvec_reduced.T)
-        pca.create_dataset('cov_mat_red', data=cov_mat_reduced)
-        pca.create_dataset('cov_mat_inv', data=cov_mat_inverse)
+            # Second, calculate the reduced covariance matrix and its inverse
+            cov_mat_reduced = np.dot(np.dot(eigvec_reduced, np.diag(eigval_reduced)), eigvec_reduced.T)
+            cov_mat_inverse = np.dot(np.dot(eigvec_reduced, np.diag(1/eigval_reduced)), eigvec_reduced.T)
+            pca.create_dataset('cov_mat_red', data=cov_mat_reduced)
+            pca.create_dataset('cov_mat_inv', data=cov_mat_inverse)
 
-        # Third, if the temperature is specified, calculate the frequencies
-        # (the zero frequencies are mentioned last so that their index corresponds to the principal modes)
-        if temp is not None:
-            log('Determining frequencies')
-            frequencies = np.append(np.sqrt(boltzmann*temp/eigval_reduced)/(2*np.pi), np.repeat(0,3))
-            pca.create_dataset('freqs', data=frequencies)
+            # Third, if the temperature is specified, calculate the frequencies
+            # (the zero frequencies are mentioned last so that their index corresponds to the principal modes)
+            if temp is not None:
+                log('Determining frequencies')
+                frequencies = np.append(np.sqrt(boltzmann*temp/eigval_reduced)/(2*np.pi), np.repeat(0,3))
+                pca.create_dataset('freqs', data=frequencies)
 
     return eigval, eigvec
+
 
 def pca_projection(f_target, f, pm, start=0, end=None, step=1, select=None, path='trajectory/pos', mw=True):
     """
@@ -293,14 +294,13 @@ def pca_projection(f_target, f, pm, start=0, end=None, step=1, select=None, path
         prin_comp = np.dot(q, pm)
 
     # Create output HDF5 file
-    g = h5.File(f_target,'a')
-    if not 'pca' in g:
-        pca = g.create_group('pca')
-    else:
-        pca = g['pca']
-    pca.create_dataset('pc', data=prin_comp)
+    with h5.File(f_target, 'a') as g:
+        if not 'pca' in g:
+            pca = g.create_group('pca')
+        else:
+            pca = g['pca']
+        pca.create_dataset('pc', data=prin_comp)
 
-    return pca
 
 def write_principal_mode(f, f_pca, index, n_frames=100, select=None, mw=True, scaling=1.):
     """

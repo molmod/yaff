@@ -89,11 +89,6 @@ ff = ForceField.generate(system, '../bks.pot', rcut=20*angstrom, alpha_scale=4.0
 # the constant pressure.
 ff.add_part(ForcePartPressure(system, 0*p_unit))
 
-# Some code to make sure the output files are written. (No changes needed.)
-xyz = XYZWriter('traj.xyz', step=1)
-f = h5.File('traj.h5', 'w')
-hdf5 = HDF5Writer(f)
-
 # Define the optimization algorithm.
 #
 # CGOptimizer
@@ -115,14 +110,20 @@ hdf5 = HDF5Writer(f)
 # hooks
 #   A list of extra 'things' that need to be done during the opmization. In this
 #   case, just the generation of trajectory files.
-opt = CGOptimizer(StrainCellDOF(ff, gpos_rms=1e-6, grvecs_rms=1e-6), hooks=[xyz, hdf5])
 
-# Run the optimizer for at most 500 steps. (This should be enough.)
-opt.run(500)
+# Some code to make sure the output files are written. (No changes needed.)
+xyz = XYZWriter('traj.xyz', step=1)
+with h5.File('traj.h5', 'w') as f:
+    hdf5 = HDF5Writer(f)
 
-# Make some nice plots
-plot_epot_contribs(f, 'opt_energy.png')
-plot_cell_pars(f, 'opt_cell.png')
+    opt = CGOptimizer(StrainCellDOF(ff, gpos_rms=1e-6, grvecs_rms=1e-6), hooks=[xyz, hdf5])
+
+    # Run the optimizer for at most 500 steps. (This should be enough.)
+    opt.run(500)
+
+    # Make some nice plots
+    plot_epot_contribs(f, 'opt_energy.png')
+    plot_cell_pars(f, 'opt_cell.png')
 
 # Write the final state of the system to a file that is used as the initial
 # state for the NVT simulations:

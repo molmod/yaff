@@ -1,18 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# MolMod is a collection of molecular modelling tools for python.
-# Copyright (C) 2007 - 2012 Toon Verstraelen <Toon.Verstraelen@UGent.be>, Center
-# for Molecular Modeling (CMM), Ghent University, Ghent, Belgium; all rights
-# reserved unless otherwise stated.
+# YAFF is yet another force-field code
+# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
+# (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
+# stated.
 #
-# This file is part of MolMod.
+# This file is part of YAFF.
 #
-# MolMod is free software; you can redistribute it and/or
+# YAFF is free software; you can redistribute it and/or
 # modify it under the terms of the GNU General Public License
 # as published by the Free Software Foundation; either version 3
 # of the License, or (at your option) any later version.
 #
-# MolMod is distributed in the hope that it will be useful,
+# YAFF is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.

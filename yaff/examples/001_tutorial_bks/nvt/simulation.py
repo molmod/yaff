@@ -46,22 +46,19 @@ system = System.from_file('../opt/opt.chk')
 ff = ForceField.generate(system, '../bks.pot', rcut=12*angstrom, smooth_ei=True, reci_ei='ewald')
 
 # Output to files and screen
-f = h5.File('traj_%s.h5' % suffix, mode='w')
-hdf5 = HDF5Writer(f)
-xyz = XYZWriter('traj_%s.xyz' % suffix, step=1)
-vsl = VerletScreenLog(step=10)
+with h5.File('traj_%s.h5' % suffix, mode='w') as f:
+    hdf5 = HDF5Writer(f)
+    xyz = XYZWriter('traj_%s.xyz' % suffix, step=1)
+    vsl = VerletScreenLog(step=10)
 
-# Pick your thermostat:
-#thermo = AndersenThermostat(300, step=10)
-thermo = NHCThermostat(300, timecon=100*femtosecond)
-#thermo = LangevinThermostat(300, timecon=100*femtosecond)
-verlet = VerletIntegrator(ff, femtosecond, temp0=600, hooks=[thermo, xyz, hdf5, vsl])
-verlet.run(nstep)
+    # Pick your thermostat:
+    #thermo = AndersenThermostat(300, step=10)
+    thermo = NHCThermostat(300, timecon=100*femtosecond)
+    #thermo = LangevinThermostat(300, timecon=100*femtosecond)
+    verlet = VerletIntegrator(ff, femtosecond, temp0=600, hooks=[thermo, xyz, hdf5, vsl])
+    verlet.run(nstep)
 
-# Plot some results
-plot_energies(f, 'ener_%s.png' % suffix)
-plot_temperature(f, 'temp_%s.png' % suffix)
-plot_pressure(f, 'press_%s.png' % suffix)
-
-# Close the HDF5 file.
-f.close()
+    # Plot some results
+    plot_energies(f, 'ener_%s.png' % suffix)
+    plot_temperature(f, 'temp_%s.png' % suffix)
+    plot_pressure(f, 'press_%s.png' % suffix)
