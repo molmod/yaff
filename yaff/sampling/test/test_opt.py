@@ -117,8 +117,7 @@ def check_hdf5_common(f):
 
 
 def test_cg_hdf5():
-    f = h5.File('yaff.sampling.test.test_opt.test_cg_hdf5.h5', driver='core', backing_store=False)
-    try:
+    with h5.File(__name__ + '.test_cg_hdf5.h5', driver='core', backing_store=False) as f:
         hdf5 = HDF5Writer(f)
         opt = CGOptimizer(CartesianDOF(get_ff_water32()), hooks=hdf5)
         opt.run(15)
@@ -126,8 +125,6 @@ def test_cg_hdf5():
         check_hdf5_common(hdf5.f)
         assert get_last_trajectory_row(f['trajectory']) == 16
         assert f['trajectory/counter'][15] == 15
-    finally:
-        f.close()
 
 
 def test_qn_5steps():

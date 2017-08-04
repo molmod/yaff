@@ -47,26 +47,22 @@ suffix = '%04i_%06i.h5' % (temp, nstep)
 p_unit = 1e9*pascal
 
 # Open the trajectory file for post-processing the MD simulation
-f = h5.File('traj_%s.h5' % suffix)
+with h5.File('traj_%s.h5' % suffix) as f:
+    # Get the isotropic pressure. This is the trace of the time-dependent virial
+    # stress divided by three.
+    press = np.array(f['trajectory/press'][nskip:])
 
-# Get the isotropic pressure. This is the trace of the time-dependent virial
-# stress divided by three.
-press = np.array(f['trajectory/press'][nskip:])
+    # The average pressure in the selected unit
+    print 'Average pressure [GPa]:', press.mean()/p_unit
 
-# The average pressure in the selected unit
-print 'Average pressure [GPa]:', press.mean()/p_unit
+    # Block-averaging method to compute the error on the average.
+    error = blav(press, fn_png='blav_%s.png' % suffix)[0]
+    print 'Error on average [GPa]:', error/p_unit
 
-# Block-averaging method to compute the error on the average.
-error = blav(press, fn_png='blav_%s.png' % suffix)[0]
-print 'Error on average [GPa]:', error/p_unit
-
-# Compute the time auto-correlation of the time-dependent pressure.
-# This is done with a fast-Fourier transform (FFT), which is implemented as an
-# additional result of a spectral analysis. The bsize argument is set such that
-# the spectrum is computed on the signal as a whole, without dividing it into
-# blocks.
-spectrum = Spectrum(f, start=nskip, path='trajectory/press', bsize=len(press)-nskip)
-spectrum.plot_ac('ac_%s.png' % suffix)
-
-# Close the HDF5 file.
-f.close()
+    # Compute the time auto-correlation of the time-dependent pressure.
+    # This is done with a fast-Fourier transform (FFT), which is implemented as an
+    # additional result of a spectral analysis. The bsize argument is set such that
+    # the spectrum is computed on the signal as a whole, without dividing it into
+    # blocks.
+    spectrum = Spectrum(f, start=nskip, path='trajectory/press', bsize=len(press)-nskip)
+    spectrum.plot_ac('ac_%s.png' % suffix)

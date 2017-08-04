@@ -84,31 +84,29 @@ def cp2k_ener_to_hdf5(f, fn_ener, sub=slice(None)):
         # Fill the datasets with data.
         row = get_last_trajectory_row(dss)
         counter = 0
-        fin = file(fn_ener)
+        with open(fn_ener) as fin:
+            # check header line
+            line = fin.next()
+            words = line.split()
+            if words[0] != '#':
+                raise ValueError('The first line in the energies file should be a header line starting with #.')
+            if words[3] != 'Time[fs]' or words[4] != 'Kin.[a.u.]' or \
+               words[5] != 'Temp[K]' or words[6] != 'Pot.[a.u.]' or \
+               words[7] + ' ' + words[8] != 'Cons Qty[a.u.]':
+                raise ValueError('The fields in the header line indicate that this file contains unsupported data.')
 
-        # check header line
-        line = fin.next()
-        words = line.split()
-        if words[0] != '#':
-            raise ValueError('The first line in the energies file should be a header line starting with #.')
-        if words[3] != 'Time[fs]' or words[4] != 'Kin.[a.u.]' or \
-           words[5] != 'Temp[K]' or words[6] != 'Pot.[a.u.]' or \
-           words[7] + ' ' + words[8] != 'Cons Qty[a.u.]':
-            raise ValueError('The fields in the header line indicate that this file contains unsupported data.')
-
-        # Load lines
-        for line in fin:
-            if slice_match(sub, counter):
-                words = line.split()
-                write_to_dataset(ds_step, float(words[0]), row)
-                write_to_dataset(ds_time, float(words[1])*femtosecond, row)
-                write_to_dataset(ds_ke, float(words[2]), row)
-                write_to_dataset(ds_temp, float(words[3]), row)
-                write_to_dataset(ds_pe, float(words[4]), row)
-                write_to_dataset(ds_cq, float(words[5]), row)
-                row += 1
-            counter += 1
-        fin.close()
+            # Load lines
+            for line in fin:
+                if slice_match(sub, counter):
+                    words = line.split()
+                    write_to_dataset(ds_step, float(words[0]), row)
+                    write_to_dataset(ds_time, float(words[1])*femtosecond, row)
+                    write_to_dataset(ds_ke, float(words[2]), row)
+                    write_to_dataset(ds_temp, float(words[3]), row)
+                    write_to_dataset(ds_pe, float(words[4]), row)
+                    write_to_dataset(ds_cq, float(words[5]), row)
+                    row += 1
+                counter += 1
 
         # Check number of rows
         check_trajectory_rows(tgrp, dss, row)
