@@ -4,6 +4,9 @@ language: generic
 env:
   matrix:
   - MYCONDAPY=2.7
+  global:
+    # ANACONDA_TOKEN encrypted
+    secure: "Qekvnk/wtRQyPxmNJC3aMcyiBdXW1K+oSK5d1X2+XggYxA2k28iwq2e08Tfym+jVpPybtvmK65rMJ40Zrgp67RCbpqDlcwkjN7k1DkyF3kIV9t9HOVRdXyaKqWfOYvZqmljeoywj4UlJnXBfZnlUdcaGIe0dnIN8P8GKxzjSeoo="
 install:
 # Get miniconda. Take the right version, so re-installing python is only needed for 3.5.
 - if [[ "$MYCONDAPY" == "2.7" ]]; then
@@ -50,3 +53,71 @@ script:
 
 # Basic code checks
 - ./checkwhitespace.py $(find . -type f | egrep '(\.py$)|(\.c$)|(\.pyx$)|(\.pxd$)|(\.h$)|(\.rst$)|(\.in$)|(\.yml$)|(\.yaml$)')
+
+# In deployment, the env var TRAVIS_TAG contains the name of the current tag, if any.
+deploy:
+- provider: releases
+  skip_cleanup: true
+  api_key:
+    # Encrypted github token
+    secure: "NVbUZkYqTIxaYHn3a2wEuVLZf6nvSYKgWK83XsrPI6i+rL9j85bHKhJo7Ad9sPrwI8buuIyp2Kb5XFnTKay4M/KMdPdnN+0Ai87jNesWqyl8RzbAN9so3vyz+h5hvdIvtry7Q9U5+4OQvIaQjnJsLodKWKRCbGhPpv5J93ptiCw="
+  file: dist/yaff-${TRAVIS_TAG}.tar.gz
+  on:
+    repo: molmod/yaff
+    tags: true
+    condition: "$TRAVIS_TAG != *[ab]* && $MYCONDAPY == 2.7"
+  prerelease: false
+- provider: releases
+  skip_cleanup: true
+  api_key:
+    # Encrypted github token
+    secure: "NVbUZkYqTIxaYHn3a2wEuVLZf6nvSYKgWK83XsrPI6i+rL9j85bHKhJo7Ad9sPrwI8buuIyp2Kb5XFnTKay4M/KMdPdnN+0Ai87jNesWqyl8RzbAN9so3vyz+h5hvdIvtry7Q9U5+4OQvIaQjnJsLodKWKRCbGhPpv5J93ptiCw="
+  file: dist/yaff-${TRAVIS_TAG}.tar.gz
+  on:
+    repo: molmod/yaff
+    tags: true
+    condition: "$TRAVIS_TAG == *[ab]* && $MYCONDAPY == 2.7"
+  prerelease: true
+- provider: script
+  skip_cleanup: true
+  script: anaconda -t $ANACONDA_TOKEN upload -l alpha ${HOME}/miniconda/conda-bld/linux-64/yaff-*.tar.bz2
+  on:
+    repo: molmod/yaff
+    tags: true
+    condition: "$TRAVIS_TAG == *a*"
+- provider: script
+  skip_cleanup: true
+  script: anaconda -t $ANACONDA_TOKEN upload -l beta ${HOME}/miniconda/conda-bld/linux-64/molmod-*.tar.bz2
+  on:
+    repo: molmod/yaff
+    tags: true
+    condition: "$TRAVIS_TAG == *b*"
+- provider: script
+  skip_cleanup: true
+  script: anaconda -t $ANACONDA_TOKEN upload -l main ${HOME}/miniconda/conda-bld/linux-64/molmod-*.tar.bz2
+  on:
+    repo: molmod/yaff
+    tags: true
+    condition: "$TRAVIS_TAG != *[ab]*"
+- provider: pypi
+  skip_cleanup: true
+  user: tovrstra
+  password:
+    # Encrypted PyPI password
+    secure: "CURxkjsCeqMT/mhe+ApL74wHVehEYZgtvs5Q9HLhukhonslB7KNegN3uXJX0ejdEH7gaFtB6JQYD7poQmMrB0+FWoMbQbwj6S/RLL9P5W9yK5R+8Hw/IiQFrI4LG9RjXM3Rpf391eHY58hOZM4BqyjdL8hoPkJHwASDGofqiUp8="
+  on:
+    repo: molmod/yaff
+    tags: true
+    condition: "$TRAVIS_TAG != *[ab]* && $MYCONDAPY == 2.7"
+- provider: pages
+  skip_cleanup: true
+  github_token:
+    # Encrypted github token
+    secure: "NVbUZkYqTIxaYHn3a2wEuVLZf6nvSYKgWK83XsrPI6i+rL9j85bHKhJo7Ad9sPrwI8buuIyp2Kb5XFnTKay4M/KMdPdnN+0Ai87jNesWqyl8RzbAN9so3vyz+h5hvdIvtry7Q9U5+4OQvIaQjnJsLodKWKRCbGhPpv5J93ptiCw="
+  project_name: yaff
+  local_dir: doc/_build/html
+  on:
+    repo: molmod/yaff
+# condition: "$TRAVIS_TAG != *[ab]* && $MYCONDAPY == 2.7"
+    condition: "$MYCONDAPY == 2.7"
+    tags: true
