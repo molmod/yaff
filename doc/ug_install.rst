@@ -56,11 +56,23 @@ command.
 Installation
 ============
 
-You can install Yaff with pip:
+You can install Yaff with pip (in your home directory):
 
 .. code:: bash
 
-    pip install --user yaff
+    pip install yaff --user
+
+or in system wide or in a virtual environment:
+
+.. code:: bash
+
+    pip install yaff
+
+Alternatively, you can also install yaff with conda. See https://www.continuum.io/downloads
+
+.. code:: bash
+
+    conda install -c tovrstra yaff
 
 
 Test your installation

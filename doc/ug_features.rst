@@ -36,7 +36,9 @@ Release notes
 * Version 1.2.0
 
   - Installable with pip.
-  - Fix parallel testing issues.
+  - Installable with conda.
+  - Automatic deployment of new releases.
+  - Fix parallel unit testing issues.
 
 * Version 1.1.3
 
