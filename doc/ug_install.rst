@@ -60,12 +60,14 @@ You can install Yaff with pip (in your home directory):
 
 .. code:: bash
 
+    pip install numpy Cython --user
     pip install yaff --user
 
 or in system wide or in a virtual environment:
 
 .. code:: bash
 
+    pip install numpy Cython
     pip install yaff
 
 Alternatively, you can also install yaff with conda. See https://www.continuum.io/downloads

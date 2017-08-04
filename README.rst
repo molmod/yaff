@@ -23,12 +23,14 @@ Yaff can be installed with pip (system wide or in a virtual environment):
 
 .. code:: bash
 
+    pip install numpy Cython
     pip install yaff
 
 Alternatively, you can install Yaff in your home directory:
 
 .. code:: bash
 
+    pip install numpy Cython --user
     pip install yaff --user
 
 
