@@ -87,14 +87,14 @@ deploy:
     condition: "$TRAVIS_TAG == *a*"
 - provider: script
   skip_cleanup: true
-  script: anaconda -t $ANACONDA_TOKEN upload -l beta ${HOME}/miniconda/conda-bld/linux-64/molmod-*.tar.bz2
+  script: anaconda -t $ANACONDA_TOKEN upload -l beta ${HOME}/miniconda/conda-bld/linux-64/yaff-*.tar.bz2
   on:
     repo: molmod/yaff
     tags: true
     condition: "$TRAVIS_TAG == *b*"
 - provider: script
   skip_cleanup: true
-  script: anaconda -t $ANACONDA_TOKEN upload -l main ${HOME}/miniconda/conda-bld/linux-64/molmod-*.tar.bz2
+  script: anaconda -t $ANACONDA_TOKEN upload -l main ${HOME}/miniconda/conda-bld/linux-64/yaff-*.tar.bz2
   on:
     repo: molmod/yaff
     tags: true
@@ -118,6 +118,5 @@ deploy:
   local_dir: doc/_build/html
   on:
     repo: molmod/yaff
-# condition: "$TRAVIS_TAG != *[ab]* && $MYCONDAPY == 2.7"
-    condition: "$MYCONDAPY == 2.7"
+    condition: "$TRAVIS_TAG != *[ab]* && $MYCONDAPY == 2.7"
     tags: true
