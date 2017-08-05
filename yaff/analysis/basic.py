@@ -48,7 +48,7 @@ def get_time(f, start, end, step):
         time = f['trajectory/time'][start:end:step]/log.time.conversion
     else:
         label = 'Step'
-        time = np.arange(len(f['trajectory/epot'][:]), float)[start:end:step]
+        time = np.arange(len(f['trajectory/epot'][:]), dtype=float)[start:end:step]
     return time, label
 
 def plot_energies(f, fn_png='energies.png', **kwargs):
