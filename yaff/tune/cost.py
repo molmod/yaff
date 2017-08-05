@@ -49,7 +49,7 @@ class CostFunction(object):
 
         # Collect all simulations
         self.simulations = []
-        for name, tests in sorted(test_groups.iteritems()):
+        for name, tests in sorted(test_groups.items()):
             for test in tests:
                 for simulation in test.simulations:
                     if simulation not in self.simulations:
@@ -57,7 +57,7 @@ class CostFunction(object):
 
         # Collect all tests
         self.tests = []
-        for name, tests in sorted(test_groups.iteritems()):
+        for name, tests in sorted(test_groups.items()):
             for test in tests:
                 self.tests.append((name, test))
 
@@ -72,7 +72,7 @@ class CostFunction(object):
         costs = {}
         for name, test in self.tests:
             costs[name] = 0.5*test(results)**2 + costs.get(name, 0.0)
-        return sum(np.log(cost) for cost in costs.itervalues())
+        return sum(np.log(cost) for cost in costs.values())
 
 
 class Simulation(object):

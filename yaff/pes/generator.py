@@ -276,7 +276,7 @@ class Generator(object):
                 pardef.complain(counter, 'has a UNIT suffix with an unknown unit.')
         if len(result) != len(expected_names):
             raise IOError('Not all units are specified for generator %s in file %s. Got %s, should have %s.' % (
-                self.prefix, pardef.complain.filename, result.keys(), expected_names
+                self.prefix, pardef.complain.filename, list(result.keys()), expected_names
             ))
         return result
 
@@ -509,7 +509,7 @@ class BondDoubleWell2Generator(ValenceGenerator):
         tmp = Generator.process_pars(self, pardef, conversions, nffatype, par_info=par_info)
         par_table = {}
 
-        for key, oldpars in tmp.iteritems():
+        for key, oldpars in tmp.items():
             K = oldpars[0][0]
             r0 = oldpars[0][1]
             r1 = oldpars[0][2]
@@ -703,7 +703,7 @@ class TorsionCos2HarmGenerator(ValenceGenerator):
         '''
         tmp = Generator.process_pars(self, pardef, conversions, nffatype, par_info=par_info)
         par_table = {}
-        for key, oldpars in tmp.iteritems():
+        for key, oldpars in tmp.items():
             pars = [0.0, -4*oldpars[0][0]*oldpars[0][1]**2, 0.0, 2.0*oldpars[0][0]]
             par_table[key] = [(pars,)]
         return par_table
@@ -1586,7 +1586,7 @@ def apply_generators(system, parameters, ff_args):
 
     # Go through all the sections of the parameter file and apply the
     # corresponding generator.
-    for prefix, section in parameters.sections.iteritems():
+    for prefix, section in parameters.sections.items():
         generator = generators.get(prefix)
         if generator is None:
             if log.do_warning:

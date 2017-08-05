@@ -124,7 +124,7 @@ class Parameters(object):
     def copy(self):
         '''Return an independent copy'''
         sections = {}
-        for prefix, section in self.sections.iteritems():
+        for prefix, section in self.sections.items():
             sections[prefix] = section.copy()
         return Parameters(sections)
 
@@ -134,8 +134,8 @@ class Parameters(object):
            The outut file will not contain any comments.
         '''
         with file(filename, 'w') as f:
-            for prefix, section in self.sections.iteritems():
-                for suffix, definition in section.definitions.iteritems():
+            for prefix, section in self.sections.items():
+                for suffix, definition in section.definitions.items():
                     for counter, data in definition.lines:
                         print >> f, '%s:%s %s' % (prefix, suffix, data)
                     print >> f
@@ -171,7 +171,7 @@ class ParameterSection(object):
     def copy(self):
         '''Return an independent copy'''
         definitions = {}
-        for suffix, definition in self.definitions.iteritems():
+        for suffix, definition in self.definitions.items():
             definitions[suffix] = definition.copy()
         return ParameterSection(self.prefix, definitions, self.complain)
 

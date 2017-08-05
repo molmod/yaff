@@ -60,7 +60,7 @@ class HDF5Writer(Hook):
         # determine the row to write the current iteration to. If a previous
         # iterations was not completely written, then the last row is reused.
         row = min(tgrp[key].shape[0] for key in iterative.state if key in tgrp.keys())
-        for key, item in iterative.state.iteritems():
+        for key, item in iterative.state.items():
             if item.value is None:
                 continue
             if len(item.shape) > 0 and min(item.shape) == 0:
@@ -78,7 +78,7 @@ class HDF5Writer(Hook):
 
     def init_trajectory(self, iterative):
         tgrp = self.f.create_group('trajectory')
-        for key, item in iterative.state.iteritems():
+        for key, item in iterative.state.items():
             if len(item.shape) > 0 and min(item.shape) == 0:
                 continue
             if item.dtype is type(None):
@@ -216,7 +216,7 @@ class RestartWriter(Hook):
         # determine the row to write the current iteration to. If a previous
         # iterations was not completely written, then the last row is reused.
         row = min(tgrp[key].shape[0] for key in self.state if key in tgrp.keys())
-        for key, item in self.state.iteritems():
+        for key, item in self.state.items():
             if item.value is None:
                 continue
             if len(item.shape) > 0 and min(item.shape) == 0:
@@ -234,7 +234,7 @@ class RestartWriter(Hook):
 
     def init_trajectory(self, iterative):
         tgrp = self.f.create_group('trajectory')
-        for key, item in self.state.iteritems():
+        for key, item in self.state.items():
             if len(item.shape) > 0 and min(item.shape) == 0:
                 continue
             if item.dtype is type(None):

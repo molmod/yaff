@@ -733,7 +733,7 @@ class ForcePartGrid(ForcePart):
         '''
         if system.cell.nvec != 3:
             raise ValueError('The system must be 3d periodic for the grid term.')
-        for grid in grids.itervalues():
+        for grid in grids.values():
             if grid.ndim != 3:
                 raise ValueError('The energy grids must be 3D numpy arrays.')
         ForcePart.__init__(self, 'grid', system)

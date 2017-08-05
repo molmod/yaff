@@ -118,7 +118,7 @@ def test_generator_water32_ubharm():
     for i, j in system.bonds:
         row = part_valence.dlist.lookup.get((i, j))
         assert row is None
-    for i, n2s in system.neighs2.iteritems():
+    for i, n2s in system.neighs2.items():
         for j in n2s:
             row0 = part_valence.dlist.lookup.get((i, j))
             row1 = part_valence.dlist.lookup.get((j, i))

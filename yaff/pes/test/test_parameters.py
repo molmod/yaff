@@ -35,11 +35,11 @@ from yaff import *
 
 def check_consistent(pf1, pf2):
     assert len(pf1.sections) == len(pf2.sections)
-    for prefix1, section1 in pf1.sections.iteritems():
+    for prefix1, section1 in pf1.sections.items():
         section2 = pf2[prefix1]
         assert section1.prefix == section2.prefix
         assert len(section1.definitions) == len(section2.definitions)
-        for suffix1, definition1 in section1.definitions.iteritems():
+        for suffix1, definition1 in section1.definitions.items():
             definition2 = section2.definitions[suffix1]
             assert len(definition1.lines) == len(definition2.lines)
             for (counter1, data1), (counter2, data2) in zip(definition1.lines, definition2.lines):

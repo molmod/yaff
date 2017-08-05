@@ -72,7 +72,7 @@ def get_slice(f, start=0, end=-1, max_sample=None, step=None):
     if f is None or 'trajectory' not in f:
         nrow = None
     else:
-        nrow = min(ds.shape[0] for ds in f['trajectory'].itervalues() if isinstance(ds, h5.Dataset))
+        nrow = min(ds.shape[0] for ds in f['trajectory'].values() if isinstance(ds, h5.Dataset))
         if end < 0:
             end = nrow + end + 1
         else:

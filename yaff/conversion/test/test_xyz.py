@@ -43,7 +43,7 @@ def test_xyz_to_hdf5():
             xyz_to_hdf5(f, fn_xyz)
             assert 'trajectory' in f
             print get_last_trajectory_row(f['trajectory'])
-            for key, ds in f['trajectory'].iteritems():
+            for key, ds in f['trajectory'].items():
                 print key, ds.shape
             assert get_last_trajectory_row(f['trajectory']) == 5 + offset
             assert abs(f['trajectory/pos'][offset,0,0] - 3.340669*angstrom) < 1e-5

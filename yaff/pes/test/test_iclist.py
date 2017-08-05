@@ -352,10 +352,10 @@ def test_oop_meanangle_amoniak():
             delta = dlist.deltas[j]
             key0 = '%i-%i' %(delta['i'], delta['j'])
             key1 = '%i-%i' %(delta['j'], delta['i'])
-            if key0 in mean_dgrad.keys():
+            if key0 in list(mean_dgrad.keys()):
                 mean_dgrad[key0] += np.array([delta['gx'], delta['gy'], delta['gz']])
                 print 'mean_dgrad[%s]: ' %key0, mean_dgrad[key0]
-            elif key1 in mean_dgrad.keys():
+            elif key1 in list(mean_dgrad.keys()):
                 mean_dgrad[key1] -= np.array([delta['gx'], delta['gy'], delta['gz']])
                 print 'mean_dgrad[%s]: ' %key1, mean_dgrad[key1]
             else:

@@ -294,7 +294,7 @@ class NeighborList(object):
         # D) Compare
         wrong = False
         with log.section('NLIST'):
-            for key0, value0 in validation.iteritems():
+            for key0, value0 in validation.items():
                 value1 = actual.pop(key0, None)
                 if value1 is None:
                     log('Missing:  ', key0)
@@ -320,7 +320,7 @@ class NeighborList(object):
                         (abs(value0 - value1).max()/log.length.conversion)
                     )
                     wrong = True
-            for key1, value1 in actual.iteritems():
+            for key1, value1 in actual.items():
                 log('Redundant:', key1)
                 log('  Actual     %s %s %s %s' % (
                     log.length(value1[0]), log.length(value1[1]),

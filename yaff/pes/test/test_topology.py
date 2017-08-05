@@ -85,15 +85,15 @@ def floyd_warshall(bonds, natom):
 def check_topology_slow(system):
     dmat = floyd_warshall(system.bonds, system.natom)
     # check dmat with neigs*
-    for i0, n0 in system.neighs1.iteritems():
+    for i0, n0 in system.neighs1.items():
         for i1 in n0:
             assert dmat[i0, i1] == 1
             assert dmat[i1, i0] == 1
-    for i0, n0 in system.neighs2.iteritems():
+    for i0, n0 in system.neighs2.items():
         for i2 in n0:
             assert dmat[i0, i2] == 2
             assert dmat[i2, i0] == 2
-    for i0, n0 in system.neighs3.iteritems():
+    for i0, n0 in system.neighs3.items():
         for i3 in n0:
             assert dmat[i0, i3] == 3
             assert dmat[i3, i0] == 3

@@ -202,7 +202,7 @@ class System(object):
             self.neighs1[i1].add(i0)
         # 2-bond neighbors
         self.neighs2 = dict((i,set([])) for i in xrange(self.natom))
-        for i0, n0 in self.neighs1.iteritems():
+        for i0, n0 in self.neighs1.items():
             for i1 in n0:
                 for i2 in self.neighs1[i1]:
                     # Require that there are no shorter paths than two bonds between
@@ -212,7 +212,7 @@ class System(object):
                         self.neighs2[i2].add(i0)
         # 3-bond neighbors
         self.neighs3 = dict((i,set([])) for i in xrange(self.natom))
-        for i0, n0 in self.neighs1.iteritems():
+        for i0, n0 in self.neighs1.items():
             for i1 in n0:
                 for i3 in self.neighs2[i1]:
                     # Require that there are no shorter paths than three bonds
@@ -222,7 +222,7 @@ class System(object):
                         self.neighs3[i3].add(i0)
         # 4-bond neighbors
         self.neighs4 = dict((i,set([])) for i in xrange(self.natom))
-        for i0, n0 in self.neighs1.iteritems():
+        for i0, n0 in self.neighs1.items():
             for i1 in n0:
                 for i4 in self.neighs3[i1]:
                     # Require that there are no shorter paths than three bonds
@@ -239,16 +239,16 @@ class System(object):
                 bond_types[key] = bond_types.get(key, 0) + 1
             log.hline()
             log(' First   Second   Count')
-            for (num0, num1), count in sorted(bond_types.iteritems()):
+            for (num0, num1), count in sorted(bond_types.items()):
                 log('%6i   %6i   %5i' % (num0, num1, count))
             log.hline()
             log.blank()
 
             log('Analysis of the neighbors:')
             log.hline()
-            log('Number of first neighbors:  %6i' % (sum(len(n) for n in self.neighs1.itervalues())/2))
-            log('Number of second neighbors: %6i' % (sum(len(n) for n in self.neighs2.itervalues())/2))
-            log('Number of third neighbors:  %6i' % (sum(len(n) for n in self.neighs3.itervalues())/2))
+            log('Number of first neighbors:  %6i' % (sum(len(n) for n in self.neighs1.values())/2))
+            log('Number of second neighbors: %6i' % (sum(len(n) for n in self.neighs2.values())/2))
+            log('Number of third neighbors:  %6i' % (sum(len(n) for n in self.neighs3.values())/2))
             # Collect all types of 'environments' for each element. This is
             # useful to double check the bonds
             envs = {}
@@ -260,7 +260,7 @@ class System(object):
             # Print the environments on screen
             log.hline()
             log('Element   Neighboring elements   Count')
-            for (num0, nnums), count in sorted(envs.iteritems()):
+            for (num0, nnums), count in sorted(envs.items()):
                 log('%7i   %20s   %5i' % (num0, ','.join(str(num1) for num1 in nnums), count))
             log.hline()
             log.blank()
@@ -450,7 +450,7 @@ class System(object):
                         'ffatype_ids', 'bonds', 'rvecs', 'charges', 'radii',
                         'valence_charges', 'dipoles', 'radii2', 'masses',
                     ]
-                    for key, value in load_chk(fn).iteritems():
+                    for key, value in load_chk(fn).items():
                         if key in allowed_keys:
                             kwargs.update({key: value})
                 elif fn.endswith('.h5'):
@@ -962,7 +962,7 @@ class System(object):
                 return None
             else:
                 new = np.zeros(natom, old.dtype)
-                for inew, iolds in newold.iteritems():
+                for inew, iolds in newold.items():
                     new[inew] = old[iolds[0]]
                 return new
 
@@ -971,7 +971,7 @@ class System(object):
                 return None
             else:
                 new = np.zeros(natom, old.dtype)
-                for inew, iolds in newold.iteritems():
+                for inew, iolds in newold.items():
                     new[inew] = old[iolds].mean()
                 return new
 
@@ -981,7 +981,7 @@ class System(object):
                 return None
             else:
                 new = np.zeros((natom,np.shape(old)[1]), old.dtype)
-                for inew, iolds in newold.iteritems():
+                for inew, iolds in newold.items():
                     new[inew] = old[iolds].mean(axis=0)
                 return new
 
@@ -998,7 +998,7 @@ class System(object):
 
         # create averaged positions
         pos = np.zeros((natom, 3), float)
-        for inew, iolds in newold.iteritems():
+        for inew, iolds in newold.items():
             # move to the same image
             oldposs = self.pos[iolds].copy()
             assert oldposs.ndim == 2
