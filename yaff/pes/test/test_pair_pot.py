@@ -24,6 +24,7 @@
 
 
 from __future__ import division
+from __future__ import print_function
 
 import pkg_resources
 import numpy as np
@@ -103,8 +104,8 @@ def check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, eps, rma
                             my_energy = fac*pair_fn(a, b, d, my_delta)
                             #print 'P %3i %3i (% 3i % 3i % 3i) %10.7f %3.1f %10.3e' % (a, b, r0, r1, r2, d, fac, my_energy)
                             check_energy += my_energy
-    print "energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy)
-    print "energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy)
+    print("energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy))
+    print("energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy))
     assert abs(energy1 - check_energy) < eps
     assert abs(energy2 - check_energy) < eps
 
@@ -451,8 +452,8 @@ def check_pair_pot_water(system, nlist, scalings, part_pair, pair_pot, pair_fn, 
                 check_energy += energy
     #Add dipole creation energy
     check_energy += 0.5*np.dot( np.transpose(np.reshape( pair_pot.dipoles, (-1,) )) , np.dot( pair_pot.poltens_i, np.reshape( pair_pot.dipoles, (-1,) ) ) )
-    print "energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy)
-    print "energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy)
+    print("energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy))
+    print("energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy))
     assert abs(energy1 - check_energy) < eps
     assert abs(energy2 - check_energy) < eps
 
@@ -607,8 +608,8 @@ def check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, eps):
             if d < nlist.rcut:
                 energy = fac*pair_fn(a, b, d)
                 check_energy += energy
-    print "energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy)
-    print "energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy)
+    print("energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy))
+    print("energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy))
     assert abs(energy1 - check_energy) < eps
     assert abs(energy2 - check_energy) < eps
 
@@ -1128,8 +1129,8 @@ def check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn
                     energy += fac*pair_fn(a, b, d, system.radii[a], 0.0)*system.valence_charges[a]*core_charges[b]
                     energy += fac*pair_fn(a, b, d, 0.0, 0.0)*core_charges[a]*core_charges[b]
                 check_energy += energy
-    print "energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy)
-    print "energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy)
+    print("energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy))
+    print("energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy))
     assert abs(energy1 - check_energy) < eps
     assert abs(energy2 - check_energy) < eps
 

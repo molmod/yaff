@@ -21,9 +21,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
-#!/usr/bin/env python
+# --
 
+# Needed for python2 backward compatibility
+from __future__ import print_function
 
 # The sys library (from system) is needed for command-line parsing.
 import sys
@@ -53,11 +54,11 @@ with h5.File('traj_%s.h5' % suffix) as f:
     press = np.array(f['trajectory/press'][nskip:])
 
     # The average pressure in the selected unit
-    print 'Average pressure [GPa]:', press.mean()/p_unit
+    print('Average pressure [GPa]:', press.mean()/p_unit)
 
     # Block-averaging method to compute the error on the average.
     error = blav(press, fn_png='blav_%s.png' % suffix)[0]
-    print 'Error on average [GPa]:', error/p_unit
+    print('Error on average [GPa]:', error/p_unit)
 
     # Compute the time auto-correlation of the time-dependent pressure.
     # This is done with a fast-Fourier transform (FFT), which is implemented as an

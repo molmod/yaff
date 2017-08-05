@@ -24,6 +24,7 @@
 
 
 from __future__ import division
+from __future__ import print_function
 
 import pkg_resources
 import numpy as np
@@ -198,7 +199,7 @@ def test_generator_fake_torsion1():
     assert part_valence.vlist.nv == 12
     m_counts = {}
     for row in part_valence.vlist.vtab[:12]:
-        print row['kind']
+        print(row['kind'])
         if row['kind'] == 5:
             key = 1
         elif row['kind'] == 6:
@@ -229,7 +230,7 @@ def test_generator_fake_torsion2():
     assert part_valence.vlist.nv == 12
     m_counts = {}
     for row in part_valence.vlist.vtab[:12]:
-        print row['kind']
+        print(row['kind'])
         if row['kind'] == 5:
             key = 1
         elif row['kind'] == 6:
@@ -549,8 +550,8 @@ def test_generator_water32_d3bj():
 
 def test_generator_water32_qmdffrep():
     system = get_system_water32()
-    print system.ffatypes
-    print system.ffatype_ids
+    print(system.ffatypes)
+    print(system.ffatype_ids)
     fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_qmdffrep.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
@@ -558,7 +559,7 @@ def test_generator_water32_qmdffrep():
     # check parameters
     A_cross = qmdffrep.pair_pot.amp_cross
     assert A_cross.shape == (2,2)
-    print A_cross
+    print(A_cross)
     assert abs(A_cross[0,0] - 3.2490000000e+01) < 1e-10
     assert abs(A_cross[0,1] - 1.3395000000e+01) < 1e-10
     assert abs(A_cross[1,0] - 1.3395000000e+01) < 1e-10
@@ -661,10 +662,10 @@ def test_generator_water32_fixq_dielectric():
     part_ewald_cor = ff.part_ewald_cor
     part_ewald_neut = ff.part_ewald_neut
     # check part settings
-    print part_pair_ei.pair_pot.dielectric
-    print part_ewald_reci.dielectric
-    print part_ewald_cor.dielectric
-    print part_ewald_neut.dielectric
+    print(part_pair_ei.pair_pot.dielectric)
+    print(part_ewald_reci.dielectric)
+    print(part_ewald_cor.dielectric)
+    print(part_ewald_neut.dielectric)
     assert part_pair_ei.pair_pot.dielectric == 1.44
     assert part_pair_ei.pair_pot.dielectric == part_ewald_reci.dielectric
     assert part_pair_ei.pair_pot.dielectric == part_ewald_cor.dielectric

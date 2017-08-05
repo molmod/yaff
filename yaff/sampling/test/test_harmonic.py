@@ -24,6 +24,7 @@
 
 
 from __future__ import division
+from __future__ import print_function
 
 import numpy as np
 
@@ -43,7 +44,7 @@ def test_hessian_full_water():
     hessian = estimate_cart_hessian(ff)
     assert hessian.shape == (9, 9)
     evals = np.linalg.eigvalsh(hessian)
-    print evals
+    print(evals)
     assert sum(abs(evals) < 1e-10) == 3
 
 

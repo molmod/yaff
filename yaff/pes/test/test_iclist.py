@@ -24,6 +24,7 @@
 
 
 from __future__ import division
+from __future__ import print_function
 
 import numpy as np
 from molmod import bond_length, bend_angle, bend_cos, dihed_angle, dihed_cos
@@ -335,7 +336,7 @@ def test_oop_meanangle_amoniak():
     mean_value = 0.0
     mean_dgrad = {}
     for i, ic in enumerate(ics):
-        print 'Adding ic %i' %i
+        print('Adding ic %i' %i)
         dlist = DeltaList(system)
         iclist = InternalCoordinateList(dlist)
         iclist.add_ic(ic)
@@ -348,25 +349,25 @@ def test_oop_meanangle_amoniak():
         for j in xrange(3):
             delta = dlist.deltas[j]
             key = '%i-%i' %(delta['i'], delta['j'])
-            print 'd(%s).g = ' %key, delta['gx'], delta['gy'], delta['gz']
-        print
+            print('d(%s).g = ' %key, delta['gx'], delta['gy'], delta['gz'])
+        print()
         for j in xrange(3):
             delta = dlist.deltas[j]
             key0 = '%i-%i' %(delta['i'], delta['j'])
             key1 = '%i-%i' %(delta['j'], delta['i'])
             if key0 in list(mean_dgrad.keys()):
                 mean_dgrad[key0] += np.array([delta['gx'], delta['gy'], delta['gz']])
-                print 'mean_dgrad[%s]: ' %key0, mean_dgrad[key0]
+                print('mean_dgrad[%s]: ' %key0, mean_dgrad[key0])
             elif key1 in list(mean_dgrad.keys()):
                 mean_dgrad[key1] -= np.array([delta['gx'], delta['gy'], delta['gz']])
-                print 'mean_dgrad[%s]: ' %key1, mean_dgrad[key1]
+                print('mean_dgrad[%s]: ' %key1, mean_dgrad[key1])
             else:
                 mean_dgrad[key0] = np.array([delta['gx'], delta['gy'], delta['gz']])
-                print 'mean_dgrad[%s]: ' %key0, mean_dgrad[key0]
-        print
-    print
+                print('mean_dgrad[%s]: ' %key0, mean_dgrad[key0])
+        print()
+    print()
     #calculate gradient of meanangle
-    print 'Processing mean'
+    print('Processing mean')
     dlist = DeltaList(system)
     iclist = InternalCoordinateList(dlist)
     iclist.add_ic(OopMeanAngle(1,2,3,0))
@@ -379,7 +380,7 @@ def test_oop_meanangle_amoniak():
         delta = dlist.deltas[i]
         key0 = '%i-%i' %(delta['i'], delta['j'])
         key1 = '%i-%i' %(delta['j'], delta['i'])
-        print 'd_gx, d_gy, d_gz (%s) = ' %(key0), delta['gx'], delta['gy'], delta['gz']
+        print('d_gx, d_gy, d_gz (%s) = ' %(key0), delta['gx'], delta['gy'], delta['gz'])
         if key0 in mean_dgrad.keys():
             mean = mean_dgrad[key0]
         elif key1 in mean_dgrad.keys():

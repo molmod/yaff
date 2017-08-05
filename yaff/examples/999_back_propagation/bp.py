@@ -33,6 +33,8 @@
 """
 
 
+from __future__ import print_function
+
 import numpy as np
 
 from molmod import check_delta
@@ -237,25 +239,25 @@ def test_neural_net():
             return swi2.ar_out[0] # we know the the final output is a scalar.
 
     x = np.random.normal(0,1,5)
-    print 'The inputs for the neural network'
-    print x
-    print
+    print('The inputs for the neural network')
+    print(x)
+    print()
 
-    print 'Calling neural network without gradient'
-    print 'F(x)', neural_net(x)
-    print
+    print('Calling neural network without gradient')
+    print('F(x)', neural_net(x))
+    print()
 
-    print 'Calling neural network with gradient'
+    print('Calling neural network with gradient')
     f, gx = neural_net(x, True)
-    print 'F(x)', f
-    print 'Gradient'
-    print gx
-    print
+    print('F(x)', f)
+    print('Gradient')
+    print(gx)
+    print()
 
-    print 'Running check_delta on the neural network function.'
+    print('Running check_delta on the neural network function.')
     dxs = np.random.normal(0,1e-4,(100,5))
     check_delta(neural_net, x, dxs)
-    print 'Test passed.'
+    print('Test passed.')
 
 if __name__ == '__main__':
     test_bead_lin_trans_const()

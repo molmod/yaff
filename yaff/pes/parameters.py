@@ -25,6 +25,8 @@
 
 
 from __future__ import division
+from __future__ import print_function
+
 
 __all__ = ['Complain', 'Parameters', 'ParameterSection', 'ParameterDefinition']
 
@@ -139,10 +141,10 @@ class Parameters(object):
             for prefix, section in self.sections.items():
                 for suffix, definition in section.definitions.items():
                     for counter, data in definition.lines:
-                        print >> f, '%s:%s %s' % (prefix, suffix, data)
-                    print >> f
-                print >> f
-                print >> f
+                        print('%s:%s %s' % (prefix, suffix, data), file=f)
+                    print(file=f)
+                print(file=f)
+                print(file=f)
 
     def __getitem__(self, prefix):
         result = self.sections.get(prefix.upper())

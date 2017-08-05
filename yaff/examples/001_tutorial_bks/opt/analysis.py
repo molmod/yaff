@@ -21,9 +21,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
-#!/usr/bin/env python
+# --
 
+
+# Needed for python2 backward compatibility
+from __future__ import print_function
 
 # Matplotlib is used for making plots. It is similar to the plotting interface
 # in matlab. More information: http://matplotlib.org/
@@ -35,7 +37,7 @@ import h5py as h5
 from yaff import *
 
 # Just to give you an idea, kT at room temperature in electronvolt.
-print 'kT [eV]', boltzmann*300/electronvolt
+print('kT [eV]', boltzmann*300/electronvolt)
 
 # Fill in the data here. Unit for energy: eV, unit for pressure: GPa.
 data = [
@@ -69,13 +71,13 @@ x_aux = np.linspace(x.min(), x.max(), 100)
 
 
 def fit_linear_pv():
-    print 'Fit linear model to P(V/V_0)'
+    print('Fit linear model to P(V/V_0)')
 
     # fit p(v), dm=design matrix, ev=expected values
     dm = np.array([x, np.ones(len(v))]).T
     ev = p
     a, b = np.linalg.lstsq(dm, ev)[0]
-    print '    Bulk modulus [GPa]', -a/p_unit
+    print('    Bulk modulus [GPa]', -a/p_unit)
 
     # plot
     pt.clf()
@@ -87,14 +89,14 @@ def fit_linear_pv():
 
 
 def fit_quadratic_ev():
-    print 'Fit quadratic model to E(V/V_0)'
+    print('Fit quadratic model to E(V/V_0)')
 
     # fit e(v), dm=design matrix, ev=expected values
     dm = np.array([0.5*x**2, x, np.ones(len(v))]).T
     ev = e
     a, b, c = np.linalg.lstsq(dm, ev)[0]
-    print '    Bulk modulus [GPa]', a/v_ref/p_unit
-    print '    Energy [eV]', (c - a**2/2/b)/e_unit
+    print('    Bulk modulus [GPa]', a/v_ref/p_unit)
+    print('    Energy [eV]', (c - a**2/2/b)/e_unit)
 
     # plot
     pt.clf()

@@ -24,6 +24,7 @@
 
 
 from __future__ import division
+from __future__ import print_function
 
 import numpy as np
 from molmod import bend_angle, bend_cos, dihed_angle, dihed_cos
@@ -834,15 +835,15 @@ def test_pi_dihed_steven():
         fp.iclist.back()
         gpos = np.zeros(pos.shape)
         fp.dlist.back(gpos, None)
-        print fp.iclist.ictab[0]
+        print(fp.iclist.ictab[0])
         return gpos
 
     gpos0 = helper(pos0)
     gpos1 = helper(pos1)
 
-    print gpos0
-    print gpos1
-    print gpos1/gpos0
+    print(gpos0)
+    print(gpos1)
+    print(gpos1/gpos0)
     assert abs(gpos0 - gpos1).max() < 1e-3
 
 
