@@ -23,6 +23,8 @@
 # --
 
 
+from __future__ import division
+
 import tempfile
 import shutil
 
@@ -33,7 +35,7 @@ import h5py as h5
 from molmod.test.common import tmpdir
 from yaff import System, Cell, angstrom
 
-from common import get_system_water32, get_system_glycine, get_system_quartz, \
+from yaff.test.common import get_system_water32, get_system_glycine, get_system_quartz, \
     get_system_cyclopropene, get_system_peroxide, get_system_graphene8, \
     get_system_polyethylene4
 
@@ -138,8 +140,8 @@ def test_scopes3():
 def test_unravel_triangular():
     from yaff.system import _unravel_triangular
     counter = 0
-    for i0 in xrange(100):
-        for i1 in xrange(i0):
+    for i0 in range(100):
+        for i1 in range(i0):
             assert _unravel_triangular(counter) == (i0, i1)
             counter += 1
 
@@ -247,14 +249,14 @@ def test_supercell_quartz_222():
     assert len(system222.bonds) == len(system111.bonds)*8
     assert abs(system222.pos[9:18] - system111.pos - system111.cell.rvecs[2]).max() < 1e-10
     assert abs(system222.pos[-9:] - system111.pos - system111.cell.rvecs.sum(axis=0)).max() < 1e-10
-    assert issubclass(system222.bonds.dtype.type, int)
+    assert issubclass(system222.bonds.dtype.type, np.integer)
     rules = [
         ('Si', '14'),
         ('O', '8'),
     ]
     check_detect_ffatypes(system222, rules)
     check_detect_bonds(system222)
-    assert issubclass(system222.bonds.dtype.type, int)
+    assert issubclass(system222.bonds.dtype.type, np.integer)
 
 
 def test_supercell_graphene_22():
@@ -266,7 +268,7 @@ def test_supercell_graphene_22():
     assert system22.nbond == system11.nbond*4
     assert abs(system22.pos[8:16] - system11.pos - system11.cell.rvecs[1]).max() < 1e-10
     assert abs(system22.pos[-8:] - system11.pos - system11.cell.rvecs.sum(axis=0)).max() < 1e-10
-    assert issubclass(system22.bonds.dtype.type, int)
+    assert issubclass(system22.bonds.dtype.type, np.integer)
 
 
 def test_supercell_polyethylene_2():
@@ -277,7 +279,7 @@ def test_supercell_polyethylene_2():
     assert system2.natom == system1.natom*2
     assert system2.nbond == system1.nbond*2
     assert abs(system2.pos[12:24] - system1.pos - system1.cell.rvecs[0]).max() < 1e-10
-    assert issubclass(system2.bonds.dtype.type, int)
+    assert issubclass(system2.bonds.dtype.type, np.integer)
 
 
 def test_supercell_mil53_121():
@@ -448,7 +450,7 @@ def test_iter_matches_guaianolide():
     system.detect_bonds()
     system_ref = System.from_file(pkg_resources.resource_filename(__name__, '../data/test/guaianolide_framework_ordered.xyz'))
     system_ref.detect_bonds()
-    order = np.array(system.iter_matches(system_ref).next())
+    order = np.array(next(system.iter_matches(system_ref)))
     np.testing.assert_equal(order, [8, 9, 4, 7, 14, 12, 11, 10, 5, 6, 13, 16, 15, 2, 0, 1, 3])
 
 
@@ -475,7 +477,7 @@ def test_iter_matches_nobornane_rhodium():
     system_ref = System.from_file(pkg_resources.resource_filename(__name__, '../data/test/nobornane.xyz'))
     system_ref.detect_bonds()
     system_ref.detect_ffatypes(rules)
-    selected = set(system.iter_matches(system_ref).next())
+    selected = set(next(system.iter_matches(system_ref)))
     reference = set([77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95])
     np.testing.assert_equal(selected, reference)
 
@@ -485,6 +487,6 @@ def test_iter_matches_single_atom():
     system.detect_bonds()
     system_ref = System(pos=np.zeros((1, 3), float), numbers = np.array([45]))
     system_ref.detect_bonds()
-    selected = set(system.iter_matches(system_ref).next())
+    selected = set(next(system.iter_matches(system_ref)))
     reference = set([28])
     np.testing.assert_equal(selected, reference)

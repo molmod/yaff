@@ -94,7 +94,7 @@ The ``System`` constructor arguments can be specified with some python code::
                       [-0.431, 3.397, 0.609], [0.377, 3.756, -0.688]])*angstrom,
         scopes=['WAT']*6,
         ffatypes=['O', 'H', 'H']*2,
-        bonds=np.array([[(i/3)*3,i] for i in xrange(6) if i%3!=0]),
+        bonds=np.array([[(i//3)*3,i] for i in range(6) if i%3!=0]),
         rvecs=np.array([[9.865, 0.0, 0.0], [0.0, 9.865, 0.0], [0.0, 0.0, 9.865]])*angstrom,
     )
 
@@ -113,7 +113,7 @@ equivalent to the previous example::
         scope_ids=[0]*6
         ffatypes=['O', 'H'],
         ffatype_ids=[0, 1, 1]*2
-        bonds=np.array([[(i/3)*3,i] for i in xrange(6) if i%3!=0]),
+        bonds=np.array([[(i//3)*3,i] for i in range(6) if i%3!=0]),
         rvecs=np.array([[9.865, 0.0, 0.0], [0.0, 9.865, 0.0], [0.0, 0.0, 9.865]])*angstrom,
     )
 

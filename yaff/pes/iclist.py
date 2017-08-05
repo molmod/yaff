@@ -58,6 +58,8 @@
 """
 
 
+from __future__ import division
+
 import numpy as np
 
 from yaff.log import log
@@ -121,7 +123,7 @@ class InternalCoordinateList(object):
                 self.ictab = np.resize(self.ictab, int(len(self.ictab)*1.5))
             row = self.nic
             self.ictab[row]['kind'] = ic.kind
-            for i in xrange(len(rows_signs)):
+            for i in range(len(rows_signs)):
                 self.ictab[row]['i%i'%i] = rows_signs[i][0]
                 self.ictab[row]['sign%i'%i] = rows_signs[i][1]
             self.lookup[key] = row

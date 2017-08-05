@@ -24,6 +24,8 @@
 '''Spectral analysis and autocorrelation functions'''
 
 
+from __future__ import division
+
 import numpy as np
 
 from molmod.constants import lightspeed
@@ -115,7 +117,7 @@ class Spectrum(AnalysisHook):
         self.bsize = bsize
         self.select = select
         self.weights = weights
-        self.ssize = self.bsize/2+1 # the length of the spectrum array
+        self.ssize = self.bsize//2+1 # the length of the spectrum array
         self.amps = np.zeros(self.ssize, float)
         self.nfft = 0 # the number of fft calls, for statistics
         if outpath is None:

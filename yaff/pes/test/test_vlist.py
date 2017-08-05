@@ -22,6 +22,10 @@
 #
 # --
 
+
+from __future__ import division
+from __future__ import print_function
+
 import numpy as np
 from molmod import bend_angle, bend_cos, dihed_angle, dihed_cos
 from nose.plugins.skip import SkipTest
@@ -95,7 +99,7 @@ def test_vlist_quartz_bend_cos():
     iclist = InternalCoordinateList(dlist)
     vlist = ValenceList(iclist)
     angles = []
-    for i1 in xrange(system.natom):
+    for i1 in range(system.natom):
         for i0 in system.neighs1[i1]:
             for i2 in system.neighs1[i1]:
                 if i0 > i2:
@@ -126,7 +130,7 @@ def test_vlist_quartz_bend_angle():
     iclist = InternalCoordinateList(dlist)
     vlist = ValenceList(iclist)
     angles = []
-    for i1 in xrange(system.natom):
+    for i1 in range(system.natom):
         for i0 in system.neighs1[i1]:
             for i2 in system.neighs1[i1]:
                 if i0 > i2:
@@ -149,7 +153,7 @@ def test_vlist_quartz_bend_angle():
 
 def test_vlist_peroxide_dihed_cos():
     number_of_tests=50
-    for i in xrange(number_of_tests):
+    for i in range(number_of_tests):
         system = get_system_peroxide()
         dlist = DeltaList(system)
         iclist = InternalCoordinateList(dlist)
@@ -173,7 +177,7 @@ def test_vlist_peroxide_dihed_cos():
 
 def test_vlist_peroxide_dihed_cos_chebychev1():
     number_of_tests=50
-    for i in xrange(number_of_tests):
+    for i in range(number_of_tests):
         system = get_system_peroxide()
         dlist = DeltaList(system)
         iclist = InternalCoordinateList(dlist)
@@ -200,7 +204,7 @@ def test_vlist_peroxide_dihed_cos_chebychev1():
 
 def test_vlist_peroxide_dihed_cos_chebychev2():
     number_of_tests=50
-    for i in xrange(number_of_tests):
+    for i in range(number_of_tests):
         system = get_system_peroxide()
         dlist = DeltaList(system)
         iclist = InternalCoordinateList(dlist)
@@ -227,7 +231,7 @@ def test_vlist_peroxide_dihed_cos_chebychev2():
 
 def test_vlist_peroxide_dihed_cos_chebychev3():
     number_of_tests=50
-    for i in xrange(number_of_tests):
+    for i in range(number_of_tests):
         system = get_system_peroxide()
         dlist = DeltaList(system)
         iclist = InternalCoordinateList(dlist)
@@ -254,7 +258,7 @@ def test_vlist_peroxide_dihed_cos_chebychev3():
 
 def test_vlist_peroxide_dihed_cos_chebychev4():
     number_of_tests=50
-    for i in xrange(number_of_tests):
+    for i in range(number_of_tests):
         system = get_system_peroxide()
         dlist = DeltaList(system)
         iclist = InternalCoordinateList(dlist)
@@ -281,7 +285,7 @@ def test_vlist_peroxide_dihed_cos_chebychev4():
 
 def test_vlist_peroxide_dihed_cos_chebychev6():
     number_of_tests=50
-    for i in xrange(number_of_tests):
+    for i in range(number_of_tests):
         system = get_system_peroxide()
         dlist = DeltaList(system)
         iclist = InternalCoordinateList(dlist)
@@ -308,7 +312,7 @@ def test_vlist_peroxide_dihed_cos_chebychev6():
 
 def test_vlist_peroxide_dihed_angle():
     number_of_tests=50
-    for i in xrange(number_of_tests):
+    for i in range(number_of_tests):
         system = get_system_peroxide()
         dlist = DeltaList(system)
         iclist = InternalCoordinateList(dlist)
@@ -332,7 +336,7 @@ def test_vlist_peroxide_dihed_angle():
 
 def test_vlist_peroxide_dihed_angle_cosine():
     number_of_tests=50
-    for i in xrange(number_of_tests):
+    for i in range(number_of_tests):
         system = get_system_peroxide()
         dlist = DeltaList(system)
         iclist = InternalCoordinateList(dlist)
@@ -375,7 +379,7 @@ def test_vlist_polyfour_water32():
 def test_vlist_cross_water32():
     system = get_system_water32()
     part = ForcePartValence(system)
-    for j in xrange(system.natom):
+    for j in range(system.natom):
         if len(system.neighs1[j])==2:
             i, k = system.neighs1[j]
             part.add_term(Cross(
@@ -387,7 +391,7 @@ def test_vlist_cross_water32():
             ))
     energy = part.compute()
     check_energy = 0.0
-    for j in xrange(system.natom):
+    for j in range(system.natom):
         if len(system.neighs1[j])==2:
             i, k = system.neighs1[j]
             delta0 = system.pos[j] - system.pos[i]
@@ -478,7 +482,7 @@ def test_gpos_vtens_bond_fues_water32():
 def test_gpos_vtens_bend_cos_water32():
     system = get_system_water32()
     part = ForcePartValence(system)
-    for i1 in xrange(system.natom):
+    for i1 in range(system.natom):
         for i0 in system.neighs1[i1]:
             for i2 in system.neighs1[i1]:
                 if i0 > i2:
@@ -490,7 +494,7 @@ def test_gpos_vtens_bend_cos_water32():
 def test_gpos_vtens_bend_angle_water32():
     system = get_system_water32()
     part = ForcePartValence(system)
-    for i1 in xrange(system.natom):
+    for i1 in range(system.natom):
         for i0 in system.neighs1[i1]:
             for i2 in system.neighs1[i1]:
                 if i0 > i2:
@@ -635,7 +639,7 @@ def test_gpos_vtens_2T():
     for i, j in system.bonds:
         key = system.get_ffatype(i), system.get_ffatype(j)
         part.add_term(Harmonic(fc_table[key], rv_table[key], Bond(i, j)))
-    for i1 in xrange(system.natom):
+    for i1 in range(system.natom):
         for i0 in system.neighs1[i1]:
             for i2 in system.neighs1[i1]:
                 key = system.get_ffatype(i0), system.get_ffatype(i1), system.get_ffatype(i2)
@@ -648,7 +652,7 @@ def test_gpos_vtens_2T():
     for i, j in system.bonds:
         key = system.get_ffatype(i), system.get_ffatype(j)
         part.add_term(Fues(fc_table[key], rv_table[key], Bond(i, j)))
-    for i1 in xrange(system.natom):
+    for i1 in range(system.natom):
         for i0 in system.neighs1[i1]:
             for i2 in system.neighs1[i1]:
                 key = system.get_ffatype(i0), system.get_ffatype(i1), system.get_ffatype(i2)
@@ -675,7 +679,7 @@ def test_gpos_vtens_quartz():
     for i, j in system.bonds:
         key = system.get_ffatype(i), system.get_ffatype(j)
         part.add_term(Harmonic(fc_table[key], rv_table[key], Bond(i, j)))
-    for i1 in xrange(system.natom):
+    for i1 in range(system.natom):
         for i0 in system.neighs1[i1]:
             for i2 in system.neighs1[i1]:
                 key = system.get_ffatype(i0), system.get_ffatype(i1), system.get_ffatype(i2)
@@ -698,7 +702,7 @@ def test_gpos_vtens_polyfour_water32():
 def test_gpos_vtens_cross_water32():
     system = get_system_water32()
     part = ForcePartValence(system)
-    for j in xrange(system.natom):
+    for j in range(system.natom):
         if len(system.neighs1[j])==2:
             i, k = system.neighs1[j]
             part.add_term(Cross(
@@ -747,7 +751,7 @@ def test_gpos_vtens_dihedral_cos_mil53():
 def test_gpos_vtens_ub_water():
     system = get_system_water32()
     part = ForcePartValence(system)
-    for i1 in xrange(system.natom):
+    for i1 in range(system.natom):
         for i0 in system.neighs1[i1]:
             for i2 in system.neighs1[i1]:
                 if i0 > i2:
@@ -777,7 +781,7 @@ def test_gpos_vtens_mm3quartic_water32():
 def test_gpos_vtens_mm3benda_water32():
     system = get_system_water32()
     part = ForcePartValence(system)
-    for i1 in xrange(system.natom):
+    for i1 in range(system.natom):
         for i0 in system.neighs1[i1]:
             for i2 in system.neighs1[i1]:
                 if i0 > i2:
@@ -831,15 +835,15 @@ def test_pi_dihed_steven():
         fp.iclist.back()
         gpos = np.zeros(pos.shape)
         fp.dlist.back(gpos, None)
-        print fp.iclist.ictab[0]
+        print(fp.iclist.ictab[0])
         return gpos
 
     gpos0 = helper(pos0)
     gpos1 = helper(pos1)
 
-    print gpos0
-    print gpos1
-    print gpos1/gpos0
+    print(gpos0)
+    print(gpos1)
+    print(gpos1/gpos0)
     assert abs(gpos0 - gpos1).max() < 1e-3
 
 

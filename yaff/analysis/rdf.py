@@ -24,6 +24,8 @@
 '''Radial distribution functions'''
 
 
+from __future__ import division
+
 import numpy as np
 
 from yaff.log import log
@@ -214,7 +216,7 @@ class RDF(AnalysisHook):
         self.pos0 = np.zeros((self.natom0, 3), float)
         # the number of pairs
         if self.select1 is None:
-            self.npair = (self.natom0*(self.natom0-1))/2
+            self.npair = (self.natom0*(self.natom0-1))//2
             self.pos1 = None
         else:
             self.natom1 = len(self.select1)

@@ -40,7 +40,6 @@ autogendoc:
 clean:
 	-rm -vrf $(BUILDDIR)/*
 	rm -vf rg_yaff*.rst
-	rm -vf .nojekyll
 
 html: autogendoc
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html

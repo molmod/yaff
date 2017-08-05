@@ -23,6 +23,9 @@
 # --
 
 
+from __future__ import division
+from __future__ import print_function
+
 import pkg_resources
 import numpy as np
 from scipy.special import erfc, erf
@@ -76,15 +79,15 @@ def check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, eps, rma
     # Compute in python as a double check
     srow = 0
     check_energy = 0.0
-    for a in xrange(system.natom):
+    for a in range(system.natom):
         # compute the distances in the neighborlist manually and check.
-        for b in xrange(system.natom):
+        for b in range(system.natom):
             delta = system.pos[b] - system.pos[a]
             delta -= np.floor(delta/(9.865*angstrom)+0.5)*(9.865*angstrom)
             assert abs(delta).max() < 0.5*9.865*angstrom
-            for r2 in xrange(0, rmax+1):
-                for r1 in xrange((r2!=0)*(-rmax), rmax+1):
-                    for r0 in xrange((r2!=0 or r1!=0)*-(rmax), rmax+1):
+            for r2 in range(0, rmax+1):
+                for r1 in range((r2!=0)*(-rmax), rmax+1):
+                    for r0 in range((r2!=0 or r1!=0)*-(rmax), rmax+1):
                         if r0==0 and r1==0 and r2==0:
                             if a<=b:
                                 continue
@@ -101,8 +104,8 @@ def check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, eps, rma
                             my_energy = fac*pair_fn(a, b, d, my_delta)
                             #print 'P %3i %3i (% 3i % 3i % 3i) %10.7f %3.1f %10.3e' % (a, b, r0, r1, r2, d, fac, my_energy)
                             check_energy += my_energy
-    print "energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy)
-    print "energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy)
+    print("energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy))
+    print("energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy))
     assert abs(energy1 - check_energy) < eps
     assert abs(energy2 - check_energy) < eps
 
@@ -117,7 +120,7 @@ def get_part_water32_9A_lj():
     epsilon_table = {1: -0.0460*kcalmol, 8: -0.1521*kcalmol}
     sigmas = np.zeros(96, float)
     epsilons = np.zeros(96, float)
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
         epsilons[i] = epsilon_table[system.numbers[i]]
     # Create the pair_pot and part_pair
@@ -151,7 +154,7 @@ def get_part_water32_9A_mm3():
     sigmas = np.zeros(96, float)
     epsilons = np.zeros(96, float)
     onlypaulis = np.zeros(96, np.int32)
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         sigmas[i] = sigma_table[system.numbers[i]]
         epsilons[i] = epsilon_table[system.numbers[i]]
     # Create the pair_pot and part_pair
@@ -187,7 +190,7 @@ def get_part_water32_9A_grimme():
     c6_table = {1: 0.14*1e-3*kjmol*nanometer**6, 8: 0.70*1e-3*kjmol*nanometer**6}
     r0s = np.zeros(96, float)
     c6s = np.zeros(96, float)
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         r0s[i] = r0_table[system.numbers[i]]
         c6s[i] = c6_table[system.numbers[i]]
     # Create the pair_pot and part_pair
@@ -415,7 +418,7 @@ def test_pair_pot_eidip_water_finite():
             gpos1 = np.zeros(system.pos.shape, float)
             energy1 = part_pair.compute(gpos1)
             #Reshape gpos1
-            gpos1 = np.asarray([ np.sum( gpos1[i::3], axis=0 ) for i in xrange(system.natom/3)])
+            gpos1 = np.asarray([ np.sum( gpos1[i::3], axis=0 ) for i in range(system.natom//3)])
             #Get the electrostatic energy of a water molecule with atomic point dipoles
             system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(scalings=[1.0,1.0,1.0],finite=False,alpha=alpha, do_radii=do_radii)
             gpos2 = np.zeros(system.pos.shape, float)
@@ -434,9 +437,9 @@ def check_pair_pot_water(system, nlist, scalings, part_pair, pair_pot, pair_fn, 
     # Compute the energy manually
     check_energy = 0.0
     srow = 0
-    for a in xrange(system.natom):
+    for a in range(system.natom):
         # compute the distances in the neighborlist manually and check.
-        for b in xrange(a):
+        for b in range(a):
             delta = system.pos[b] - system.pos[a]
             # find the scaling
             srow, fac = get_scaling(scalings, srow, a, b)
@@ -449,8 +452,8 @@ def check_pair_pot_water(system, nlist, scalings, part_pair, pair_pot, pair_fn, 
                 check_energy += energy
     #Add dipole creation energy
     check_energy += 0.5*np.dot( np.transpose(np.reshape( pair_pot.dipoles, (-1,) )) , np.dot( pair_pot.poltens_i, np.reshape( pair_pot.dipoles, (-1,) ) ) )
-    print "energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy)
-    print "energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy)
+    print("energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy))
+    print("energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy))
     assert abs(energy1 - check_energy) < eps
     assert abs(energy2 - check_energy) < eps
 
@@ -592,9 +595,9 @@ def check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, eps):
     # Compute the energy manually
     check_energy = 0.0
     srow = 0
-    for a in xrange(system.natom):
+    for a in range(system.natom):
         # compute the distances in the neighborlist manually and check.
-        for b in xrange(a):
+        for b in range(a):
             delta = system.pos[b] - system.pos[a]
             # find the scaling
             srow, fac = get_scaling(scalings, srow, a, b)
@@ -605,8 +608,8 @@ def check_pair_pot_caffeine(system, nlist, scalings, part_pair, pair_fn, eps):
             if d < nlist.rcut:
                 energy = fac*pair_fn(a, b, d)
                 check_energy += energy
-    print "energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy)
-    print "energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy)
+    print("energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy))
+    print("energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy))
     assert abs(energy1 - check_energy) < eps
     assert abs(energy2 - check_energy) < eps
 
@@ -632,7 +635,7 @@ def get_part_caffeine_lj_15A():
     }
     sigmas = np.zeros(24, float)
     epsilons = np.zeros(24, float)
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
         epsilons[i] = epsilon_table[system.numbers[i]]
     # Construct the pair potential and part
@@ -673,7 +676,7 @@ def get_part_caffeine_mm3_15A():
     sigmas = np.zeros(24, float)
     epsilons = np.zeros(24, float)
     onlypaulis = np.zeros(24, np.int32)
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
         epsilons[i] = epsilon_table[system.numbers[i]]
     # Construct the pair potential and part
@@ -713,7 +716,7 @@ def get_part_caffeine_grimme_15A():
     }
     r0s = np.zeros(24, float)
     c6s = np.zeros(24, float)
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         r0s[i] = r0_table[system.numbers[i]]
         c6s[i] = c6_table[system.numbers[i]]
     # Construct the pair potential and part
@@ -861,7 +864,7 @@ def get_part_caffeine_dampdisp_9A(power=6):
             b = 0.5*(b0+b1)
             damp = 0
             fac = 1
-            for k in xrange(power+1):
+            for k in range(power+1):
                 damp += (b*d)**k/fac
                 fac *= k+1
             damp = 1 - np.exp(-b*d)*damp
@@ -1107,9 +1110,9 @@ def check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn
     check_energy = 0.0
     srow = 0
     core_charges = system.charges - system.valence_charges
-    for a in xrange(system.natom):
+    for a in range(system.natom):
         # compute the distances in the neighborlist manually and check.
-        for b in xrange(a):
+        for b in range(a):
             delta = system.pos[b] - system.pos[a]
             # find the scaling
             srow, fac = get_scaling(scalings, srow, a, b)
@@ -1126,8 +1129,8 @@ def check_pair_pot_4113_01WaterWater(system, nlist, scalings, part_pair, pair_fn
                     energy += fac*pair_fn(a, b, d, system.radii[a], 0.0)*system.valence_charges[a]*core_charges[b]
                     energy += fac*pair_fn(a, b, d, 0.0, 0.0)*core_charges[a]*core_charges[b]
                 check_energy += energy
-    print "energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy)
-    print "energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy)
+    print("energy1 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy1, check_energy, energy1-check_energy))
+    print("energy2 % 18.15f     check_energy % 18.15f     error % 18.15f" %(energy2, check_energy, energy2-check_energy))
     assert abs(energy1 - check_energy) < eps
     assert abs(energy2 - check_energy) < eps
 
@@ -1329,23 +1332,23 @@ def check_dipole_finite_difference(system, nlist, part_pair, eps):
     widths = []
     Ns = []
     Zs = []
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         pos.append(system.pos[i])
-        for j in xrange(2): pos.append(system.pos[i] + delta*np.array([1.0,0.0,0.0]))
-        for j in xrange(2): pos.append(system.pos[i] - delta*np.array([1.0,0.0,0.0]))
-        for j in xrange(2): pos.append(system.pos[i] + delta*np.array([0.0,1.0,0.0]))
-        for j in xrange(2): pos.append(system.pos[i] - delta*np.array([0.0,1.0,0.0]))
-        for j in xrange(2): pos.append(system.pos[i] + delta*np.array([0.0,0.0,1.0]))
-        for j in xrange(2): pos.append(system.pos[i] - delta*np.array([0.0,0.0,1.0]))
+        for j in range(2): pos.append(system.pos[i] + delta*np.array([1.0,0.0,0.0]))
+        for j in range(2): pos.append(system.pos[i] - delta*np.array([1.0,0.0,0.0]))
+        for j in range(2): pos.append(system.pos[i] + delta*np.array([0.0,1.0,0.0]))
+        for j in range(2): pos.append(system.pos[i] - delta*np.array([0.0,1.0,0.0]))
+        for j in range(2): pos.append(system.pos[i] + delta*np.array([0.0,0.0,1.0]))
+        for j in range(2): pos.append(system.pos[i] - delta*np.array([0.0,0.0,1.0]))
         # Connect all these charges so they do not get accounted in the pair pot.
-        for j in xrange(13):
-            for k in xrange(j+1,13):
+        for j in range(13):
+            for k in range(j+1,13):
                 bonds.append([13*i+j,13*i+k])
         widths.append(a1s[i])
         Ns.append(N1s[i])
         Zs.append(Z1s[i])
-        for j in xrange(3):
-            for k in xrange(2):
+        for j in range(3):
+            for k in range(2):
                 widths.append(a1p[i,j]+sigma)
                 widths.append(a1p[i,j]-sigma)
             Ns.append( 0.25/sigma/delta*N1p[i,j]*a1p[i,j]**-3*(a1p[i,j]+sigma)**4*0.25)

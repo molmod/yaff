@@ -16,3 +16,6 @@ doc/rg_yaff*.rst
 yaff/version.py
 record.txt
 yaff.egg-info
+
+# other
+*.bak

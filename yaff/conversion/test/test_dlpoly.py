@@ -23,6 +23,8 @@
 # --
 
 
+from __future__ import division
+
 from nose.plugins.skip import SkipTest
 import pkg_resources
 import h5py as h5
@@ -34,7 +36,7 @@ def test_dlpoly_history_uo():
     with h5.File(__name__ + '.test_dlpoly_history_uo.h5', driver='core', backing_store=False) as f:
         # Bad practice. The trajectory file has no system directory...
         # Actual trajectory conversion, twice
-        for i in xrange(2):
+        for i in range(2):
             offset = 3*i
             fn = pkg_resources.resource_filename(__name__, '../../data/test/dlpoly_HISTORY_uo')
             dlpoly_history_to_hdf5(f, fn)
@@ -61,7 +63,7 @@ def test_dlpoly_history_sam():
     with h5.File(__name__ + '.test_dlpoly_history_sam.h5', driver='core', backing_store=False) as f:
         # Bad practice. The trajectory file has no system directory...
         # Actual trajectory conversion, twice
-        for i in xrange(2):
+        for i in range(2):
             offset = 3*i
             fn = pkg_resources.resource_filename(__name__, '../../data/test/dlpoly_HISTORY_sam')
             dlpoly_history_to_hdf5(f, fn)

@@ -23,6 +23,9 @@
 # --
 '''Thermostats'''
 
+
+from __future__ import division
+
 import numpy as np
 
 from molmod import boltzmann, femtosecond
@@ -403,7 +406,7 @@ class NHChain(object):
                 self.vel[k] *= np.exp(-self.vel[k+1]*self.timestep/8)
 
         # Loop over chain in reverse order
-        for k in xrange(self.length-1, -1, -1):
+        for k in range(self.length-1, -1, -1):
             do_bead(k, ekin)
 
         # iL xi (all) h/2
@@ -414,7 +417,7 @@ class NHChain(object):
         ekin *= factor**2
 
         # Loop over chain in forward order
-        for k in xrange(0, self.length):
+        for k in range(0, self.length):
             do_bead(k, ekin)
         return vel, ekin
 

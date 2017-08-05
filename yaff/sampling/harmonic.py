@@ -24,6 +24,8 @@
 '''Harmonic models'''
 
 
+from __future__ import division
+
 import numpy as np
 
 from yaff.log import log
@@ -55,7 +57,7 @@ def estimate_hessian(dof, eps=1e-4):
             log.hline()
         x1 = dof.x0.copy()
         rows = np.zeros((len(x1), len(x1)), float)
-        for i in xrange(len(x1)):
+        for i in range(len(x1)):
             x1[i] = dof.x0[i] + eps
             epot, gradient_p = dof.fun(x1, do_gradient=True)
             if log.do_medium:
@@ -174,10 +176,10 @@ def estimate_elastic(ff, eps=1e-4, do_frozen=False, ridge=1e-4):
     else:
         hessian = estimate_hessian(dof, eps)/vol0
         # Do a VSA-like trick...
-        i = (cell.nvec*(cell.nvec+1))/2
-        h11 = hessian[:i,:i]
-        h12 = hessian[:i,i:]
-        h22 = hessian[i:,i:]
+        i = (cell.nvec*(cell.nvec+1))//2
+        h11 = hessian[:i, :i]
+        h12 = hessian[:i, i:]
+        h22 = hessian[i:, i:]
         # Do some special effort to perform a well-conditioned inverse of h22.
         # In case of extremely floppy materials, it may be necessary to tune eps
         # and ridge.

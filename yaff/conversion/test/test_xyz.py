@@ -23,6 +23,9 @@
 # --
 
 
+from __future__ import division
+from __future__ import print_function
+
 import h5py as h5
 import pkg_resources
 
@@ -38,13 +41,13 @@ def test_xyz_to_hdf5():
         system = System.from_file(fn_xyz)
         system.to_hdf5(f)
         # Actual trajectory conversion, twice
-        for i in xrange(2):
+        for i in range(2):
             offset = 5*i
             xyz_to_hdf5(f, fn_xyz)
             assert 'trajectory' in f
-            print get_last_trajectory_row(f['trajectory'])
-            for key, ds in f['trajectory'].iteritems():
-                print key, ds.shape
+            print(get_last_trajectory_row(f['trajectory']))
+            for key, ds in f['trajectory'].items():
+                print(key, ds.shape)
             assert get_last_trajectory_row(f['trajectory']) == 5 + offset
             assert abs(f['trajectory/pos'][offset,0,0] - 3.340669*angstrom) < 1e-5
             assert abs(f['trajectory/pos'][-1,-1,-1] - -3.335574*angstrom) < 1e-5
@@ -59,7 +62,7 @@ def test_xyz_to_hdf5_alt():
         system = System.from_file(fn_xyz)
         system.to_hdf5(f)
         # Actual trajectory conversion, twice
-        for i in xrange(2):
+        for i in range(2):
             offset = 5*i
             xyz_to_hdf5(f, fn_xyz, file_unit=1, name='test')
             assert 'trajectory' in f

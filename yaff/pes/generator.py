@@ -28,6 +28,8 @@
 """
 
 
+from __future__ import division
+
 import numpy as np
 
 from molmod.units import parse_unit
@@ -276,7 +278,7 @@ class Generator(object):
                 pardef.complain(counter, 'has a UNIT suffix with an unknown unit.')
         if len(result) != len(expected_names):
             raise IOError('Not all units are specified for generator %s in file %s. Got %s, should have %s.' % (
-                self.prefix, pardef.complain.filename, result.keys(), expected_names
+                self.prefix, pardef.complain.filename, list(result.keys()), expected_names
             ))
         return result
 
@@ -509,7 +511,7 @@ class BondDoubleWell2Generator(ValenceGenerator):
         tmp = Generator.process_pars(self, pardef, conversions, nffatype, par_info=par_info)
         par_table = {}
 
-        for key, oldpars in tmp.iteritems():
+        for key, oldpars in tmp.items():
             K = oldpars[0][0]
             r0 = oldpars[0][1]
             r1 = oldpars[0][2]
@@ -703,7 +705,7 @@ class TorsionCos2HarmGenerator(ValenceGenerator):
         '''
         tmp = Generator.process_pars(self, pardef, conversions, nffatype, par_info=par_info)
         par_table = {}
-        for key, oldpars in tmp.iteritems():
+        for key, oldpars in tmp.items():
             pars = [0.0, -4*oldpars[0][0]*oldpars[0][1]**2, 0.0, 2.0*oldpars[0][0]]
             par_table[key] = [(pars,)]
         return par_table
@@ -1122,7 +1124,7 @@ class LJGenerator(NonbondedGenerator):
         # Prepare the atomic parameters
         sigmas = np.zeros(system.natom)
         epsilons = np.zeros(system.natom)
-        for i in xrange(system.natom):
+        for i in range(system.natom):
             key = (system.get_ffatype(i),)
             par_list = par_table.get(key, [])
             if len(par_list) == 0:
@@ -1162,8 +1164,8 @@ class LJCrossGenerator(NonbondedGenerator):
         # Prepare the atomic parameters
         sigmas = np.zeros([system.natom,system.natom])
         epsilons = np.zeros([system.natom,system.natom])
-        for i in xrange(system.natom):
-            for j in xrange(system.natom):
+        for i in range(system.natom):
+            for j in range(system.natom):
                 key = (system.get_ffatype(i),system.get_ffatype(j))
                 par_list = par_table.get(key, [])
                 if len(par_list) == 0:
@@ -1203,7 +1205,7 @@ class MM3Generator(NonbondedGenerator):
         sigmas = np.zeros(system.natom)
         epsilons = np.zeros(system.natom)
         onlypaulis = np.zeros(system.natom, np.int32)
-        for i in xrange(system.natom):
+        for i in range(system.natom):
             key = (system.get_ffatype(i),)
             par_list = par_table.get(key, [])
             if len(par_list) == 0:
@@ -1254,7 +1256,7 @@ class ExpRepGenerator(NonbondedGenerator):
         # Prepare the atomic parameters
         amps = np.zeros(system.nffatype, float)
         bs = np.zeros(system.nffatype, float)
-        for i in xrange(system.nffatype):
+        for i in range(system.nffatype):
             key = (system.ffatypes[i],)
             par_list = par_table.get(key, [])
             if len(par_list) == 0:
@@ -1266,8 +1268,8 @@ class ExpRepGenerator(NonbondedGenerator):
         # Prepare the cross parameters
         amp_cross = np.zeros((system.nffatype, system.nffatype), float)
         b_cross = np.zeros((system.nffatype, system.nffatype), float)
-        for i0 in xrange(system.nffatype):
-            for i1 in xrange(i0+1):
+        for i0 in range(system.nffatype):
+            for i1 in range(i0+1):
                 cpar_list = cpar_table.get((system.ffatypes[i0], system.ffatypes[i1]), [])
                 if len(cpar_list) == 0:
                     if log.do_high:
@@ -1325,8 +1327,8 @@ class QMDFFRepGenerator(NonbondedGenerator):
         # Prepare the cross parameters
         amp_cross = np.zeros((system.nffatype, system.nffatype), float)
         b_cross = np.zeros((system.nffatype, system.nffatype), float)
-        for i0 in xrange(system.nffatype):
-            for i1 in xrange(i0+1):
+        for i0 in range(system.nffatype):
+            for i1 in range(i0+1):
                 cpar_list = cpar_table.get((system.ffatypes[i0], system.ffatypes[i1]), [])
                 if len(cpar_list) == 0:
                     if log.do_high:
@@ -1375,7 +1377,7 @@ class DampDispGenerator(NonbondedGenerator):
         c6s = np.zeros(system.nffatype, float)
         bs = np.zeros(system.nffatype, float)
         vols = np.zeros(system.nffatype, float)
-        for i in xrange(system.nffatype):
+        for i in range(system.nffatype):
             key = (system.ffatypes[i],)
             par_list = par_table.get(key, [])
             if len(par_list) == 0:
@@ -1387,8 +1389,8 @@ class DampDispGenerator(NonbondedGenerator):
         # Prepare the cross parameters
         c6_cross = np.zeros((system.nffatype, system.nffatype), float)
         b_cross = np.zeros((system.nffatype, system.nffatype), float)
-        for i0 in xrange(system.nffatype):
-            for i1 in xrange(i0+1):
+        for i0 in range(system.nffatype):
+            for i1 in range(i0+1):
                 cpar_list = cpar_table.get((system.ffatypes[i0], system.ffatypes[i1]), [])
                 if len(cpar_list) == 0:
                     if log.do_high:
@@ -1438,8 +1440,8 @@ class D3BJGenerator(NonbondedGenerator):
         c6_cross = np.zeros((system.nffatype, system.nffatype), float)
         c8_cross = np.zeros((system.nffatype, system.nffatype), float)
         R_cross = np.zeros((system.nffatype, system.nffatype), float)
-        for i0 in xrange(system.nffatype):
-            for i1 in xrange(i0+1):
+        for i0 in range(system.nffatype):
+            for i1 in range(i0+1):
                 par_list = par_table.get((system.ffatypes[i0], system.ffatypes[i1]), [])
                 if len(par_list) == 0:
                     if log.do_high:
@@ -1534,7 +1536,7 @@ class FixedChargeGenerator(NonbondedGenerator):
         system.radii = np.zeros(system.natom)
 
         # compute the charges
-        for i in xrange(system.natom):
+        for i in range(system.natom):
             pars = atom_table.get(system.get_ffatype(i))
             if pars is not None:
                 charge, radius = pars
@@ -1586,7 +1588,7 @@ def apply_generators(system, parameters, ff_args):
 
     # Go through all the sections of the parameter file and apply the
     # corresponding generator.
-    for prefix, section in parameters.sections.iteritems():
+    for prefix, section in parameters.sections.items():
         generator = generators.get(prefix)
         if generator is None:
             if log.do_warning:

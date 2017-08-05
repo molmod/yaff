@@ -24,6 +24,8 @@
 '''Barostats'''
 
 
+from __future__ import division
+
 import numpy as np
 
 from molmod import boltzmann, femtosecond, kjmol, bar, atm
@@ -500,8 +502,8 @@ class LangevinBarostat(VerletHook):
         rand = np.random.normal(0, 1, shape)*np.sqrt(2*self.mass_press*boltzmann*self.temp/(self.timestep_press*self.timecon))
         R = np.zeros(shape)
         # create initial symmetric pressure velocity tensor
-        for i in xrange(3):
-            for j in xrange(3):
+        for i in range(3):
+            for j in range(3):
                 if i >= j:
                     R[i,j] = rand[i,j]
                 else:

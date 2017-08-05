@@ -29,6 +29,8 @@
 """
 
 
+from __future__ import division
+
 import numpy as np
 
 from molmod.minimizer import check_delta
@@ -469,13 +471,13 @@ class BaseCellDOF(DOF):
         log("Final Unit Cell:")
         log("----------------")
         log("- cell vectors:")
-        for i in xrange(len(rvecs)):
+        for i in range(len(rvecs)):
             log("    %s = %s %s %s" %(rvec_names[i], log.length(rvecs[i,0]), log.length(rvecs[i,1]), log.length(rvecs[i,2]) ))
         log(" ")
         log("- lengths, angles and volume:")
-        for i in xrange(len(rvecs)):
+        for i in range(len(rvecs)):
             log("    |%s|  = %s" % (rvec_names[i], log.length(lengths[i])))
-        for i in xrange(len(angles)):
+        for i in range(len(angles)):
             log("    %5s = %s" % (angle_names[i], log.angle(angles[i])))
         log("    volume = %s" % log.volume(self.ff.system.cell.volume) )
 
@@ -572,7 +574,7 @@ class StrainCellDOF(BaseCellDOF):
 
     def _cellvars_to_rvecs(self, x):
         nvec = self.ff.system.cell.nvec
-        scales = x[:(nvec*(nvec+1))/2]
+        scales = x[:(nvec*(nvec+1))//2]
         if nvec == 3:
             deform = np.array([
                 [    scales[0], 0.5*scales[5], 0.5*scales[4]],

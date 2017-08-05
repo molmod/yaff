@@ -24,6 +24,8 @@
 '''Auxiliary analysis routines'''
 
 
+from __future__ import division
+
 import h5py as h5
 
 
@@ -72,7 +74,7 @@ def get_slice(f, start=0, end=-1, max_sample=None, step=None):
     if f is None or 'trajectory' not in f:
         nrow = None
     else:
-        nrow = min(ds.shape[0] for ds in f['trajectory'].itervalues() if isinstance(ds, h5.Dataset))
+        nrow = min(ds.shape[0] for ds in f['trajectory'].values() if isinstance(ds, h5.Dataset))
         if end < 0:
             end = nrow + end + 1
         else:
@@ -87,7 +89,7 @@ def get_slice(f, start=0, end=-1, max_sample=None, step=None):
         else:
             if end < 0:
                 raise ValueError('When max_sample is given and end is negative, a file must be present.')
-            step = max(1, (end - start)/max_sample + 1)
+            step = max(1, (end - start)//max_sample + 1)
     elif max_sample is not None:
         raise ValueError('Both step and max_sample are given at the same time.')
     return start, end, step

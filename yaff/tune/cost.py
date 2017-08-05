@@ -49,7 +49,7 @@ class CostFunction(object):
 
         # Collect all simulations
         self.simulations = []
-        for name, tests in sorted(test_groups.iteritems()):
+        for name, tests in sorted(test_groups.items()):
             for test in tests:
                 for simulation in test.simulations:
                     if simulation not in self.simulations:
@@ -57,7 +57,7 @@ class CostFunction(object):
 
         # Collect all tests
         self.tests = []
-        for name, tests in sorted(test_groups.iteritems()):
+        for name, tests in sorted(test_groups.items()):
             for test in tests:
                 self.tests.append((name, test))
 
@@ -72,7 +72,7 @@ class CostFunction(object):
         costs = {}
         for name, test in self.tests:
             costs[name] = 0.5*test(results)**2 + costs.get(name, 0.0)
-        return sum(np.log(cost) for cost in costs.itervalues())
+        return sum(np.log(cost) for cost in costs.values())
 
 
 class Simulation(object):
@@ -136,7 +136,7 @@ class ICGroup(object):
                 rules = ['!0'] * self.natom
             compiled_rules = []
             for rule in rules:
-                if isinstance(rule, basestring):
+                if isinstance(rule, str):
                     rule = atsel_compile(rule)
                 compiled_rules.append(rule)
             self.rules = compiled_rules
@@ -249,7 +249,7 @@ class ICTest(Test):
         sumsq = 0.0
         count = 0
         pos = results[self.simulation.name]['pos']
-        for i in xrange(len(self.icgroup.cases)):
+        for i in range(len(self.icgroup.cases)):
             indexes = self.icgroup.cases[i]
             sumsq += (self.refics[i] - self.icgroup.compute_ic(pos, indexes))**2
             count += 1
@@ -289,7 +289,7 @@ class FCTest(Test):
         count = 0
         pos = results[self.simulation.name]['pos']
         hessian = results[self.simulation.name]['hessian']
-        for i in xrange(len(self.icgroup.cases)):
+        for i in range(len(self.icgroup.cases)):
             indexes = self.icgroup.cases[i]
             sumsq += (self.reffcs[i] - self.compute_fc(pos, hessian, indexes))**2
             count += 1

@@ -38,8 +38,9 @@
 '''
 
 
-import numpy as np
+from __future__ import division
 
+import numpy as np
 
 from yaff.log import log, timer
 from yaff.pes.ext import compute_ewald_reci, compute_ewald_reci_dd, compute_ewald_corr, \
@@ -47,6 +48,8 @@ from yaff.pes.ext import compute_ewald_reci, compute_ewald_reci_dd, compute_ewal
 from yaff.pes.dlist import DeltaList
 from yaff.pes.iclist import InternalCoordinateList
 from yaff.pes.vlist import ValenceList
+
+
 __all__ = [
     'ForcePart', 'ForceField', 'ForcePartPair', 'ForcePartEwaldReciprocal',
     'ForcePartEwaldReciprocalDD', 'ForcePartEwaldCorrectionDD',
@@ -733,7 +736,7 @@ class ForcePartGrid(ForcePart):
         '''
         if system.cell.nvec != 3:
             raise ValueError('The system must be 3d periodic for the grid term.')
-        for grid in grids.itervalues():
+        for grid in grids.values():
             if grid.ndim != 3:
                 raise ValueError('The energy grids must be 3D numpy arrays.')
         ForcePart.__init__(self, 'grid', system)
@@ -752,7 +755,7 @@ class ForcePartGrid(ForcePart):
                 raise NotImplementedError('Cell deformation are not supported by ForcePartGrid')
             cell = self.system.cell
             result = 0
-            for i in xrange(self.system.natom):
+            for i in range(self.system.natom):
                 grid = self.grids[self.system.get_ffatype(i)]
                 result += compute_grid3d(self.system.pos[i], cell, grid)
             return result

@@ -24,8 +24,11 @@
 '''CP2K Files'''
 
 
+from __future__ import division
+
 from molmod import femtosecond
 from molmod.io import slice_match
+
 from yaff.conversion.common import get_trajectory_group, \
     get_trajectory_datasets, get_last_trajectory_row, write_to_dataset, \
     check_trajectory_rows
@@ -86,7 +89,7 @@ def cp2k_ener_to_hdf5(f, fn_ener, sub=slice(None)):
         counter = 0
         with open(fn_ener) as fin:
             # check header line
-            line = fin.next()
+            line = next(fin)
             words = line.split()
             if words[0] != '#':
                 raise ValueError('The first line in the energies file should be a header line starting with #.')

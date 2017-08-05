@@ -24,9 +24,12 @@
 '''The block-average method'''
 
 
+from __future__ import division
+
 import numpy as np
-from molmod.units import *
 import matplotlib.pyplot as pt
+
+from molmod.units import *
 
 
 __all__ = ['blav', 'inefficiency']
@@ -70,8 +73,8 @@ def blav(signal, minblock=100, fn_png=None, unit=None):
     x = [] # block sizes
     e = [] # errors on the mean
 
-    for bsize in xrange(1, len(signal)/minblock):
-        nblock = len(signal)/bsize
+    for bsize in range(1, len(signal)//minblock):
+        nblock = len(signal)//bsize
         total_size = nblock * bsize
         averages = signal[:total_size].reshape((nblock, bsize)).mean(axis=1)
         x.append(bsize)
@@ -81,7 +84,7 @@ def blav(signal, minblock=100, fn_png=None, unit=None):
     e = np.array(e)
 
     # perform the fit on the last two thirds of the data points
-    l = len(e)*2/3
+    l = (len(e)*2)//3
     if l == 0:
         raise ValueError("Too few blocks to do a proper estimate of the error.")
     # estimate the limit of the error towards large block sizes
@@ -154,7 +157,7 @@ def inefficiency(signal, time = None, fn_png = 'stat_ineff.png', taus = None, eq
     if taus is None:
         # By default, take the block lengths between 0.02 % and 1%
         # of the total simulation time, and make sure that all entries are integers
-        taus = np.arange(total_length/5000, total_length/100, total_length/5000)
+        taus = np.arange(total_length//5000, total_length//100, total_length//5000)
         taus = taus.astype(int)
     if eq_limits is None:
         # By default, take the equilibration time between 0 % and 80 %
@@ -168,9 +171,9 @@ def inefficiency(signal, time = None, fn_png = 'stat_ineff.png', taus = None, eq
     varX = np.var(signal)
 
     # Calculate the statisticial inefficiencies
-    for i in xrange(len(eq_limits)):
+    for i in range(len(eq_limits)):
         eq_limit = eq_limits[i]
-        for j in xrange(len(taus)):
+        for j in range(len(taus)):
             tau = taus[j]
             nblock = (len(signal)-eq_limit)/tau
             total_size = nblock*tau
@@ -192,7 +195,7 @@ def inefficiency(signal, time = None, fn_png = 'stat_ineff.png', taus = None, eq
     pt.xlabel(xlabel)
     pt.ylabel('Statistical inefficiency')
 
-    for i in xrange(len(eq_limits)):
+    for i in range(len(eq_limits)):
         clr = 1.*i/len(eq_limits)
         pt.plot(taus/unit, phi[i,:], color=comap(clr), label='Equilibrated for %i %s' %(eq_limits[i]/unit, unit_ab))
     pt.legend(loc='center left', bbox_to_anchor=(1, 0.5))

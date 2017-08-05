@@ -24,6 +24,8 @@
 '''Representation of a molecular systems'''
 
 
+from __future__ import division
+
 import numpy as np, h5py as h5
 
 from yaff.log import log
@@ -41,7 +43,7 @@ def _unravel_triangular(i):
        flattened triangular matrix.
     """
     i0 = int(np.floor(0.5*(np.sqrt(1+8*i)-1)))+1
-    i1 = i - (i0*(i0-1))/2
+    i1 = i - (i0*(i0-1))//2
     return i0, i1
 
 
@@ -174,10 +176,10 @@ class System(object):
             log('Number of periodic dimensions: %i' % self.cell.nvec)
             lengths, angles = self.cell.parameters
             names = 'abc'
-            for i in xrange(len(lengths)):
+            for i in range(len(lengths)):
                 log('Cell parameter %5s: %10s' % (names[i], log.length(lengths[i])))
             names = 'alpha', 'beta', 'gamma'
-            for i in xrange(len(angles)):
+            for i in range(len(angles)):
                 log('Cell parameter %5s: %10s' % (names[i], log.angle(angles[i])))
             log.hline()
             log.blank()
@@ -196,13 +198,13 @@ class System(object):
 
     def _init_derived_bonds(self):
         # 1-bond neighbors
-        self.neighs1 = dict((i,set([])) for i in xrange(self.natom))
+        self.neighs1 = dict((i,set([])) for i in range(self.natom))
         for i0, i1 in self.bonds:
             self.neighs1[i0].add(i1)
             self.neighs1[i1].add(i0)
         # 2-bond neighbors
-        self.neighs2 = dict((i,set([])) for i in xrange(self.natom))
-        for i0, n0 in self.neighs1.iteritems():
+        self.neighs2 = dict((i,set([])) for i in range(self.natom))
+        for i0, n0 in self.neighs1.items():
             for i1 in n0:
                 for i2 in self.neighs1[i1]:
                     # Require that there are no shorter paths than two bonds between
@@ -211,8 +213,8 @@ class System(object):
                         self.neighs2[i0].add(i2)
                         self.neighs2[i2].add(i0)
         # 3-bond neighbors
-        self.neighs3 = dict((i,set([])) for i in xrange(self.natom))
-        for i0, n0 in self.neighs1.iteritems():
+        self.neighs3 = dict((i,set([])) for i in range(self.natom))
+        for i0, n0 in self.neighs1.items():
             for i1 in n0:
                 for i3 in self.neighs2[i1]:
                     # Require that there are no shorter paths than three bonds
@@ -221,8 +223,8 @@ class System(object):
                         self.neighs3[i0].add(i3)
                         self.neighs3[i3].add(i0)
         # 4-bond neighbors
-        self.neighs4 = dict((i,set([])) for i in xrange(self.natom))
-        for i0, n0 in self.neighs1.iteritems():
+        self.neighs4 = dict((i,set([])) for i in range(self.natom))
+        for i0, n0 in self.neighs1.items():
             for i1 in n0:
                 for i4 in self.neighs3[i1]:
                     # Require that there are no shorter paths than three bonds
@@ -239,20 +241,20 @@ class System(object):
                 bond_types[key] = bond_types.get(key, 0) + 1
             log.hline()
             log(' First   Second   Count')
-            for (num0, num1), count in sorted(bond_types.iteritems()):
+            for (num0, num1), count in sorted(bond_types.items()):
                 log('%6i   %6i   %5i' % (num0, num1, count))
             log.hline()
             log.blank()
 
             log('Analysis of the neighbors:')
             log.hline()
-            log('Number of first neighbors:  %6i' % (sum(len(n) for n in self.neighs1.itervalues())/2))
-            log('Number of second neighbors: %6i' % (sum(len(n) for n in self.neighs2.itervalues())/2))
-            log('Number of third neighbors:  %6i' % (sum(len(n) for n in self.neighs3.itervalues())/2))
+            log('Number of first neighbors:  %6i' % (sum(len(n) for n in self.neighs1.values())//2))
+            log('Number of second neighbors: %6i' % (sum(len(n) for n in self.neighs2.values())//2))
+            log('Number of third neighbors:  %6i' % (sum(len(n) for n in self.neighs3.values())//2))
             # Collect all types of 'environments' for each element. This is
             # useful to double check the bonds
             envs = {}
-            for i0 in xrange(self.natom):
+            for i0 in range(self.natom):
                 num0 = self.numbers[i0]
                 nnums = tuple(sorted(self.numbers[i1] for i1 in self.neighs1[i0]))
                 key = (num0, nnums)
@@ -260,7 +262,7 @@ class System(object):
             # Print the environments on screen
             log.hline()
             log('Element   Neighboring elements   Count')
-            for (num0, nnums), count in sorted(envs.iteritems()):
+            for (num0, nnums), count in sorted(envs.items()):
                 log('%7i   %20s   %5i' % (num0, ','.join(str(num1) for num1 in nnums), count))
             log.hline()
             log.blank()
@@ -273,7 +275,7 @@ class System(object):
             lookup = {}
             scopes = []
             self.scope_ids = np.zeros(self.natom, int)
-            for i in xrange(self.natom):
+            for i in range(self.natom):
                 scope = self.scopes[i]
                 scope_id = lookup.get(scope)
                 if scope_id is None:
@@ -304,7 +306,7 @@ class System(object):
             lookup = {}
             ffatypes = []
             self.ffatype_ids = np.zeros(self.natom, int)
-            for i in xrange(self.natom):
+            for i in range(self.natom):
                 if self.scope_ids is None:
                     ffatype = self.ffatypes[i]
                     key = ffatype, None
@@ -329,7 +331,7 @@ class System(object):
         if self.scopes is not None:
             self.ffatype_id_to_scope_id = {}
             fixed_fids = {}
-            for i in xrange(self.natom):
+            for i in range(self.natom):
                 fid = self.ffatype_ids[i]
                 sid = self.ffatype_id_to_scope_id.get(fid)
                 if sid is None:
@@ -450,7 +452,7 @@ class System(object):
                         'ffatype_ids', 'bonds', 'rvecs', 'charges', 'radii',
                         'valence_charges', 'dipoles', 'radii2', 'masses',
                     ]
-                    for key, value in load_chk(fn).iteritems():
+                    for key, value in load_chk(fn).items():
                         if key in allowed_keys:
                             kwargs.update({key: value})
                 elif fn.endswith('.h5'):
@@ -478,9 +480,13 @@ class System(object):
             'numbers': sgrp['numbers'][:],
             'pos': sgrp['pos'][:],
         }
-        for key in 'scopes', 'scope_ids', 'ffatypes', 'ffatype_ids', 'bonds', 'rvecs', 'charges', 'masses':
+        for key in 'scope_ids', 'ffatype_ids', 'bonds', 'rvecs', 'charges', 'masses':
             if key in sgrp:
                 kwargs[key] = sgrp[key][:]
+        # String arrays have to be converted back to unicode...
+        for key in 'scopes', 'ffatypes':
+            if key in sgrp:
+                kwargs[key] = sgrp[key][:].astype('U')
         if log.do_high:
             log('Read system parameters from %s.' % f.filename)
         return cls(**kwargs)
@@ -551,10 +557,12 @@ class System(object):
         sgrp.create_dataset('numbers', data=self.numbers)
         sgrp.create_dataset('pos', data=self.pos)
         if self.scopes is not None:
-            sgrp.create_dataset('scopes', data=self.scopes, dtype='a22')
+            # Strings have to be stored as ascii
+            sgrp.create_dataset('scopes', data=self.scopes.astype('S22'))
             sgrp.create_dataset('scope_ids', data=self.scope_ids)
         if self.ffatypes is not None:
-            sgrp.create_dataset('ffatypes', data=self.ffatypes, dtype='a22')
+            # Strings have to be stored as ascii
+            sgrp.create_dataset('ffatypes', data=self.ffatypes.astype('S22'))
             sgrp.create_dataset('ffatype_ids', data=self.ffatype_ids)
         if self.bonds is not None:
             sgrp.create_dataset('bonds', data=self.bonds)
@@ -584,9 +592,9 @@ class System(object):
 
            A list of atom indexes is returned.
         """
-        if isinstance(rule, basestring):
+        if isinstance(rule, str):
             rule = atsel_compile(rule)
-        return np.array([i for i in xrange(self.natom) if rule(self, i)])
+        return np.array([i for i in range(self.natom) if rule(self, i)])
 
     def iter_bonds(self):
         """Iterate over all bonds."""
@@ -600,7 +608,7 @@ class System(object):
            This routine is based on the attribute ``bonds``.
         """
         if self.bonds is not None:
-            for i1 in xrange(self.natom):
+            for i1 in range(self.natom):
                 for i0 in self.neighs1[i1]:
                     for i2 in self.neighs1[i1]:
                         if i0 > i2:
@@ -626,7 +634,7 @@ class System(object):
            This routine is based on the attribute ``bonds``.
         """
         if self.bonds is not None:
-            for i3 in xrange(self.natom):
+            for i3 in range(self.natom):
                 if len(self.neighs1[i3])==3:
                     i0, i1, i2 = self.neighs1[i3]
                     yield i0, i1, i2, i3
@@ -650,7 +658,7 @@ class System(object):
             if self.bonds is not None:
                 if log.do_warning:
                     log.warn('Overwriting existing bonds.')
-            work = np.zeros((self.natom*(self.natom-1))/2, float)
+            work = np.zeros((self.natom*(self.natom-1))//2, float)
             self.cell.compute_distances(work, self.pos)
             ishort = (work < bonds.max_length*1.01).nonzero()[0]
             new_bonds = []
@@ -691,14 +699,14 @@ class System(object):
             my_rules = []
             for ffatype, rule in rules:
                 check_name(ffatype)
-                if isinstance(rule, basestring):
+                if isinstance(rule, str):
                     rule = atsel_compile(rule)
                 my_rules.append((ffatype, rule))
             # Use the rules to detect the atom types
             lookup = {}
             self.ffatypes = []
             self.ffatype_ids = np.zeros(self.natom, int)
-            for i in xrange(self.natom):
+            for i in range(self.natom):
                 my_ffatype = None
                 for ffatype, rule in my_rules:
                     if rule(self, i):
@@ -878,7 +886,7 @@ class System(object):
             # track of periodic image it connects to. Note that this information
             # is implicit in yaff, and derived using the minimum image convention.
             rel_iimage = {}
-            for ibond in xrange(len(self.bonds)):
+            for ibond in range(len(self.bonds)):
                 i0, i1 = self.bonds[ibond]
                 delta = self.pos[i0] - self.pos[i1]
                 frac = np.dot(self.cell.gvecs, delta)
@@ -888,7 +896,7 @@ class System(object):
             new_bonds = np.zeros((len(self.bonds)*rep_all,2), int)
             counter = 0
             for iimage0 in np.ndindex(reps):
-                for ibond in xrange(len(self.bonds)):
+                for ibond in range(len(self.bonds)):
                     i0, i1 = self.bonds[ibond]
                     # Translate i0 to the new index.
                     j0 = to_new_atom_index(iimage0, i0)
@@ -896,7 +904,7 @@ class System(object):
                     # The difficult case occurs when the bond between i0 and i1
                     # connects different periodic images. In that case, the change
                     # in periodic image must be taken into account.
-                    iimage1 = tuple((iimage0[c] + rel_iimage[ibond][c]) % reps[c] for c in xrange(len(reps)))
+                    iimage1 = tuple((iimage0[c] + rel_iimage[ibond][c]) % reps[c] for c in range(len(reps)))
                     j1 = to_new_atom_index(iimage1, i1)
                     new_bonds[counter,0] = j0
                     new_bonds[counter,1] = j1
@@ -920,7 +928,7 @@ class System(object):
            overlapping atoms defines the new value of a property.
         '''
         # compute distances
-        ndist = (self.natom*(self.natom-1))/2
+        ndist = (self.natom*(self.natom-1))//2
         if ndist == 0: # single atom systems, go home ...
             return
         dists = np.zeros(ndist)
@@ -930,8 +938,8 @@ class System(object):
         from molmod import ClusterFactory
         cf = ClusterFactory()
         counter = 0
-        for i0 in xrange(self.natom):
-            for i1 in xrange(i0):
+        for i0 in range(self.natom):
+            for i1 in range(i0):
                 if dists[counter] < threshold:
                     cf.add_related(i0, i1)
                 counter += 1
@@ -950,7 +958,7 @@ class System(object):
             old_reduced = set.union(*clusters)
         else:
             old_reduced = []
-        for item in xrange(self.natom): # all remaining atoms follow
+        for item in range(self.natom): # all remaining atoms follow
             if item not in old_reduced:
                 newold[counter] = [item]
                 oldnew[item] = counter
@@ -962,7 +970,7 @@ class System(object):
                 return None
             else:
                 new = np.zeros(natom, old.dtype)
-                for inew, iolds in newold.iteritems():
+                for inew, iolds in newold.items():
                     new[inew] = old[iolds[0]]
                 return new
 
@@ -971,7 +979,7 @@ class System(object):
                 return None
             else:
                 new = np.zeros(natom, old.dtype)
-                for inew, iolds in newold.iteritems():
+                for inew, iolds in newold.items():
                     new[inew] = old[iolds].mean()
                 return new
 
@@ -981,7 +989,7 @@ class System(object):
                 return None
             else:
                 new = np.zeros((natom,np.shape(old)[1]), old.dtype)
-                for inew, iolds in newold.iteritems():
+                for inew, iolds in newold.items():
                     new[inew] = old[iolds].mean(axis=0)
                 return new
 
@@ -998,7 +1006,7 @@ class System(object):
 
         # create averaged positions
         pos = np.zeros((natom, 3), float)
-        for inew, iolds in newold.iteritems():
+        for inew, iolds in newold.items():
             # move to the same image
             oldposs = self.pos[iolds].copy()
             assert oldposs.ndim == 2
@@ -1226,10 +1234,10 @@ class System(object):
         sgrp.create_dataset('numbers', data=self.numbers)
         sgrp.create_dataset('pos', data=self.pos)
         if self.scopes is not None:
-            sgrp.create_dataset('scopes', data=self.scopes, dtype='a22')
+            sgrp.create_dataset('scopes', data=self.scopes.astype('S22'))
             sgrp.create_dataset('scope_ids', data=self.scope_ids)
         if self.ffatypes is not None:
-            sgrp.create_dataset('ffatypes', data=self.ffatypes, dtype='a22')
+            sgrp.create_dataset('ffatypes', data=self.ffatypes.astype('S22'))
             sgrp.create_dataset('ffatype_ids', data=self.ffatype_ids)
         if self.bonds is not None:
             sgrp.create_dataset('bonds', data=self.bonds)

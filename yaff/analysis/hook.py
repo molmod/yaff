@@ -24,6 +24,8 @@
 '''Abstract hook implementation for trajectory analysis'''
 
 
+from __future__ import division
+
 from yaff.log import log
 from yaff.sampling.iterative import Hook
 from yaff.analysis.utils import get_slice
@@ -95,7 +97,7 @@ class AnalysisHook(Hook):
 
         self.online = self.f is None
         if not self.online:
-            for ai in self.analysis_inputs.itervalues():
+            for ai in self.analysis_inputs.values():
                 self.online |= (ai.path is None and ai.required)
                 self.online |= not (ai.path is None or ai.path in self.f)
         if not self.online:
@@ -106,7 +108,7 @@ class AnalysisHook(Hook):
     def __call__(self, iterative):
         # get the requested state items
         state_items = {}
-        for key, ai in self.analysis_inputs.iteritems():
+        for key, ai in self.analysis_inputs.items():
             if ai.key is not None:
                 state_items['st_'+key] = iterative.state[ai.key]
         # prepare some data structures
@@ -129,7 +131,7 @@ class AnalysisHook(Hook):
 
     def compute_offline(self):
         datasets = {}
-        for key, ai in self.analysis_inputs.iteritems():
+        for key, ai in self.analysis_inputs.items():
             if ai.path is not None:
                 datasets['ds_' + key] = self.f[ai.path]
         self.configure_offline(**datasets)
@@ -157,7 +159,7 @@ class AnalysisHook(Hook):
 
     def offline_loop(self, **datasets):
         # Iterate over the dataset
-        for i in xrange(self.start, self.end, self.step):
+        for i in range(self.start, self.end, self.step):
             self.read_offline(i, **datasets)
             self.compute_iteration()
 

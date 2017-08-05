@@ -30,6 +30,8 @@
 """
 
 
+from __future__ import division
+
 import atexit
 
 from molmod.log import ScreenLog, TimerGroup

@@ -23,7 +23,10 @@
 # --
 
 
-import h5py as h5, numpy as np
+from __future__ import division
+
+import h5py as h5
+import numpy as np
 
 from yaff import *
 from yaff.sampling.test.common import get_ff_water32, get_ff_bks
@@ -150,7 +153,7 @@ def test_qn_5steps_initial_hessian():
 def test_solve_trust_radius_random1():
     N = 10
     eps = 1e-4
-    for i in xrange(100):
+    for i in range(100):
         grad = np.random.normal(0, 1, N)
         evals = np.random.normal(0, 1, N)
         step = solve_trust_radius(grad, evals, 1, eps)
@@ -160,7 +163,7 @@ def test_solve_trust_radius_random1():
 def test_solve_trust_radius_random2():
     N = 10
     eps = 1e-4
-    for i in xrange(100):
+    for i in range(100):
         grad = np.random.normal(0, 1, N)
         evals = np.exp(np.random.normal(0, 3, N))
         step = solve_trust_radius(grad, evals, 1, eps)
@@ -170,7 +173,7 @@ def test_solve_trust_radius_random2():
 def test_solve_trust_radius_random3():
     N = 10
     eps = 1e-4
-    for i in xrange(100):
+    for i in range(100):
         grad = np.random.normal(0, 1, N)
         evals = np.exp(np.random.normal(0, 3, N))-0.01
         step = solve_trust_radius(grad, evals, 1, eps)

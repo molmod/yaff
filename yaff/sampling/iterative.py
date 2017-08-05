@@ -24,6 +24,8 @@
 '''Base class for iterative algorithms'''
 
 
+from __future__ import division
+
 import numpy as np
 
 from molmod.units import *
@@ -122,7 +124,7 @@ class Iterative(object):
                     if self.propagate():
                         break
             else:
-                for i in xrange(nstep):
+                for i in range(nstep):
                     if self.propagate():
                         break
             self.finalize()
@@ -230,7 +232,7 @@ class EPotContribStateItem(StateItem):
         return np.array([part.energy for part in iterative.ff.parts])
 
     def iter_attrs(self, iterative):
-        yield 'epot_contrib_names', tuple(part.name for part in iterative.ff.parts)
+        yield 'epot_contrib_names', np.array([part.name for part in iterative.ff.parts], dtype='S')
 
 
 class EpotBondsStateItem(StateItem):

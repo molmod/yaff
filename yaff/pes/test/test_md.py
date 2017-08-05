@@ -23,6 +23,8 @@
 # --
 
 
+from __future__ import division
+
 import numpy as np
 
 from molmod import kcalmol, angstrom, rad, deg, femtosecond, boltzmann
@@ -46,7 +48,7 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
         part_valence = ForcePartValence(system)
         for i, j in system.bonds:
             part_valence.add_term(Harmonic(450.0*kcalmol/angstrom**2, 0.9572*angstrom, Bond(i, j)))
-        for i1 in xrange(system.natom):
+        for i1 in range(system.natom):
             for i0 in system.neighs1[i1]:
                 for i2 in system.neighs1[i1]:
                     if i0 > i2:
@@ -63,7 +65,7 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
         epsilon_table = {1: -0.0460*kcalmol, 8: -0.1521*kcalmol}
         sigmas = np.zeros(96, float)
         epsilons = np.zeros(96, float)
-        for i in xrange(system.natom):
+        for i in range(system.natom):
             sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
             epsilons[i] = epsilon_table[system.numbers[i]]
         pair_pot_lj = PairPotLJ(sigmas, epsilons, rcut, tr)
@@ -109,8 +111,8 @@ def test_md_water32_full():
     velh = vel + (-0.5*h)*grad/mass
     # prop
     cqs = []
-    symbols = [ff.system.get_ffatype(i) for i in xrange(ff.system.natom)]
-    for i in xrange(100):
+    symbols = [ff.system.get_ffatype(i) for i in range(ff.system.natom)]
+    for i in range(100):
         pos += velh*h
         ff.update_pos(pos)
         grad[:] = 0.0

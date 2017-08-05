@@ -21,8 +21,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
-#!/usr/bin/env python
+# --
+
+# Needed for python2 backward compatibility
+from __future__ import print_function
 
 # First import the Numpy library
 import numpy as np
@@ -130,13 +132,13 @@ with h5.File('traj.h5', 'w') as f:
 system.to_file('opt.chk')
 
 # Print the relevant results on screen
-print '#'*80
-print
-print 'Volume [A^3]:      ', system.cell.volume/angstrom**3
-print 'Pressure [GPa]:    ', ff.part_press.pext/p_unit
-print 'Total energy [eV]: ', ff.energy/e_unit
-print 'Contributions [eV]:'
+print('#'*80)
+print()
+print('Volume [A^3]:      ', system.cell.volume/angstrom**3)
+print('Pressure [GPa]:    ', ff.part_press.pext/p_unit)
+print('Total energy [eV]: ', ff.energy/e_unit)
+print('Contributions [eV]:')
 for part in ff.parts:
-    print '%15s: %s' % (part.name, part.energy/e_unit)
-print
-print '#'*80
+    print('%15s: %s' % (part.name, part.energy/e_unit))
+print()
+print('#'*80)

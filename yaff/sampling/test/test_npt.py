@@ -22,6 +22,9 @@
 #
 # --
 
+
+from __future__ import division
+
 from yaff import *
 from yaff.sampling.test.common import get_ff_water32
 

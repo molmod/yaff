@@ -24,6 +24,8 @@
 '''Basic trajectory analysis routines'''
 
 
+from __future__ import division
+
 import h5py as h5
 
 import numpy as np
@@ -46,7 +48,7 @@ def get_time(f, start, end, step):
         time = f['trajectory/time'][start:end:step]/log.time.conversion
     else:
         label = 'Step'
-        time = np.array(range(len(f['trajectory/epot'][:])), float)[start:end:step]
+        time = np.arange(len(f['trajectory/epot'][:]), dtype=float)[start:end:step]
     return time, label
 
 def plot_energies(f, fn_png='energies.png', **kwargs):
@@ -194,7 +196,7 @@ def plot_pressure(f, fn_png='pressure.png', window = 1, **kwargs):
 
     press_av = np.zeros(len(press)+1-window)
     time_av = np.zeros(len(press)+1-window)
-    for i in xrange(len(press_av)):
+    for i in range(len(press_av)):
         press_av[i] = press[i:i+window].sum()/window
         time_av[i] = time[i]
     pt.clf()
@@ -261,7 +263,7 @@ def plot_temp_dist(f, fn_png='temp_dist.png', temp=None, ndof=None, select=None,
     else:
         # compute the temperatures of the subsystem
         temps = []
-        for i in xrange(start, end, step):
+        for i in range(start, end, step):
              temp = ((f['trajectory/vel'][i,select]**2).mean(axis=1)*weights).mean()
              temps.append(temp)
         temps = np.array(temps)
@@ -308,7 +310,7 @@ def plot_temp_dist(f, fn_png='temp_dist.png', temp=None, ndof=None, select=None,
         # build up the distribution for the atoms
         counts = np.zeros(len(temp_grid)-1, int)
         total = 0.0
-        for i in xrange(start, end, step):
+        for i in range(start, end, step):
             if select is None:
                 atom_temps = (f['trajectory/vel'][i]**2).mean(axis=1)*weights
             else:
@@ -430,7 +432,7 @@ def plot_press_dist(f, temp, fn_png='press_dist.png', press=None, ndof=None, sel
     else:
         # compute the temperatures of the subsystem
         temps = []
-        for i in xrange(start, end, step):
+        for i in range(start, end, step):
              temp = ((f['trajectory/vel'][i,select]**2).mean(axis=1)*weights).mean()
              temps.append(temp)
         temps = np.array(temps)
@@ -806,8 +808,8 @@ def plot_angle(f, index, fn_png='angle.png', n_int = 1, xlim = None, ymax = None
     pt.clf()
     comap = pt.cm.get_cmap(name='hsv')
     # calculate the relative positions
-    for i in xrange(n_angles):
-        for j in xrange(2):
+    for i in range(n_angles):
+        for j in range(2):
             atom_vec[:,i,:,j] = (-1)**j*(f['trajectory/pos'][start:end:step, index[i,j+1], :]-f['trajectory/pos'][start:end:step, index[i,j], :])
         angle[:,i] = np.arccos((atom_vec[:,i,:,0]*atom_vec[:,i,:,1]).sum(axis=1)/np.sqrt((atom_vec[:,i,:,0]**2).sum(axis=1)*(atom_vec[:,i,:,1]**2).sum(axis=1)))/log.angle.conversion
         if oriented:
@@ -815,7 +817,7 @@ def plot_angle(f, index, fn_png='angle.png', n_int = 1, xlim = None, ymax = None
             normal = np.cross(atom_vec[0,i,:,0], atom_vec[0,i,:,1])
             sign = np.sign((np.cross(atom_vec[:,i,:,0], atom_vec[:,i,:,1])*normal).sum(axis=1))
             angle[:,i] *= sign
-            for j in xrange(len(time)):
+            for j in range(len(time)):
                 if angle_shift and angle[j,i] < 0: angle[j,i] += 360
 
         # plot the raw time signal
@@ -830,14 +832,14 @@ def plot_angle(f, index, fn_png='angle.png', n_int = 1, xlim = None, ymax = None
     time_int = time[0:len(time)-loss].reshape(n_int,-1)
     angle_int = angle.reshape(n_int, -1, n_angles)
     timestep = time[1]-time[0]
-    bsize = len(time)/n_int
-    ssize = bsize/2+1
+    bsize = len(time)//n_int
+    ssize = bsize//2+1
     freq_fft = np.arange(ssize)/(timestep*bsize)
     angle_int_fft = np.zeros((n_int, len(freq_fft)))
 
-    for i in xrange(n_int):
+    for i in range(n_int):
         av = angle_int[i,:,:].mean()
-        for j in xrange(n_angles):
+        for j in range(n_angles):
             angle_int_fft[i,:] += abs(np.fft.rfft(angle_int[i,:,j]-av))**2
 
     # plot the fourier transform
@@ -845,7 +847,7 @@ def plot_angle(f, index, fn_png='angle.png', n_int = 1, xlim = None, ymax = None
     if n_int == 1:
         pt.plot(freq_fft/lightspeed*centimeter, angle_int_fft[0,:], 'k-')
     else:
-        for i in xrange(n_int):
+        for i in range(n_int):
             pt.plot(freq_fft/lightspeed*centimeter, angle_int_fft[i,:], color = comap(1.0*i/n_int), label = r'[%0.f ps, %0.f ps]' % (time_int[i,0]/(1e-12*second), time_int[i,-1]/(1e-12*second)))
         pt.legend(loc=0)
     pt.xlabel('Frequency [cm^-1]')
@@ -869,10 +871,10 @@ def plot_angle(f, index, fn_png='angle.png', n_int = 1, xlim = None, ymax = None
     angle_grid = np.arange(angle_min, angle_max, angle_step)
     # plot the different probability distributions
     pt.clf()
-    for i in xrange(n_int):
+    for i in range(n_int):
         # make the histogram
         counts = 0
-        for j in xrange(n_angles):
+        for j in range(n_angles):
             counts += np.histogram(angle_int[i,:,j].ravel(), bins=angle_grid)[0]
         total = float(time_int.shape[1]*n_angles)
         emp_sys_pdf = counts/total
@@ -947,18 +949,18 @@ def plot_dihedral(f, index, fn_png='dihedral.png', n_int = 1, xlim = None, ymax 
     pt.clf()
     comap = pt.cm.get_cmap(name='hsv')
     # calculate the relative positions
-    for i in xrange(n_angles):
-        for j in xrange(3):
+    for i in range(n_angles):
+        for j in range(3):
             atom_vec[:,i,:,j] = f['trajectory/pos'][start:end:step, index[i,j+1], :]-f['trajectory/pos'][start:end:step, index[i,j], :]
         # calculate the plane normals
-        for j in xrange(2):
+        for j in range(2):
             plane_vec[:,i,:,j] = np.cross(atom_vec[:,i,:,j], atom_vec[:,i,:,j+1])
         angle[:,i] = np.arccos((plane_vec[:,i,:,0]*plane_vec[:,i,:,1]).sum(axis=1)/np.sqrt((plane_vec[:,i,:,0]**2).sum(axis=1)*(plane_vec[:,i,:,1]**2).sum(axis=1)))/log.angle.conversion
         if oriented:
             # determine the orientation of the cross product of both planes wrt the mutual axis
             sign = np.sign((np.cross(plane_vec[:,i,:,0], plane_vec[:,i,:,1])*atom_vec[:,i,:,1]).sum(axis=1))
             angle[:,i] *= sign
-            for j in xrange(len(time)):
+            for j in range(len(time)):
                 if angle_shift and angle[j,i] < 0: angle[j,i] += 360
 
         # plot the raw time signal
@@ -973,14 +975,14 @@ def plot_dihedral(f, index, fn_png='dihedral.png', n_int = 1, xlim = None, ymax 
     time_int = time[0:len(time)-loss].reshape(n_int,-1)
     angle_int = angle.reshape(n_int, -1, n_angles)
     timestep = time[1]-time[0]
-    bsize = len(time)/n_int
-    ssize = bsize/2+1
+    bsize = len(time)//n_int
+    ssize = bsize//2+1
     freq_fft = np.arange(ssize)/(timestep*bsize)
     angle_int_fft = np.zeros((n_int, len(freq_fft)))
 
-    for i in xrange(n_int):
+    for i in range(n_int):
         av = angle_int[i,:,:].mean()
-        for j in xrange(n_angles):
+        for j in range(n_angles):
             angle_int_fft[i,:] += abs(np.fft.rfft(angle_int[i,:,j]-av))**2
 
     # plot the fourier transform
@@ -988,7 +990,7 @@ def plot_dihedral(f, index, fn_png='dihedral.png', n_int = 1, xlim = None, ymax 
     if n_int == 1:
         pt.plot(freq_fft/lightspeed*centimeter, angle_int_fft[0,:], 'k-')
     else:
-        for i in xrange(n_int):
+        for i in range(n_int):
             pt.plot(freq_fft/lightspeed*centimeter, angle_int_fft[i,:], color = comap(1.0*i/n_int), label = r'[%0.f ps, %0.f ps]' % (time_int[i,0]/(1e-12*second), time_int[i,-1]/(1e-12*second)))
         pt.legend(loc=0)
     pt.xlabel('Frequency [cm^-1]')
@@ -1012,10 +1014,10 @@ def plot_dihedral(f, index, fn_png='dihedral.png', n_int = 1, xlim = None, ymax 
     angle_grid = np.arange(angle_min, angle_max, angle_step)
     # plot the different probability distributions
     pt.clf()
-    for i in xrange(n_int):
+    for i in range(n_int):
         # make the histogram
         counts = 0
-        for j in xrange(n_angles):
+        for j in range(n_angles):
             counts += np.histogram(angle_int[i,:,j].ravel(), bins=angle_grid)[0]
         total = float(time_int.shape[1]*n_angles)
         emp_sys_pdf = counts/total

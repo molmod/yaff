@@ -33,6 +33,8 @@
 """
 
 
+from __future__ import print_function
+
 import numpy as np
 
 from molmod import check_delta
@@ -57,7 +59,7 @@ class Bead(object):
                 A list of input arrays
         '''
         assert len(self.nins) == len(ars_in)
-        for i in xrange(len(self.nins)):
+        for i in range(len(self.nins)):
             assert len(ars_in[i]) == self.nins[i]
 
     def back(self, ars_gin):
@@ -78,7 +80,7 @@ class Bead(object):
            energy towards the input of this function' (ars_gin).
         '''
         assert len(self.nins) == len(ars_gin)
-        for i in xrange(len(self.nins)):
+        for i in range(len(self.nins)):
             assert len(ars_gin[i]) == self.nins[i]
 
     def resetg(self):
@@ -167,7 +169,7 @@ def check_bead_delta(bead, amp, eps):
         if do_gradient:
             # call back path for every output component
             gxs = []
-            for i in xrange(bead.nout):
+            for i in range(bead.nout):
                 bead.resetg()
                 bead.ar_gout[i] = 1
                 ars_gin = [np.zeros(nin) for nin in bead.nins]
@@ -237,25 +239,25 @@ def test_neural_net():
             return swi2.ar_out[0] # we know the the final output is a scalar.
 
     x = np.random.normal(0,1,5)
-    print 'The inputs for the neural network'
-    print x
-    print
+    print('The inputs for the neural network')
+    print(x)
+    print()
 
-    print 'Calling neural network without gradient'
-    print 'F(x)', neural_net(x)
-    print
+    print('Calling neural network without gradient')
+    print('F(x)', neural_net(x))
+    print()
 
-    print 'Calling neural network with gradient'
+    print('Calling neural network with gradient')
     f, gx = neural_net(x, True)
-    print 'F(x)', f
-    print 'Gradient'
-    print gx
-    print
+    print('F(x)', f)
+    print('Gradient')
+    print(gx)
+    print()
 
-    print 'Running check_delta on the neural network function.'
+    print('Running check_delta on the neural network function.')
     dxs = np.random.normal(0,1e-4,(100,5))
     check_delta(neural_net, x, dxs)
-    print 'Test passed.'
+    print('Test passed.')
 
 if __name__ == '__main__':
     test_bead_lin_trans_const()

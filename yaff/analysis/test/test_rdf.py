@@ -23,6 +23,8 @@
 # --
 
 
+from __future__ import division
+
 import shutil
 import os
 
@@ -115,7 +117,7 @@ def test_rdf2_offline_pairs_sr():
         select0 = nve.ff.system.get_indexes('O')
         select1 = nve.ff.system.get_indexes('H')
         pairs_sr = []
-        for i in xrange(32):
+        for i in range(32):
             pairs_sr.append((3*i+1,3*i))
             pairs_sr.append((3*i+2,3*i))
         pairs_sr = np.array(pairs_sr)
@@ -135,7 +137,7 @@ def test_rdf2_offline_pairs_sr_nimage():
         select0 = nve.ff.system.get_indexes('O')
         select1 = nve.ff.system.get_indexes('H')
         pairs_sr = []
-        for i in xrange(32):
+        for i in range(32):
             pairs_sr.append((3*i+1,3*i))
             pairs_sr.append((3*i+2,3*i))
         pairs_sr = np.array(pairs_sr)
@@ -159,7 +161,7 @@ def test_rdf_from_file_variable_cell():
         system.to_hdf5(f)
         xyz_to_hdf5(f, fn_xyz)
         rvecs_traj = []
-        with file(fn_vol) as fvol:
+        with open(fn_vol) as fvol:
             for line in fvol:
                 if line.startswith(' INITIAL'):
                     vol = float(line.split()[3])

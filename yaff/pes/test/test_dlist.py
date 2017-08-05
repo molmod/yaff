@@ -23,6 +23,8 @@
 # --
 
 
+from __future__ import division
+
 import numpy as np
 
 from yaff import DeltaList
@@ -40,7 +42,7 @@ def get_dlist_bonds(system):
 
 def get_dlist_random(system, n=10):
     dlist = DeltaList(system)
-    for row in xrange(n):
+    for row in range(n):
         i = np.random.randint(system.natom)
         j = (i + np.random.randint(1, system.natom)) % system.natom
         dlist.add_delta(i, j)

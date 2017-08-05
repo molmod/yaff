@@ -21,12 +21,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
+
+# Needed for python2 backward compatibility
+from __future__ import print_function
 
 # Import Yaff and Numpy libraries and setup a reference system. The reference
 # system is used to recognize atom types etc.
-from yaff import *
 import numpy as np
+from yaff import *
 system = System.from_file('trajectory.xyz', rvecs=np.diag([20.3, 20.3, 20.3])*angstrom)
 
 # Create a HDF5 file and convert the XYZ file to arrays in the HDF5 file
@@ -48,9 +51,9 @@ with  h5.File('trajectory.h5', mode='w') as f:
     # One may make plots with the rdf object ...
     rdf.plot()
     # ... or access the results as Numpy arrays
-    print
-    print 'RDF DATA FOR THE X-AXIS [A]'
-    print rdf.d/angstrom
-    print
-    print 'RDF DATA FOR THE Y-AXIS'
-    print rdf.rdf
+    print()
+    print('RDF DATA FOR THE X-AXIS [A]')
+    print(rdf.d/angstrom)
+    print()
+    print('RDF DATA FOR THE Y-AXIS')
+    print(rdf.rdf)

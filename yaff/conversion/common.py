@@ -24,6 +24,8 @@
 '''Tools for writing trajectory data'''
 
 
+from __future__ import division
+
 import h5py as h5
 
 from yaff.log import log
@@ -93,7 +95,7 @@ def get_last_trajectory_row(dss):
             A list of datasets or the trajectory group.
     '''
     if isinstance(dss, h5.Group):
-        dss = dss.itervalues()
+        dss = dss.values()
     row = min(ds.shape[0] for ds in dss)
     return row
 
