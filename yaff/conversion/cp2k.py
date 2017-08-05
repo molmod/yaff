@@ -89,7 +89,7 @@ def cp2k_ener_to_hdf5(f, fn_ener, sub=slice(None)):
         counter = 0
         with open(fn_ener) as fin:
             # check header line
-            line = fin.next()
+            line = next(fin)
             words = line.split()
             if words[0] != '#':
                 raise ValueError('The first line in the energies file should be a header line starting with #.')

@@ -450,7 +450,7 @@ def test_iter_matches_guaianolide():
     system.detect_bonds()
     system_ref = System.from_file(pkg_resources.resource_filename(__name__, '../data/test/guaianolide_framework_ordered.xyz'))
     system_ref.detect_bonds()
-    order = np.array(system.iter_matches(system_ref).next())
+    order = np.array(next(system.iter_matches(system_ref)))
     np.testing.assert_equal(order, [8, 9, 4, 7, 14, 12, 11, 10, 5, 6, 13, 16, 15, 2, 0, 1, 3])
 
 
@@ -477,7 +477,7 @@ def test_iter_matches_nobornane_rhodium():
     system_ref = System.from_file(pkg_resources.resource_filename(__name__, '../data/test/nobornane.xyz'))
     system_ref.detect_bonds()
     system_ref.detect_ffatypes(rules)
-    selected = set(system.iter_matches(system_ref).next())
+    selected = set(next(system.iter_matches(system_ref)))
     reference = set([77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95])
     np.testing.assert_equal(selected, reference)
 
@@ -487,6 +487,6 @@ def test_iter_matches_single_atom():
     system.detect_bonds()
     system_ref = System(pos=np.zeros((1, 3), float), numbers = np.array([45]))
     system_ref.detect_bonds()
-    selected = set(system.iter_matches(system_ref).next())
+    selected = set(next(system.iter_matches(system_ref)))
     reference = set([28])
     np.testing.assert_equal(selected, reference)
