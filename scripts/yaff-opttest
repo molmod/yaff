@@ -24,6 +24,8 @@
 #--
 
 
+from __future__ import division
+
 import sys
 import argparse
 import traceback
@@ -94,9 +96,9 @@ def load_cases(select_title=None):
             current[key] = data
 
     # 2) Convert the arguments:
-    for args in cases_data.itervalues():
+    for args in cases_data.values():
         title = args['case']
-        for name, (required, fieldtype) in fields.iteritems():
+        for name, (required, fieldtype) in fields.items():
             if name not in args:
                 if required:
                     raise FileFormatError('Case \'%s\' does not have a field \'%s\'.' % (title, name))
@@ -110,19 +112,19 @@ def load_cases(select_title=None):
             elif isinstance(fieldtype, dict):
                 data = args[name]
                 if data not in fieldtype:
-                    raise FileFormatError('Could not interpert field \'%s\' of case \'%s\'. Please select one of %s' % (name, title, fieldtype.keys()))
+                    raise FileFormatError('Could not interpert field \'%s\' of case \'%s\'. Please select one of %s' % (name, title, list(fieldtype.keys())))
                 args[name] = fieldtype[data]
             else:
                 raise NotImplementedError
 
     if select_title is not None:
-        cases_data = dict((name, args) for name, args in cases_data.iteritems() if fnmatch(name, select_title))
+        cases_data = dict((name, args) for name, args in cases_data.items() if fnmatch(name, select_title))
         if len(cases_data) == 0:
             raise ValueError('Could not find test case \'%s\'.' % select_title)
 
     # 3) Make Case objects
     cases = []
-    for args in cases_data.itervalues():
+    for args in cases_data.values():
         title = args['case']
         yaff.log('Preparing case \'%s\'.' % title)
         system = yaff.System.from_file(pkg_resources.resource_filename(yaff.__name__, 'data/' + args['system']))
@@ -131,7 +133,7 @@ def load_cases(select_title=None):
         else:
             ff_args = {}
         ff = yaff.ForceField.generate(system, pkg_resources.resource_filename(yaff.__name__, 'data/' + args['forcefield']), **ff_args)
-        dof_args = dict((key, data) for key, data in args.iteritems() if (key.endswith('_rms') or key.endswith('_max')))
+        dof_args = dict((key, data) for key, data in args.items() if (key.endswith('_rms') or key.endswith('_max')))
         dof = args['dof'](ff, **dof_args)
         maxiter = args['maxiter']
         energy = args['energy']
@@ -261,7 +263,7 @@ def main():
         if success:
             yaff.log('OK')
         else:
-            yaff.log('Failure: %s' % ', '.join('%i %s' % (count, status) for status, count in sorted(status_counts.iteritems())))
+            yaff.log('Failure: %s' % ', '.join('%i %s' % (count, status) for status, count in sorted(status_counts.items())))
             sys.exit(-1)
 
 
