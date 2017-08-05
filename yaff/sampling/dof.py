@@ -574,7 +574,7 @@ class StrainCellDOF(BaseCellDOF):
 
     def _cellvars_to_rvecs(self, x):
         nvec = self.ff.system.cell.nvec
-        scales = x[:(nvec*(nvec+1))/2]
+        scales = x[:(nvec*(nvec+1))//2]
         if nvec == 3:
             deform = np.array([
                 [    scales[0], 0.5*scales[5], 0.5*scales[4]],
