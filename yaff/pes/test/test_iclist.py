@@ -23,6 +23,8 @@
 # --
 
 
+from __future__ import division
+
 import numpy as np
 from molmod import bond_length, bend_angle, bend_cos, dihed_angle, dihed_cos
 

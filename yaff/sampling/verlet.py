@@ -24,7 +24,10 @@
 '''Generic Verlet integrator'''
 
 
-import numpy as np, time
+from __future__ import division
+
+import numpy as np
+import time
 
 from molmod import boltzmann, kjmol
 

@@ -23,6 +23,8 @@
 # --
 
 
+from __future__ import division
+
 import numpy as np
 import h5py as h5
 import pkg_resources

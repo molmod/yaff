@@ -24,6 +24,8 @@
 '''Object-oriented representation of parameter files'''
 
 
+from __future__ import division
+
 __all__ = ['Complain', 'Parameters', 'ParameterSection', 'ParameterDefinition']
 
 

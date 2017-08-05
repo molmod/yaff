@@ -23,6 +23,8 @@
 # --
 
 
+from __future__ import division
+
 import pkg_resources
 import numpy as np
 from scipy.special import erfc, erf
@@ -415,7 +417,7 @@ def test_pair_pot_eidip_water_finite():
             gpos1 = np.zeros(system.pos.shape, float)
             energy1 = part_pair.compute(gpos1)
             #Reshape gpos1
-            gpos1 = np.asarray([ np.sum( gpos1[i::3], axis=0 ) for i in xrange(system.natom/3)])
+            gpos1 = np.asarray([ np.sum( gpos1[i::3], axis=0 ) for i in xrange(system.natom//3)])
             #Get the electrostatic energy of a water molecule with atomic point dipoles
             system, nlist, scalings, part_pair, pair_pot, pair_fn = get_part_water_eidip(scalings=[1.0,1.0,1.0],finite=False,alpha=alpha, do_radii=do_radii)
             gpos2 = np.zeros(system.pos.shape, float)

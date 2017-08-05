@@ -24,6 +24,8 @@
 '''Geometry/Cell optimization'''
 
 
+from __future__ import division
+
 import numpy as np, time
 
 # The implementation in scipy is often more robust

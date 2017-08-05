@@ -24,6 +24,8 @@
 '''Representation of a molecular systems'''
 
 
+from __future__ import division
+
 import numpy as np, h5py as h5
 
 from yaff.log import log
@@ -41,7 +43,7 @@ def _unravel_triangular(i):
        flattened triangular matrix.
     """
     i0 = int(np.floor(0.5*(np.sqrt(1+8*i)-1)))+1
-    i1 = i - (i0*(i0-1))/2
+    i1 = i - (i0*(i0-1))//2
     return i0, i1
 
 
@@ -246,9 +248,9 @@ class System(object):
 
             log('Analysis of the neighbors:')
             log.hline()
-            log('Number of first neighbors:  %6i' % (sum(len(n) for n in self.neighs1.values())/2))
-            log('Number of second neighbors: %6i' % (sum(len(n) for n in self.neighs2.values())/2))
-            log('Number of third neighbors:  %6i' % (sum(len(n) for n in self.neighs3.values())/2))
+            log('Number of first neighbors:  %6i' % (sum(len(n) for n in self.neighs1.values())//2))
+            log('Number of second neighbors: %6i' % (sum(len(n) for n in self.neighs2.values())//2))
+            log('Number of third neighbors:  %6i' % (sum(len(n) for n in self.neighs3.values())//2))
             # Collect all types of 'environments' for each element. This is
             # useful to double check the bonds
             envs = {}
@@ -650,7 +652,7 @@ class System(object):
             if self.bonds is not None:
                 if log.do_warning:
                     log.warn('Overwriting existing bonds.')
-            work = np.zeros((self.natom*(self.natom-1))/2, float)
+            work = np.zeros((self.natom*(self.natom-1))//2, float)
             self.cell.compute_distances(work, self.pos)
             ishort = (work < bonds.max_length*1.01).nonzero()[0]
             new_bonds = []
@@ -920,7 +922,7 @@ class System(object):
            overlapping atoms defines the new value of a property.
         '''
         # compute distances
-        ndist = (self.natom*(self.natom-1))/2
+        ndist = (self.natom*(self.natom-1))//2
         if ndist == 0: # single atom systems, go home ...
             return
         dists = np.zeros(ndist)

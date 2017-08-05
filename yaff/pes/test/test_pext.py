@@ -23,6 +23,8 @@
 # --
 
 
+from __future__ import division
+
 from yaff import *
 from yaff.test.common import get_system_polyethylene4, get_system_graphene8, \
     get_system_water32

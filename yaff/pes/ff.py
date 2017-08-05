@@ -38,8 +38,9 @@
 '''
 
 
-import numpy as np
+from __future__ import division
 
+import numpy as np
 
 from yaff.log import log, timer
 from yaff.pes.ext import compute_ewald_reci, compute_ewald_reci_dd, compute_ewald_corr, \
@@ -47,6 +48,8 @@ from yaff.pes.ext import compute_ewald_reci, compute_ewald_reci_dd, compute_ewal
 from yaff.pes.dlist import DeltaList
 from yaff.pes.iclist import InternalCoordinateList
 from yaff.pes.vlist import ValenceList
+
+
 __all__ = [
     'ForcePart', 'ForceField', 'ForcePartPair', 'ForcePartEwaldReciprocal',
     'ForcePartEwaldReciprocalDD', 'ForcePartEwaldCorrectionDD',

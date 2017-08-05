@@ -24,6 +24,8 @@
 '''Basic trajectory analysis routines'''
 
 
+from __future__ import division
+
 import h5py as h5
 
 import numpy as np
@@ -830,8 +832,8 @@ def plot_angle(f, index, fn_png='angle.png', n_int = 1, xlim = None, ymax = None
     time_int = time[0:len(time)-loss].reshape(n_int,-1)
     angle_int = angle.reshape(n_int, -1, n_angles)
     timestep = time[1]-time[0]
-    bsize = len(time)/n_int
-    ssize = bsize/2+1
+    bsize = len(time)//n_int
+    ssize = bsize//2+1
     freq_fft = np.arange(ssize)/(timestep*bsize)
     angle_int_fft = np.zeros((n_int, len(freq_fft)))
 
@@ -973,8 +975,8 @@ def plot_dihedral(f, index, fn_png='dihedral.png', n_int = 1, xlim = None, ymax 
     time_int = time[0:len(time)-loss].reshape(n_int,-1)
     angle_int = angle.reshape(n_int, -1, n_angles)
     timestep = time[1]-time[0]
-    bsize = len(time)/n_int
-    ssize = bsize/2+1
+    bsize = len(time)//n_int
+    ssize = bsize//2+1
     freq_fft = np.arange(ssize)/(timestep*bsize)
     angle_int_fft = np.zeros((n_int, len(freq_fft)))
 

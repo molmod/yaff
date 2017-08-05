@@ -24,6 +24,8 @@
 '''Gaussian09 BOMD log Files'''
 
 
+from __future__ import division
+
 import numpy as np
 
 from molmod import amu, second, femtosecond

@@ -23,6 +23,8 @@
 # --
 
 
+from __future__ import division
+
 from nose.plugins.skip import SkipTest
 import pkg_resources
 import h5py as h5

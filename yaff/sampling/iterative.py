@@ -24,6 +24,8 @@
 '''Base class for iterative algorithms'''
 
 
+from __future__ import division
+
 import numpy as np
 
 from molmod.units import *

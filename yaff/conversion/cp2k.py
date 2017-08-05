@@ -24,8 +24,11 @@
 '''CP2K Files'''
 
 
+from __future__ import division
+
 from molmod import femtosecond
 from molmod.io import slice_match
+
 from yaff.conversion.common import get_trajectory_group, \
     get_trajectory_datasets, get_last_trajectory_row, write_to_dataset, \
     check_trajectory_rows

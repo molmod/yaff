@@ -24,6 +24,8 @@
 '''Tools for writing trajectory data'''
 
 
+from __future__ import division
+
 import h5py as h5
 
 from yaff.log import log

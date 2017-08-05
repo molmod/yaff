@@ -23,7 +23,10 @@
 # --
 
 
-import h5py as h5, numpy as np
+from __future__ import division
+
+import h5py as h5
+import numpy as np
 
 from yaff import *
 from yaff.sampling.test.common import get_ff_water32, get_ff_bks

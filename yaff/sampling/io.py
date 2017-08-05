@@ -24,6 +24,8 @@
 '''Trajectory writers'''
 
 
+from __future__ import division
+
 from yaff.sampling.iterative import Hook, AttributeStateItem, PosStateItem, CellStateItem, ConsErrStateItem
 from yaff.sampling.nvt import NHCThermostat, NHCAttributeStateItem
 from yaff.sampling.npt import MTKBarostat, MTKAttributeStateItem, TBCombination

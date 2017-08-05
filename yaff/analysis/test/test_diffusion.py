@@ -22,7 +22,12 @@
 #
 # --
 
-import shutil, os, h5py as h5
+
+from __future__ import division
+
+import shutil
+import os
+import h5py as h5
 
 from yaff import *
 from yaff.analysis.test.common import run_nve_water32

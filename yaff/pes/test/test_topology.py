@@ -23,6 +23,8 @@
 # --
 
 
+from __future__ import division
+
 import numpy as np
 
 from yaff.test.common import get_system_water32, get_system_graphene8, \

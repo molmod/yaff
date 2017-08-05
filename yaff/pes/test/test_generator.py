@@ -23,6 +23,8 @@
 # --
 
 
+from __future__ import division
+
 import pkg_resources
 import numpy as np
 

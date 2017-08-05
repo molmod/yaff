@@ -22,6 +22,9 @@
 #
 # --
 
+
+from __future__ import division
+
 import numpy as np
 from molmod import bend_angle, bend_cos, dihed_angle, dihed_cos
 from nose.plugins.skip import SkipTest

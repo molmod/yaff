@@ -23,6 +23,8 @@
 # --
 
 
+from __future__ import division
+
 import tempfile, shutil, os, numpy as np
 
 from yaff import *

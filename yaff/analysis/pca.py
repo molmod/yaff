@@ -23,15 +23,20 @@
 # --
 """Toolkit for Principal Component Analysis (PCA)"""
 
+
+from __future__ import division
+
 import h5py as h5
 import numpy as np
 import scipy.linalg as spla
 import matplotlib.pyplot as pt
+from scipy import random
+
 from molmod.units import *
 from molmod.constants import boltzmann
-from scipy import random
 from molmod.io.xyz import XYZWriter
 from molmod.periodic import periodic as pd
+
 from yaff.log import log
 
 __all__ = [
@@ -456,7 +461,7 @@ def pca_convergence(f, eq_time=0*picosecond, n_parts=None, step=1, fn='PCA_conve
     for j in xrange(len(n_parts)):
         # Determine in how many parts the trajectory should be divided and the corresponding block size
         n_part = n_parts[j]
-        block_size = (time_length-eq_size)/n_part
+        block_size = (time_length-eq_size)//n_part
         # Calculate the n_part covariance matrices and compare with the total covariance matrix
         tot_sim_block=0
         for i in xrange(n_part):
@@ -503,7 +508,7 @@ def pca_convergence(f, eq_time=0*picosecond, n_parts=None, step=1, fn='PCA_conve
             for j in xrange(len(n_parts)):
                 # Calculate the number of blocks, as well as the block size
                 n_part = n_parts[j]
-                block_size = (len(time)-eq_size)/n_part
+                block_size = (len(time)-eq_size)//n_part
                 tot_sim_bt = 0
                 # Calculate the total similarity of this number of blocks, for this bootstrapped trajectory
                 for i in xrange(n_part):

@@ -24,6 +24,8 @@
 '''Diffusion constants'''
 
 
+from __future__ import division
+
 import numpy as np
 
 from yaff.log import log
@@ -199,7 +201,7 @@ class Diffusion(AnalysisHook):
         if self.bsize is None:
             return False
         else:
-            return self.counter - (self.counter/self.bsize)*self.bsize - m - 1 < 0
+            return self.counter - (self.counter//self.bsize)*self.bsize - m - 1 < 0
 
     def update_msd(self, msd, m):
         self.msdsums[m] += msd

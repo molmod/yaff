@@ -24,7 +24,11 @@
 '''Computations on a reference trajectory'''
 
 
-import numpy as np, time, h5py
+from __future__ import division
+
+import numpy as np
+import time
+import h5py as h5
 
 from yaff.log import log
 from yaff.sampling.iterative import Iterative, AttributeStateItem, \
@@ -92,7 +96,7 @@ class RefTrajectory(Iterative):
            counter0
                 The counter value associated with the initial state.
         """
-        self.traj = h5py.File(fn_traj, 'r')
+        self.traj = h5.File(fn_traj, 'r')
         self.nframes = len(self.traj['trajectory/pos'][:])
         Iterative.__init__(self, ff, state, hooks, counter0)
 

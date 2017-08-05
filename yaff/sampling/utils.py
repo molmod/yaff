@@ -24,6 +24,8 @@
 '''Auxiliary routines for initial velocities'''
 
 
+from __future__ import division
+
 from molmod import boltzmann
 
 import numpy as np
@@ -373,7 +375,7 @@ def get_ndof_baro(dim, anisotropic, vol_constraint):
     baro_ndof = 1
     # degrees of freedom for a symmetric cell tensor
     if anisotropic:
-        baro_ndof = dim*(dim+1)/2
+        baro_ndof = dim*(dim+1)//2
     # decrease the number of dof by one if volume is constant
     if vol_constraint:
         baro_ndof -= 1

@@ -23,6 +23,8 @@
 # --
 
 
+from __future__ import division
+
 import numpy as np
 
 from molmod import angstrom
@@ -113,7 +115,7 @@ def test_compute_distances1():
     n = 10
     cell = get_system_water32().cell
     pos = np.random.normal(0, 10, (n, 3))
-    output = np.zeros((n*(n-1))/2, float)
+    output = np.zeros((n*(n-1))//2, float)
     cell.compute_distances(output, pos)
     counter = 0
     for i0 in xrange(n):
@@ -274,7 +276,7 @@ def test_compute_distances1_nimage():
     cell = get_system_water32().cell
     pos = np.random.normal(0, 10, (natom, 3))
     factor = (1+2*nimage)**3
-    output = np.zeros(factor*(natom*(natom-1))/2, float)
+    output = np.zeros(factor*(natom*(natom-1))//2, float)
     cell.compute_distances(output, pos, nimage=nimage)
     counter = 0
     for r0 in xrange(-1, 2):
@@ -296,7 +298,7 @@ def test_compute_distances1_nimage_exclude():
     pos = np.random.normal(0, 10, (natom, 3))
     exclude = np.array([[1, 0], [2, 1]])
     factor = (1+2*nimage)**3
-    output = np.zeros(factor*(natom*(natom-1))/2 - 2, float)
+    output = np.zeros(factor*(natom*(natom-1))//2 - 2, float)
     cell.compute_distances(output, pos, pairs=exclude, nimage=nimage)
     counter = 0
     ex_counter = 0
@@ -375,11 +377,11 @@ def test_compute_distances1_include():
     cell = get_system_water32().cell
     pos = np.random.normal(0, 10, (natom, 3))
     # all
-    output_all = np.zeros((natom*(natom-1))/2, float)
+    output_all = np.zeros((natom*(natom-1))//2, float)
     cell.compute_distances(output_all, pos)
     # exclude
     pairs = np.array([[1, 0], [3, 2], [5, 3]])
-    output_ex = np.zeros((natom*(natom-1))/2-3, float)
+    output_ex = np.zeros((natom*(natom-1))//2-3, float)
     cell.compute_distances(output_ex, pos, pairs=pairs, do_include=False)
     # include
     output_in = np.zeros(3, float)

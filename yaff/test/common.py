@@ -23,6 +23,8 @@
 # --
 
 
+from __future__ import division
+
 import numpy as np
 
 from molmod import angstrom
@@ -82,7 +84,7 @@ def get_system_water32():
             [3.655, 3.021, 0.988], [2.706, 3.053, 1.282], [3.542, 2.615, 0.020]
         ])*angstrom,
         ffatypes=['O', 'H', 'H']*32,
-        bonds=np.array([[(i/3)*3,i] for i in xrange(96) if i%3!=0]),
+        bonds=np.array([[(i//3)*3,i] for i in xrange(96) if i%3!=0]),
         rvecs=np.array([[9.865, 0.0, 0.0], [0.0, 9.865, 0.0], [0.0, 0.0, 9.865]])*angstrom,
         charges=np.array([-0.834, 0.417, 0.417]*32)
     )
