@@ -33,7 +33,7 @@ import h5py as h5
 from molmod.test.common import tmpdir
 from yaff import System, Cell, angstrom
 
-from common import get_system_water32, get_system_glycine, get_system_quartz, \
+from yaff.test.common import get_system_water32, get_system_glycine, get_system_quartz, \
     get_system_cyclopropene, get_system_peroxide, get_system_graphene8, \
     get_system_polyethylene4
 
