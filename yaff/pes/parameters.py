@@ -93,7 +93,7 @@ class Parameters(object):
             data = rest[pos+1:]
             return prefix, suffix, data
 
-        if isinstance(filenames, basestring):
+        if isinstance(filenames, str):
             filenames = [filenames]
 
         result = cls({})

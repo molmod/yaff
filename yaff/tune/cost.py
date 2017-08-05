@@ -136,7 +136,7 @@ class ICGroup(object):
                 rules = ['!0'] * self.natom
             compiled_rules = []
             for rule in rules:
-                if isinstance(rule, basestring):
+                if isinstance(rule, str):
                     rule = atsel_compile(rule)
                 compiled_rules.append(rule)
             self.rules = compiled_rules

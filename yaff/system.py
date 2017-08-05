@@ -584,7 +584,7 @@ class System(object):
 
            A list of atom indexes is returned.
         """
-        if isinstance(rule, basestring):
+        if isinstance(rule, str):
             rule = atsel_compile(rule)
         return np.array([i for i in xrange(self.natom) if rule(self, i)])
 
@@ -691,7 +691,7 @@ class System(object):
             my_rules = []
             for ffatype, rule in rules:
                 check_name(ffatype)
-                if isinstance(rule, basestring):
+                if isinstance(rule, str):
                     rule = atsel_compile(rule)
                 my_rules.append((ffatype, rule))
             # Use the rules to detect the atom types
