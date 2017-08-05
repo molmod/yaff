@@ -15,7 +15,7 @@ install:
      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   fi
 - bash miniconda.sh -b -p $HOME/miniconda
-- export PATH="$HOME/miniconda/bin:$PATH"
+- source $HOME/miniconda/bin/activate
 - hash -r
 
 # Configure conda and get a few essentials
@@ -32,6 +32,16 @@ install:
 - conda config --add channels tovrstra
 - conda info -a
 
+# No visual backend for matplotlib
+- mkdir -p ~/.config/matplotlib/
+- echo backend:agg > ~/.config/matplotlib/matplotlibrc
+
+script:
+# Check if code is normalized properly, whitespace etc
+- wget https://raw.githubusercontent.com/tovrstra/devscripts/master/scripts/ds-normalize-code -O ds-normalize-code;
+  chmod +x ds-normalize-code;
+  ./ds-normalize-code;
+
 # Build the conda package
 - conda build -q conda.recipe
 
@@ -41,18 +51,11 @@ install:
 # Install Conda package
 - conda install --use-local yaff
 
-# No visual backend for matplotlib
-- mkdir -p ~/.config/matplotlib/
-- echo backend:agg > ~/.config/matplotlib/matplotlibrc
-
 # Compile documentation
 - (cd doc; make html)
-script:
+
 # Run tests out of source tree, to make sure that installed version is tested.
 - "(cd; nosetests yaff -v --processes=2 --detailed-errors --process-timeout=600)"
-
-# Basic code checks
-- ./checkwhitespace.py $(find . -type f | egrep '(\.py$)|(\.c$)|(\.pyx$)|(\.pxd$)|(\.h$)|(\.rst$)|(\.in$)|(\.yml$)|(\.yaml$)')
 
 # In deployment, the env var TRAVIS_TAG contains the name of the current tag, if any.
 deploy:

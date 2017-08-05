@@ -1,24 +1,18 @@
 # Binary files
 *.pyc
 *.so
-*.png
 *.h5
 ext.c
-*.tar.gz
+*.gz
+*.bz2
 
 # compiled stuff
+__pycache__
 build
 dist
+doctrees
 doc/_build
 doc/rg_yaff*.rst
 yaff/version.py
 record.txt
 yaff.egg-info
-
-# output of the examples
-yaff/examples/000_overview/traj.xyz
-yaff/examples/001_tutorial_bks/init/init.chk
-yaff/examples/001_tutorial_bks/nvt/traj_0300_000310.h5.xyz
-yaff/examples/001_tutorial_bks/opt/opt.chk
-yaff/examples/001_tutorial_bks/opt/traj.xyz
-yaff/examples/003_water_thermostat/traj.xyz
