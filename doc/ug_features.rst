@@ -57,6 +57,10 @@ Missing features (work in progress) include:
 Release notes
 -------------
 
+* **Version 1.3.0** August 5, 2017
+
+  - Python 3 support
+
 * Version 1.2.0
 
   - Installable with pip.
