@@ -159,7 +159,7 @@ class AnalysisHook(Hook):
 
     def offline_loop(self, **datasets):
         # Iterate over the dataset
-        for i in xrange(self.start, self.end, self.step):
+        for i in range(self.start, self.end, self.step):
             self.read_offline(i, **datasets)
             self.compute_iteration()
 

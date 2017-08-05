@@ -36,7 +36,7 @@ def test_cp2k_ener_to_hdf5():
     with h5.File(__name__ + '.test_xyz_to_hdf5.h5', driver='core', backing_store=False) as f:
         # Bad practice. The trajectory file has no system directory...
         # Actual trajectory conversion, twice
-        for i in xrange(2):
+        for i in range(2):
             offset = i*9
             fn = pkg_resources.resource_filename(__name__, '../../data/test/cp2k-1.ener')
             cp2k_ener_to_hdf5(f, fn)

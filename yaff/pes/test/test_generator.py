@@ -595,7 +595,7 @@ def test_generator_water32_fixq():
     assert part_pair_ei.pair_pot.alpha == part_ewald_cor.alpha
     assert part_pair_ei.pair_pot.alpha == part_ewald_neut.alpha
     # check charges and atomic radii
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         if system.numbers[i] == 1:
             assert abs(system.charges[i] - 0.417) < 1e-5
             assert abs(system.radii[i] - 1.2*angstrom) < 1e-5
@@ -609,7 +609,7 @@ def test_generator_water32_fixq():
     ff2 = ForceField.generate(system, fn_pars)
     log.set_level(log.debug)
     # check charges
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         if system.numbers[i] == 1:
             assert abs(system.charges[i] - 0.417) < 1e-5
             assert abs(system.radii[i] - 1.2*angstrom) < 1e-5
@@ -632,7 +632,7 @@ def test_generator_glycine_fixq():
     # check charges and atomic radii
     ac = {1:0.2, 6:0.5, 7:-1.0, 8:-0.5 } #Charges
     ar = {1:1.2*angstrom, 6: 1.7*angstrom, 7: 1.55*angstrom, 8: 1.50*angstrom} #Radii
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         assert abs(system.charges[i] - ac[system.numbers[i]]) < 1e-5
         assert abs(system.radii[i] - ar[system.numbers[i]]) < 1e-5
 
@@ -644,7 +644,7 @@ def test_generator_glycine_fixq():
     # check charges and atomic radii
     ac = {1:0.2, 6:0.5, 7:-1.0, 8:-0.5 } #Charges
     ar = {1:1.2*angstrom, 6: 1.7*angstrom, 7: 1.55*angstrom, 8: 1.50*angstrom} #Radii
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         assert abs(system.charges[i] - ac[system.numbers[i]]) < 1e-5
         assert abs(system.radii[i] - ar[system.numbers[i]]) < 1e-5
     energy = ff.compute()
@@ -709,7 +709,7 @@ def test_generator_water32():
     assert abs(b_cross[0,0] - 4.4661933834e+00/angstrom) < 1e-10
     assert abs(b_cross[1,1] - 4.4107388814e+00/angstrom) < 1e-10
     # check charges
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         if system.numbers[i] == 1:
             assert abs(system.charges[i] - 3.6841957737e-01) < 1e-5
         else:

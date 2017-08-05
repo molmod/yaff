@@ -54,7 +54,7 @@ def test_scaling_glycine():
     system = get_system_glycine()
     stab = Scalings(system, 1.0, 0.5, 0.2).stab # warning: absurd numbers
     assert (stab['a'] > stab['b']).all()
-    assert len(stab) == sum(len(system.neighs2[i]) + len(system.neighs3[i]) for i in xrange(system.natom))//2
+    assert len(stab) == sum(len(system.neighs2[i]) + len(system.neighs3[i]) for i in range(system.natom))//2
     for i0, i1, scale, nbond in stab:
         if i0 in system.neighs2[i1]:
             assert scale == 0.5
@@ -68,7 +68,7 @@ def test_scaling_quartz():
     system = get_system_quartz().supercell(2, 2, 2)
     stab = Scalings(system).stab
     assert (stab['a'] > stab['b']).all()
-    assert len(stab) == sum(len(system.neighs1[i]) + len(system.neighs2[i]) for i in xrange(system.natom))//2
+    assert len(stab) == sum(len(system.neighs1[i]) + len(system.neighs2[i]) for i in range(system.natom))//2
     for i0, i1, scale, nbond in stab:
         assert scale == 0.0
         assert i0 in system.neighs1[i1] or i0 in system.neighs2[i1]

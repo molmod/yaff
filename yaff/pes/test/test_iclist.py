@@ -56,7 +56,7 @@ def test_iclist_quartz_bend_cos():
     dlist = DeltaList(system)
     iclist = InternalCoordinateList(dlist)
     angles = []
-    for i1 in xrange(system.natom):
+    for i1 in range(system.natom):
         for i0 in system.neighs1[i1]:
             for i2 in system.neighs1[i1]:
                 if i0 > i2:
@@ -77,7 +77,7 @@ def test_iclist_quartz_bend_angle():
     dlist = DeltaList(system)
     iclist = InternalCoordinateList(dlist)
     angles = []
-    for i1 in xrange(system.natom):
+    for i1 in range(system.natom):
         for i0 in system.neighs1[i1]:
             for i2 in system.neighs1[i1]:
                 if i0 > i2:
@@ -112,7 +112,7 @@ def test_iclist_linear_bend_angle():
 
 def test_iclist_peroxide_dihedral_cos():
     number_of_tests=50
-    for i in xrange(number_of_tests):
+    for i in range(number_of_tests):
         system = get_system_peroxide()
         dlist = DeltaList(system)
         iclist = InternalCoordinateList(dlist)
@@ -133,7 +133,7 @@ def test_iclist_peroxide_dihedral_cos():
 
 def test_iclist_peroxide_dihedral_angle():
     number_of_tests=50
-    for i in xrange(number_of_tests):
+    for i in range(number_of_tests):
         system = get_system_peroxide()
         dlist = DeltaList(system)
         iclist = InternalCoordinateList(dlist)
@@ -241,7 +241,7 @@ def test_iclist_ub_water():
     dlist = DeltaList(system)
     iclist = InternalCoordinateList(dlist)
     ub = []
-    for i1 in xrange(system.natom):
+    for i1 in range(system.natom):
         for i0 in system.neighs1[i1]:
             for i2 in system.neighs1[i1]:
                 if i0 > i2:
@@ -290,7 +290,7 @@ def test_oop_meanangle_formaldehyde():
     dlist.forward()
     iclist.forward()
     mean = 0.0
-    for i in xrange(4):
+    for i in range(4):
         assert abs( iclist.ictab[i]['value'] - 0.0) < 1e-8
         if i > 0: mean += iclist.ictab[i]['value']
     mean /= 3
@@ -346,12 +346,12 @@ def test_oop_meanangle_amoniak():
         mean_value += iclist.ictab[0]['value']/3.0
         iclist.ictab[0]['grad'] = 1.0/3.0
         iclist.back()
-        for j in xrange(3):
+        for j in range(3):
             delta = dlist.deltas[j]
             key = '%i-%i' %(delta['i'], delta['j'])
             print('d(%s).g = ' %key, delta['gx'], delta['gy'], delta['gz'])
         print()
-        for j in xrange(3):
+        for j in range(3):
             delta = dlist.deltas[j]
             key0 = '%i-%i' %(delta['i'], delta['j'])
             key1 = '%i-%i' %(delta['j'], delta['i'])
@@ -376,7 +376,7 @@ def test_oop_meanangle_amoniak():
     assert abs(iclist.ictab[0]['value'] - mean_value) < 1e-8
     iclist.ictab[0]['grad'] = 1.0
     iclist.back()
-    for i in xrange(3):
+    for i in range(3):
         delta = dlist.deltas[i]
         key0 = '%i-%i' %(delta['i'], delta['j'])
         key1 = '%i-%i' %(delta['j'], delta['i'])

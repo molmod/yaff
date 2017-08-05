@@ -206,7 +206,7 @@ class NeighborList(object):
            This is slow. Use this method for debugging only!
         """
         dictionary = {}
-        for i in xrange(self.nneigh):
+        for i in range(self.nneigh):
             key = (
                 self.neighs[i]['a'], self.neighs[i]['b'], self.neighs[i]['r0'],
                 self.neighs[i]['r1'], self.neighs[i]['r2']
@@ -236,31 +236,31 @@ class NeighborList(object):
         # B) Define loops of cell vectors
         if self.system.cell.nvec == 3:
             def rloops():
-                for r2 in xrange(0, self.rmax[2]+1):
+                for r2 in range(0, self.rmax[2]+1):
                     if r2 == 0:
                         r1_start = 0
                     else:
                         r1_start = -self.rmax[1]
-                    for r1 in xrange(r1_start, self.rmax[1]+1):
+                    for r1 in range(r1_start, self.rmax[1]+1):
                         if r2 == 0 and r1 == 0:
                             r0_start = 0
                         else:
                             r0_start = -self.rmax[0]
-                        for r0 in xrange(r0_start, self.rmax[0]+1):
+                        for r0 in range(r0_start, self.rmax[0]+1):
                             yield r0, r1, r2
         elif self.system.cell.nvec == 2:
             def rloops():
-                for r1 in xrange(0, self.rmax[1]+1):
+                for r1 in range(0, self.rmax[1]+1):
                     if r1 == 0:
                         r0_start = 0
                     else:
                         r0_start = -self.rmax[0]
-                    for r0 in xrange(r0_start, self.rmax[0]+1):
+                    for r0 in range(r0_start, self.rmax[0]+1):
                         yield r0, r1, 0
 
         elif self.system.cell.nvec == 1:
             def rloops():
-                for r0 in xrange(0, self.rmax[0]+1):
+                for r0 in range(0, self.rmax[0]+1):
                     yield r0, 0, 0
         else:
             def rloops():
@@ -270,8 +270,8 @@ class NeighborList(object):
         validation = {}
         nvec = self.system.cell.nvec
         for r0, r1, r2 in rloops():
-            for a in xrange(self.system.natom):
-                for b in xrange(a+1):
+            for a in range(self.system.natom):
+                for b in range(a+1):
                     if r0!=0 or r1!=0 or r2!=0:
                         signs = [1, -1]
                     elif a > b:

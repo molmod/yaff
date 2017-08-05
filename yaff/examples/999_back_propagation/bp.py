@@ -59,7 +59,7 @@ class Bead(object):
                 A list of input arrays
         '''
         assert len(self.nins) == len(ars_in)
-        for i in xrange(len(self.nins)):
+        for i in range(len(self.nins)):
             assert len(ars_in[i]) == self.nins[i]
 
     def back(self, ars_gin):
@@ -80,7 +80,7 @@ class Bead(object):
            energy towards the input of this function' (ars_gin).
         '''
         assert len(self.nins) == len(ars_gin)
-        for i in xrange(len(self.nins)):
+        for i in range(len(self.nins)):
             assert len(ars_gin[i]) == self.nins[i]
 
     def resetg(self):
@@ -169,7 +169,7 @@ def check_bead_delta(bead, amp, eps):
         if do_gradient:
             # call back path for every output component
             gxs = []
-            for i in xrange(bead.nout):
+            for i in range(bead.nout):
                 bead.resetg()
                 bead.ar_gout[i] = 1
                 ars_gin = [np.zeros(nin) for nin in bead.nins]

@@ -82,7 +82,7 @@ class Scalings(object):
         self.scale3 = scale3
         self.scale4 = scale4
         stab = []
-        for i0 in xrange(system.natom):
+        for i0 in range(system.natom):
             if scale1 < 1.0:
                 for i1 in system.neighs1[i0]:
                     if i0 > i1:
@@ -131,7 +131,7 @@ class Scalings(object):
                 paths = []
                 for path in iter_paths(system, i0, i1, nbond):
                     delta_total = 0
-                    for j0 in xrange(nbond):
+                    for j0 in range(nbond):
                         j1 = j0 + 1
                         delta = system.pos[path[j0]] - system.pos[path[j1]]
                         system.cell.mic(delta)
@@ -145,7 +145,7 @@ class Scalings(object):
                         log.warn('Troublesome pair scaling detected.')
                     log('The following bond paths connect the same pair of '
                         'atoms, yet the relative vectors are different.')
-                    for ipath in xrange(len(paths)):
+                    for ipath in range(len(paths)):
                         log('%2i %27s %10s %10s %10s' % (
                             ipath,
                             ','.join(str(index) for index in paths[ipath]),
@@ -155,8 +155,8 @@ class Scalings(object):
                         ))
                     log('Differences between relative vectors in fractional '
                         'coordinates:')
-                    for ipath0 in xrange(1, len(paths)):
-                        for ipath1 in xrange(ipath0):
+                    for ipath0 in range(1, len(paths)):
+                        for ipath1 in range(ipath0):
                             diff = all_deltas[ipath0] - all_deltas[ipath1]
                             diff_frac = np.dot(system.cell.gvecs, diff)
                             log('%2i %2i %10.4f %10.4f %10.4f' % (

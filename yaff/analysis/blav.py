@@ -73,7 +73,7 @@ def blav(signal, minblock=100, fn_png=None, unit=None):
     x = [] # block sizes
     e = [] # errors on the mean
 
-    for bsize in xrange(1, len(signal)//minblock):
+    for bsize in range(1, len(signal)//minblock):
         nblock = len(signal)//bsize
         total_size = nblock * bsize
         averages = signal[:total_size].reshape((nblock, bsize)).mean(axis=1)
@@ -171,9 +171,9 @@ def inefficiency(signal, time = None, fn_png = 'stat_ineff.png', taus = None, eq
     varX = np.var(signal)
 
     # Calculate the statisticial inefficiencies
-    for i in xrange(len(eq_limits)):
+    for i in range(len(eq_limits)):
         eq_limit = eq_limits[i]
-        for j in xrange(len(taus)):
+        for j in range(len(taus)):
             tau = taus[j]
             nblock = (len(signal)-eq_limit)/tau
             total_size = nblock*tau
@@ -195,7 +195,7 @@ def inefficiency(signal, time = None, fn_png = 'stat_ineff.png', taus = None, eq
     pt.xlabel(xlabel)
     pt.ylabel('Statistical inefficiency')
 
-    for i in xrange(len(eq_limits)):
+    for i in range(len(eq_limits)):
         clr = 1.*i/len(eq_limits)
         pt.plot(taus/unit, phi[i,:], color=comap(clr), label='Equilibrated for %i %s' %(eq_limits[i]/unit, unit_ab))
     pt.legend(loc='center left', bbox_to_anchor=(1, 0.5))

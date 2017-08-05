@@ -755,7 +755,7 @@ class ForcePartGrid(ForcePart):
                 raise NotImplementedError('Cell deformation are not supported by ForcePartGrid')
             cell = self.system.cell
             result = 0
-            for i in xrange(self.system.natom):
+            for i in range(self.system.natom):
                 grid = self.grids[self.system.get_ffatype(i)]
                 result += compute_grid3d(self.system.pos[i], cell, grid)
             return result

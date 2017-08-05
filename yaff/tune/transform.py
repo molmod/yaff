@@ -48,7 +48,7 @@ class ParameterTransform(object):
     def __call__(self, x):
         assert len(x) == len(self.mods)
         result = self.parameters0.copy()
-        for i in xrange(len(x)):
+        for i in range(len(x)):
             self.mods[i](x[i], result)
         return result
 

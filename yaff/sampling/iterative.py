@@ -124,7 +124,7 @@ class Iterative(object):
                     if self.propagate():
                         break
             else:
-                for i in xrange(nstep):
+                for i in range(nstep):
                     if self.propagate():
                         break
             self.finalize()

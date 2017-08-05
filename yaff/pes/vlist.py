@@ -111,10 +111,10 @@ class ValenceList(object):
         # fill in the new term
         row = self.nv
         self.vtab[row]['kind'] = term.kind
-        for i in xrange(len(term.pars)):
+        for i in range(len(term.pars)):
             self.vtab[row]['par%i'%i] = term.pars[i]
         ic_indexes = term.get_ic_indexes(self.iclist) # registers ics in InternalCoordinateList.
-        for i in xrange(len(ic_indexes)):
+        for i in range(len(ic_indexes)):
             self.vtab[row]['ic%i'%i] = ic_indexes[i]
         self.nv += 1
 

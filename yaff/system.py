@@ -176,10 +176,10 @@ class System(object):
             log('Number of periodic dimensions: %i' % self.cell.nvec)
             lengths, angles = self.cell.parameters
             names = 'abc'
-            for i in xrange(len(lengths)):
+            for i in range(len(lengths)):
                 log('Cell parameter %5s: %10s' % (names[i], log.length(lengths[i])))
             names = 'alpha', 'beta', 'gamma'
-            for i in xrange(len(angles)):
+            for i in range(len(angles)):
                 log('Cell parameter %5s: %10s' % (names[i], log.angle(angles[i])))
             log.hline()
             log.blank()
@@ -198,12 +198,12 @@ class System(object):
 
     def _init_derived_bonds(self):
         # 1-bond neighbors
-        self.neighs1 = dict((i,set([])) for i in xrange(self.natom))
+        self.neighs1 = dict((i,set([])) for i in range(self.natom))
         for i0, i1 in self.bonds:
             self.neighs1[i0].add(i1)
             self.neighs1[i1].add(i0)
         # 2-bond neighbors
-        self.neighs2 = dict((i,set([])) for i in xrange(self.natom))
+        self.neighs2 = dict((i,set([])) for i in range(self.natom))
         for i0, n0 in self.neighs1.items():
             for i1 in n0:
                 for i2 in self.neighs1[i1]:
@@ -213,7 +213,7 @@ class System(object):
                         self.neighs2[i0].add(i2)
                         self.neighs2[i2].add(i0)
         # 3-bond neighbors
-        self.neighs3 = dict((i,set([])) for i in xrange(self.natom))
+        self.neighs3 = dict((i,set([])) for i in range(self.natom))
         for i0, n0 in self.neighs1.items():
             for i1 in n0:
                 for i3 in self.neighs2[i1]:
@@ -223,7 +223,7 @@ class System(object):
                         self.neighs3[i0].add(i3)
                         self.neighs3[i3].add(i0)
         # 4-bond neighbors
-        self.neighs4 = dict((i,set([])) for i in xrange(self.natom))
+        self.neighs4 = dict((i,set([])) for i in range(self.natom))
         for i0, n0 in self.neighs1.items():
             for i1 in n0:
                 for i4 in self.neighs3[i1]:
@@ -254,7 +254,7 @@ class System(object):
             # Collect all types of 'environments' for each element. This is
             # useful to double check the bonds
             envs = {}
-            for i0 in xrange(self.natom):
+            for i0 in range(self.natom):
                 num0 = self.numbers[i0]
                 nnums = tuple(sorted(self.numbers[i1] for i1 in self.neighs1[i0]))
                 key = (num0, nnums)
@@ -275,7 +275,7 @@ class System(object):
             lookup = {}
             scopes = []
             self.scope_ids = np.zeros(self.natom, int)
-            for i in xrange(self.natom):
+            for i in range(self.natom):
                 scope = self.scopes[i]
                 scope_id = lookup.get(scope)
                 if scope_id is None:
@@ -306,7 +306,7 @@ class System(object):
             lookup = {}
             ffatypes = []
             self.ffatype_ids = np.zeros(self.natom, int)
-            for i in xrange(self.natom):
+            for i in range(self.natom):
                 if self.scope_ids is None:
                     ffatype = self.ffatypes[i]
                     key = ffatype, None
@@ -331,7 +331,7 @@ class System(object):
         if self.scopes is not None:
             self.ffatype_id_to_scope_id = {}
             fixed_fids = {}
-            for i in xrange(self.natom):
+            for i in range(self.natom):
                 fid = self.ffatype_ids[i]
                 sid = self.ffatype_id_to_scope_id.get(fid)
                 if sid is None:
@@ -588,7 +588,7 @@ class System(object):
         """
         if isinstance(rule, str):
             rule = atsel_compile(rule)
-        return np.array([i for i in xrange(self.natom) if rule(self, i)])
+        return np.array([i for i in range(self.natom) if rule(self, i)])
 
     def iter_bonds(self):
         """Iterate over all bonds."""
@@ -602,7 +602,7 @@ class System(object):
            This routine is based on the attribute ``bonds``.
         """
         if self.bonds is not None:
-            for i1 in xrange(self.natom):
+            for i1 in range(self.natom):
                 for i0 in self.neighs1[i1]:
                     for i2 in self.neighs1[i1]:
                         if i0 > i2:
@@ -628,7 +628,7 @@ class System(object):
            This routine is based on the attribute ``bonds``.
         """
         if self.bonds is not None:
-            for i3 in xrange(self.natom):
+            for i3 in range(self.natom):
                 if len(self.neighs1[i3])==3:
                     i0, i1, i2 = self.neighs1[i3]
                     yield i0, i1, i2, i3
@@ -700,7 +700,7 @@ class System(object):
             lookup = {}
             self.ffatypes = []
             self.ffatype_ids = np.zeros(self.natom, int)
-            for i in xrange(self.natom):
+            for i in range(self.natom):
                 my_ffatype = None
                 for ffatype, rule in my_rules:
                     if rule(self, i):
@@ -880,7 +880,7 @@ class System(object):
             # track of periodic image it connects to. Note that this information
             # is implicit in yaff, and derived using the minimum image convention.
             rel_iimage = {}
-            for ibond in xrange(len(self.bonds)):
+            for ibond in range(len(self.bonds)):
                 i0, i1 = self.bonds[ibond]
                 delta = self.pos[i0] - self.pos[i1]
                 frac = np.dot(self.cell.gvecs, delta)
@@ -890,7 +890,7 @@ class System(object):
             new_bonds = np.zeros((len(self.bonds)*rep_all,2), int)
             counter = 0
             for iimage0 in np.ndindex(reps):
-                for ibond in xrange(len(self.bonds)):
+                for ibond in range(len(self.bonds)):
                     i0, i1 = self.bonds[ibond]
                     # Translate i0 to the new index.
                     j0 = to_new_atom_index(iimage0, i0)
@@ -898,7 +898,7 @@ class System(object):
                     # The difficult case occurs when the bond between i0 and i1
                     # connects different periodic images. In that case, the change
                     # in periodic image must be taken into account.
-                    iimage1 = tuple((iimage0[c] + rel_iimage[ibond][c]) % reps[c] for c in xrange(len(reps)))
+                    iimage1 = tuple((iimage0[c] + rel_iimage[ibond][c]) % reps[c] for c in range(len(reps)))
                     j1 = to_new_atom_index(iimage1, i1)
                     new_bonds[counter,0] = j0
                     new_bonds[counter,1] = j1
@@ -932,8 +932,8 @@ class System(object):
         from molmod import ClusterFactory
         cf = ClusterFactory()
         counter = 0
-        for i0 in xrange(self.natom):
-            for i1 in xrange(i0):
+        for i0 in range(self.natom):
+            for i1 in range(i0):
                 if dists[counter] < threshold:
                     cf.add_related(i0, i1)
                 counter += 1
@@ -952,7 +952,7 @@ class System(object):
             old_reduced = set.union(*clusters)
         else:
             old_reduced = []
-        for item in xrange(self.natom): # all remaining atoms follow
+        for item in range(self.natom): # all remaining atoms follow
             if item not in old_reduced:
                 newold[counter] = [item]
                 oldnew[item] = counter

@@ -89,7 +89,7 @@ def test_to_hdf():
         system = System.from_file(fn_xyz)
         system.to_hdf5(f)
         # Actual trajectory conversion, twice
-        for i in xrange(2):
+        for i in range(2):
             offset = 2*i
             g09log_to_hdf5(f, fn_log)
             assert 'trajectory' in f

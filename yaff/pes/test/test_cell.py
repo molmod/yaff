@@ -118,8 +118,8 @@ def test_compute_distances1():
     output = np.zeros((n*(n-1))//2, float)
     cell.compute_distances(output, pos)
     counter = 0
-    for i0 in xrange(n):
-        for i1 in xrange(i0):
+    for i0 in range(n):
+        for i1 in range(i0):
             delta = pos[i0] - pos[i1]
             cell.mic(delta)
             assert abs(output[counter] - np.linalg.norm(delta)) < 1e-10
@@ -135,8 +135,8 @@ def test_compute_distances2():
     output = np.zeros(n0*n1, float)
     cell.compute_distances(output, pos0, pos1)
     counter = 0
-    for i0 in xrange(n0):
-        for i1 in xrange(n1):
+    for i0 in range(n0):
+        for i1 in range(n1):
             delta = pos0[i0] - pos1[i1]
             cell.mic(delta)
             assert abs(output[counter] - np.linalg.norm(delta)) < 1e-10
@@ -279,11 +279,11 @@ def test_compute_distances1_nimage():
     output = np.zeros(factor*(natom*(natom-1))//2, float)
     cell.compute_distances(output, pos, nimage=nimage)
     counter = 0
-    for r0 in xrange(-1, 2):
-        for r1 in xrange(-1, 2):
-            for r2 in xrange(-1, 2):
-                for i0 in xrange(natom):
-                    for i1 in xrange(i0):
+    for r0 in range(-1, 2):
+        for r1 in range(-1, 2):
+            for r2 in range(-1, 2):
+                for i0 in range(natom):
+                    for i1 in range(i0):
                         delta = pos[i0] - pos[i1]
                         cell.mic(delta)
                         cell.add_vec(delta, np.array([r0, r1, r2]))
@@ -302,11 +302,11 @@ def test_compute_distances1_nimage_exclude():
     cell.compute_distances(output, pos, pairs=exclude, nimage=nimage)
     counter = 0
     ex_counter = 0
-    for r0 in xrange(-1, 2):
-        for r1 in xrange(-1, 2):
-            for r2 in xrange(-1, 2):
-                for i0 in xrange(natom):
-                    for i1 in xrange(i0):
+    for r0 in range(-1, 2):
+        for r1 in range(-1, 2):
+            for r2 in range(-1, 2):
+                for i0 in range(natom):
+                    for i1 in range(i0):
                         if (r0 == 0) and (r1 == 0) and (r2 == 0):
                             if ex_counter < len(exclude) and i0 == exclude[ex_counter,0] and i1 == exclude[ex_counter, 1]:
                                 ex_counter += 1
@@ -330,11 +330,11 @@ def test_compute_distances2_nimage():
     output = np.zeros(factor*n0*n1, float)
     cell.compute_distances(output, pos0, pos1, nimage=nimage)
     counter = 0
-    for r0 in xrange(-1, 2):
-        for r1 in xrange(-1, 2):
-            for r2 in xrange(-1, 2):
-                for i0 in xrange(n0):
-                    for i1 in xrange(n1):
+    for r0 in range(-1, 2):
+        for r1 in range(-1, 2):
+            for r2 in range(-1, 2):
+                for i0 in range(n0):
+                    for i1 in range(n1):
                         delta = pos0[i0] - pos1[i1]
                         cell.mic(delta)
                         cell.add_vec(delta, np.array([r0, r1, r2]))
@@ -355,11 +355,11 @@ def test_compute_distances2_nimage_exclude():
     cell.compute_distances(output, pos0, pos1, pairs=exclude, nimage=nimage)
     counter = 0
     ex_counter = 0
-    for r0 in xrange(-1, 2):
-        for r1 in xrange(-1, 2):
-            for r2 in xrange(-1, 2):
-                for i0 in xrange(n0):
-                    for i1 in xrange(n1):
+    for r0 in range(-1, 2):
+        for r1 in range(-1, 2):
+            for r2 in range(-1, 2):
+                for i0 in range(n0):
+                    for i1 in range(n1):
                         if (r0 == 0) and (r1 == 0) and (r2 == 0):
                             if ex_counter < len(exclude) and i0 == exclude[ex_counter,0] and i1 == exclude[ex_counter, 1]:
                                 ex_counter += 1

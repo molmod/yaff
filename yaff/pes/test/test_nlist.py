@@ -46,7 +46,7 @@ def test_nlist_water32_4A():
     nneigh = nlist.nneigh
     assert (nlist.neighs['a'][:nneigh] > nlist.neighs['b'][:nneigh]).all()
     # check a few random rows from the neighbor list
-    for i in random.sample(xrange(nneigh), 100):
+    for i in random.sample(range(nneigh), 100):
         row = nlist.neighs[i]
         assert row['d'] <= rcut
 
@@ -76,16 +76,16 @@ def test_nlist_water32_9A():
         (nlist.neighs['r1'][:nneigh] != 0) |
         (nlist.neighs['r2'][:nneigh] != 0)
     ).all()
-    for a in random.sample(xrange(system.natom), 5):
+    for a in random.sample(range(system.natom), 5):
         # compute the distances in the neighborlist manually and check.
         check = {}
-        for b in xrange(system.natom):
+        for b in range(system.natom):
             delta = system.pos[b] - system.pos[a]
             delta -= np.floor(delta/(9.865*angstrom)+0.5)*(9.865*angstrom)
             assert abs(delta).max() < 0.5*9.865*angstrom
-            for l2 in xrange(0, 2):
-                for l1 in xrange((l2!=0)*-1, 2):
-                    for l0 in xrange((l2!=0 or l1!=0)*-1, 2):
+            for l2 in range(0, 2):
+                for l1 in range((l2!=0)*-1, 2):
+                    for l0 in range((l2!=0 or l1!=0)*-1, 2):
                         my_delta = delta + np.array([l0,l1,l2])*9.865*angstrom
                         d = np.linalg.norm(my_delta)
                         if d <= rcut:
@@ -148,9 +148,9 @@ def check_nlist_shortest(system, nlist):
             delta1 = delta0.copy()
             system.cell.mic(delta1)
             assert abs(delta0 - delta1).max() < 1e-10
-            for r0 in xrange(-1, 1):
-                for r1 in xrange(-1, 1):
-                    for r2 in xrange(-1, 1):
+            for r0 in range(-1, 1):
+                for r1 in range(-1, 1):
+                    for r2 in range(-1, 1):
                         if (r0==0) and (r1==0) and (r2==0):
                             continue
                         delta = delta0 + r0*system.cell.rvecs[0] + r1*system.cell.rvecs[1] + r2*system.cell.rvecs[2]
@@ -268,7 +268,7 @@ def check_nlist_skin(system, rcut, skin):
     nlist1.request_rcut(rcut)
     nlist1.update()
     # Displace all atoms with a random vector the rebuild is not triggered
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         vec = np.random.normal(-1, 1, 3)
         vec *= 0.45/(nlist1.rmax.max()+1)*skin/np.linalg.norm(vec)
         system.pos[i] += vec
@@ -297,7 +297,7 @@ def check_nlist_skin(system, rcut, skin):
         assert abs(dz - row['dz']) < 1e-8
 
     # Displace all atoms with a random vector the rebuild is triggered.
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         vec = np.random.normal(-1, 1, 3)
         vec *= 0.55/(nlist1.rmax.max()+1)*skin/np.linalg.norm(vec)
         system.pos[i] += vec

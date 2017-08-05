@@ -133,7 +133,7 @@ def _iter_frames_g09(fn_g09):
     '''
     with open(fn_g09) as f:
         # Skip the first and second block of Forces
-        for i in xrange(2):
+        for i in range(2):
             _scan_to_line(f, " Center     Atomic                   Forces (Hartrees/Bohr)")
 
         # Keep reading MD steps until the file ends

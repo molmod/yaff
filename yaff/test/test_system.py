@@ -140,8 +140,8 @@ def test_scopes3():
 def test_unravel_triangular():
     from yaff.system import _unravel_triangular
     counter = 0
-    for i0 in xrange(100):
-        for i1 in xrange(i0):
+    for i0 in range(100):
+        for i1 in range(i0):
             assert _unravel_triangular(counter) == (i0, i1)
             counter += 1
 

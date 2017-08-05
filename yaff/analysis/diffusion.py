@@ -106,12 +106,12 @@ class Diffusion(AnalysisHook):
         for s in self.shape[1:]:
             self.ndim *= s
         # allocate working arrays
-        self.last_poss = [np.zeros(self.shape, float) for i in xrange(self.mult)]
+        self.last_poss = [np.zeros(self.shape, float) for i in range(self.mult)]
         self.pos = np.zeros(self.shape, float)
         # prepare the hdf5 output file, if present.
         AnalysisHook.init_first(self)
         if self.outg is not None:
-            for m in xrange(self.mult):
+            for m in range(self.mult):
                 self.outg.create_dataset('msd%03i' % (m+1), shape=(0,), maxshape=(None,), dtype=float)
             self.outg.create_dataset('msdsums', data=self.msdsums)
             self.outg.create_dataset('msdcounters', data=self.msdcounters)
@@ -140,7 +140,7 @@ class Diffusion(AnalysisHook):
             ds_pos.read_direct(self.pos, (i, self.select))
 
     def compute_iteration(self):
-        for m in xrange(self.mult):
+        for m in range(self.mult):
             if self.counter % (m+1) == 0:
                 if self.counter > 0 and not self.overlap_bsize(m):
                     msd = ((self.pos - self.last_poss[m])**2).mean()*self.ndim

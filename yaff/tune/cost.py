@@ -249,7 +249,7 @@ class ICTest(Test):
         sumsq = 0.0
         count = 0
         pos = results[self.simulation.name]['pos']
-        for i in xrange(len(self.icgroup.cases)):
+        for i in range(len(self.icgroup.cases)):
             indexes = self.icgroup.cases[i]
             sumsq += (self.refics[i] - self.icgroup.compute_ic(pos, indexes))**2
             count += 1
@@ -289,7 +289,7 @@ class FCTest(Test):
         count = 0
         pos = results[self.simulation.name]['pos']
         hessian = results[self.simulation.name]['hessian']
-        for i in xrange(len(self.icgroup.cases)):
+        for i in range(len(self.icgroup.cases)):
             indexes = self.icgroup.cases[i]
             sumsq += (self.reffcs[i] - self.compute_fc(pos, hessian, indexes))**2
             count += 1

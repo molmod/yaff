@@ -360,7 +360,7 @@ def write_principal_mode(f, f_pca, index, n_frames=100, select=None, mw=True, sc
     pc = grp['pc'][:,index]
 
     with log.section('PCA'):
-        for i in xrange(len(index)):
+        for i in range(len(index)):
             log('Writing out principal mode %s' %index[i])
             if eigval[i] < 0:
                 Warning('Negative eigenvalue encountered, skipping this entry')
@@ -372,7 +372,7 @@ def write_principal_mode(f, f_pca, index, n_frames=100, select=None, mw=True, sc
             # Determine index in trajectory closest to rest state, and the corresponding positions
             ind_min = np.argmin(np.abs(pc[:,i]))
             r_ref = pos[ind_min,:,:]
-            for j in xrange(n_frames):
+            for j in range(n_frames):
                 q_var = scaling*pm[:,i]*max_fluct*(2.*j-n_frames)/n_frames
                 if mw:
                     q_var /= np.sqrt(masses)
@@ -458,13 +458,13 @@ def pca_convergence(f, eq_time=0*picosecond, n_parts=None, step=1, fn='PCA_conve
     # Initialize the average similarity vector of the divided trajectories
     sim_block = np.zeros(len(n_parts))
     # Calculate this average similarity vector
-    for j in xrange(len(n_parts)):
+    for j in range(len(n_parts)):
         # Determine in how many parts the trajectory should be divided and the corresponding block size
         n_part = n_parts[j]
         block_size = (time_length-eq_size)//n_part
         # Calculate the n_part covariance matrices and compare with the total covariance matrix
         tot_sim_block=0
-        for i in xrange(n_part):
+        for i in range(n_part):
             start = eq_size + i*block_size
             covars, tmp = calc_cov_mat(f, start=start, end=start+block_size+1, step=step, mw=mw)
             tot_sim_block += pca_similarity(covars, covar_total)
@@ -489,7 +489,7 @@ def pca_convergence(f, eq_time=0*picosecond, n_parts=None, step=1, fn='PCA_conve
     # Initialize the vector containing the average similarity over all the bootstrapped, divided trajectories
     sim_bt_all = np.zeros(len(n_parts))
 
-    for k in xrange(n_bootstrap):
+    for k in range(n_bootstrap):
         with log.section('PCA'):
             log('Processing %s of %s bootstrapped trajectories' %(k+1,n_bootstrap))
             # Create a bootstrapped trajectory bt
@@ -505,13 +505,13 @@ def pca_convergence(f, eq_time=0*picosecond, n_parts=None, step=1, fn='PCA_conve
             # for the given bootstrapped trajectory
             sim_bt = np.zeros(len(n_parts))
 
-            for j in xrange(len(n_parts)):
+            for j in range(len(n_parts)):
                 # Calculate the number of blocks, as well as the block size
                 n_part = n_parts[j]
                 block_size = (len(time)-eq_size)//n_part
                 tot_sim_bt = 0
                 # Calculate the total similarity of this number of blocks, for this bootstrapped trajectory
-                for i in xrange(n_part):
+                for i in range(n_part):
                     start = eq_size + i*block_size
                     pos_bt_block = pos_bt[start:start+block_size:step]
                     covars_bt, tmp = calc_cov_mat_internal(pos_bt_block)

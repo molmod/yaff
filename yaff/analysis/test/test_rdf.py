@@ -117,7 +117,7 @@ def test_rdf2_offline_pairs_sr():
         select0 = nve.ff.system.get_indexes('O')
         select1 = nve.ff.system.get_indexes('H')
         pairs_sr = []
-        for i in xrange(32):
+        for i in range(32):
             pairs_sr.append((3*i+1,3*i))
             pairs_sr.append((3*i+2,3*i))
         pairs_sr = np.array(pairs_sr)
@@ -137,7 +137,7 @@ def test_rdf2_offline_pairs_sr_nimage():
         select0 = nve.ff.system.get_indexes('O')
         select1 = nve.ff.system.get_indexes('H')
         pairs_sr = []
-        for i in xrange(32):
+        for i in range(32):
             pairs_sr.append((3*i+1,3*i))
             pairs_sr.append((3*i+2,3*i))
         pairs_sr = np.array(pairs_sr)

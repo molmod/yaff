@@ -41,7 +41,7 @@ def test_xyz_to_hdf5():
         system = System.from_file(fn_xyz)
         system.to_hdf5(f)
         # Actual trajectory conversion, twice
-        for i in xrange(2):
+        for i in range(2):
             offset = 5*i
             xyz_to_hdf5(f, fn_xyz)
             assert 'trajectory' in f
@@ -62,7 +62,7 @@ def test_xyz_to_hdf5_alt():
         system = System.from_file(fn_xyz)
         system.to_hdf5(f)
         # Actual trajectory conversion, twice
-        for i in xrange(2):
+        for i in range(2):
             offset = 5*i
             xyz_to_hdf5(f, fn_xyz, file_unit=1, name='test')
             assert 'trajectory' in f

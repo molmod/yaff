@@ -57,7 +57,7 @@ def estimate_hessian(dof, eps=1e-4):
             log.hline()
         x1 = dof.x0.copy()
         rows = np.zeros((len(x1), len(x1)), float)
-        for i in xrange(len(x1)):
+        for i in range(len(x1)):
             x1[i] = dof.x0[i] + eps
             epot, gradient_p = dof.fun(x1, do_gradient=True)
             if log.do_medium:
