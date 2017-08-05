@@ -59,7 +59,7 @@ script:
 - "(cd; nosetests yaff -v --processes=2 --detailed-errors --process-timeout=600)"
 
 # Run the optimizer test
-- "(cd; yaff-opttest)
+- "(cd; yaff-opttest)"
 
 # In deployment, the env var TRAVIS_TAG contains the name of the current tag, if any.
 deploy:
