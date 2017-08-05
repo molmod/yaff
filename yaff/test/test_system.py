@@ -249,14 +249,14 @@ def test_supercell_quartz_222():
     assert len(system222.bonds) == len(system111.bonds)*8
     assert abs(system222.pos[9:18] - system111.pos - system111.cell.rvecs[2]).max() < 1e-10
     assert abs(system222.pos[-9:] - system111.pos - system111.cell.rvecs.sum(axis=0)).max() < 1e-10
-    assert issubclass(system222.bonds.dtype.type, int)
+    assert issubclass(system222.bonds.dtype.type, np.integer)
     rules = [
         ('Si', '14'),
         ('O', '8'),
     ]
     check_detect_ffatypes(system222, rules)
     check_detect_bonds(system222)
-    assert issubclass(system222.bonds.dtype.type, int)
+    assert issubclass(system222.bonds.dtype.type, np.integer)
 
 
 def test_supercell_graphene_22():
@@ -268,7 +268,7 @@ def test_supercell_graphene_22():
     assert system22.nbond == system11.nbond*4
     assert abs(system22.pos[8:16] - system11.pos - system11.cell.rvecs[1]).max() < 1e-10
     assert abs(system22.pos[-8:] - system11.pos - system11.cell.rvecs.sum(axis=0)).max() < 1e-10
-    assert issubclass(system22.bonds.dtype.type, int)
+    assert issubclass(system22.bonds.dtype.type, np.integer)
 
 
 def test_supercell_polyethylene_2():
@@ -279,7 +279,7 @@ def test_supercell_polyethylene_2():
     assert system2.natom == system1.natom*2
     assert system2.nbond == system1.nbond*2
     assert abs(system2.pos[12:24] - system1.pos - system1.cell.rvecs[0]).max() < 1e-10
-    assert issubclass(system2.bonds.dtype.type, int)
+    assert issubclass(system2.bonds.dtype.type, np.integer)
 
 
 def test_supercell_mil53_121():

@@ -67,8 +67,6 @@ class HDF5Writer(Hook):
                 continue
             if len(item.shape) > 0 and min(item.shape) == 0:
                 continue
-            if item.value is None:
-                continue
             ds = tgrp[key]
             if ds.shape[0] <= row:
                 # do not over-allocate. hdf5 works with chunks internally.

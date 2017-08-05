@@ -232,7 +232,7 @@ class EPotContribStateItem(StateItem):
         return np.array([part.energy for part in iterative.ff.parts])
 
     def iter_attrs(self, iterative):
-        yield 'epot_contrib_names', tuple(part.name for part in iterative.ff.parts)
+        yield 'epot_contrib_names', np.array([part.name for part in iterative.ff.parts], dtype='S')
 
 
 class EpotBondsStateItem(StateItem):

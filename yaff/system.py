@@ -480,9 +480,13 @@ class System(object):
             'numbers': sgrp['numbers'][:],
             'pos': sgrp['pos'][:],
         }
-        for key in 'scopes', 'scope_ids', 'ffatypes', 'ffatype_ids', 'bonds', 'rvecs', 'charges', 'masses':
+        for key in 'scope_ids', 'ffatype_ids', 'bonds', 'rvecs', 'charges', 'masses':
             if key in sgrp:
                 kwargs[key] = sgrp[key][:]
+        # String arrays have to be converted back to unicode...
+        for key in 'scopes', 'ffatypes':
+            if key in sgrp:
+                kwargs[key] = sgrp[key][:].astype('U')
         if log.do_high:
             log('Read system parameters from %s.' % f.filename)
         return cls(**kwargs)
@@ -553,10 +557,12 @@ class System(object):
         sgrp.create_dataset('numbers', data=self.numbers)
         sgrp.create_dataset('pos', data=self.pos)
         if self.scopes is not None:
-            sgrp.create_dataset('scopes', data=self.scopes, dtype='a22')
+            # Strings have to be stored as ascii
+            sgrp.create_dataset('scopes', data=self.scopes.astype('S22'))
             sgrp.create_dataset('scope_ids', data=self.scope_ids)
         if self.ffatypes is not None:
-            sgrp.create_dataset('ffatypes', data=self.ffatypes, dtype='a22')
+            # Strings have to be stored as ascii
+            sgrp.create_dataset('ffatypes', data=self.ffatypes.astype('S22'))
             sgrp.create_dataset('ffatype_ids', data=self.ffatype_ids)
         if self.bonds is not None:
             sgrp.create_dataset('bonds', data=self.bonds)
@@ -1228,10 +1234,10 @@ class System(object):
         sgrp.create_dataset('numbers', data=self.numbers)
         sgrp.create_dataset('pos', data=self.pos)
         if self.scopes is not None:
-            sgrp.create_dataset('scopes', data=self.scopes, dtype='a22')
+            sgrp.create_dataset('scopes', data=self.scopes.astype('S22'))
             sgrp.create_dataset('scope_ids', data=self.scope_ids)
         if self.ffatypes is not None:
-            sgrp.create_dataset('ffatypes', data=self.ffatypes, dtype='a22')
+            sgrp.create_dataset('ffatypes', data=self.ffatypes.astype('S22'))
             sgrp.create_dataset('ffatype_ids', data=self.ffatype_ids)
         if self.bonds is not None:
             sgrp.create_dataset('bonds', data=self.bonds)
