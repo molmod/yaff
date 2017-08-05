@@ -180,7 +180,7 @@ derived class of the ``Bead`` class:
                     A list of input arrays
             '''
             assert len(self.nins) == len(ars_in)
-            for i in xrange(len(self.nins)):
+            for i in range(len(self.nins)):
                 assert len(ars_in[i]) == self.nins[i]
 
         def back(self, ars_gin):
@@ -201,7 +201,7 @@ derived class of the ``Bead`` class:
                energy towards the input of this function' (ars_gin).
             '''
             assert len(self.nins) == len(ars_gin)
-            for i in xrange(len(self.nins)):
+            for i in range(len(self.nins)):
                 assert len(ars_gin[i]) == self.nins[i]
 
         def resetg(self):
