@@ -1768,7 +1768,7 @@ cdef class PairPotEIDip(PairPot):
         self._c_radii2 = radii2
         #Put the polarizability tensors in a matrix with shape that is more convenient for energy calculation
         self._c_poltens_i = np.zeros( (np.shape(poltens_i)[0],np.shape(poltens_i)[0]) )
-        for i in range(np.shape(poltens_i)[0]/3):
+        for i in range(np.shape(poltens_i)[0]//3):
             self.poltens_i[3*i:3*(i+1) , 3*i:3*(i+1)] = poltens_i[3*i:3*(i+1),:]
 
     def compute(self, np.ndarray[nlist.neigh_row_type, ndim=1] neighs,
