@@ -23,6 +23,7 @@
 # --
 
 
+from nose.tools import assert_raises
 import numpy as np
 
 from yaff.test.common import get_system_water32, get_system_glycine, \
@@ -98,9 +99,5 @@ def test_iter_paths3():
 
 def test_scaling_mil53():
     system = get_system_mil53()
-    try:
+    with assert_raises(AssertionError):
         scalings = Scalings(system)
-        success = False
-    except AssertionError:
-        success = True
-    assert success

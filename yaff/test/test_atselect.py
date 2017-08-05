@@ -25,6 +25,7 @@
 
 
 import numpy as np
+from nose.tools import assert_raises
 
 from yaff import *
 
@@ -86,11 +87,8 @@ def test_compile():
 def test_compile_failures():
     ss = ['((C)', '())(', '=x', '!!', '&', '=2%()']
     for s in ss:
-        try:
+        with assert_raises(ValueError):
             fn = atsel_compile(s)
-            assert False, 'The following should raise a ValueError when compiling: %s' % s
-        except ValueError:
-            pass
 
 
 def test_atselect_water32():

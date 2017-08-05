@@ -26,6 +26,7 @@
 import numpy as np
 
 from molmod import angstrom
+from nose.tools import assert_raises
 
 from yaff.test.common import get_system_water32, get_system_graphene8, \
     get_system_polyethylene4, get_system_quartz, get_system_glycine
@@ -161,11 +162,8 @@ def test_cell_distances1_exclude_a():
     # Third
     output = np.zeros(0, float)
     exclude = np.array([[0,1]])
-    try:
+    with assert_raises(ValueError):
         cell.compute_distances(output, pos0, pairs=exclude)
-        assert False
-    except ValueError:
-        pass
 
 
 def test_cell_distances1_exclude_b():
@@ -199,11 +197,8 @@ def test_cell_distances1_exclude_b():
     # Third
     output = np.zeros(1, float)
     exclude = np.array([[2,1],[1,0]])
-    try:
+    with assert_raises(ValueError):
         cell.compute_distances(output, pos0, pairs=exclude)
-        assert False
-    except ValueError:
-        pass
 
 
 def test_cell_distances2_exclude_a():
@@ -228,12 +223,8 @@ def test_cell_distances2_exclude_a():
     # Second
     output = np.zeros(0, float)
     for exclude in np.array([[-1,0]]), np.array([[0,-1]]), np.array([[0,5]]), np.array([[1,0]]):
-        print exclude
-        try:
+        with assert_raises(ValueError):
             cell.compute_distances(output, pos0, pos1, pairs=exclude)
-            assert False
-        except ValueError:
-            pass
 
 
 def test_cell_distances2_exclude_b():
@@ -273,11 +264,8 @@ def test_cell_distances2_exclude_b():
     # Third
     output = np.zeros(2, float)
     for exclude in np.array([[1,0],[0,1]]), np.array([[1,0],[0,0]]):
-        try:
+        with assert_raises(ValueError):
             cell.compute_distances(output, pos0, pos1, pairs=exclude)
-            assert False
-        except ValueError:
-            pass
 
 
 def test_compute_distances1_nimage():

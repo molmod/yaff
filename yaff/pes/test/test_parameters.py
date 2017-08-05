@@ -25,8 +25,9 @@
 
 import shutil
 import tempfile
-import pkg_resources
 
+import pkg_resources
+from nose.tools import assert_raises
 
 from molmod.test.common import tmpdir
 from yaff import *
@@ -90,13 +91,7 @@ def test_from_file_water_2():
 
 def test_complain():
     complain = Complain('foo.bar')
-    try:
+    with assert_raises(IOError):
         complain(22, 'Warning! Warning!')
-        assert False
-    except IOError:
-        pass
-    try:
+    with assert_raises(IOError):
         complain(None, 'High voltage!')
-        assert False
-    except IOError:
-        pass
