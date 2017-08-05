@@ -25,8 +25,9 @@ install:
 # Get the right python version for building. This only does something for 3.5
 - conda install python=${MYCONDAPY}
 # Install extra package needed to make things work. Most things can be listed as
-# dependencies on metal.yaml unless they are not needed to run the package, e.g doc build.
-- conda install sphinx
+# dependencies on metal.yaml instead they are needed by setup.py or to do other things,
+# e.g building documentation.
+- conda install numpy cython sphinx
 # Install conda tools for packaging and uploading
 - conda install conda-build anaconda-client
 # Add the tovrstra channel to get access to the molmod dependency
