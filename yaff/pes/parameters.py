@@ -102,7 +102,7 @@ class Parameters(object):
 
         result = cls({})
         for filename in filenames:
-            with file(filename) as f:
+            with open(filename) as f:
                 counter = 1
                 complain = Complain(filename)
                 for line in f:
@@ -137,7 +137,7 @@ class Parameters(object):
 
            The outut file will not contain any comments.
         '''
-        with file(filename, 'w') as f:
+        with open(filename, 'w') as f:
             for prefix, section in self.sections.items():
                 for suffix, definition in section.definitions.items():
                     for counter, data in definition.lines:
