@@ -37,7 +37,7 @@ def test_example_000_overview():
 
 
 def test_example_001_tutorial_bks():
-    check_example(__name__, '001_tutorial_bks', 'all.sh', [
+    check_example(__name__, '001_tutorial_bks', 'runall.py', [
         'bks.pot', 'init/mksystem.py', 'init/rvecs.txt', 'init/struct.xyz',
         'nvt/analysis.py', 'nvt/simulation.py', 'opt/analysis.py', 'opt/simulation.py'])
 
