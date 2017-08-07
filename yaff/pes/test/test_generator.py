@@ -717,13 +717,15 @@ def test_generator_water32():
     # check valence
     assert part_valence.dlist.ndelta == 64
     assert part_valence.iclist.nic == 96
-    assert (part_valence.iclist.ictab['kind'][:64] == 0).all()
-    assert (part_valence.iclist.ictab['kind'][64:96] == 1).all()
+    assert (part_valence.iclist.ictab['kind'][:96] == 0).sum() == 64
+    assert (part_valence.iclist.ictab['kind'][:96] == 1).sum() == 32
     assert part_valence.vlist.nv == 96
-    assert abs(part_valence.vlist.vtab['par0'][:64] - 4.0088096730e+03*(kjmol/angstrom**2)).max() < 1e-10
-    assert abs(part_valence.vlist.vtab['par1'][:64] - 1.0238240000e+00*angstrom).max() < 1e-10
-    assert abs(part_valence.vlist.vtab['par0'][64:96] - 3.0230353700e+02*kjmol).max() < 1e-10
-    assert abs(part_valence.vlist.vtab['par1'][64:96] - np.cos(8.8401698835e+01*deg)).max() < 1e-10
+    mask_kind_0 = part_valence.iclist.ictab['kind'][:96] == 0
+    assert abs(part_valence.vlist.vtab['par0'][:96][mask_kind_0] - 4.0088096730e+03*(kjmol/angstrom**2)).max() < 1e-10
+    assert abs(part_valence.vlist.vtab['par1'][:96][mask_kind_0] - 1.0238240000e+00*angstrom).max() < 1e-10
+    mask_kind_1 = part_valence.iclist.ictab['kind'][:96] == 1
+    assert abs(part_valence.vlist.vtab['par0'][:96][mask_kind_1] - 3.0230353700e+02*kjmol).max() < 1e-10
+    assert abs(part_valence.vlist.vtab['par1'][:96][mask_kind_1] - np.cos(8.8401698835e+01*deg)).max() < 1e-10
 
 
 def test_add_part():

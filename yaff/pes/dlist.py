@@ -53,17 +53,10 @@ from __future__ import division
 
 import numpy as np
 
-from yaff.pes.ext import dlist_forward, dlist_back
+from yaff.pes.ext import delta_dtype, dlist_forward, dlist_back
 
 
 __all__ = ['DeltaList']
-
-
-delta_dtype = [
-    ('dx', float), ('dy', float), ('dz', float), # relative vector coordinates.
-    ('i', int), ('j', int),                      # involved atoms. vector points from i to j.
-    ('gx', float), ('gy', float), ('gz', float), # derivative of energy towards relative vector coordinates.
-]
 
 
 class DeltaList(object):

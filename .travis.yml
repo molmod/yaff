@@ -57,9 +57,8 @@ install:
 - conda install python=${MYCONDAPY} numpy cython sphinx conda-build anaconda-client
 - conda info -a
 
-# No visual backend for matplotlib
-- mkdir -p ~/.config/matplotlib/
-- echo backend:agg > ~/.config/matplotlib/matplotlibrc
+# No visual backend for matplotlib.
+- export MATPLOTLIBRC=$PWD; echo backend:agg > ${MATPLOTLIBRC}/matplotlibrc
 
 script:
 # Check if code is normalized properly, whitespace etc

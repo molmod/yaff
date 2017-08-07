@@ -25,4 +25,4 @@
 cimport cell
 
 cdef extern from "grid.h":
-    double compute_grid3d(double* center, cell.cell_type *cell, double* egrid, long* shape)
+    double compute_grid3d(double* center, cell.cell_type *cell, double* egrid, size_t* shape)

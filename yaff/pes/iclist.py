@@ -63,24 +63,13 @@ from __future__ import division
 import numpy as np
 
 from yaff.log import log
-from yaff.pes.ext import iclist_forward, iclist_back
+from yaff.pes.ext import iclist_dtype, iclist_forward, iclist_back
 
 
 __all__ = [
     'InternalCoordinateList', 'InternalCoordinate', 'Bond', 'BendAngle',
     'BendCos', 'DihedAngle', 'DihedCos', 'UreyBradley', 'OopAngle',
     'OopMeanAngle', 'OopCos', 'OopMeanCos', 'OopDist',
-]
-
-
-iclist_dtype = [
-    ('kind', int),                      # Numerical code for the type of internal coordinate, e.g. bond, angle, ...
-    ('i0', int), ('sign0', int),        # row index and sign flip of first relative vector in ``DeltaList`` object
-    ('i1', int), ('sign1', int),        # row index and sign flip of second ...
-    ('i2', int), ('sign2', int),        # ...
-    ('i3', int), ('sign3', int),        # ...
-    ('value', float), ('grad', float)   # value = value of internal coordinate computed here
-                                        # grad = derivative of energy towards internal coordinate, stored here by another part of the code
 ]
 
 

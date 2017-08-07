@@ -25,7 +25,8 @@
 #define YAFF_PES_GRID_H
 
 #include "cell.h"
+#include <stddef.h>
 
-double compute_grid3d(double* center, cell_type *cell, double* egrid, long* shape);
+double compute_grid3d(double* center, cell_type *cell, double* egrid, size_t* shape);
 
 #endif

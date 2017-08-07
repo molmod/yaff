@@ -28,9 +28,9 @@
 #include "cell.h"
 
 typedef struct {
-  double dx, dy, dz;
-  long i, j;
-  double gx, gy, gz;
+  double dx, dy, dz;  // relative vector coordinates.
+  long i, j;          // involved atoms. vector points from i to j.
+  double gx, gy, gz;  // derivative of energy towards relative vector coordinates.
 } dlist_row_type;
 
 void dlist_forward(double *pos, cell_type *unitcell, dlist_row_type* deltas, long ndelta);

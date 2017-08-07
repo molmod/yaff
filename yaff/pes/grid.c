@@ -31,7 +31,7 @@
 #include "grid.h"
 
 
-double compute_grid3d(double* center, cell_type *cell, double* egrid, long* shape) {
+double compute_grid3d(double* center, cell_type *cell, double* egrid, size_t* shape) {
     double frac[3], e11, e12, e21, e22;
     long indexes[3];
     int i;
