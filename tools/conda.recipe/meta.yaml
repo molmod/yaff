@@ -21,7 +21,11 @@ requirements:
   build:
     - python
     - numpy
-    - gcc
+    - nose
+    - molmod
+    - h5py
+    - scipy
+    - matplotlib
     - cython >=0.24.1
     - setuptools
 
