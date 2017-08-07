@@ -40,12 +40,14 @@ from Cython.Build import build_ext
 # Try to get the version from git describe
 __version__ = None
 try:
+    print('Trying to get the version from git describe')
     git_describe = subprocess.check_output(["git", "describe", "--tags"])
     version_words = git_describe.decode('utf-8').strip().split('-')
     __version__ = version_words[0]
     if len(version_words) > 1:
         __version__ += '.post' + version_words[1]
-except subprocess.CalledProcessError:
+    print('Version from git describe: {}'.format(__version__))
+except (subprocess.CalledProcessError, OSError):
     pass
 
 # Interact with version.py
@@ -55,6 +57,7 @@ version_template = """\
 __version__ = '{}'
 """
 if __version__ is None:
+    print('Trying to get the version from {}',format(fn_version))
     # Try to load the git version tag from version.py
     try:
         with open(fn_version, 'r') as fh:
@@ -62,8 +65,10 @@ if __version__ is None:
     except IOError:
         print('Could not determine version. Giving up.')
         sys.exit(1)
+    print('Version according to {}: {}'.format(fn_version, __version__))
 else:
     # Store the git version tag in version.py
+    print('Writing version to {}'.format(fn_version))
     with open(fn_version, 'w') as fh:
         fh.write(version_template.format(__version__))
 
@@ -83,6 +88,7 @@ setup(
               'yaff/conversion/test'],
     cmdclass = {'build_ext': build_ext},
     include_package_data=True,
+    zip_safe=False,
     setup_requires=['numpy>=1.0', 'cython>=0.24.1'],
     install_requires=['numpy>=1.0', 'nose>=0.11', 'cython>=0.24.1', 'matplotlib>1.0.0',
                       'h5py>=2.0.0', 'molmod>=1.3.5', 'scipy>=0.17.1'],

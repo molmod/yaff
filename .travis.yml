@@ -1,6 +1,3 @@
-sudo: false
-# Do not use Travis Python to save some time.
-language: generic
 env:
   matrix:
   - MYCONDAPY=2.7
@@ -8,31 +5,56 @@ env:
   - MYCONDAPY=3.6
   global:
     # ANACONDA_TOKEN encrypted
-    secure: "Qekvnk/wtRQyPxmNJC3aMcyiBdXW1K+oSK5d1X2+XggYxA2k28iwq2e08Tfym+jVpPybtvmK65rMJ40Zrgp67RCbpqDlcwkjN7k1DkyF3kIV9t9HOVRdXyaKqWfOYvZqmljeoywj4UlJnXBfZnlUdcaGIe0dnIN8P8GKxzjSeoo="
+    - secure: "Qekvnk/wtRQyPxmNJC3aMcyiBdXW1K+oSK5d1X2+XggYxA2k28iwq2e08Tfym+jVpPybtvmK65rMJ40Zrgp67RCbpqDlcwkjN7k1DkyF3kIV9t9HOVRdXyaKqWfOYvZqmljeoywj4UlJnXBfZnlUdcaGIe0dnIN8P8GKxzjSeoo="
+    # GITHUB_TOKEN
+    - secure: "JNNWmIAoY7ysYoGylugSYce3w02ZwQVsFQkb4Nr40ZBiuZBkPKxQfmeyi6ReKieY6Q3za5Lz8vwaDodl1cHB3OQNkJR49l7m3AlXzBWAKzJTDl6N20el6gKQdgM3W0VaniomK6i/laOMIaNDU/f4nVehL8SwuSFooi69YGyuvrQ="
+    # PYPI_PASSWD
+    - secure: "X/3siVpfbJrMPQ0j5ky8nUKR/GQ5jY3R7vY1Fr7C2es5k+OZdZpdzgjto9eUDoTpm18EVYxu8b4xS98ws/FyhWaeRWwmqjpngQAJfM2YPCmsmSiGVbYo/w+3TDTMY2papj+fND0b8SYvW1lWjGB7VzXh9hNIbGWwD6TKmTQNyD8="
+    - PYPKG=yaff
+    - GITHUB_REPO_NAME=molmod/yaff
+
+# Do not use Travis Python to save some time.
+language: generic
+os:
+  - linux
+  - osx
+osx_image: xcode8.3
+dist: trusty
+sudo: false
+
+# For testing only:
+#branches:
+#  only:
+#    - /^\d+\.\d+(\.\d+)?(-\S*)?$/
+
 install:
 # Get miniconda. Take the right version, so re-installing python is only needed for 3.5.
 - if [[ "$MYCONDAPY" == "2.7" ]]; then
-     wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+    else
+      wget https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -O miniconda.sh;
+    fi;
   else
-     wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+    if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+    else
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
+    fi;
   fi
 - bash miniconda.sh -b -p $HOME/miniconda
-- source $HOME/miniconda/bin/activate
+- export PATH="$HOME/miniconda/bin:$PATH"
 - hash -r
 
 # Configure conda and get a few essentials
 - conda config --set always_yes yes --set changeps1 no
-- conda update -q conda
-# Get the right python version for building. This only does something for 3.5
-- conda install python=${MYCONDAPY}
-# Install extra package needed to make things work. Most things can be listed as
-# dependencies on metal.yaml instead they are needed by setup.py or to do other things,
-# e.g building documentation.
-- conda install numpy cython sphinx
-# Install conda tools for packaging and uploading
-- conda install conda-build anaconda-client
-# Add the tovrstra channel to get access to the molmod dependency
 - conda config --add channels tovrstra
+- conda update -q conda
+# Get the right python version for building. This only does something for 3.5.
+# Install extra package needed to make things work. Most things can be listed as
+# dependencies on metal.yaml and setup.py, unless setup.py already imports them.
+# Install conda tools for packaging and uploading
+- conda install python=${MYCONDAPY} numpy cython sphinx conda-build anaconda-client
 - conda info -a
 
 # No visual backend for matplotlib
@@ -46,19 +68,21 @@ script:
   ./ds-normalize-code;
 
 # Build the conda package
-- conda build -q conda.recipe
+- git fetch origin --tags
+- conda build -q tools/conda.recipe
+
+# Build source package, should work too and needed for deployment to Github and
+# PyPI.
+- python setup.py sdist
 
 # Install Conda package
-- conda install --use-local yaff
-
-# Build source package, should work too and needed for deployment.
-- python setup.py sdist
+- conda install --use-local $PYPKG
 
 # Compile documentation
 - (cd doc; make html)
 
 # Run tests out of source tree, to make sure that installed version is tested.
-- (cd; nosetests yaff -v --processes=2 --detailed-errors --process-timeout=600)
+- (cd; nosetests $PYPKG -v --processes=2 --detailed-errors --process-timeout=600)
 
 ## Run the optimizer test DISABLED UNTIL TAMKIN IS PORTED TO PYTHON 3
 #- (cd; yaff-opttest)
@@ -67,65 +91,57 @@ script:
 deploy:
 - provider: releases
   skip_cleanup: true
-  api_key:
-    # Encrypted github token
-    secure: "NVbUZkYqTIxaYHn3a2wEuVLZf6nvSYKgWK83XsrPI6i+rL9j85bHKhJo7Ad9sPrwI8buuIyp2Kb5XFnTKay4M/KMdPdnN+0Ai87jNesWqyl8RzbAN9so3vyz+h5hvdIvtry7Q9U5+4OQvIaQjnJsLodKWKRCbGhPpv5J93ptiCw="
-  file: dist/yaff-${TRAVIS_TAG}.tar.gz
+  api_key: ${GITHUB_TOKEN}
+  file: dist/${PYPKG}-${TRAVIS_TAG}.tar.gz
   on:
-    repo: molmod/yaff
+    repo: ${GITHUB_REPO_NAME}
     tags: true
-    condition: "$TRAVIS_TAG != *[ab]* && $MYCONDAPY == 2.7"
+    condition: "$TRAVIS_TAG != *[ab]* && $MYCONDAPY == 2.7 && $TRAVIS_OS_NAME == linux"
   prerelease: false
 - provider: releases
   skip_cleanup: true
-  api_key:
-    # Encrypted github token
-    secure: "NVbUZkYqTIxaYHn3a2wEuVLZf6nvSYKgWK83XsrPI6i+rL9j85bHKhJo7Ad9sPrwI8buuIyp2Kb5XFnTKay4M/KMdPdnN+0Ai87jNesWqyl8RzbAN9so3vyz+h5hvdIvtry7Q9U5+4OQvIaQjnJsLodKWKRCbGhPpv5J93ptiCw="
-  file: dist/yaff-${TRAVIS_TAG}.tar.gz
+  api_key: ${GITHUB_TOKEN}
+  file: dist/${PYPKG}-${TRAVIS_TAG}.tar.gz
   on:
-    repo: molmod/yaff
+    repo: ${GITHUB_REPO_NAME}
     tags: true
-    condition: "$TRAVIS_TAG == *[ab]* && $MYCONDAPY == 2.7"
+    condition: "$TRAVIS_TAG == *[ab]* && $MYCONDAPY == 2.7 && $TRAVIS_OS_NAME == linux"
   prerelease: true
 - provider: script
   skip_cleanup: true
-  script: anaconda -t $ANACONDA_TOKEN upload -l alpha ${HOME}/miniconda/conda-bld/linux-64/yaff-*.tar.bz2
+  script: anaconda -t $ANACONDA_TOKEN upload -l alpha ${HOME}/miniconda/conda-bld/*/${PYPKG}-*.tar.bz2
   on:
-    repo: molmod/yaff
+    repo: ${GITHUB_REPO_NAME}
     tags: true
     condition: "$TRAVIS_TAG == *a*"
 - provider: script
   skip_cleanup: true
-  script: anaconda -t $ANACONDA_TOKEN upload -l beta ${HOME}/miniconda/conda-bld/linux-64/yaff-*.tar.bz2
+  script: anaconda -t $ANACONDA_TOKEN upload -l beta ${HOME}/miniconda/conda-bld/*/${PYPKG}-*.tar.bz2
   on:
-    repo: molmod/yaff
+    repo: ${GITHUB_REPO_NAME}
     tags: true
     condition: "$TRAVIS_TAG == *b*"
 - provider: script
   skip_cleanup: true
-  script: anaconda -t $ANACONDA_TOKEN upload -l main ${HOME}/miniconda/conda-bld/linux-64/yaff-*.tar.bz2
+  script: anaconda -t $ANACONDA_TOKEN upload -l main ${HOME}/miniconda/conda-bld/*/${PYPKG}-*.tar.bz2
   on:
-    repo: molmod/yaff
+    repo: ${GITHUB_REPO_NAME}
     tags: true
     condition: "$TRAVIS_TAG != *[ab]*"
 - provider: pypi
   skip_cleanup: true
   user: tovrstra
-  password:
-    # Encrypted PyPI password
-    secure: "CURxkjsCeqMT/mhe+ApL74wHVehEYZgtvs5Q9HLhukhonslB7KNegN3uXJX0ejdEH7gaFtB6JQYD7poQmMrB0+FWoMbQbwj6S/RLL9P5W9yK5R+8Hw/IiQFrI4LG9RjXM3Rpf391eHY58hOZM4BqyjdL8hoPkJHwASDGofqiUp8="
+  password: ${PYPI_PASSWD}
   on:
-    repo: molmod/yaff
+    repo: ${GITHUB_REPO_NAME}
     tags: true
-    condition: "$TRAVIS_TAG != *[ab]* && $MYCONDAPY == 2.7"
+    condition: "$TRAVIS_TAG != *[ab]* && $MYCONDAPY == 2.7 && $TRAVIS_OS_NAME == linux"
 - provider: pages
   skip_cleanup: true
-  github_token:
-    # Encrypted github token
-    secure: "NVbUZkYqTIxaYHn3a2wEuVLZf6nvSYKgWK83XsrPI6i+rL9j85bHKhJo7Ad9sPrwI8buuIyp2Kb5XFnTKay4M/KMdPdnN+0Ai87jNesWqyl8RzbAN9so3vyz+h5hvdIvtry7Q9U5+4OQvIaQjnJsLodKWKRCbGhPpv5J93ptiCw="
-  project_name: yaff
+  github_token: ${GITHUB_TOKEN}
+  project_name: ${PYPKG}
   local_dir: doc/_build/html
   on:
-    repo: molmod/yaff
-    condition: "$TRAVIS_TAG != *[ab]* && $MYCONDAPY == 2.7"
+    repo: ${GITHUB_REPO_NAME}
+    condition: "$TRAVIS_TAG != *[ab]* && $MYCONDAPY == 2.7 && $TRAVIS_OS_NAME == linux"
     tags: true
