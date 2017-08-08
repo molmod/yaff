@@ -340,7 +340,8 @@ def test_pair_pot_eidip_water32_14A():
     check_pair_pot_water32(system, nlist, scalings, part_pair, pair_fn, 1e-12, rmax=1)
 
 
-def get_part_water_eidip(scalings = [0.5,1.0,1.0],rcut=14.0*angstrom,switch_width=0.0*angstrom, finite=False, alpha=0.0, do_radii=False):
+def get_part_water_eidip(scalings=[0.5,1.0,1.0], rcut=14.0*angstrom, switch_width=0.0,
+                         finite=False, alpha=0.0, do_radii=False):
     '''
     Make a system with one water molecule with a point dipole on every atom,
     setup a ForcePart...
@@ -372,11 +373,6 @@ def get_part_water_eidip(scalings = [0.5,1.0,1.0],rcut=14.0*angstrom,switch_widt
     #Make a different nlist in case we approximate the point dipoles with charges
     #Interactions between charges at the same site should be excluded
     if finite:
-        neigh_dtype = [
-        ('a', int), ('b', int), ('d', float),        # a & b are atom indexes, d is the distance
-        ('dx', float), ('dy', float), ('dz', float), # relative vector (includes cell vectors of image cell)
-        ('r0', int), ('r1', int), ('r2', int)        # position of image cell.
-            ]
         nneigh = np.sum( nlist.neighs[0:nlist.nneigh]['d'] > 0.2*angstrom )
         new_neighs = np.zeros(nneigh, dtype=neigh_dtype)
         counter = 0

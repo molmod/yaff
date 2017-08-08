@@ -25,6 +25,8 @@
 
 from __future__ import division
 
+import os
+
 import pkg_resources
 import h5py as h5
 import numpy as np
@@ -32,6 +34,7 @@ import numpy as np
 from yaff import *
 from yaff.test.common import get_system_water
 from yaff.sampling.test.common import get_ff_water32, get_ff_water
+from molmod.test.common import tmpdir
 
 
 def test_basic_water32():
@@ -121,19 +124,33 @@ def test_hdf5_simple():
 
 
 def test_xyz():
-    xyz = XYZWriter('/dev/null')
-    nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[xyz])
-    com_vel = np.dot(nve.masses, nve.vel)/nve.masses.sum()
-    nve.run(15)
-    com_vel = np.dot(nve.masses, nve.vel)/nve.masses.sum()
-    assert nve.counter == 15
+    with tmpdir(__name__, 'test_xyz') as dn:
+        fn_xyz = os.path.join(dn, 'foobar.xyz')
+        xyz = XYZWriter(fn_xyz)
+        nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[xyz])
+        com_vel = np.dot(nve.masses, nve.vel)/nve.masses.sum()
+        nve.run(15)
+        com_vel = np.dot(nve.masses, nve.vel)/nve.masses.sum()
+        assert os.path.isfile(fn_xyz)
+        assert nve.counter == 15
+        ## Ugly hack to make tests pass on Windows. The root cause is that the SliceReader
+        ## in molmod.io.common is poorly written.
+        xyz.xyz_writer._auto_close = False
+        xyz.xyz_writer._f.close()
 
 
 def test_xyz_select():
-    xyz = XYZWriter('/dev/null', select=[0,1,2])
-    nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[xyz])
-    nve.run(15)
-    assert nve.counter == 15
+    with tmpdir(__name__, 'test_xyz_select') as dn:
+        fn_xyz = os.path.join(dn, 'foobar.xyz')
+        xyz = XYZWriter(fn_xyz, select=[0,1,2])
+        nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[xyz])
+        nve.run(15)
+        assert os.path.isfile(fn_xyz)
+        assert nve.counter == 15
+        ## Ugly hack to make tests pass on Windows. The root cause is that the SliceReader
+        ## in molmod.io.common is poorly written.
+        xyz.xyz_writer._auto_close = False
+        xyz.xyz_writer._f.close()
 
 
 def test_kinetic_annealing():

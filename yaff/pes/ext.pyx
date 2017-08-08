@@ -48,16 +48,20 @@ from yaff.log import log
 
 
 __all__ = [
-    'Cell', 'nlist_status_init', 'nlist_build', 'nlist_status_finish',
-    'nlist_recompute', 'nlist_inc_r', 'Hammer', 'Switch3', 'PairPot',
-    'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep',
-    'PairPotQMDFFRep', 'PairPotLJCross', 'PairPotDampDisp',
-    'PairPotDisp68BJDamp', 'PairPotEI', 'PairPotEIDip',
-    'PairPotEiSlater1s1sCorr', 'PairPotEiSlater1sp1spCorr',
-    'PairPotOlpSlater1s1s','PairPotChargeTransferSlater1s1s',
+    'Cell',
+    'neigh_dtype', 'nlist_status_init', 'nlist_build', 'nlist_status_finish',
+    'nlist_recompute', 'nlist_inc_r',
+    'Hammer', 'Switch3',
+    'scaling_dtype', 'PairPot', 'PairPotLJ', 'PairPotMM3', 'PairPotGrimme',
+    'PairPotExpRep', 'PairPotQMDFFRep', 'PairPotLJCross', 'PairPotDampDisp',
+    'PairPotDisp68BJDamp', 'PairPotEI', 'PairPotEIDip', 'PairPotEiSlater1s1sCorr',
+    'PairPotEiSlater1sp1spCorr', 'PairPotOlpSlater1s1s','PairPotChargeTransferSlater1s1s',
     'compute_ewald_reci', 'compute_ewald_reci_dd',  'compute_ewald_corr_dd',
-    'compute_ewald_corr', 'dlist_forward', 'dlist_back', 'iclist_forward',
-    'iclist_back', 'vlist_forward', 'vlist_back', 'compute_grid3d',
+    'compute_ewald_corr',
+    'delta_dtype', 'dlist_forward', 'dlist_back',
+    'iclist_dtype', 'iclist_forward', 'iclist_back',
+    'vlist_dtype', 'vlist_forward', 'vlist_back',
+    'compute_grid3d',
 ]
 
 
@@ -345,6 +349,10 @@ cdef class Cell:
 #
 
 
+cdef nlist.neigh_row_type _neigh_row_tmp
+neigh_dtype = np.asarray(<nlist.neigh_row_type[:1]>(&_neigh_row_tmp)).dtype
+
+
 def nlist_status_init(rmax):
     '''nlist_status_init(rmax)
 
@@ -597,6 +605,10 @@ cdef class Switch3(Truncation):
 #
 # Pair potentials
 #
+
+
+cdef pair_pot.scaling_row_type _scaling_row_tmp
+scaling_dtype = np.asarray(<pair_pot.scaling_row_type[:1]>(&_scaling_row_tmp)).dtype
 
 
 cdef class PairPot:
@@ -2546,6 +2558,10 @@ def compute_ewald_corr_dd(np.ndarray[double, ndim=2] pos,
 #
 
 
+cdef dlist.dlist_row_type _dlist_row_tmp
+delta_dtype = np.asarray(<dlist.dlist_row_type[:1]>(&_dlist_row_tmp)).dtype
+
+
 def dlist_forward(np.ndarray[double, ndim=2] pos,
                   Cell unitcell,
                   np.ndarray[dlist.dlist_row_type, ndim=1] deltas, long ndelta):
@@ -2623,6 +2639,9 @@ def dlist_back(np.ndarray[double, ndim=2] gpos,
 # InternalCoordinate list
 #
 
+cdef iclist.iclist_row_type _iclist_row_tmp
+iclist_dtype = np.asarray(<iclist.iclist_row_type[:1]>(&_iclist_row_tmp)).dtype
+
 
 def iclist_forward(np.ndarray[dlist.dlist_row_type, ndim=1] deltas,
                    np.ndarray[iclist.iclist_row_type, ndim=1] ictab, long nic):
@@ -2672,6 +2691,9 @@ def iclist_back(np.ndarray[dlist.dlist_row_type, ndim=1] deltas,
 # Valence list
 #
 
+cdef vlist.vlist_row_type _vlist_row_tmp
+vlist_dtype = np.asarray(<vlist.vlist_row_type[:1]>(&_vlist_row_tmp)).dtype
+
 
 def vlist_forward(np.ndarray[iclist.iclist_row_type, ndim=1] ictab,
                   np.ndarray[vlist.vlist_row_type, ndim=1] vtab, long nv):
@@ -2720,7 +2742,10 @@ def vlist_back(np.ndarray[iclist.iclist_row_type, ndim=1] ictab,
 # grid
 #
 
-def compute_grid3d(np.ndarray[double, ndim=1] center, Cell unitcell, np.ndarray[double, ndim=3] egrid):
-    assert center.flags['C_CONTIGUOUS']
+def compute_grid3d(double[::1] center not None,
+                   Cell unitcell,
+                   double[:,:,::1] egrid not None):
     assert center.shape[0] == 3
-    return grid.compute_grid3d(<double*>center.data, unitcell._c_cell, <double*>egrid.data, <long*>egrid.shape)
+    cdef size_t shape[3]
+    shape[:] = egrid.shape
+    return grid.compute_grid3d(&center[0], unitcell._c_cell, &egrid[0, 0, 0], &shape[0])

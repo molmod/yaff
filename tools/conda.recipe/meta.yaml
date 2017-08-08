@@ -12,17 +12,17 @@ build:
 requirements:
   run:
     - python
-    - numpy
+    - numpy >=1.5
     - nose
-    - molmod
+    - molmod >=1.4.1
     - h5py
     - scipy
     - matplotlib
   build:
     - python
-    - numpy
+    - numpy >=1.5
     - nose
-    - molmod
+    - molmod >=1.4.1
     - h5py
     - scipy
     - matplotlib

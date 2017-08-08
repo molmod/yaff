@@ -44,18 +44,11 @@ from __future__ import division
 import numpy as np
 
 from yaff.log import log, timer
-from yaff.pes.ext import nlist_status_init, nlist_status_finish, nlist_build, \
-    nlist_recompute
+from yaff.pes.ext import neigh_dtype, nlist_status_init, nlist_status_finish, \
+    nlist_build, nlist_recompute
 
 
 __all__ = ['NeighborList']
-
-
-neigh_dtype = [
-    ('a', int), ('b', int), ('d', float),        # a & b are atom indexes, d is the distance
-    ('dx', float), ('dy', float), ('dz', float), # relative vector (includes cell vectors of image cell)
-    ('r0', int), ('r1', int), ('r2', int)        # position of image cell.
-]
 
 
 class NeighborList(object):

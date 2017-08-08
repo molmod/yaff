@@ -46,12 +46,13 @@ from __future__ import division
 import numpy as np
 
 from yaff.log import log
+from yaff.pes.ext import scaling_dtype
 
 
 __all__ = ['Scalings', 'iter_paths']
 
 
-scaling_dtype = [('a', int), ('b', int), ('scale', float), ('nbond', int)]
+
 
 
 class Scalings(object):

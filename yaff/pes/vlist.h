@@ -28,10 +28,12 @@
 #include "iclist.h"
 
 typedef struct {
-  long kind;
-  double par0, par1, par2, par3, par4, par5;
-  long ic0, ic1;//, ic2;
-  double energy;
+  long kind;               // The kind of energy term, e.g. harmonic, fues, ...
+  double par0, par1;       // The parameters for the energy term:
+  double par2, par3;       // The meaning of these parameters depends on kind.
+  double par4, par5;
+  long ic0, ic1;//, ic2;   // Indexes of rows in the table of internal coordinates. (See InternalCoordinatList class.)
+  double energy;           // The computed value of the energy, output of forward method.
 } vlist_row_type;
 
 double vlist_forward(iclist_row_type* ictab, vlist_row_type* vtab, long nv);
