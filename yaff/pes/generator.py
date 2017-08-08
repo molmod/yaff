@@ -973,7 +973,7 @@ class ValenceCrossGenerator(Generator):
         for indexes in self.iter_indexes(system):
             key = tuple(system.get_ffatype(i) for i in indexes)
             par_list = par_table.get(key, [])
-            if len(par_list) == 0 is None and log.do_warning:
+            if len(par_list) == 0 and log.do_warning:
                 log.warn('No valence %s parameters found for atoms %s with key %s' % (self.prefix, indexes, key))
                 continue
             for pars in par_list:
