@@ -431,9 +431,6 @@ class ValenceGenerator(Generator):
         for indexes in self.iter_indexes(system):
             key = tuple(system.get_ffatype(i) for i in indexes)
             par_list = par_table.get(key, [])
-            if len(par_list) == 0 and log.do_warning:
-                log.warn('No valence %s parameters found for atoms %s with key %s' % (self.prefix, indexes, key))
-                continue
             for pars in par_list:
                 vterm = self.get_vterm(pars, indexes)
                 part_valence.add_term(vterm)
@@ -1002,9 +999,6 @@ class ValenceCrossGenerator(Generator):
         for indexes in self.iter_indexes(system):
             key = tuple(system.get_ffatype(i) for i in indexes)
             par_list = par_table.get(key, [])
-            if len(par_list) == 0 and log.do_warning:
-                log.warn('No valence %s parameters found for atoms %s with key %s' % (self.prefix, indexes, key))
-                continue
             for pars in par_list:
                 indexes0 = self.get_indexes0(indexes)
                 indexes1 = self.get_indexes1(indexes)
@@ -1157,10 +1151,9 @@ class LJGenerator(NonbondedGenerator):
         for i in range(system.natom):
             key = (system.get_ffatype(i),)
             par_list = par_table.get(key, [])
-            if len(par_list) == 0:
-                if log.do_warning:
-                    log.warn('No LJ parameters found for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
-            else:
+            if len(par_list) > 2:
+                raise TypeError('Superposition should not be allowed for non-covalent terms.')
+            elif len(par_list) == 1:
                 sigmas[i], epsilons[i] = par_list[0]
 
         # Prepare the global parameters
@@ -1198,10 +1191,9 @@ class LJCrossGenerator(NonbondedGenerator):
             for j in range(system.natom):
                 key = (system.get_ffatype(i),system.get_ffatype(j))
                 par_list = par_table.get(key, [])
-                if len(par_list) == 0:
-                    if log.do_warning:
-                        log.warn('No LJ cross parameters found for atom tupple %i,%i with fftypes %s,%s.' % (i, system.get_ffatype(i)))
-                else:
+                if len(par_list) > 2:
+                    raise TypeError('Superposition should not be allowed for non-covalent terms.')
+                elif len(par_list) == 1:
                     sigmas[i,j], epsilons[i,j] = par_list[0]
 
         # Prepare the global parameters
@@ -1238,10 +1230,9 @@ class MM3Generator(NonbondedGenerator):
         for i in range(system.natom):
             key = (system.get_ffatype(i),)
             par_list = par_table.get(key, [])
-            if len(par_list) == 0:
-                if log.do_warning:
-                    log.warn('No MM3 parameters found for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
-            else:
+            if len(par_list) > 2:
+                raise TypeError('Superposition should not be allowed for non-covalent terms.')
+            elif len(par_list) == 1:
                 sigmas[i], epsilons[i], onlypaulis[i] = par_list[0]
 
         # Prepare the global parameters
@@ -1289,10 +1280,9 @@ class ExpRepGenerator(NonbondedGenerator):
         for i in range(system.nffatype):
             key = (system.ffatypes[i],)
             par_list = par_table.get(key, [])
-            if len(par_list) == 0:
-                if log.do_warning:
-                    log.warn('No EXPREP parameters found for ffatype %s.' % system.ffatypes[i])
-            else:
+            if len(par_list) > 2:
+                raise TypeError('Superposition should not be allowed for non-covalent terms.')
+            elif len(par_list) == 1:
                 amps[i], bs[i] = par_list[0]
 
         # Prepare the cross parameters
@@ -1410,10 +1400,9 @@ class DampDispGenerator(NonbondedGenerator):
         for i in range(system.nffatype):
             key = (system.ffatypes[i],)
             par_list = par_table.get(key, [])
-            if len(par_list) == 0:
-                if log.do_warning:
-                    log.warn('No DAMPDISP parameters found for atom %i with fftype %s.' % (i, system.get_ffatype(i)))
-            else:
+            if len(par_list) > 2:
+                raise TypeError('Superposition should not be allowed for non-covalent terms.')
+            elif len(par_list) == 1:
                 c6s[i], bs[i], vols[i] = par_list[0]
 
         # Prepare the cross parameters
@@ -1622,6 +1611,27 @@ def apply_generators(system, parameters, ff_args):
         generator = generators.get(prefix)
         if generator is None:
             if log.do_warning:
-                log.warn('There is no generator named %s.' % prefix)
+                log.warn('There is no generator named %s. It will be ignored.' % prefix)
         else:
             generator(system, section, ff_args)
+
+    part_valence = ff_args.get_part(ForcePartValence)
+    if part_valence is not None and log.do_warning:
+        # Basic check for missing terms
+        groups = set([])
+        nv = part_valence.vlist.nv
+        for iv in range(nv):
+            # Get the atoms in the energy term.
+            atoms = part_valence.vlist.lookup_atoms(iv)
+            # Reduce it to a set of atom indices.
+            atoms = frozenset(sum(sum(atoms, []), []))
+            # Keep all two- and three-body terms.
+            if len(atoms) <= 3:
+                groups.add(atoms)
+        # Check if some are missing
+        for i0, i1 in system.iter_bonds():
+            if frozenset([i0, i1]) not in groups:
+                log.warn('No covalent two-body term for atoms ({}, {})'.format(i0, i1))
+        for i0, i1, i2 in system.iter_angles():
+            if frozenset([i0, i1, i2]) not in groups:
+                log.warn('No covalent three-body term for atoms ({}, {} {})'.format(i0, i1, i2))
