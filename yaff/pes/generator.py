@@ -268,14 +268,14 @@ class Generator(object):
         for counter, line in pardef:
             words = line.split()
             if len(words) != 2:
-                pardef.complain(counter, 'must have two arguments in UNIT suffix.')
+                pardef.complain(counter, 'must have two arguments in UNIT suffix')
             name = words[0].upper()
             if name not in expected_names:
                 pardef.complain(counter, 'specifies a unit for an unknown parameter. (Must be one of %s, but got %s.)' % (expected_names, name))
             try:
                 result[name] = parse_unit(words[1])
             except (NameError, ValueError):
-                pardef.complain(counter, 'has a UNIT suffix with an unknown unit.')
+                pardef.complain(counter, 'has a UNIT suffix with an unknown unit')
         if len(result) != len(expected_names):
             raise IOError('Not all units are specified for generator %s in file %s. Got %s, should have %s.' % (
                 self.prefix, pardef.complain.filename, list(result.keys()), expected_names
@@ -304,37 +304,66 @@ class Generator(object):
                 is used to parse other definitions than PARS.
         '''
         if par_info is None:
+            # Parsing PARS
             par_info = self.par_info
+            allow_superposition = self.allow_superposition
+        else:
+            # Parsing other fields than PARS, so supperposition should never be allowed.
+            allow_superposition = False
+
+        # Generate a parameter table (dictionary):
+        # key:
+        #   Tuple of ffatype strings.
+        # values:
+        #   List of tuples of corresponding parameters, with multiple items only allowed
+        #   in case of a superposition of energy terms of the same type with different
+        #   parameters.
         par_table = {}
         for counter, line in pardef:
             words = line.split()
             num_args = nffatype + len(par_info)
             if len(words) != num_args:
-                pardef.complain(counter, 'should have %s arguments.' % num_args)
+                pardef.complain(counter, 'should have %s arguments' % num_args)
+            # Extract the key
             key = tuple(words[:nffatype])
-            try:
-                pars = []
-                for i, (name, dtype) in enumerate(par_info):
-                    word = words[i+nffatype]
-                    if dtype is float:
+            # Extract the parameters
+            pars = []
+            for i, (name, dtype) in enumerate(par_info):
+                word = words[i + nffatype]
+                try:
+                    if issubclass(dtype, float):
                         pars.append(float(word)*conversions[name])
                     else:
                         pars.append(dtype(word))
-                pars = tuple(pars)
-            except ValueError:
-                pardef.complain(counter, 'has parameters that can not be converted to numbers.')
-            par_list = par_table.get(key, [])
-            if len(par_list) > 0 and not self.allow_superposition:
-                pardef.complain(counter, 'conts duplicate parameters, which is not allowed for generator %s.' % self.prefix)
-            par_list.append(pars)
-            for key in self.iter_alt_keys(key):
-                par_table[key] = par_list
+                except ValueError:
+                    pardef.complain(counter, 'contains a parameter that can not be converted to a number: {}'.format(word))
+            pars = tuple(pars)
+
+            # Process the new key + pars pair, taking into account equivalent permutations
+            # of the atom types and corresponding permutations of parameters.
+            current_par_table = {}
+            for alt_key, alt_pars in self.iter_equiv_keys_and_pars(key, pars):
+                # When permuted keys are identical to the original, no new items are
+                # added.
+                if alt_key in current_par_table:
+                    if current_par_table[alt_key] != alt_pars:
+                        pardef.complain(counter, 'contains parameters that are not consistent with the permutational symmetry of the atom types')
+                else:
+                    current_par_table[alt_key] = alt_pars
+
+            # Add the parameters and their permutations to the parameter table, checking
+            # for superposition.
+            for alt_key, alt_pars in current_par_table.items():
+                par_list = par_table.setdefault(alt_key, [])
+                if len(par_list) > 0 and not allow_superposition:
+                    pardef.complain(counter, 'contains a duplicate energy term, possibly with different parameters, which is not allowed for generator %s' % self.prefix)
+                par_list.append(alt_pars)
         return par_table
 
-    def iter_alt_keys(self, key):
-        '''Iterates of all equivalent reorderings of a tuple of ffatypes'''
+    def iter_equiv_keys_and_pars(self, key, pars):
+        '''Iterates of all equivalent re-orderings of a tuple of ffatypes (keys) and corresponding parameters.'''
         if len(key) == 1:
-            yield key
+            yield key, pars
         else:
             raise NotImplementedError
 
@@ -434,9 +463,9 @@ class BondGenerator(ValenceGenerator):
     ICClass = Bond
     VClass = None
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
 
     def iter_indexes(self, system):
         return system.iter_bonds()
@@ -464,9 +493,9 @@ class BondDoubleWellGenerator(ValenceGenerator):
     prefix = 'DOUBWELL'
     VClass = BondDoubleWell
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
 
     def iter_indexes(self, system):
         return system.iter_bonds()
@@ -479,9 +508,9 @@ class BondMorseGenerator(ValenceGenerator):
     ICClass = Bond
     VClass = Morse
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
 
     def iter_indexes(self, system):
         return system.iter_bonds()
@@ -494,9 +523,9 @@ class BondDoubleWell2Generator(ValenceGenerator):
     VClass = PolySix
     par_info = [('K', float), ('R1', float), ('R2', float)]
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
 
     def iter_indexes(self, system):
         return system.iter_bonds()
@@ -534,9 +563,9 @@ class PolySixGenerator(ValenceGenerator):
     VClass = PolySix
     par_info = [('C0', float), ('C1', float), ('C2', float), ('C3', float), ('C4', float), ('C5', float), ('C6', float)]
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
 
     def iter_indexes(self, system):
         return system.iter_bonds()
@@ -547,9 +576,9 @@ class BendGenerator(ValenceGenerator):
     ICClass = None
     VClass = Harmonic
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
 
     def iter_indexes(self, system):
         return system.iter_angles()
@@ -605,9 +634,9 @@ class TorsionAngleHarmGenerator(ValenceGenerator):
     ICClass = DihedAngle
     VClass = Harmonic
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
 
     def iter_indexes(self, system):
         return system.iter_dihedrals()
@@ -620,9 +649,9 @@ class TorsionCosHarmGenerator(ValenceGenerator):
     ICClass = DihedCos
     VClass = Harmonic
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
 
     def iter_indexes(self, system):
         return system.iter_dihedrals()
@@ -636,9 +665,9 @@ class TorsionGenerator(ValenceGenerator):
     VClass = Cosine
     allow_superposition = True
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
 
     def iter_indexes(self, system):
         return system.iter_dihedrals()
@@ -689,9 +718,9 @@ class TorsionCos2HarmGenerator(ValenceGenerator):
     ICClass = DihedCos
     VClass = PolyFour
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
 
     def iter_indexes(self, system):
         return system.iter_dihedrals()
@@ -719,9 +748,9 @@ class OopAngleGenerator(ValenceGenerator):
     VClass = Harmonic
     allow_superposition = True
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield (key[1],key[0],key[2],key[3])
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield (key[1], key[0], key[2], key[3]), pars
 
     def iter_indexes(self, system):
         #Loop over all atoms; if an atom has 3 neighbors,
@@ -743,13 +772,13 @@ class OopMeanAngleGenerator(ValenceGenerator):
     VClass = Harmonic
     allow_superposition = True
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield (key[1],key[2],key[0],key[3])
-        yield (key[2],key[0],key[1],key[3])
-        yield (key[1],key[0],key[2],key[3])
-        yield (key[0],key[2],key[1],key[3])
-        yield (key[2],key[1],key[0],key[3])
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield (key[1], key[2], key[0], key[3]), pars
+        yield (key[2], key[0], key[1], key[3]), pars
+        yield (key[1], key[0], key[2], key[3]), pars
+        yield (key[0], key[2], key[1], key[3]), pars
+        yield (key[2], key[1], key[0], key[3]), pars
 
     def iter_indexes(self, system):
         #Loop over all atoms; if an atom has 3 neighbors,
@@ -768,9 +797,9 @@ class OopCosGenerator(ValenceGenerator):
     VClass = Chebychev1
     allow_superposition = True
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield (key[1],key[0],key[2],key[3])
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield (key[1], key[0], key[2], key[3]), pars
 
     def iter_indexes(self, system):
         #Loop over all atoms; if an atom has 3 neighbors,
@@ -797,13 +826,13 @@ class OopMeanCosGenerator(ValenceGenerator):
     VClass = Chebychev1
     allow_superposition = True
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield (key[1],key[2],key[0],key[3])
-        yield (key[2],key[0],key[1],key[3])
-        yield (key[1],key[0],key[2],key[3])
-        yield (key[0],key[2],key[1],key[3])
-        yield (key[2],key[1],key[0],key[3])
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield (key[1], key[2], key[0], key[3]), pars
+        yield (key[2], key[0], key[1], key[3]), pars
+        yield (key[1], key[0], key[2], key[3]), pars
+        yield (key[0], key[2], key[1], key[3]), pars
+        yield (key[2], key[1], key[0], key[3]), pars
 
     def iter_indexes(self, system):
         #Loop over all atoms; if an atom has 3 neighbors,
@@ -826,13 +855,13 @@ class OopDistGenerator(ValenceGenerator):
     VClass = Harmonic
     allow_superposition = False
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield (key[2],key[0],key[1],key[3])
-        yield (key[1],key[2],key[0],key[3])
-        yield (key[2],key[1],key[0],key[3])
-        yield (key[1],key[0],key[2],key[3])
-        yield (key[0],key[2],key[1],key[3])
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield (key[2], key[0], key[1], key[3]), pars
+        yield (key[1], key[2], key[0], key[3]), pars
+        yield (key[2], key[1], key[0], key[3]), pars
+        yield (key[1], key[0], key[2], key[3]), pars
+        yield (key[0], key[2], key[1], key[3]), pars
 
     def iter_indexes(self, system):
         #Loop over all atoms; if an atom has 3 neighbors,
@@ -851,13 +880,13 @@ class SquareOopDistGenerator(ValenceGenerator):
     VClass = Harmonic
     allow_superposition = False
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield (key[2],key[0],key[1],key[3])
-        yield (key[1],key[2],key[0],key[3])
-        yield (key[2],key[1],key[0],key[3])
-        yield (key[1],key[0],key[2],key[3])
-        yield (key[0],key[2],key[1],key[3])
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield (key[2], key[0], key[1], key[3]), pars
+        yield (key[1], key[2], key[0], key[3]), pars
+        yield (key[2], key[1], key[0], key[3]), pars
+        yield (key[1], key[0], key[2], key[3]), pars
+        yield (key[0], key[2], key[1], key[3]), pars
 
     def iter_indexes(self, system):
         #Loop over all atoms; if an atom has 3 neighbors,
@@ -876,9 +905,9 @@ class ImproperGenerator(ValenceGenerator):
     VClass = Cosine
     allow_superposition = True
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
 
     def iter_indexes(self, system):
         #Loop over all atoms; if an atom has 3 neighbors,
@@ -1015,8 +1044,9 @@ class CrossGenerator(ValenceCrossGenerator):
     VClass02 = Cross
     VClass12 = Cross
 
-    def iter_alt_keys(self, key):
-        yield key
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], (pars[0], pars[2], pars[1], pars[4], pars[3], pars[5])
 
     def iter_indexes(self, system):
         return system.iter_angles()
@@ -1055,21 +1085,21 @@ class NonbondedGenerator(Generator):
         for counter, line in pardef:
             words = line.split()
             if len(words) != 2:
-                pardef.complain(counter, 'must have 2 arguments.')
+                pardef.complain(counter, 'must have 2 arguments')
             try:
                 num_bonds = int(words[0])
                 scale = float(words[1])
             except ValueError:
-                pardef.complain(counter, 'has parameters that can not be converted. The first argument must be an integer. The second argument must be a float.')
+                pardef.complain(counter, 'has parameters that can not be converted. The first argument must be an integer. The second argument must be a float')
             if num_bonds in result and result[num_bonds] != scale:
-                pardef.complain(counter, 'contains a duplicate incompatible scale suffix.')
+                pardef.complain(counter, 'contains a duplicate incompatible scale suffix')
             if scale < 0 or scale > 1:
-                pardef.complain(counter, 'has a scale that is not in the range [0,1].')
+                pardef.complain(counter, 'has a scale that is not in the range [0,1]')
             result[num_bonds] = scale
         if len(result) < 3 or len(result) > 4:
-            pardef.complain(None, 'must contain three or four SCALE suffixes for each non-bonding term.')
+            pardef.complain(None, 'must contain three or four SCALE suffixes for each non-bonding term')
         if 1 not in result or 2 not in result or 3 not in result:
-            pardef.complain(None, 'must contain a scale parameter for atoms separated by 1, 2 and 3 bonds, for each non-bonding term.')
+            pardef.complain(None, 'must contain a scale parameter for atoms separated by 1, 2 and 3 bonds, for each non-bonding term')
         if 4 not in result:
             result[4] = 1.0
         return result
@@ -1088,23 +1118,23 @@ class NonbondedGenerator(Generator):
         for counter, line in pardef:
             words = line.split()
             if len(words) < 2:
-                pardef.complain(counter, 'contains a mixing rule with to few arguments. At least 2 are required.')
+                pardef.complain(counter, 'contains a mixing rule with to few arguments. At least 2 are required')
             par_name = words[0].upper()
             rule_name = words[1].upper()
             key = par_name, rule_name
             if key not in self.mixing_rules:
-                pardef.complain(counter, 'contains an unknown mixing rule.')
+                pardef.complain(counter, 'contains an unknown mixing rule')
             narg, rule_id = self.mixing_rules[key]
             if len(words) != narg+2:
-                pardef.complain(counter, 'does not have the correct number of arguments. %i arguments are required.' % (narg+2))
+                pardef.complain(counter, 'does not have the correct number of arguments. %i arguments are required' % (narg+2))
             try:
                 args = tuple([float(word) for word in words[2:]])
             except ValueError:
-                pardef.complain(counter, 'contains parameters that could not be converted to floating point numbers.')
+                pardef.complain(counter, 'contains parameters that could not be converted to floating point numbers')
             result[par_name] = rule_id, args
         expected_num_rules = len(set([par_name for par_name, rule_id in self.mixing_rules]))
         if len(result) != expected_num_rules:
-            pardef.complain(None, 'does not contain enough mixing rules for the generator %s.' % self.prefix)
+            pardef.complain(None, 'does not contain enough mixing rules for the generator %s' % self.prefix)
         return result
 
 
@@ -1248,9 +1278,9 @@ class ExpRepGenerator(NonbondedGenerator):
         mixing_rules = self.process_mix(parsec['MIX'])
         self.apply(par_table, cpar_table, scale_table, mixing_rules, system, ff_args)
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
 
     def apply(self, par_table, cpar_table, scale_table, mixing_rules, system, ff_args):
         # Prepare the atomic parameters
@@ -1319,9 +1349,9 @@ class QMDFFRepGenerator(NonbondedGenerator):
         scale_table = self.process_scales(parsec['SCALE'])
         self.apply(cpar_table, scale_table, system, ff_args)
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
 
     def apply(self, cpar_table, scale_table, system, ff_args):
         # Prepare the cross parameters
@@ -1368,9 +1398,9 @@ class DampDispGenerator(NonbondedGenerator):
         scale_table = self.process_scales(parsec['SCALE'])
         self.apply(par_table, cpar_table, scale_table, system, ff_args)
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
 
     def apply(self, par_table, cpar_table, scale_table, system, ff_args):
         # Prepare the atomic parameters
@@ -1431,9 +1461,9 @@ class D3BJGenerator(NonbondedGenerator):
         scale_table = self.process_scales(parsec['SCALE'])
         self.apply(par_table, globalpar_table, scale_table, system, ff_args)
 
-    def iter_alt_keys(self, key):
-        yield key
-        yield key[::-1]
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
 
     def apply(self, par_table, globalpar_table, scale_table, system, ff_args):
         # Prepare the cross parameters
@@ -1484,15 +1514,15 @@ class FixedChargeGenerator(NonbondedGenerator):
         for counter, line in pardef:
             words = line.split()
             if len(words) != 3:
-                pardef.complain(counter, 'should have 3 arguments.')
+                pardef.complain(counter, 'should have 3 arguments')
             ffatype = words[0]
             if ffatype in result:
-                pardef.complain(counter, 'has an atom type that was already encountered earlier.')
+                pardef.complain(counter, 'has an atom type that was already encountered earlier')
             try:
                 charge = float(words[1])*conversions['Q0']
                 radius = float(words[2])*conversions['R']
             except ValueError:
-                pardef.complain(counter, 'contains a parameter that can not be converted to a floating point number.')
+                pardef.complain(counter, 'contains a parameter that can not be converted to a floating point number')
             result[ffatype] = charge, radius
         return result
 
@@ -1501,14 +1531,14 @@ class FixedChargeGenerator(NonbondedGenerator):
         for counter, line in pardef:
             words = line.split()
             if len(words) != 3:
-                pardef.complain(counter, 'should have 3 arguments.')
+                pardef.complain(counter, 'should have 3 arguments')
             key = tuple(words[:2])
             if key in result:
-                pardef.complain(counter, 'has a combination of atom types that were already encountered earlier.')
+                pardef.complain(counter, 'has a combination of atom types that were already encountered earlier')
             try:
                 charge_transfer = float(words[2])*conversions['P']
             except ValueError:
-                pardef.complain(counter, 'contains a parameter that can not be converted to floating point numbers.')
+                pardef.complain(counter, 'contains a parameter that can not be converted to floating point numbers')
             result[key] = charge_transfer
             result[key[::-1]] = -charge_transfer
         return result
@@ -1517,14 +1547,14 @@ class FixedChargeGenerator(NonbondedGenerator):
         result = None
         for counter, line in pardef:
             if result is not None:
-                pardef.complain(counter, 'is redundant. The DIELECTRIC suffix may only occur once.')
+                pardef.complain(counter, 'is redundant. The DIELECTRIC suffix may only occur once')
             words = line.split()
             if len(words) != 1:
-                pardef.complain(counter, 'must have one argument.')
+                pardef.complain(counter, 'must have one argument')
             try:
                 result = float(words[0])
             except ValueError:
-                pardef.complain(counter, 'must have a floating point argument.')
+                pardef.complain(counter, 'must have a floating point argument')
         return result
 
     def apply(self, atom_table, bond_table, scale_table, dielectric, system, ff_args):

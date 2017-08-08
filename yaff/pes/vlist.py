@@ -97,12 +97,15 @@ class ValenceList(object):
         # extend the table if needed.
         if self.nv >= len(self.vtab):
             self.vtab = np.resize(self.vtab, int(len(self.vtab)*1.5))
-        # fill in the new term
+        # initialize the new row with -1
         row = self.nv
+        self.vtab[row] = (-1, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1, -1, np.nan)
+        # fill in the new term
         self.vtab[row]['kind'] = term.kind
         for i in range(len(term.pars)):
             self.vtab[row]['par%i'%i] = term.pars[i]
-        ic_indexes = term.get_ic_indexes(self.iclist) # registers ics in InternalCoordinateList.
+        # registers ics in InternalCoordinateList.
+        ic_indexes = term.get_ic_indexes(self.iclist)
         for i in range(len(ic_indexes)):
             self.vtab[row]['ic%i'%i] = ic_indexes[i]
         self.nv += 1
@@ -123,6 +126,15 @@ class ValenceList(object):
            The actual computation is carried out by a low-level C routine.
         """
         vlist_back(self.iclist.ictab, self.vtab, self.nv)
+
+    def lookup_atoms(self, row):
+        """Look up the atom for a given row index."""
+        result = []
+        for i in range(2):
+            key = 'ic{}'.format(i)
+            if self.vtab[row][key] >= 0:
+                result.append(self.iclist.lookup_atoms(self.vtab[row][key]))
+        return result
 
 
 class ValenceTerm(object):
@@ -586,6 +598,7 @@ class MM3Bend(ValenceTerm):
             self.pars[1]/c
         )
 
+
 class BondDoubleWell(ValenceTerm):
     '''Sixth-order polynomial term: K/(2*(r1-r2)^4)*(r-r1)^2*(r-r2)^4'''
     kind = 13
@@ -610,6 +623,7 @@ class BondDoubleWell(ValenceTerm):
             self.pars[1]/c,
             self.pars[2]/c
         )
+
 
 class Morse(ValenceTerm):
     ''' The morse potential: E0*( exp(-2*k*(r-r1)) - 2*exp(-k*(r-r1)) )'''

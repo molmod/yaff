@@ -27,6 +27,7 @@ from __future__ import division
 from __future__ import print_function
 
 import pkg_resources
+from nose.tools import assert_raises
 import numpy as np
 
 from yaff import *
@@ -147,22 +148,77 @@ def test_generator_water32_cross():
         row1 = part_valence.dlist.lookup.get((j, i))
         assert row0 is not None or row1 is not None
     assert part_valence.iclist.nic == 96
-    iclist = part_valence.vlist.iclist
-    for row in part_valence.vlist.vtab:
+    vlist = part_valence.vlist
+    iclist = vlist.iclist
+    assert vlist.nv == 96
+    for irow in range(vlist.nv):
+        row = vlist.vtab[irow]
         assert row['kind'] == 3
         ic0 = iclist.ictab[row['ic0']]
         ic1 = iclist.ictab[row['ic1']]
         if ic0['kind'] == 0 and ic1['kind'] == 0:
-            assert row['par0'] - 2.0000000000e+01*(kjmol/angstrom**2) < 1e-10
-            assert row['par1'] - 0.9470000000e+00*angstrom < 1e-10
-            assert row['par2'] - 0.9470000000e+00*angstrom < 1e-10
+            np.testing.assert_allclose(row['par0'], 2.0000000000e+01*(kjmol/angstrom**2), rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par1'], 0.9470000000e+00*angstrom, rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par2'], 0.9470000000e+00*angstrom, rtol=0.0, atol=1e-10)
         elif ic0['kind'] == 0 and ic1['kind'] == 2:
-            assert row['par0'] - 1.0000000000e+01*(kjmol/angstrom*rad) < 1e-10
-            assert row['par1'] - 0.9470000000e+00*angstrom < 1e-10
-            assert row['par2'] - 1.0500000000e+02*deg < 1e-10
+            np.testing.assert_allclose(row['par0'], 1.0000000000e+01*(kjmol/angstrom*rad), rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par1'], 0.9470000000e+00*angstrom, rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par2'], 1.0500000000e+02*deg, rtol=0.0, atol=1e-10)
         else:
             raise AssertionError('ICs in Cross term should be Bond-Bond or Bond-BendAngle')
-    assert part_valence.vlist.nv == 96
+
+
+def test_generator_formaldehyde_cross():
+    system = get_system_formaldehyde()
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_formaldehyde_cross.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert len(ff.parts) == 1
+    assert isinstance(ff.parts[0], ForcePartValence)
+    part_valence = ff.parts[0]
+    assert part_valence.dlist.ndelta == 3
+    for i, j in system.bonds:
+        row0 = part_valence.dlist.lookup.get((i, j))
+        row1 = part_valence.dlist.lookup.get((j, i))
+        assert row0 is not None or row1 is not None
+    assert part_valence.iclist.nic == 5
+    vlist = part_valence.vlist
+    iclist = vlist.iclist
+    assert part_valence.vlist.nv == 6
+    for irow in range(vlist.nv):
+        row = vlist.vtab[irow]
+        assert row['kind'] == 3
+        atoms = vlist.lookup_atoms(irow)
+        if atoms in ( [[[2, 0]], [[0, 1]]], [[[3, 0]], [[0, 1]]] ):
+            # Bond-Bond H-C-O
+            np.testing.assert_allclose(row['par0'], 20.0*(kjmol/angstrom**2), rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par1'], 0.947*angstrom, rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par2'], 1.23*angstrom, rtol=0.0, atol=1e-10)
+        elif atoms in ( [[[2, 0]], [[0, 2], [0, 1]]], [[[3, 0]], [[0, 3], [0, 1]]] ):
+            # Bond-Angle H-C-O
+            np.testing.assert_allclose(row['par0'], 10.0*(kjmol/angstrom/rad), rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par1'], 0.947*angstrom, rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par2'], 121.0*deg, rtol=0.0, atol=1e-10)
+        elif atoms in ( [[[0, 1]], [[0, 2], [0, 1]]], [[[0, 1]], [[0, 3], [0, 1]]] ):
+            # Bond-Angle O-C-H
+            np.testing.assert_allclose(row['par0'], 15.0*(kjmol/angstrom/rad), rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par1'], 1.23*angstrom, rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par2'], 121.0*deg, rtol=0.0, atol=1e-10)
+        else:
+            raise AssertionError('Some internal coordinates were missing.')
+
+
+def test_generator_water_wrong_cross():
+    system = get_system_water32()
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_wrong_cross.txt')
+    with assert_raises(IOError):
+        ff = ForceField.generate(system, fn_pars)
+
+
+def test_generator_formaldehyde_wrong_cross():
+    system = get_system_water32()
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_formaldehyde_wrong_cross.txt')
+    with assert_raises(IOError):
+        ff = ForceField.generate(system, fn_pars)
 
 
 def test_generator_glycine_torsion():
@@ -505,6 +561,7 @@ def test_generator_glycine_dampdisp1():
     assert (b_cross == b_cross.T).all()
     assert (b_cross > 0).all()
 
+
 def test_generator_water32_d3bj():
     system = get_system_water32()
     fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_d3bj.txt')
@@ -547,6 +604,7 @@ def test_generator_water32_d3bj():
     assert abs(R_cross[0,1] - np.sqrt(c8HO/c6HO)) < 1e-10
     assert abs(R_cross[1,0] - np.sqrt(c8HO/c6HO)) < 1e-10
     assert abs(R_cross[1,1] - np.sqrt(c8OO/c6OO)) < 1e-10
+
 
 def test_generator_water32_qmdffrep():
     system = get_system_water32()
