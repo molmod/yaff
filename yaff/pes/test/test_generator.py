@@ -207,6 +207,17 @@ def test_generator_formaldehyde_cross():
             raise AssertionError('Some internal coordinates were missing.')
 
 
+def test_generator_formaldehyde_cross_consistency():
+    system = get_system_formaldehyde()
+    fn_pars1 = pkg_resources.resource_filename(__name__, '../../data/test/parameters_formaldehyde_cross.txt')
+    ff1 = ForceField.generate(system, fn_pars1)
+    fn_pars2 = pkg_resources.resource_filename(__name__, '../../data/test/parameters_formaldehyde_cross_alt.txt')
+    ff2 = ForceField.generate(system, fn_pars2)
+    energy1 = ff1.compute()
+    energy2 = ff2.compute()
+    np.testing.assert_allclose(energy1, energy2)
+
+
 def test_generator_water_wrong_cross():
     system = get_system_water32()
     fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_wrong_cross.txt')
