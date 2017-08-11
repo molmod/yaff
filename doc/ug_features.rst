@@ -57,6 +57,12 @@ Missing features (work in progress) include:
 Release notes
 -------------
 
+* **Version 1.4.0** August ??, 2017
+
+  - Conda packages for Windows, Linux and OSX.
+  - Fix some consistency issues with cross terms.
+  - Less pedantic warnings for missing energy terms.
+
 * **Version 1.3.0** August 5, 2017
 
   - Python 3 support
