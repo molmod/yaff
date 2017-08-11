@@ -1,0 +1,7 @@
+CROSS:UNIT KSS kjmol/angstrom**2
+CROSS:UNIT KBS0 kjmol/(angstrom*rad)
+CROSS:UNIT KBS1 kjmol/(angstrom*rad)
+CROSS:UNIT R0 angstrom
+CROSS:UNIT R1 angstrom
+CROSS:UNIT THETA0 deg
+CROSS:PARS O C H  20.0 15.0 10.0 1.23 0.947 121.0

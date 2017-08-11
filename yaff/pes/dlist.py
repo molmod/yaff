@@ -130,3 +130,7 @@ class DeltaList(object):
            The actual computation is carried out by a low-level C routine.
         """
         dlist_back(gpos, vtens, self.deltas, self.ndelta)
+
+    def lookup_atoms(self, row):
+        """Look up the atom for a given row index."""
+        return [self.deltas[row]['i'], self.deltas[row]['j']]

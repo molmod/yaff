@@ -110,7 +110,10 @@ class InternalCoordinateList(object):
             # No existing ic was found. Add a new ic to table
             if self.nic >= len(self.ictab):
                 self.ictab = np.resize(self.ictab, int(len(self.ictab)*1.5))
+            # Initialize a new row with non-sensical values
             row = self.nic
+            self.ictab[row] = (-1, -1, 0, -1, 0, -1, 0, -1, 0, np.nan, np.nan)
+            # Fill in the internal coordinates
             self.ictab[row]['kind'] = ic.kind
             for i in range(len(rows_signs)):
                 self.ictab[row]['i%i'%i] = rows_signs[i][0]
@@ -135,6 +138,19 @@ class InternalCoordinateList(object):
            The actual computation is carried out by a low-level C routine.
         """
         iclist_back(self.dlist.deltas, self.ictab, self.nic)
+
+    def lookup_atoms(self, row):
+        """Look up the atom for a given row index."""
+        result = []
+        for i in range(4):
+            key = 'i{}'.format(i)
+            if self.ictab[row][key] >= 0:
+                pair = self.dlist.lookup_atoms(self.ictab[row][key])
+                key_sign = 'sign{}'.format(i)
+                if self.ictab[row][key_sign] < 0:
+                    pair = pair[::-1]
+                result.append(pair)
+        return result
 
 
 class InternalCoordinate(object):
