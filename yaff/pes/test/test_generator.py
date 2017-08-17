@@ -31,6 +31,7 @@ from nose.tools import assert_raises
 import numpy as np
 
 from yaff import *
+from yaff.log import log
 
 from yaff.test.common import get_system_water32, get_system_glycine, get_system_formaldehyde
 
