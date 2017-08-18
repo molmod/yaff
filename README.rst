@@ -4,6 +4,8 @@
     :target: https://ci.appveyor.com/project/tovrstra/yaff
 .. image:: https://anaconda.org/tovrstra/yaff/badges/version.svg
     :target: https://anaconda.org/tovrstra/yaff
+.. image:: https://codecov.io/gh/molmod/yaff/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/molmod/yaff
 
 Yaff stands for "Yet another force field". It is a pythonic force-field code
 used by Toon and Louis to test-drive their new models. The original motivation
