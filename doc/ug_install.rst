@@ -62,7 +62,7 @@ command.
 
   .. code:: bash
 
-      sudo apt-get install gcc g++ python-devel python-numpy cython python-h5py python-matplotlib python-nose python-scipy
+      sudo apt-get install gcc g++ python-dev python-numpy cython python-h5py python-matplotlib python-nose python-scipy
 
 * **Fedora pre 22**
 
@@ -98,7 +98,7 @@ Alternatively, you can also install yaff with conda. See https://www.continuum.i
 
 .. code:: bash
 
-    conda install -c tovrstra yaff
+    conda install -c molmod yaff
 
 
 Test your installation

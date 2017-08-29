@@ -1,9 +1,9 @@
 .. image:: https://travis-ci.org/molmod/yaff.svg?branch=master
     :target: https://travis-ci.org/molmod/yaff
-.. image:: https://ci.appveyor.com/api/projects/status/gorylv5v5y6pu6w2/branch/master?svg=true
-    :target: https://ci.appveyor.com/project/tovrstra/yaff
-.. image:: https://anaconda.org/tovrstra/yaff/badges/version.svg
-    :target: https://anaconda.org/tovrstra/yaff
+.. image:: https://ci.appveyor.com/api/projects/status/bwgl6x2wslkv09so/branch/master?svg=true
+    :target: https://ci.appveyor.com/project/molmod-bot/yaff
+.. image:: https://anaconda.org/molmod/yaff/badges/version.svg
+    :target: https://anaconda.org/molmod/yaff
 .. image:: https://codecov.io/gh/molmod/yaff/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/molmod/yaff
 
@@ -39,6 +39,12 @@ Alternatively, you can install Yaff in your home directory:
     pip install numpy Cython --user
     pip install yaff --user
 
+Lastly, you can also install MolMod with conda. (See
+https://www.continuum.io/downloads)
+
+.. code:: bash
+
+    conda install -c molmod yaff
 
 Testing
 =======

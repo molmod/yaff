@@ -36,7 +36,7 @@ about:
   license_family: GPL3
   summary: YAFF is yet another force-field code
   home: http://molmod.github.io/yaff
-  license_file: LICENSE.txt
+  license_file: COPYING
   doc_url: http://molmod.github.io/yaff
 
 extra:
