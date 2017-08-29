@@ -98,7 +98,7 @@ Alternatively, you can also install yaff with conda. See https://www.continuum.i
 
 .. code:: bash
 
-    conda install -c tovrstra yaff
+    conda install -c molmod yaff
 
 
 Test your installation
