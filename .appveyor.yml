@@ -10,8 +10,11 @@ environment:
     GITHUB_REPO_NAME: molmod/yaff
 
   matrix:
-    - PYTHON_VERSION: 2.7
-      CONDA: C:\Miniconda
+# It is not possible to compile the Yaff extension on Windows for Python 2.7 because
+# Python 2.7 on Windows is built with an old visual compiler, which does not even support
+# C99! The C99 standard is extensively used in the Yaff extension.
+#    - PYTHON_VERSION: 2.7
+#      CONDA: C:\Miniconda
 
     - PYTHON_VERSION: 3.6
       CONDA: C:\Miniconda36
