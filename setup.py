@@ -89,8 +89,8 @@ setup(
     cmdclass = {'build_ext': build_ext},
     include_package_data=True,
     zip_safe=False,
-    setup_requires=['numpy>=1.5', 'cython>=0.24.1'],
-    install_requires=['numpy>=1.5', 'nose>=0.11', 'cython>=0.24.1', 'matplotlib>1.0.0',
+    setup_requires=['numpy>=1.5', 'cython>=0.26'],
+    install_requires=['numpy>=1.5', 'nose>=0.11', 'cython>=0.26', 'matplotlib>1.0.0',
                       'h5py>=2.0.0', 'molmod>=1.4.1', 'scipy>=0.17.1'],
     ext_modules=[
         Extension("yaff.pes.ext",

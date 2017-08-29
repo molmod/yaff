@@ -50,7 +50,7 @@ The following software must be installed:
 * A C++ compiler e.g. gcc: http://gcc.gnu.org/
 * Numpy >=1.0: http://www.numpy.org/
 * Scipy >=0.17.1: http://www.scipy.org/
-* Cython >=0.24.1 : http://www.cython.org/
+* Cython >=0.26 : http://www.cython.org/
 * h5py >=2.0.0: http://code.google.com/p/h5py/
 * Nosetests >=0.11: http://somethingaboutorange.com/mrl/projects/nose/0.11.2/
 * matplotlib >=1.0.0: http://matplotlib.sourceforge.net/
