@@ -4,11 +4,17 @@ env:
     - MYCONDAPY=3.6
   global:
     # ANACONDA_TOKEN encrypted
-    - secure: "Pgu8yuDay2kG1a+dnsgl3lBlGBDb6ifhMRzE1DqcRbCqplpCCgfxNL3Njt+sLtTWZ4jPPC4w0ZZrrqnOg62G4CeZCfp7cznJvN82mwYtW4ThlszIdXRfR+QfS35xKkvfWCvMYX3qBJ8xx3ih+g2GXx5roTE/qq7GfzPuOa43jsw="
+    - secure: "Pgu8yuDay2kG1a+dnsgl3lBlGBDb6ifhMRzE1DqcRbCqplpCCgfxNL3Njt+sLtTWZ4jPPC4w0Z\
+ZrrqnOg62G4CeZCfp7cznJvN82mwYtW4ThlszIdXRfR+QfS35xKkvfWCvMYX3qBJ8xx3ih+g2GXx5roTE/qq7GfzP\
+uOa43jsw="
     # GITHUB_TOKEN
-    - secure: "Pjb4QTTTd1L0ssl5YGrFP/bQwGYOMICZVJJAndlv1o9VmR4o81Mddv2IgxELmFA0K0lO0tFPOcw8O69Oa/qnXsRKGF+05fMUKzb+If8yGoupVaa/FAGfha6/WNw+jnDqHUfXCI+nXySIRSk9kRfl0gH9LW0clSUF8dMMKC95+wg="
+    - secure: "Pjb4QTTTd1L0ssl5YGrFP/bQwGYOMICZVJJAndlv1o9VmR4o81Mddv2IgxELmFA0K0lO0tFPOc\
+w8O69Oa/qnXsRKGF+05fMUKzb+If8yGoupVaa/FAGfha6/WNw+jnDqHUfXCI+nXySIRSk9kRfl0gH9LW0clSUF8dM\
+MKC95+wg="
     # PYPI_PASSWD
-    - secure: "fcr/ruryZctvHipyllH8rnGDpd8WH//zUo2dAzI0heqEqucx3BLZ9HbutPt0QmYirPNM/ywNfvRX93IhnyX5vGDsDfrcU7a69nsqHXapTEU04BcYH8MOPFvakf/s8k7biMeZCqZ4C3ycw8mkp3B9/L4C0pf/fnprvnyDNWwA2yE="
+    - secure: "fcr/ruryZctvHipyllH8rnGDpd8WH//zUo2dAzI0heqEqucx3BLZ9HbutPt0QmYirPNM/ywNfv\
+RX93IhnyX5vGDsDfrcU7a69nsqHXapTEU04BcYH8MOPFvakf/s8k7biMeZCqZ4C3ycw8mkp3B9/L4C0pf/fnprvny\
+DNWwA2yE="
     - PYPKG=yaff
     - GITHUB_REPO_NAME=molmod/yaff
 
@@ -30,17 +36,18 @@ install:
   # Get miniconda. Take the right version, so re-installing python is only needed for 3.5.
   - if [[ "$MYCONDAPY" == "2.7" ]]; then
       if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-        wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+        URL="https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh";
       else
-        wget https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh -O miniconda.sh;
+        URL="https://repo.continuum.io/miniconda/Miniconda2-latest-MacOSX-x86_64.sh";
       fi;
     else
       if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then
-        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+        URL="https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh";
       else
-        wget https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh;
+        URL="https://repo.continuum.io/miniconda/Miniconda3-latest-MacOSX-x86_64.sh";
       fi;
-    fi
+    fi;
+    wget ${URL} -O miniconda.sh
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
@@ -83,10 +90,11 @@ script:
   - (cd doc; make html)
 
   # Run tests out of source tree, to make sure that installed version is tested.
-  - (cd; nosetests $PYPKG -v --detailed-errors --with-coverage --cover-package=$PYPKG --cover-tests --cover-erase --cover-inclusive --cover-branches --cover-xml)
+  - (cd; nosetests $PYPKG -v --detailed-errors --with-coverage --cover-package=$PYPKG
+         --cover-tests --cover-erase --cover-inclusive --cover-branches --cover-xml)
 
   ## Run the optimizer test DISABLED UNTIL TAMKIN IS PORTED TO PYTHON 3
-  #- (cd; yaff-opttest)
+  #  - (cd; yaff-opttest)
 
 after_success:
   # Upload the coverage analysis
@@ -116,7 +124,8 @@ deploy:
 
   - provider: script
     skip_cleanup: true
-    script: anaconda -t $ANACONDA_TOKEN upload --force -l alpha ${HOME}/miniconda/conda-bld/*/${PYPKG}-*.tar.bz2
+    script: anaconda -t ${ANACONDA_TOKEN} upload --force -l alpha
+            ${HOME}/miniconda/conda-bld/*/${PYPKG}-*.tar.bz2
     on:
       repo: ${GITHUB_REPO_NAME}
       tags: true
@@ -124,7 +133,8 @@ deploy:
 
   - provider: script
     skip_cleanup: true
-    script: anaconda -t $ANACONDA_TOKEN upload --force -l beta ${HOME}/miniconda/conda-bld/*/${PYPKG}-*.tar.bz2
+    script: anaconda -t ${ANACONDA_TOKEN} upload --force -l beta
+            ${HOME}/miniconda/conda-bld/*/${PYPKG}-*.tar.bz2
     on:
       repo: ${GITHUB_REPO_NAME}
       tags: true
@@ -132,7 +142,8 @@ deploy:
 
   - provider: script
     skip_cleanup: true
-    script: anaconda -t $ANACONDA_TOKEN upload --force -l main ${HOME}/miniconda/conda-bld/*/${PYPKG}-*.tar.bz2
+    script: anaconda -t ${ANACONDA_TOKEN} upload --force -l main
+            ${HOME}/miniconda/conda-bld/*/${PYPKG}-*.tar.bz2
     on:
       repo: ${GITHUB_REPO_NAME}
       tags: true
