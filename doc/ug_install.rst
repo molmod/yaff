@@ -62,7 +62,7 @@ command.
 
   .. code:: bash
 
-      sudo apt-get install gcc g++ python-devel python-numpy cython python-h5py python-matplotlib python-nose python-scipy
+      sudo apt-get install gcc g++ python-dev python-numpy cython python-h5py python-matplotlib python-nose python-scipy
 
 * **Fedora pre 22**
 
