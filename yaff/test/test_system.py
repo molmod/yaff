@@ -82,6 +82,19 @@ def test_hdf5():
         compare_water32(system0, system1)
 
 
+def test_hdf5_assign_ffatypes():
+    system0 = get_system_water32()
+    with tmpdir(__name__, 'test_hdf5_assign_ffatypes') as dirname:
+        system0.ffatypes = ['O', 'H']
+        system0.ffatype_ids = np.array([0, 1, 1]*32)
+        fn = '%s/tmp.h5' % dirname
+        system0.to_file(fn)
+        with h5.File(fn) as f:
+            assert 'system' in f
+        system1 = System.from_file(fn)
+        compare_water32(system0, system1)
+
+
 def test_ffatypes():
     system = get_system_water32()
     assert (system.ffatypes == ['O', 'H']).all()
