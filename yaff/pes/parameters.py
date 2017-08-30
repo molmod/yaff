@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,8 +20,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 '''Object-oriented representation of parameter files'''
+
+
+from __future__ import division
+from __future__ import print_function
 
 
 __all__ = ['Complain', 'Parameters', 'ParameterSection', 'ParameterDefinition']
@@ -93,12 +97,12 @@ class Parameters(object):
             data = rest[pos+1:]
             return prefix, suffix, data
 
-        if isinstance(filenames, basestring):
+        if isinstance(filenames, str):
             filenames = [filenames]
 
         result = cls({})
         for filename in filenames:
-            with file(filename) as f:
+            with open(filename) as f:
                 counter = 1
                 complain = Complain(filename)
                 for line in f:
@@ -124,7 +128,7 @@ class Parameters(object):
     def copy(self):
         '''Return an independent copy'''
         sections = {}
-        for prefix, section in self.sections.iteritems():
+        for prefix, section in self.sections.items():
             sections[prefix] = section.copy()
         return Parameters(sections)
 
@@ -133,14 +137,14 @@ class Parameters(object):
 
            The outut file will not contain any comments.
         '''
-        with file(filename, 'w') as f:
-            for prefix, section in self.sections.iteritems():
-                for suffix, definition in section.definitions.iteritems():
+        with open(filename, 'w') as f:
+            for prefix, section in self.sections.items():
+                for suffix, definition in section.definitions.items():
                     for counter, data in definition.lines:
-                        print >> f, '%s:%s %s' % (prefix, suffix, data)
-                    print >> f
-                print >> f
-                print >> f
+                        print('%s:%s %s' % (prefix, suffix, data), file=f)
+                    print(file=f)
+                print(file=f)
+                print(file=f)
 
     def __getitem__(self, prefix):
         result = self.sections.get(prefix.upper())
@@ -171,7 +175,7 @@ class ParameterSection(object):
     def copy(self):
         '''Return an independent copy'''
         definitions = {}
-        for suffix, definition in self.definitions.iteritems():
+        for suffix, definition in self.definitions.items():
             definitions[suffix] = definition.copy()
         return ParameterSection(self.prefix, definitions, self.complain)
 

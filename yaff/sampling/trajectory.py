@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,11 +20,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 '''Computations on a reference trajectory'''
 
 
-import numpy as np, time, h5py
+from __future__ import division
+
+import numpy as np
+import time
+import h5py as h5
 
 from yaff.log import log
 from yaff.sampling.iterative import Iterative, AttributeStateItem, \
@@ -92,7 +96,7 @@ class RefTrajectory(Iterative):
            counter0
                 The counter value associated with the initial state.
         """
-        self.traj = h5py.File(fn_traj, 'r')
+        self.traj = h5.File(fn_traj, 'r')
         self.nframes = len(self.traj['trajectory/pos'][:])
         Iterative.__init__(self, ff, state, hooks, counter0)
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,8 +20,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 
+
+from __future__ import division
+from __future__ import print_function
 
 import numpy as np
 
@@ -41,7 +44,7 @@ def test_hessian_full_water():
     hessian = estimate_cart_hessian(ff)
     assert hessian.shape == (9, 9)
     evals = np.linalg.eigvalsh(hessian)
-    print evals
+    print(evals)
     assert sum(abs(evals) < 1e-10) == 3
 
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,14 +20,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 
 
-import tempfile, shutil, numpy as np, h5py as h5
+from __future__ import division
 
+import tempfile
+import shutil
+
+import pkg_resources
+import numpy as np
+import h5py as h5
+
+from molmod.test.common import tmpdir
 from yaff import System, Cell, angstrom
 
-from common import get_system_water32, get_system_glycine, get_system_quartz, \
+from yaff.test.common import get_system_water32, get_system_glycine, get_system_quartz, \
     get_system_cyclopropene, get_system_peroxide, get_system_graphene8, \
     get_system_polyethylene4
 
@@ -49,38 +57,42 @@ def compare_water32(system0, system1, eps=0, xyz=False):
 
 def test_chk():
     system0 = get_system_water32()
-    dirname = tempfile.mkdtemp('yaff', 'test_chk')
-    try:
+    with tmpdir(__name__, 'test_chk') as dirname:
         system0.to_file('%s/tmp.chk' % dirname)
         system1 = System.from_file('%s/tmp.chk' % dirname)
         compare_water32(system0, system1, 1e-10)
-    finally:
-        shutil.rmtree(dirname)
 
 
 def test_xyz():
     system0 = get_system_water32()
-    dirname = tempfile.mkdtemp('yaff', 'test_xyz')
-    try:
+    with tmpdir(__name__, 'test_xyz') as dirname:
         system0.to_file('%s/tmp.xyz' % dirname)
         system1 = System.from_file('%s/tmp.xyz' % dirname, rvecs=system0.cell.rvecs, ffatypes=system0.ffatypes, ffatype_ids=system0.ffatype_ids)
         compare_water32(system0, system1, 1e-10, xyz=True)
-    finally:
-        shutil.rmtree(dirname)
 
 
 def test_hdf5():
     system0 = get_system_water32()
-    dirname = tempfile.mkdtemp('yaff', 'test_hdf5')
-    try:
+    with tmpdir(__name__, 'test_hdf5') as dirname:
         fn = '%s/tmp.h5' % dirname
         system0.to_file(fn)
         with h5.File(fn) as f:
             assert 'system' in f
         system1 = System.from_file(fn)
         compare_water32(system0, system1)
-    finally:
-        shutil.rmtree(dirname)
+
+
+def test_hdf5_assign_ffatypes():
+    system0 = get_system_water32()
+    with tmpdir(__name__, 'test_hdf5_assign_ffatypes') as dirname:
+        system0.ffatypes = ['O', 'H']
+        system0.ffatype_ids = np.array([0, 1, 1]*32)
+        fn = '%s/tmp.h5' % dirname
+        system0.to_file(fn)
+        with h5.File(fn) as f:
+            assert 'system' in f
+        system1 = System.from_file(fn)
+        compare_water32(system0, system1)
 
 
 def test_ffatypes():
@@ -141,8 +153,8 @@ def test_scopes3():
 def test_unravel_triangular():
     from yaff.system import _unravel_triangular
     counter = 0
-    for i0 in xrange(100):
-        for i1 in xrange(i0):
+    for i0 in range(100):
+        for i1 in range(i0):
             assert _unravel_triangular(counter) == (i0, i1)
             counter += 1
 
@@ -250,14 +262,14 @@ def test_supercell_quartz_222():
     assert len(system222.bonds) == len(system111.bonds)*8
     assert abs(system222.pos[9:18] - system111.pos - system111.cell.rvecs[2]).max() < 1e-10
     assert abs(system222.pos[-9:] - system111.pos - system111.cell.rvecs.sum(axis=0)).max() < 1e-10
-    assert issubclass(system222.bonds.dtype.type, int)
+    assert issubclass(system222.bonds.dtype.type, np.integer)
     rules = [
         ('Si', '14'),
         ('O', '8'),
     ]
     check_detect_ffatypes(system222, rules)
     check_detect_bonds(system222)
-    assert issubclass(system222.bonds.dtype.type, int)
+    assert issubclass(system222.bonds.dtype.type, np.integer)
 
 
 def test_supercell_graphene_22():
@@ -269,7 +281,7 @@ def test_supercell_graphene_22():
     assert system22.nbond == system11.nbond*4
     assert abs(system22.pos[8:16] - system11.pos - system11.cell.rvecs[1]).max() < 1e-10
     assert abs(system22.pos[-8:] - system11.pos - system11.cell.rvecs.sum(axis=0)).max() < 1e-10
-    assert issubclass(system22.bonds.dtype.type, int)
+    assert issubclass(system22.bonds.dtype.type, np.integer)
 
 
 def test_supercell_polyethylene_2():
@@ -280,7 +292,7 @@ def test_supercell_polyethylene_2():
     assert system2.natom == system1.natom*2
     assert system2.nbond == system1.nbond*2
     assert abs(system2.pos[12:24] - system1.pos - system1.cell.rvecs[0]).max() < 1e-10
-    assert issubclass(system2.bonds.dtype.type, int)
+    assert issubclass(system2.bonds.dtype.type, np.integer)
 
 
 def test_supercell_mil53_121():
@@ -404,3 +416,90 @@ def test_cut_bonds():
     system = get_system_peroxide()
     system.cut_bonds([0,2])
     assert (system.bonds == [[0,2],[1,3]]).all()
+
+
+def test_iter_matches_cyclopropene_cyclopropene():
+    system = get_system_cyclopropene()
+    result = sorted(system.iter_matches(system))
+    assert result == [
+        (0, 1, 2, 3, 4, 5, 6),
+        (0, 1, 2, 4, 3, 5, 6),
+        (0, 2, 1, 3, 4, 6, 5),
+        (0, 2, 1, 4, 3, 6, 5),
+    ]
+
+
+def test_iter_matches_cyclopropene_ch():
+    system0 = get_system_cyclopropene()
+    system1 = system0.subsystem([0, 4])
+    result = sorted(system0.iter_matches(system1))
+    assert result == [(0, 3), (0, 4), (1, 5), (2, 6)]
+
+
+def test_iter_matches_quartz_quartz():
+    system = get_system_quartz()
+    assert system.ffatypes is not None
+    result0 = list(system.iter_matches(system))
+    assert len(result0) == 48
+    for match in result0:
+        np.testing.assert_equal(system.numbers, system.numbers[list(match)])
+    system.ffatypes = None
+    system.ffatype_ids = None
+    result1 = list(system.iter_matches(system))
+    assert len(result1) == 48
+    for match in result1:
+        np.testing.assert_equal(system.numbers, system.numbers[list(match)])
+    assert sorted(result0) == sorted(result1)
+
+
+def test_iter_matches_peroxide_graphene8():
+    system0 = get_system_graphene8()
+    system1 = get_system_peroxide()
+    assert len(list(system0.iter_matches(system1))) == 0
+
+
+def test_iter_matches_guaianolide():
+    system = System.from_file(pkg_resources.resource_filename(__name__, '../data/test/guaianolide.xyz'))
+    system.detect_bonds()
+    system_ref = System.from_file(pkg_resources.resource_filename(__name__, '../data/test/guaianolide_framework_ordered.xyz'))
+    system_ref.detect_bonds()
+    order = np.array(next(system.iter_matches(system_ref)))
+    np.testing.assert_equal(order, [8, 9, 4, 7, 14, 12, 11, 10, 5, 6, 13, 16, 15, 2, 0, 1, 3])
+
+
+def test_iter_matches_water4_nonoverlapping():
+    system = get_system_water32().subsystem(range(12))
+    water = system.subsystem([0, 1, 2])
+    assert len(list(system.iter_matches(water))) == 8
+    assert len(list(system.iter_matches(water, overlapping=False))) == 4
+
+
+def test_iter_matches_nobornane_rhodium():
+    rules = [
+        ('H', '1'),
+        ('C_H1', '6&=1%1'),
+        ('C_H2', '6&=2%1'),
+        ('C_H3', '6&=3%1'),
+        ('C', '6'), # all remaining carbons
+        ('P', '15'),
+        ('Rh', '45'),
+    ]
+    system = System.from_file(pkg_resources.resource_filename(__name__, '../data/test/rhodium_complex_nobornane.xyz'))
+    system.detect_bonds()
+    system.detect_ffatypes(rules)
+    system_ref = System.from_file(pkg_resources.resource_filename(__name__, '../data/test/nobornane.xyz'))
+    system_ref.detect_bonds()
+    system_ref.detect_ffatypes(rules)
+    selected = set(next(system.iter_matches(system_ref)))
+    reference = set([77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95])
+    np.testing.assert_equal(selected, reference)
+
+
+def test_iter_matches_single_atom():
+    system = System.from_file(pkg_resources.resource_filename(__name__, '../data/test/rhodium_complex_nobornane.xyz'))
+    system.detect_bonds()
+    system_ref = System(pos=np.zeros((1, 3), float), numbers = np.array([45]))
+    system_ref.detect_bonds()
+    selected = set(next(system.iter_matches(system_ref)))
+    reference = set([28])
+    np.testing.assert_equal(selected, reference)

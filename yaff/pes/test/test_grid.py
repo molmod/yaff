@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,8 +20,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 
+
+from __future__ import division
 
 import numpy as np
 from yaff import *
@@ -84,7 +86,7 @@ def test_grid_continuity():
     ff = ForceField(s, [fp])
 
     eps = 1e-5
-    for i in xrange(100):
+    for i in range(100):
         check_continuity(ff, np.random.uniform(-10, 20, (1, 3)), eps, 40)
     check_continuity(ff, np.array([[0.5, 1.234, 74.555]]), eps, 40)
     check_continuity(ff, np.array([[1.234, 0.5, 74.555]]), eps, 40)
@@ -98,7 +100,7 @@ def test_grid_conincide():
     fp = ForcePartGrid(s, grids)
     ff = ForceField(s, [fp])
 
-    for i in xrange(100):
+    for i in range(100):
         indexes = np.random.randint(-30, 50, 3)
         e0 = grids['Ne'][tuple(indexes%5)]
         pos = np.array([indexes*2.0])

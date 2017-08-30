@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,7 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 '''Neighbor lists for pairwise (non-bonding) interactions
 
    Yaff works with half neighbor lists with relative vector information and with
@@ -39,21 +39,16 @@
 '''
 
 
+from __future__ import division
+
 import numpy as np
 
 from yaff.log import log, timer
-from yaff.pes.ext import nlist_status_init, nlist_status_finish, nlist_build, \
-    nlist_recompute
+from yaff.pes.ext import neigh_dtype, nlist_status_init, nlist_status_finish, \
+    nlist_build, nlist_recompute
 
 
 __all__ = ['NeighborList']
-
-
-neigh_dtype = [
-    ('a', int), ('b', int), ('d', float),        # a & b are atom indexes, d is the distance
-    ('dx', float), ('dy', float), ('dz', float), # relative vector (includes cell vectors of image cell)
-    ('r0', int), ('r1', int), ('r2', int)        # position of image cell.
-]
 
 
 class NeighborList(object):
@@ -156,7 +151,7 @@ class NeighborList(object):
                     if done:
                         break
                     last_start = len(self.neighs)
-                    new_neighs = np.empty((len(self.neighs)*3)/2, dtype=neigh_dtype)
+                    new_neighs = np.empty((len(self.neighs)*3)//2, dtype=neigh_dtype)
                     new_neighs[:last_start] = self.neighs
                     self.neighs = new_neighs
                     del new_neighs
@@ -204,7 +199,7 @@ class NeighborList(object):
            This is slow. Use this method for debugging only!
         """
         dictionary = {}
-        for i in xrange(self.nneigh):
+        for i in range(self.nneigh):
             key = (
                 self.neighs[i]['a'], self.neighs[i]['b'], self.neighs[i]['r0'],
                 self.neighs[i]['r1'], self.neighs[i]['r2']
@@ -234,31 +229,31 @@ class NeighborList(object):
         # B) Define loops of cell vectors
         if self.system.cell.nvec == 3:
             def rloops():
-                for r2 in xrange(0, self.rmax[2]+1):
+                for r2 in range(0, self.rmax[2]+1):
                     if r2 == 0:
                         r1_start = 0
                     else:
                         r1_start = -self.rmax[1]
-                    for r1 in xrange(r1_start, self.rmax[1]+1):
+                    for r1 in range(r1_start, self.rmax[1]+1):
                         if r2 == 0 and r1 == 0:
                             r0_start = 0
                         else:
                             r0_start = -self.rmax[0]
-                        for r0 in xrange(r0_start, self.rmax[0]+1):
+                        for r0 in range(r0_start, self.rmax[0]+1):
                             yield r0, r1, r2
         elif self.system.cell.nvec == 2:
             def rloops():
-                for r1 in xrange(0, self.rmax[1]+1):
+                for r1 in range(0, self.rmax[1]+1):
                     if r1 == 0:
                         r0_start = 0
                     else:
                         r0_start = -self.rmax[0]
-                    for r0 in xrange(r0_start, self.rmax[0]+1):
+                    for r0 in range(r0_start, self.rmax[0]+1):
                         yield r0, r1, 0
 
         elif self.system.cell.nvec == 1:
             def rloops():
-                for r0 in xrange(0, self.rmax[0]+1):
+                for r0 in range(0, self.rmax[0]+1):
                     yield r0, 0, 0
         else:
             def rloops():
@@ -268,8 +263,8 @@ class NeighborList(object):
         validation = {}
         nvec = self.system.cell.nvec
         for r0, r1, r2 in rloops():
-            for a in xrange(self.system.natom):
-                for b in xrange(a+1):
+            for a in range(self.system.natom):
+                for b in range(a+1):
                     if r0!=0 or r1!=0 or r2!=0:
                         signs = [1, -1]
                     elif a > b:
@@ -294,7 +289,7 @@ class NeighborList(object):
         # D) Compare
         wrong = False
         with log.section('NLIST'):
-            for key0, value0 in validation.iteritems():
+            for key0, value0 in validation.items():
                 value1 = actual.pop(key0, None)
                 if value1 is None:
                     log('Missing:  ', key0)
@@ -320,7 +315,7 @@ class NeighborList(object):
                         (abs(value0 - value1).max()/log.length.conversion)
                     )
                     wrong = True
-            for key1, value1 in actual.iteritems():
+            for key1, value1 in actual.items():
                 log('Redundant:', key1)
                 log('  Actual     %s %s %s %s' % (
                     log.length(value1[0]), log.length(value1[1]),

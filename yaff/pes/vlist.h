@@ -1,5 +1,5 @@
-// YAFF is yet another force-field code
-// Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+// YAFF is yet another force-field code.
+// Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 // Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 // (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 // stated.
@@ -19,7 +19,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see <http://www.gnu.org/licenses/>
 //
-//--
+// --
 
 
 #ifndef YAFF_VLIST_H
@@ -28,10 +28,12 @@
 #include "iclist.h"
 
 typedef struct {
-  long kind;
-  double par0, par1, par2, par3, par4, par5;
-  long ic0, ic1;//, ic2;
-  double energy;
+  long kind;               // The kind of energy term, e.g. harmonic, fues, ...
+  double par0, par1;       // The parameters for the energy term:
+  double par2, par3;       // The meaning of these parameters depends on kind.
+  double par4, par5;
+  long ic0, ic1;//, ic2;   // Indexes of rows in the table of internal coordinates. (See InternalCoordinatList class.)
+  double energy;           // The computed value of the energy, output of forward method.
 } vlist_row_type;
 
 double vlist_forward(iclist_row_type* ictab, vlist_row_type* vtab, long nv);

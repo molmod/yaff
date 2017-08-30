@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,7 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 """Internal-coordinate lists for covalent energy terms
 
    An ``InternalCoordinateList`` object contains a table, where each row
@@ -58,27 +58,18 @@
 """
 
 
+from __future__ import division
+
 import numpy as np
 
 from yaff.log import log
-from yaff.pes.ext import iclist_forward, iclist_back
+from yaff.pes.ext import iclist_dtype, iclist_forward, iclist_back
 
 
 __all__ = [
     'InternalCoordinateList', 'InternalCoordinate', 'Bond', 'BendAngle',
     'BendCos', 'DihedAngle', 'DihedCos', 'UreyBradley', 'OopAngle',
     'OopMeanAngle', 'OopCos', 'OopMeanCos', 'OopDist',
-]
-
-
-iclist_dtype = [
-    ('kind', int),                      # Numerical code for the type of internal coordinate, e.g. bond, angle, ...
-    ('i0', int), ('sign0', int),        # row index and sign flip of first relative vector in ``DeltaList`` object
-    ('i1', int), ('sign1', int),        # row index and sign flip of second ...
-    ('i2', int), ('sign2', int),        # ...
-    ('i3', int), ('sign3', int),        # ...
-    ('value', float), ('grad', float)   # value = value of internal coordinate computed here
-                                        # grad = derivative of energy towards internal coordinate, stored here by another part of the code
 ]
 
 
@@ -119,9 +110,12 @@ class InternalCoordinateList(object):
             # No existing ic was found. Add a new ic to table
             if self.nic >= len(self.ictab):
                 self.ictab = np.resize(self.ictab, int(len(self.ictab)*1.5))
+            # Initialize a new row with non-sensical values
             row = self.nic
+            self.ictab[row] = (-1, -1, 0, -1, 0, -1, 0, -1, 0, np.nan, np.nan)
+            # Fill in the internal coordinates
             self.ictab[row]['kind'] = ic.kind
-            for i in xrange(len(rows_signs)):
+            for i in range(len(rows_signs)):
                 self.ictab[row]['i%i'%i] = rows_signs[i][0]
                 self.ictab[row]['sign%i'%i] = rows_signs[i][1]
             self.lookup[key] = row
@@ -144,6 +138,19 @@ class InternalCoordinateList(object):
            The actual computation is carried out by a low-level C routine.
         """
         iclist_back(self.dlist.deltas, self.ictab, self.nic)
+
+    def lookup_atoms(self, row):
+        """Look up the atom for a given row index."""
+        result = []
+        for i in range(4):
+            key = 'i{}'.format(i)
+            if self.ictab[row][key] >= 0:
+                pair = self.dlist.lookup_atoms(self.ictab[row][key])
+                key_sign = 'sign{}'.format(i)
+                if self.ictab[row][key_sign] < 0:
+                    pair = pair[::-1]
+                result.append(pair)
+        return result
 
 
 class InternalCoordinate(object):

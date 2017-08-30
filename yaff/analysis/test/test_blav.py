@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,12 +20,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 
+
+from __future__ import division
 
 import tempfile, shutil, os, numpy as np
 
 from yaff import *
+from molmod.test.common import tmpdir
 
 
 def test_blav():
@@ -35,10 +38,7 @@ def test_blav():
     eps1 = 1.0
     y = np.sin(np.random.normal(0, eps0, n).cumsum() + np.random.normal(0, eps1, n))
     # create a temporary directory to write the plot to
-    dn = tempfile.mkdtemp('yaff', 'test_blav')
-    try:
+    with tmpdir(__name__, 'test_blav') as dn:
         fn_png = '%s/blav.png' % dn
         error, sinef = blav(y, 100, fn_png)
         assert os.path.isfile(fn_png)
-    finally:
-        shutil.rmtree(dn)

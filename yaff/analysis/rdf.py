@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,9 +20,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 '''Radial distribution functions'''
 
+
+from __future__ import division
 
 import numpy as np
 
@@ -214,7 +216,7 @@ class RDF(AnalysisHook):
         self.pos0 = np.zeros((self.natom0, 3), float)
         # the number of pairs
         if self.select1 is None:
-            self.npair = (self.natom0*(self.natom0-1))/2
+            self.npair = (self.natom0*(self.natom0-1))//2
             self.pos1 = None
         else:
             self.natom1 = len(self.select1)

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,14 +20,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 
+
+from __future__ import division
 
 import numpy as np
 
 from molmod import kcalmol, angstrom, rad, deg, femtosecond, boltzmann
 from molmod.periodic import periodic
-from molmod.io import XYZWriter
 
 from yaff import *
 
@@ -47,7 +48,7 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
         part_valence = ForcePartValence(system)
         for i, j in system.bonds:
             part_valence.add_term(Harmonic(450.0*kcalmol/angstrom**2, 0.9572*angstrom, Bond(i, j)))
-        for i1 in xrange(system.natom):
+        for i1 in range(system.natom):
             for i0 in system.neighs1[i1]:
                 for i2 in system.neighs1[i1]:
                     if i0 > i2:
@@ -64,7 +65,7 @@ def get_ff_water32(do_valence=False, do_lj=False, do_eireal=False, do_eireci=Fal
         epsilon_table = {1: -0.0460*kcalmol, 8: -0.1521*kcalmol}
         sigmas = np.zeros(96, float)
         epsilons = np.zeros(96, float)
-        for i in xrange(system.natom):
+        for i in range(system.natom):
             sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
             epsilons[i] = epsilon_table[system.numbers[i]]
         pair_pot_lj = PairPotLJ(sigmas, epsilons, rcut, tr)
@@ -97,7 +98,6 @@ def test_vtens_water32_full():
 
 
 def test_md_water32_full():
-    dump = False
     ff = get_ff_water32(True, True, True, True)
     pos = ff.system.pos.copy()
     grad = np.zeros(pos.shape)
@@ -111,16 +111,12 @@ def test_md_water32_full():
     velh = vel + (-0.5*h)*grad/mass
     # prop
     cqs = []
-    if dump:
-        symbols = [system.get_ffatype(i) for i in xrange(system.natom)]
-        xyz_writer = XYZWriter('traj.xyz', symbols)
-    for i in xrange(100):
+    symbols = [ff.system.get_ffatype(i) for i in range(ff.system.natom)]
+    for i in range(100):
         pos += velh*h
         ff.update_pos(pos)
         grad[:] = 0.0
         epot = ff.compute(grad)
-        if dump:
-            xyz_writer.dump('i = %i  energy = %.10f' % (i, epot), pos)
         tmp = (-0.5*h)*grad/mass
         vel = velh + tmp
         ekin = 0.5*(mass*vel*vel).sum()

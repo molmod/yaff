@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,9 +20,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 '''Spectral analysis and autocorrelation functions'''
 
+
+from __future__ import division
 
 import numpy as np
 
@@ -115,7 +117,7 @@ class Spectrum(AnalysisHook):
         self.bsize = bsize
         self.select = select
         self.weights = weights
-        self.ssize = self.bsize/2+1 # the length of the spectrum array
+        self.ssize = self.bsize//2+1 # the length of the spectrum array
         self.amps = np.zeros(self.ssize, float)
         self.nfft = 0 # the number of fft calls, for statistics
         if outpath is None:

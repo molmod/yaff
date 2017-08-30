@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,18 +20,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
-''' Toolkit for Principal Component Analysis (PCA) '''
+# --
+"""Toolkit for Principal Component Analysis (PCA)"""
+
+
+from __future__ import division
 
 import h5py as h5
 import numpy as np
 import scipy.linalg as spla
 import matplotlib.pyplot as pt
+from scipy import random
+
 from molmod.units import *
 from molmod.constants import boltzmann
-from scipy import random
 from molmod.io.xyz import XYZWriter
 from molmod.periodic import periodic as pd
+
 from yaff.log import log
 
 __all__ = [
@@ -194,37 +199,38 @@ def calc_pca(f_target, cov_mat=None, f=None, q_ref=None, start=0, end=None, step
         eigvec = eigvec[:,idx]
 
         # Create output HDF5 file
-        g = h5.File(f_target,'w')
-        pca = g.create_group('pca')
-        # Output reference structure q_ref
-        pca.create_dataset('q_ref', data=q_ref)
-        # Output covariance matrix
-        pca.create_dataset('cov_matrix', data=cov_mat)
-        # Output eigenvectors in columns
-        pca.create_dataset('pm', data=eigvec)
-        # Output eigenvalues
-        pca.create_dataset('eigvals', data=eigval)
+        with h5.File(f_target, 'w') as g:
+            pca = g.create_group('pca')
+            # Output reference structure q_ref
+            pca.create_dataset('q_ref', data=q_ref)
+            # Output covariance matrix
+            pca.create_dataset('cov_matrix', data=cov_mat)
+            # Output eigenvectors in columns
+            pca.create_dataset('pm', data=eigvec)
+            # Output eigenvalues
+            pca.create_dataset('eigvals', data=eigval)
 
-        log('Determining inverse of the covariance matrix')
-        # Process matrix to determine inverse
-        # First, project out the three zero eigenvalues (translations)
-        eigvec_reduced = eigvec[:,:-3]
-        eigval_reduced = eigval[:-3]
+            log('Determining inverse of the covariance matrix')
+            # Process matrix to determine inverse
+            # First, project out the three zero eigenvalues (translations)
+            eigvec_reduced = eigvec[:,:-3]
+            eigval_reduced = eigval[:-3]
 
-        # Second, calculate the reduced covariance matrix and its inverse
-        cov_mat_reduced = np.dot(np.dot(eigvec_reduced, np.diag(eigval_reduced)), eigvec_reduced.T)
-        cov_mat_inverse = np.dot(np.dot(eigvec_reduced, np.diag(1/eigval_reduced)), eigvec_reduced.T)
-        pca.create_dataset('cov_mat_red', data=cov_mat_reduced)
-        pca.create_dataset('cov_mat_inv', data=cov_mat_inverse)
+            # Second, calculate the reduced covariance matrix and its inverse
+            cov_mat_reduced = np.dot(np.dot(eigvec_reduced, np.diag(eigval_reduced)), eigvec_reduced.T)
+            cov_mat_inverse = np.dot(np.dot(eigvec_reduced, np.diag(1/eigval_reduced)), eigvec_reduced.T)
+            pca.create_dataset('cov_mat_red', data=cov_mat_reduced)
+            pca.create_dataset('cov_mat_inv', data=cov_mat_inverse)
 
-        # Third, if the temperature is specified, calculate the frequencies
-        # (the zero frequencies are mentioned last so that their index corresponds to the principal modes)
-        if temp is not None:
-            log('Determining frequencies')
-            frequencies = np.append(np.sqrt(boltzmann*temp/eigval_reduced)/(2*np.pi), np.repeat(0,3))
-            pca.create_dataset('freqs', data=frequencies)
+            # Third, if the temperature is specified, calculate the frequencies
+            # (the zero frequencies are mentioned last so that their index corresponds to the principal modes)
+            if temp is not None:
+                log('Determining frequencies')
+                frequencies = np.append(np.sqrt(boltzmann*temp/eigval_reduced)/(2*np.pi), np.repeat(0,3))
+                pca.create_dataset('freqs', data=frequencies)
 
     return eigval, eigvec
+
 
 def pca_projection(f_target, f, pm, start=0, end=None, step=1, select=None, path='trajectory/pos', mw=True):
     """
@@ -293,14 +299,13 @@ def pca_projection(f_target, f, pm, start=0, end=None, step=1, select=None, path
         prin_comp = np.dot(q, pm)
 
     # Create output HDF5 file
-    g = h5.File(f_target,'a')
-    if not 'pca' in g:
-        pca = g.create_group('pca')
-    else:
-        pca = g['pca']
-    pca.create_dataset('pc', data=prin_comp)
+    with h5.File(f_target, 'a') as g:
+        if not 'pca' in g:
+            pca = g.create_group('pca')
+        else:
+            pca = g['pca']
+        pca.create_dataset('pc', data=prin_comp)
 
-    return pca
 
 def write_principal_mode(f, f_pca, index, n_frames=100, select=None, mw=True, scaling=1.):
     """
@@ -355,7 +360,7 @@ def write_principal_mode(f, f_pca, index, n_frames=100, select=None, mw=True, sc
     pc = grp['pc'][:,index]
 
     with log.section('PCA'):
-        for i in xrange(len(index)):
+        for i in range(len(index)):
             log('Writing out principal mode %s' %index[i])
             if eigval[i] < 0:
                 Warning('Negative eigenvalue encountered, skipping this entry')
@@ -367,7 +372,7 @@ def write_principal_mode(f, f_pca, index, n_frames=100, select=None, mw=True, sc
             # Determine index in trajectory closest to rest state, and the corresponding positions
             ind_min = np.argmin(np.abs(pc[:,i]))
             r_ref = pos[ind_min,:,:]
-            for j in xrange(n_frames):
+            for j in range(n_frames):
                 q_var = scaling*pm[:,i]*max_fluct*(2.*j-n_frames)/n_frames
                 if mw:
                     q_var /= np.sqrt(masses)
@@ -453,13 +458,13 @@ def pca_convergence(f, eq_time=0*picosecond, n_parts=None, step=1, fn='PCA_conve
     # Initialize the average similarity vector of the divided trajectories
     sim_block = np.zeros(len(n_parts))
     # Calculate this average similarity vector
-    for j in xrange(len(n_parts)):
+    for j in range(len(n_parts)):
         # Determine in how many parts the trajectory should be divided and the corresponding block size
         n_part = n_parts[j]
-        block_size = (time_length-eq_size)/n_part
+        block_size = (time_length-eq_size)//n_part
         # Calculate the n_part covariance matrices and compare with the total covariance matrix
         tot_sim_block=0
-        for i in xrange(n_part):
+        for i in range(n_part):
             start = eq_size + i*block_size
             covars, tmp = calc_cov_mat(f, start=start, end=start+block_size+1, step=step, mw=mw)
             tot_sim_block += pca_similarity(covars, covar_total)
@@ -484,7 +489,7 @@ def pca_convergence(f, eq_time=0*picosecond, n_parts=None, step=1, fn='PCA_conve
     # Initialize the vector containing the average similarity over all the bootstrapped, divided trajectories
     sim_bt_all = np.zeros(len(n_parts))
 
-    for k in xrange(n_bootstrap):
+    for k in range(n_bootstrap):
         with log.section('PCA'):
             log('Processing %s of %s bootstrapped trajectories' %(k+1,n_bootstrap))
             # Create a bootstrapped trajectory bt
@@ -500,13 +505,13 @@ def pca_convergence(f, eq_time=0*picosecond, n_parts=None, step=1, fn='PCA_conve
             # for the given bootstrapped trajectory
             sim_bt = np.zeros(len(n_parts))
 
-            for j in xrange(len(n_parts)):
+            for j in range(len(n_parts)):
                 # Calculate the number of blocks, as well as the block size
                 n_part = n_parts[j]
-                block_size = (len(time)-eq_size)/n_part
+                block_size = (len(time)-eq_size)//n_part
                 tot_sim_bt = 0
                 # Calculate the total similarity of this number of blocks, for this bootstrapped trajectory
-                for i in xrange(n_part):
+                for i in range(n_part):
                     start = eq_size + i*block_size
                     pos_bt_block = pos_bt[start:start+block_size:step]
                     covars_bt, tmp = calc_cov_mat_internal(pos_bt_block)

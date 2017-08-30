@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,11 +20,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 
 
+from __future__ import division
 
 import numpy as np
+from nose.tools import assert_raises
 
 from yaff import *
 
@@ -86,11 +88,8 @@ def test_compile():
 def test_compile_failures():
     ss = ['((C)', '())(', '=x', '!!', '&', '=2%()']
     for s in ss:
-        try:
+        with assert_raises(ValueError):
             fn = atsel_compile(s)
-            assert False, 'The following should raise a ValueError when compiling: %s' % s
-        except ValueError:
-            pass
 
 
 def test_atselect_water32():
@@ -160,3 +159,42 @@ def test_atselect_scope():
     assert (system.get_indexes('WAT:1|WAT:8')==np.array([0, 1, 2])).all()
     assert (system.get_indexes('O')==np.array([0, 7])).all()
     assert (system.get_indexes('8')==np.array([0, 7])).all()
+
+
+def test_iter_matches_water_water():
+    # Water molecule with oxygen in center
+    dm0 = np.array([
+        [0, 1, 2],
+        [1, 0, 1],
+        [2, 1, 0],
+    ])
+    # Water molecule with oxygen first
+    dm1 = np.array([
+        [0, 1, 1],
+        [1, 0, 2],
+        [1, 2, 0],
+    ])
+    # Allowed new indexes
+    allowed = [[1], [0, 2], [0, 2]]
+    # Get all solutions
+    solutions = np.array(sorted(iter_matches(dm0, dm1, allowed)))
+    np.testing.assert_equal(solutions, [[1, 0, 2], [1, 2, 0]])
+
+
+def test_iter_matches_water_hydroxyl():
+    # Water molecule with oxygen in center
+    dm0 = np.array([
+        [0, 1, 2],
+        [1, 0, 1],
+        [2, 1, 0],
+    ])
+    # Hydroxyl group
+    dm1 = np.array([
+        [0, 1],
+        [1, 0],
+    ])
+    # Allowed new indexes
+    allowed = [[1], [0, 2]]
+    # Get all solutions
+    solutions = np.array(sorted(iter_matches(dm0, dm1, allowed)))
+    np.testing.assert_equal(solutions, [[1, 0], [1, 2]])

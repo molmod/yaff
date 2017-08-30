@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,9 +20,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 
 
+from __future__ import division
+
+from nose.tools import assert_raises
 import numpy as np
 
 from yaff.test.common import get_system_water32, get_system_glycine, \
@@ -51,7 +54,7 @@ def test_scaling_glycine():
     system = get_system_glycine()
     stab = Scalings(system, 1.0, 0.5, 0.2).stab # warning: absurd numbers
     assert (stab['a'] > stab['b']).all()
-    assert len(stab) == sum(len(system.neighs2[i]) + len(system.neighs3[i]) for i in xrange(system.natom))/2
+    assert len(stab) == sum(len(system.neighs2[i]) + len(system.neighs3[i]) for i in range(system.natom))//2
     for i0, i1, scale, nbond in stab:
         if i0 in system.neighs2[i1]:
             assert scale == 0.5
@@ -65,7 +68,7 @@ def test_scaling_quartz():
     system = get_system_quartz().supercell(2, 2, 2)
     stab = Scalings(system).stab
     assert (stab['a'] > stab['b']).all()
-    assert len(stab) == sum(len(system.neighs1[i]) + len(system.neighs2[i]) for i in xrange(system.natom))/2
+    assert len(stab) == sum(len(system.neighs1[i]) + len(system.neighs2[i]) for i in range(system.natom))//2
     for i0, i1, scale, nbond in stab:
         assert scale == 0.0
         assert i0 in system.neighs1[i1] or i0 in system.neighs2[i1]
@@ -98,9 +101,5 @@ def test_iter_paths3():
 
 def test_scaling_mil53():
     system = get_system_mil53()
-    try:
+    with assert_raises(AssertionError):
         scalings = Scalings(system)
-        success = False
-    except AssertionError:
-        success = True
-    assert success

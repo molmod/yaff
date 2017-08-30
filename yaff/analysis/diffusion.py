@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,9 +20,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 '''Diffusion constants'''
 
+
+from __future__ import division
 
 import numpy as np
 
@@ -104,12 +106,12 @@ class Diffusion(AnalysisHook):
         for s in self.shape[1:]:
             self.ndim *= s
         # allocate working arrays
-        self.last_poss = [np.zeros(self.shape, float) for i in xrange(self.mult)]
+        self.last_poss = [np.zeros(self.shape, float) for i in range(self.mult)]
         self.pos = np.zeros(self.shape, float)
         # prepare the hdf5 output file, if present.
         AnalysisHook.init_first(self)
         if self.outg is not None:
-            for m in xrange(self.mult):
+            for m in range(self.mult):
                 self.outg.create_dataset('msd%03i' % (m+1), shape=(0,), maxshape=(None,), dtype=float)
             self.outg.create_dataset('msdsums', data=self.msdsums)
             self.outg.create_dataset('msdcounters', data=self.msdcounters)
@@ -138,7 +140,7 @@ class Diffusion(AnalysisHook):
             ds_pos.read_direct(self.pos, (i, self.select))
 
     def compute_iteration(self):
-        for m in xrange(self.mult):
+        for m in range(self.mult):
             if self.counter % (m+1) == 0:
                 if self.counter > 0 and not self.overlap_bsize(m):
                     msd = ((self.pos - self.last_poss[m])**2).mean()*self.ndim
@@ -199,7 +201,7 @@ class Diffusion(AnalysisHook):
         if self.bsize is None:
             return False
         else:
-            return self.counter - (self.counter/self.bsize)*self.bsize - m - 1 < 0
+            return self.counter - (self.counter//self.bsize)*self.bsize - m - 1 < 0
 
     def update_msd(self, msd, m):
         self.msdsums[m] += msd

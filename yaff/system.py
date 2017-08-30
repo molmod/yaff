@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,14 +20,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 '''Representation of a molecular systems'''
 
+
+from __future__ import division
 
 import numpy as np, h5py as h5
 
 from yaff.log import log
-from yaff.atselect import check_name, atsel_compile
+from yaff.atselect import check_name, atsel_compile, iter_matches
 from yaff.pes.ext import Cell
 
 
@@ -41,7 +43,7 @@ def _unravel_triangular(i):
        flattened triangular matrix.
     """
     i0 = int(np.floor(0.5*(np.sqrt(1+8*i)-1)))+1
-    i1 = i - (i0*(i0-1))/2
+    i1 = i - (i0*(i0-1))//2
     return i0, i1
 
 
@@ -50,7 +52,8 @@ class System(object):
                  ffatype_ids=None, bonds=None, rvecs=None, charges=None,
                  radii=None, valence_charges=None, dipoles=None, radii2=None,
                  masses=None):
-        '''
+        r'''Initialize a System object.
+
            **Arguments:**
 
            numbers
@@ -97,9 +100,14 @@ class System(object):
                 An array of atomic charges
 
            radii
-                An array of atomic radii that determine shape of charge
-                distribution
-                rho[i]=charges[i]/(sqrt(pi)radii[i]**3)*exp(-(|r-pos[i]|/radii[i])**2)
+                An array of atomic radii, :math:`R_{A,c}`, that determine shape of the atomic
+                charge distribution:
+
+                .. math::
+
+                    \rho_{A,c}(\mathbf{r}) = \frac{q_A}{\pi^{3/2}R_{A,c}^3} \exp\left(
+                    -\frac{|r - \mathbf{R}_A|^2}{R_{A,c}^2}
+                    \right)
 
            valence_charges
                 In case a point-core + distribute valence charge is used, this
@@ -111,9 +119,16 @@ class System(object):
                 An array of atomic dipoles
 
            radii2
-                An array of atomic radii that determine shape of dipole
-                distribution
-                rho[i]=-(dipoles[i] dot r-pos[i])*2.0/(sqrt(pi)radii2[i]**5)*exp(-(|r-pos[i]|/radii[i])**2)
+                An array of atomic radii, :math:`R_{A,d}`, that determine shape of the
+                atomic dipole distribution:
+
+                .. math::
+
+                   \rho_{A,d}(\mathbf{r}) = -2\frac{\mathbf{d}_A \cdot (\mathbf{r} - \mathbf{R}_A)}{
+                   \sqrt{\pi} R_{A,d}^5
+                   }\exp\left(
+                    -\frac{|r - \mathbf{R}_A|^2}{R_{A,d}^2}
+                    \right)
 
            masses
                 The atomic masses (in atomic units, i.e. m_e)
@@ -161,10 +176,10 @@ class System(object):
             log('Number of periodic dimensions: %i' % self.cell.nvec)
             lengths, angles = self.cell.parameters
             names = 'abc'
-            for i in xrange(len(lengths)):
+            for i in range(len(lengths)):
                 log('Cell parameter %5s: %10s' % (names[i], log.length(lengths[i])))
             names = 'alpha', 'beta', 'gamma'
-            for i in xrange(len(angles)):
+            for i in range(len(angles)):
                 log('Cell parameter %5s: %10s' % (names[i], log.angle(angles[i])))
             log.hline()
             log.blank()
@@ -183,13 +198,13 @@ class System(object):
 
     def _init_derived_bonds(self):
         # 1-bond neighbors
-        self.neighs1 = dict((i,set([])) for i in xrange(self.natom))
+        self.neighs1 = dict((i,set([])) for i in range(self.natom))
         for i0, i1 in self.bonds:
             self.neighs1[i0].add(i1)
             self.neighs1[i1].add(i0)
         # 2-bond neighbors
-        self.neighs2 = dict((i,set([])) for i in xrange(self.natom))
-        for i0, n0 in self.neighs1.iteritems():
+        self.neighs2 = dict((i,set([])) for i in range(self.natom))
+        for i0, n0 in self.neighs1.items():
             for i1 in n0:
                 for i2 in self.neighs1[i1]:
                     # Require that there are no shorter paths than two bonds between
@@ -198,8 +213,8 @@ class System(object):
                         self.neighs2[i0].add(i2)
                         self.neighs2[i2].add(i0)
         # 3-bond neighbors
-        self.neighs3 = dict((i,set([])) for i in xrange(self.natom))
-        for i0, n0 in self.neighs1.iteritems():
+        self.neighs3 = dict((i,set([])) for i in range(self.natom))
+        for i0, n0 in self.neighs1.items():
             for i1 in n0:
                 for i3 in self.neighs2[i1]:
                     # Require that there are no shorter paths than three bonds
@@ -208,8 +223,8 @@ class System(object):
                         self.neighs3[i0].add(i3)
                         self.neighs3[i3].add(i0)
         # 4-bond neighbors
-        self.neighs4 = dict((i,set([])) for i in xrange(self.natom))
-        for i0, n0 in self.neighs1.iteritems():
+        self.neighs4 = dict((i,set([])) for i in range(self.natom))
+        for i0, n0 in self.neighs1.items():
             for i1 in n0:
                 for i4 in self.neighs3[i1]:
                     # Require that there are no shorter paths than three bonds
@@ -226,20 +241,20 @@ class System(object):
                 bond_types[key] = bond_types.get(key, 0) + 1
             log.hline()
             log(' First   Second   Count')
-            for (num0, num1), count in sorted(bond_types.iteritems()):
+            for (num0, num1), count in sorted(bond_types.items()):
                 log('%6i   %6i   %5i' % (num0, num1, count))
             log.hline()
             log.blank()
 
             log('Analysis of the neighbors:')
             log.hline()
-            log('Number of first neighbors:  %6i' % (sum(len(n) for n in self.neighs1.itervalues())/2))
-            log('Number of second neighbors: %6i' % (sum(len(n) for n in self.neighs2.itervalues())/2))
-            log('Number of third neighbors:  %6i' % (sum(len(n) for n in self.neighs3.itervalues())/2))
+            log('Number of first neighbors:  %6i' % (sum(len(n) for n in self.neighs1.values())//2))
+            log('Number of second neighbors: %6i' % (sum(len(n) for n in self.neighs2.values())//2))
+            log('Number of third neighbors:  %6i' % (sum(len(n) for n in self.neighs3.values())//2))
             # Collect all types of 'environments' for each element. This is
             # useful to double check the bonds
             envs = {}
-            for i0 in xrange(self.natom):
+            for i0 in range(self.natom):
                 num0 = self.numbers[i0]
                 nnums = tuple(sorted(self.numbers[i1] for i1 in self.neighs1[i0]))
                 key = (num0, nnums)
@@ -247,7 +262,7 @@ class System(object):
             # Print the environments on screen
             log.hline()
             log('Element   Neighboring elements   Count')
-            for (num0, nnums), count in sorted(envs.iteritems()):
+            for (num0, nnums), count in sorted(envs.items()):
                 log('%7i   %20s   %5i' % (num0, ','.join(str(num1) for num1 in nnums), count))
             log.hline()
             log.blank()
@@ -260,7 +275,7 @@ class System(object):
             lookup = {}
             scopes = []
             self.scope_ids = np.zeros(self.natom, int)
-            for i in xrange(self.natom):
+            for i in range(self.natom):
                 scope = self.scopes[i]
                 scope_id = lookup.get(scope)
                 if scope_id is None:
@@ -291,7 +306,7 @@ class System(object):
             lookup = {}
             ffatypes = []
             self.ffatype_ids = np.zeros(self.natom, int)
-            for i in xrange(self.natom):
+            for i in range(self.natom):
                 if self.scope_ids is None:
                     ffatype = self.ffatypes[i]
                     key = ffatype, None
@@ -316,7 +331,7 @@ class System(object):
         if self.scopes is not None:
             self.ffatype_id_to_scope_id = {}
             fixed_fids = {}
-            for i in xrange(self.natom):
+            for i in range(self.natom):
                 fid = self.ffatype_ids[i]
                 sid = self.ffatype_id_to_scope_id.get(fid)
                 if sid is None:
@@ -437,7 +452,7 @@ class System(object):
                         'ffatype_ids', 'bonds', 'rvecs', 'charges', 'radii',
                         'valence_charges', 'dipoles', 'radii2', 'masses',
                     ]
-                    for key, value in load_chk(fn).iteritems():
+                    for key, value in load_chk(fn).items():
                         if key in allowed_keys:
                             kwargs.update({key: value})
                 elif fn.endswith('.h5'):
@@ -465,9 +480,13 @@ class System(object):
             'numbers': sgrp['numbers'][:],
             'pos': sgrp['pos'][:],
         }
-        for key in 'scopes', 'scope_ids', 'ffatypes', 'ffatype_ids', 'bonds', 'rvecs', 'charges', 'masses':
+        for key in 'scope_ids', 'ffatype_ids', 'bonds', 'rvecs', 'charges', 'masses':
             if key in sgrp:
                 kwargs[key] = sgrp[key][:]
+        # String arrays have to be converted back to unicode...
+        for key in 'scopes', 'ffatypes':
+            if key in sgrp:
+                kwargs[key] = np.asarray(sgrp[key][:], 'U22')
         if log.do_high:
             log('Read system parameters from %s.' % f.filename)
         return cls(**kwargs)
@@ -508,6 +527,10 @@ class System(object):
                 'bonds': self.bonds,
                 'rvecs': self.cell.rvecs,
                 'charges': self.charges,
+                'radii': self.radii,
+                'valence_charges': self.valence_charges,
+                'dipoles': self.dipoles,
+                'radii2': self.radii2,
                 'masses': self.masses,
             })
         elif fn.endswith('.h5'):
@@ -538,10 +561,10 @@ class System(object):
         sgrp.create_dataset('numbers', data=self.numbers)
         sgrp.create_dataset('pos', data=self.pos)
         if self.scopes is not None:
-            sgrp.create_dataset('scopes', data=self.scopes, dtype='a22')
+            sgrp.create_dataset('scopes', data=np.asarray(self.scopes, 'S22'))
             sgrp.create_dataset('scope_ids', data=self.scope_ids)
         if self.ffatypes is not None:
-            sgrp.create_dataset('ffatypes', data=self.ffatypes, dtype='a22')
+            sgrp.create_dataset('ffatypes', data=np.asarray(self.ffatypes, 'S22'))
             sgrp.create_dataset('ffatype_ids', data=self.ffatype_ids)
         if self.bonds is not None:
             sgrp.create_dataset('bonds', data=self.bonds)
@@ -549,9 +572,16 @@ class System(object):
             sgrp.create_dataset('rvecs', data=self.cell.rvecs)
         if self.charges is not None:
             sgrp.create_dataset('charges', data=self.charges)
+        if self.radii is not None:
+            sgrp.create_dataset('radii', data=self.radii)
+        if self.valence_charges is not None:
+            sgrp.create_dataset('valence_charges', data=self.charges)
+        if self.dipoles is not None:
+            sgrp.create_dataset('dipoles', data=self.dipoles)
+        if self.radii2 is not None:
+            sgrp.create_dataset('radii2', data=self.radii2)
         if self.masses is not None:
             sgrp.create_dataset('masses', data=self.masses)
-
 
     def get_scope(self, index):
         """Return the of the scope (string) of atom with given index"""
@@ -571,9 +601,9 @@ class System(object):
 
            A list of atom indexes is returned.
         """
-        if isinstance(rule, basestring):
+        if isinstance(rule, str):
             rule = atsel_compile(rule)
-        return np.array([i for i in xrange(self.natom) if rule(self, i)])
+        return np.array([i for i in range(self.natom) if rule(self, i)])
 
     def iter_bonds(self):
         """Iterate over all bonds."""
@@ -587,7 +617,7 @@ class System(object):
            This routine is based on the attribute ``bonds``.
         """
         if self.bonds is not None:
-            for i1 in xrange(self.natom):
+            for i1 in range(self.natom):
                 for i0 in self.neighs1[i1]:
                     for i2 in self.neighs1[i1]:
                         if i0 > i2:
@@ -613,7 +643,7 @@ class System(object):
            This routine is based on the attribute ``bonds``.
         """
         if self.bonds is not None:
-            for i3 in xrange(self.natom):
+            for i3 in range(self.natom):
                 if len(self.neighs1[i3])==3:
                     i0, i1, i2 = self.neighs1[i3]
                     yield i0, i1, i2, i3
@@ -637,7 +667,7 @@ class System(object):
             if self.bonds is not None:
                 if log.do_warning:
                     log.warn('Overwriting existing bonds.')
-            work = np.zeros((self.natom*(self.natom-1))/2, float)
+            work = np.zeros((self.natom*(self.natom-1))//2, float)
             self.cell.compute_distances(work, self.pos)
             ishort = (work < bonds.max_length*1.01).nonzero()[0]
             new_bonds = []
@@ -678,14 +708,14 @@ class System(object):
             my_rules = []
             for ffatype, rule in rules:
                 check_name(ffatype)
-                if isinstance(rule, basestring):
+                if isinstance(rule, str):
                     rule = atsel_compile(rule)
                 my_rules.append((ffatype, rule))
             # Use the rules to detect the atom types
             lookup = {}
             self.ffatypes = []
             self.ffatype_ids = np.zeros(self.natom, int)
-            for i in xrange(self.natom):
+            for i in range(self.natom):
                 my_ffatype = None
                 for ffatype, rule in my_rules:
                     if rule(self, i):
@@ -865,7 +895,7 @@ class System(object):
             # track of periodic image it connects to. Note that this information
             # is implicit in yaff, and derived using the minimum image convention.
             rel_iimage = {}
-            for ibond in xrange(len(self.bonds)):
+            for ibond in range(len(self.bonds)):
                 i0, i1 = self.bonds[ibond]
                 delta = self.pos[i0] - self.pos[i1]
                 frac = np.dot(self.cell.gvecs, delta)
@@ -875,7 +905,7 @@ class System(object):
             new_bonds = np.zeros((len(self.bonds)*rep_all,2), int)
             counter = 0
             for iimage0 in np.ndindex(reps):
-                for ibond in xrange(len(self.bonds)):
+                for ibond in range(len(self.bonds)):
                     i0, i1 = self.bonds[ibond]
                     # Translate i0 to the new index.
                     j0 = to_new_atom_index(iimage0, i0)
@@ -883,7 +913,7 @@ class System(object):
                     # The difficult case occurs when the bond between i0 and i1
                     # connects different periodic images. In that case, the change
                     # in periodic image must be taken into account.
-                    iimage1 = tuple((iimage0[c] + rel_iimage[ibond][c]) % reps[c] for c in xrange(len(reps)))
+                    iimage1 = tuple((iimage0[c] + rel_iimage[ibond][c]) % reps[c] for c in range(len(reps)))
                     j1 = to_new_atom_index(iimage1, i1)
                     new_bonds[counter,0] = j0
                     new_bonds[counter,1] = j1
@@ -907,7 +937,7 @@ class System(object):
            overlapping atoms defines the new value of a property.
         '''
         # compute distances
-        ndist = (self.natom*(self.natom-1))/2
+        ndist = (self.natom*(self.natom-1))//2
         if ndist == 0: # single atom systems, go home ...
             return
         dists = np.zeros(ndist)
@@ -917,8 +947,8 @@ class System(object):
         from molmod import ClusterFactory
         cf = ClusterFactory()
         counter = 0
-        for i0 in xrange(self.natom):
-            for i1 in xrange(i0):
+        for i0 in range(self.natom):
+            for i1 in range(i0):
                 if dists[counter] < threshold:
                     cf.add_related(i0, i1)
                 counter += 1
@@ -937,7 +967,7 @@ class System(object):
             old_reduced = set.union(*clusters)
         else:
             old_reduced = []
-        for item in xrange(self.natom): # all remaining atoms follow
+        for item in range(self.natom): # all remaining atoms follow
             if item not in old_reduced:
                 newold[counter] = [item]
                 oldnew[item] = counter
@@ -949,7 +979,7 @@ class System(object):
                 return None
             else:
                 new = np.zeros(natom, old.dtype)
-                for inew, iolds in newold.iteritems():
+                for inew, iolds in newold.items():
                     new[inew] = old[iolds[0]]
                 return new
 
@@ -958,7 +988,7 @@ class System(object):
                 return None
             else:
                 new = np.zeros(natom, old.dtype)
-                for inew, iolds in newold.iteritems():
+                for inew, iolds in newold.items():
                     new[inew] = old[iolds].mean()
                 return new
 
@@ -968,7 +998,7 @@ class System(object):
                 return None
             else:
                 new = np.zeros((natom,np.shape(old)[1]), old.dtype)
-                for inew, iolds in newold.iteritems():
+                for inew, iolds in newold.items():
                     new[inew] = old[iolds].mean(axis=0)
                 return new
 
@@ -985,7 +1015,7 @@ class System(object):
 
         # create averaged positions
         pos = np.zeros((natom, 3), float)
-        for inew, iolds in newold.iteritems():
+        for inew, iolds in newold.items():
             # move to the same image
             oldposs = self.pos[iolds].copy()
             assert oldposs.ndim == 2
@@ -1070,94 +1100,75 @@ class System(object):
                 new_bonds.append([i0, i1])
         self.bonds = np.array(new_bonds)
 
-    def to_file(self, fn):
-        """Write the system to a file
+    def iter_matches(self, other, overlapping=True):
+        """Yield all renumberings of atoms that map the given system on the current.
 
-           **Arguments:**
+        Parameters
+        ----------
+        other : yaff.System
+            Another system with the same number of atoms (and chemical formula), or less
+            atoms.
+        overlapping : bool
+            When set to False, the returned matches are guaranteed to be mutually
+            exclusive. The result may not be unique when partially overlapping matches
+            would exist. Use with care.
 
-           fn
-                The file to write to.
-
-           Supported formats are:
-
-           chk
-                Internal human-readable checkpoint format. This format includes
-                all the information of a system object. All data are stored in
-                atomic units.
-
-           h5
-                Internal binary checkpoint format. This format includes
-                all the information of a system object. All data are stored in
-                atomic units.
-
-           xyz
-                A simple file with atomic positions and elements. Coordinates
-                are written in Angstroms.
+        The graph distance is used to perform the mapping, so bonds must be defined in
+        the current and the given system.
         """
-        if fn.endswith('.chk'):
-            from molmod.io import dump_chk
-            dump_chk(fn, {
-                'numbers': self.numbers,
-                'pos': self.pos,
-                'ffatypes': self.ffatypes,
-                'ffatype_ids': self.ffatype_ids,
-                'scopes': self.scopes,
-                'scope_ids': self.scope_ids,
-                'bonds': self.bonds,
-                'rvecs': self.cell.rvecs,
-                'charges': self.charges,
-                'radii': self.radii,
-                'valence_charges': self.valence_charges,
-                'dipoles': self.dipoles,
-                'radii2': self.radii2,
-                'masses': self.masses,
-            })
-        elif fn.endswith('.h5'):
-            with h5.File(fn, 'w') as f:
-                self.to_hdf5(f)
-        elif fn.endswith('.xyz'):
-            from molmod.io import XYZWriter
-            from molmod.periodic import periodic
-            xyz_writer = XYZWriter(fn, [periodic[n].symbol for n in self.numbers])
-            xyz_writer.dump(str(self), self.pos)
-        else:
-            raise NotImplementedError('The extension of %s does not correspond to any known format.' % fn)
-        if log.do_high:
-            with log.section('SYS'):
-                log('Wrote system to %s.' % fn)
+        def make_graph_distance_matrix(system):
+            """Return a bond graph distance matrix.
 
-    def to_hdf5(self, f):
-        """Write the system to a HDF5 file.
+            Parameters
+            ----------
+            system : System
+                Molecule (with bonds) for which the graph distances must be computed.
 
-           **Arguments:**
+            The graph distance is used for comparison because it allows the pattern
+            matching to make optimal choices of which pairs of atoms to compare next, i.e.
+            both bonded or nearby the last matched pair.
+            """
+            from molmod.graphs import Graph
+            return Graph(system.bonds, system.natom).distances
 
-           f
-                A Writable h5.File object.
-        """
-        if 'system' in f:
-            raise ValueError('The HDF5 file already contains a system description.')
-        sgrp = f.create_group('system')
-        sgrp.create_dataset('numbers', data=self.numbers)
-        sgrp.create_dataset('pos', data=self.pos)
-        if self.scopes is not None:
-            sgrp.create_dataset('scopes', data=self.scopes, dtype='a22')
-            sgrp.create_dataset('scope_ids', data=self.scope_ids)
-        if self.ffatypes is not None:
-            sgrp.create_dataset('ffatypes', data=self.ffatypes, dtype='a22')
-            sgrp.create_dataset('ffatype_ids', data=self.ffatype_ids)
-        if self.bonds is not None:
-            sgrp.create_dataset('bonds', data=self.bonds)
-        if self.cell.nvec > 0:
-            sgrp.create_dataset('rvecs', data=self.cell.rvecs)
-        if self.charges is not None:
-            sgrp.create_dataset('charges', data=self.charges)
-        if self.radii is not None:
-            sgrp.create_dataset('radii', data=self.radii)
-        if self.valence_charges is not None:
-            sgrp.create_dataset('valence_charges', data=self.charges)
-        if self.dipoles is not None:
-            sgrp.create_dataset('dipoles', data=self.dipoles)
-        if self.radii2 is not None:
-            sgrp.create_dataset('radii2', data=self.radii2)
-        if self.masses is not None:
-            sgrp.create_dataset('masses', data=self.masses)
+        def error_sq_fn(x, y):
+            """Compare bonded versus not bonded, rather than the full graph distance.
+
+            Parameters
+            ----------
+            x, y: int
+                Graph distances from self and other, respectively.
+
+            Graph distances are not completely transferable between self and other, i.e. a
+            shorter path may exist between two atoms in the big system (self) that is not
+            present in a fragment (other). Hence, only the absence or presence of a direct
+            bond must be compared.
+            """
+            return (min(x - 1, 1) - min(y - 1, 1))**2
+
+        with log.section('SYS'):
+            log('Generating allowed indexes for renumbering.')
+            # The allowed permutations is just based on the chemical elements, not the atom
+            # types, which could also be useful.
+            allowed = []
+            if self.ffatypes is None or other.ffatypes is None:
+                for number1 in other.numbers:
+                    allowed.append((self.numbers == number1).nonzero()[0])
+            else:
+                # Only continue if other.ffatypes is a subset of self.ffatypes
+                if not (set(self.ffatypes) >= set(other.ffatypes)):
+                    return
+                ffatype_ids0 = self.ffatype_ids
+                ffatypes0 = list(self.ffatypes)
+                order = np.array([ffatypes0.index(ffatype) for ffatype in other.ffatypes])
+                ffatype_ids1 = order[other.ffatype_ids]
+                for ffatype_id1 in ffatype_ids1:
+                    allowed.append((ffatype_ids0 == ffatype_id1).nonzero()[0])
+            log('Building distance matrix for self.')
+            dm0 = make_graph_distance_matrix(self)
+            log('Building distance matrix for other.')
+            dm1 = make_graph_distance_matrix(other)
+            # Yield the solutions
+            log('Generating renumberings.')
+            for match in iter_matches(dm0, dm1, allowed, 1e-3, error_sq_fn, overlapping):
+                yield match

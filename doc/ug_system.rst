@@ -1,3 +1,27 @@
+..
+    : YAFF is yet another force-field code.
+    : Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+    : Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
+    : (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
+    : stated.
+    :
+    : This file is part of YAFF.
+    :
+    : YAFF is free software; you can redistribute it and/or
+    : modify it under the terms of the GNU General Public License
+    : as published by the Free Software Foundation; either version 3
+    : of the License, or (at your option) any later version.
+    :
+    : YAFF is distributed in the hope that it will be useful,
+    : but WITHOUT ANY WARRANTY; without even the implied warranty of
+    : MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    : GNU General Public License for more details.
+    :
+    : You should have received a copy of the GNU General Public License
+    : along with this program; if not, see <http://www.gnu.org/licenses/>
+    :
+    : --
+
 .. _ug_system:
 
 Representation of a molecular system
@@ -70,7 +94,7 @@ The ``System`` constructor arguments can be specified with some python code::
                       [-0.431, 3.397, 0.609], [0.377, 3.756, -0.688]])*angstrom,
         scopes=['WAT']*6,
         ffatypes=['O', 'H', 'H']*2,
-        bonds=np.array([[(i/3)*3,i] for i in xrange(6) if i%3!=0]),
+        bonds=np.array([[(i//3)*3,i] for i in range(6) if i%3!=0]),
         rvecs=np.array([[9.865, 0.0, 0.0], [0.0, 9.865, 0.0], [0.0, 0.0, 9.865]])*angstrom,
     )
 
@@ -89,7 +113,7 @@ equivalent to the previous example::
         scope_ids=[0]*6
         ffatypes=['O', 'H'],
         ffatype_ids=[0, 1, 1]*2
-        bonds=np.array([[(i/3)*3,i] for i in xrange(6) if i%3!=0]),
+        bonds=np.array([[(i//3)*3,i] for i in range(6) if i%3!=0]),
         rvecs=np.array([[9.865, 0.0, 0.0], [0.0, 9.865, 0.0], [0.0, 0.0, 9.865]])*angstrom,
     )
 

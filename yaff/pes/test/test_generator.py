@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,19 +20,25 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 
 
+from __future__ import division
+from __future__ import print_function
+
+import pkg_resources
+from nose.tools import assert_raises
 import numpy as np
 
 from yaff import *
+from yaff.log import log
 
 from yaff.test.common import get_system_water32, get_system_glycine, get_system_formaldehyde
 
 
 def test_generator_water32_bondharm():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_bondharm.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_bondharm.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     assert isinstance(ff.parts[0], ForcePartValence)
@@ -51,7 +57,7 @@ def test_generator_water32_bondharm():
 
 def test_generator_water32_bondfues():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_bondfues.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_bondfues.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     assert isinstance(ff.parts[0], ForcePartValence)
@@ -70,7 +76,7 @@ def test_generator_water32_bondfues():
 
 def test_generator_water32_bendaharm():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_bendaharm.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_bendaharm.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     assert isinstance(ff.parts[0], ForcePartValence)
@@ -89,7 +95,7 @@ def test_generator_water32_bendaharm():
 
 def test_generator_water32_bendcharm():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_bendcharm.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_bendcharm.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     assert isinstance(ff.parts[0], ForcePartValence)
@@ -108,7 +114,7 @@ def test_generator_water32_bendcharm():
 
 def test_generator_water32_ubharm():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_ubharm.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_ubharm.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     assert isinstance(ff.parts[0], ForcePartValence)
@@ -117,7 +123,7 @@ def test_generator_water32_ubharm():
     for i, j in system.bonds:
         row = part_valence.dlist.lookup.get((i, j))
         assert row is None
-    for i, n2s in system.neighs2.iteritems():
+    for i, n2s in system.neighs2.items():
         for j in n2s:
             row0 = part_valence.dlist.lookup.get((i, j))
             row1 = part_valence.dlist.lookup.get((j, i))
@@ -132,7 +138,7 @@ def test_generator_water32_ubharm():
 
 def test_generator_water32_cross():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_cross.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_cross.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     assert isinstance(ff.parts[0], ForcePartValence)
@@ -143,27 +149,93 @@ def test_generator_water32_cross():
         row1 = part_valence.dlist.lookup.get((j, i))
         assert row0 is not None or row1 is not None
     assert part_valence.iclist.nic == 96
-    iclist = part_valence.vlist.iclist
-    for row in part_valence.vlist.vtab:
+    vlist = part_valence.vlist
+    iclist = vlist.iclist
+    assert vlist.nv == 96
+    for irow in range(vlist.nv):
+        row = vlist.vtab[irow]
         assert row['kind'] == 3
         ic0 = iclist.ictab[row['ic0']]
         ic1 = iclist.ictab[row['ic1']]
         if ic0['kind'] == 0 and ic1['kind'] == 0:
-            assert row['par0'] - 2.0000000000e+01*(kjmol/angstrom**2) < 1e-10
-            assert row['par1'] - 0.9470000000e+00*angstrom < 1e-10
-            assert row['par2'] - 0.9470000000e+00*angstrom < 1e-10
+            np.testing.assert_allclose(row['par0'], 2.0000000000e+01*(kjmol/angstrom**2), rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par1'], 0.9470000000e+00*angstrom, rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par2'], 0.9470000000e+00*angstrom, rtol=0.0, atol=1e-10)
         elif ic0['kind'] == 0 and ic1['kind'] == 2:
-            assert row['par0'] - 1.0000000000e+01*(kjmol/angstrom*rad) < 1e-10
-            assert row['par1'] - 0.9470000000e+00*angstrom < 1e-10
-            assert row['par2'] - 1.0500000000e+02*deg < 1e-10
+            np.testing.assert_allclose(row['par0'], 1.0000000000e+01*(kjmol/angstrom*rad), rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par1'], 0.9470000000e+00*angstrom, rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par2'], 1.0500000000e+02*deg, rtol=0.0, atol=1e-10)
         else:
             raise AssertionError('ICs in Cross term should be Bond-Bond or Bond-BendAngle')
-    assert part_valence.vlist.nv == 96
+
+
+def test_generator_formaldehyde_cross():
+    system = get_system_formaldehyde()
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_formaldehyde_cross.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert len(ff.parts) == 1
+    assert isinstance(ff.parts[0], ForcePartValence)
+    part_valence = ff.parts[0]
+    assert part_valence.dlist.ndelta == 3
+    for i, j in system.bonds:
+        row0 = part_valence.dlist.lookup.get((i, j))
+        row1 = part_valence.dlist.lookup.get((j, i))
+        assert row0 is not None or row1 is not None
+    assert part_valence.iclist.nic == 5
+    vlist = part_valence.vlist
+    iclist = vlist.iclist
+    assert part_valence.vlist.nv == 6
+    for irow in range(vlist.nv):
+        row = vlist.vtab[irow]
+        assert row['kind'] == 3
+        atoms = vlist.lookup_atoms(irow)
+        if atoms in ( [[[2, 0]], [[0, 1]]], [[[3, 0]], [[0, 1]]] ):
+            # Bond-Bond H-C-O
+            np.testing.assert_allclose(row['par0'], 20.0*(kjmol/angstrom**2), rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par1'], 0.947*angstrom, rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par2'], 1.23*angstrom, rtol=0.0, atol=1e-10)
+        elif atoms in ( [[[2, 0]], [[0, 2], [0, 1]]], [[[3, 0]], [[0, 3], [0, 1]]] ):
+            # Bond-Angle H-C-O
+            np.testing.assert_allclose(row['par0'], 10.0*(kjmol/angstrom/rad), rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par1'], 0.947*angstrom, rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par2'], 121.0*deg, rtol=0.0, atol=1e-10)
+        elif atoms in ( [[[0, 1]], [[0, 2], [0, 1]]], [[[0, 1]], [[0, 3], [0, 1]]] ):
+            # Bond-Angle O-C-H
+            np.testing.assert_allclose(row['par0'], 15.0*(kjmol/angstrom/rad), rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par1'], 1.23*angstrom, rtol=0.0, atol=1e-10)
+            np.testing.assert_allclose(row['par2'], 121.0*deg, rtol=0.0, atol=1e-10)
+        else:
+            raise AssertionError('Some internal coordinates were missing.')
+
+
+def test_generator_formaldehyde_cross_consistency():
+    system = get_system_formaldehyde()
+    fn_pars1 = pkg_resources.resource_filename(__name__, '../../data/test/parameters_formaldehyde_cross.txt')
+    ff1 = ForceField.generate(system, fn_pars1)
+    fn_pars2 = pkg_resources.resource_filename(__name__, '../../data/test/parameters_formaldehyde_cross_alt.txt')
+    ff2 = ForceField.generate(system, fn_pars2)
+    energy1 = ff1.compute()
+    energy2 = ff2.compute()
+    np.testing.assert_allclose(energy1, energy2)
+
+
+def test_generator_water_wrong_cross():
+    system = get_system_water32()
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_wrong_cross.txt')
+    with assert_raises(IOError):
+        ff = ForceField.generate(system, fn_pars)
+
+
+def test_generator_formaldehyde_wrong_cross():
+    system = get_system_water32()
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_formaldehyde_wrong_cross.txt')
+    with assert_raises(IOError):
+        ff = ForceField.generate(system, fn_pars)
 
 
 def test_generator_glycine_torsion():
     system = get_system_glycine()
-    fn_pars = context.get_fn('test/parameters_glycine_torsion.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_glycine_torsion.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     part_valence = ff.part_valence
@@ -188,14 +260,14 @@ def test_generator_glycine_torsion():
 
 def test_generator_fake_torsion1():
     system = get_system_glycine()
-    fn_pars = context.get_fn('test/parameters_fake_torsion1.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_torsion1.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     part_valence = ff.part_valence
     assert part_valence.vlist.nv == 12
     m_counts = {}
     for row in part_valence.vlist.vtab[:12]:
-        print row['kind']
+        print(row['kind'])
         if row['kind'] == 5:
             key = 1
         elif row['kind'] == 6:
@@ -219,14 +291,14 @@ def test_generator_fake_torsion1():
 
 def test_generator_fake_torsion2():
     system = get_system_glycine()
-    fn_pars = context.get_fn('test/parameters_fake_torsion2.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_torsion2.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     part_valence = ff.part_valence
     assert part_valence.vlist.nv == 12
     m_counts = {}
     for row in part_valence.vlist.vtab[:12]:
-        print row['kind']
+        print(row['kind'])
         if row['kind'] == 5:
             key = 1
         elif row['kind'] == 6:
@@ -250,7 +322,7 @@ def test_generator_fake_torsion2():
 
 #def test_generator_water32_bondcross():
 #    system = get_system_water32()
-#    fn_pars = context.get_fn('test/parameters_water_bondcross.txt')
+#    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_bondcross.txt')
 #    ff = ForceField.generate(system, fn_pars)
 #    assert len(ff.parts) == 1
 #    assert isinstance(ff.parts[0], ForcePartValence)
@@ -271,7 +343,7 @@ def test_generator_fake_torsion2():
 
 def test_generator_water32_lj():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_lj.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_lj.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     part_pair_lj = ff.part_pair_lj
@@ -284,7 +356,7 @@ def test_generator_water32_lj():
 
 def test_generator_glycine_lj():
     system = get_system_glycine()
-    fn_pars = context.get_fn('test/parameters_fake_lj.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_lj.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     part_pair_lj = ff.part_pair_lj
@@ -303,7 +375,7 @@ def test_generator_glycine_lj():
 
 def test_generator_water32_mm3():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_mm3.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_mm3.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     part_pair_mm3 = ff.part_pair_mm3
@@ -318,7 +390,7 @@ def test_generator_water32_mm3():
 
 def test_generator_glycine_mm3():
     system = get_system_glycine()
-    fn_pars = context.get_fn('test/parameters_fake_mm3.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_mm3.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     part_pair_mm3 = ff.part_pair_mm3
@@ -342,7 +414,7 @@ def test_generator_glycine_mm3():
 
 def test_generator_water32_exprep1():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_exprep1.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_exprep1.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     part_pair_exprep = ff.part_pair_exprep
@@ -361,7 +433,7 @@ def test_generator_water32_exprep1():
 
 def test_generator_water32_exprep2():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_exprep2.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_exprep2.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     part_pair_exprep = ff.part_pair_exprep
@@ -380,7 +452,7 @@ def test_generator_water32_exprep2():
 
 def test_generator_water32_exprep3():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_exprep3.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_exprep3.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     part_pair_exprep = ff.part_pair_exprep
@@ -401,7 +473,7 @@ def test_generator_water32_exprep3():
 
 def test_generator_glycine_exprep1():
     system = get_system_glycine()
-    fn_pars = context.get_fn('test/parameters_fake_exprep1.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_exprep1.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     part_pair_exprep = ff.part_pair_exprep
@@ -428,12 +500,12 @@ def test_generator_glycine_exprep1():
 
 def test_generator_water32_dampdisp1():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_dampdisp1.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_dampdisp1.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     part_pair_dampdisp = ff.part_pair_dampdisp
     # check parameters
-    c6_cross = part_pair_dampdisp.pair_pot.c6_cross
+    c6_cross = part_pair_dampdisp.pair_pot.cn_cross
     assert c6_cross.shape == (2,2)
     assert abs(c6_cross[0,0] - 1.9550248340e+01) < 1e-10
     assert abs(c6_cross[1,1] - 2.7982205915e+00) < 1e-10
@@ -453,12 +525,12 @@ def test_generator_water32_dampdisp1():
 
 def test_generator_water32_dampdisp2():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_dampdisp2.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_dampdisp2.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     part_pair_dampdisp = ff.part_pair_dampdisp
     # check parameters
-    c6_cross = part_pair_dampdisp.pair_pot.c6_cross
+    c6_cross = part_pair_dampdisp.pair_pot.cn_cross
     assert abs(c6_cross[0,0] - 1.9550248340e+01) < 1e-10
     assert abs(c6_cross[0,1] - 6.4847208208e+00) < 1e-10
     assert abs(c6_cross[1,1] - 2.7982205915e+00) < 1e-10
@@ -474,12 +546,12 @@ def test_generator_water32_dampdisp2():
 
 def test_generator_glycine_dampdisp1():
     system = get_system_glycine()
-    fn_pars = context.get_fn('test/parameters_fake_dampdisp1.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_dampdisp1.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     part_pair_dampdisp = ff.part_pair_dampdisp
     # check parameters
-    c6_cross = part_pair_dampdisp.pair_pot.c6_cross
+    c6_cross = part_pair_dampdisp.pair_pot.cn_cross
     assert c6_cross.shape == (4, 4)
     assert abs(c6_cross[0,0] - 2.0121581791e+01) < 1e-10
     assert abs(c6_cross[1,1] - 2.5121581791e+01) < 1e-10
@@ -501,9 +573,10 @@ def test_generator_glycine_dampdisp1():
     assert (b_cross == b_cross.T).all()
     assert (b_cross > 0).all()
 
+
 def test_generator_water32_d3bj():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_fake_d3bj.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_d3bj.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     d3bj = ff.part_pair_disp68bjdamp
@@ -544,18 +617,19 @@ def test_generator_water32_d3bj():
     assert abs(R_cross[1,0] - np.sqrt(c8HO/c6HO)) < 1e-10
     assert abs(R_cross[1,1] - np.sqrt(c8OO/c6OO)) < 1e-10
 
+
 def test_generator_water32_qmdffrep():
     system = get_system_water32()
-    print system.ffatypes
-    print system.ffatype_ids
-    fn_pars = context.get_fn('test/parameters_fake_qmdffrep.txt')
+    print(system.ffatypes)
+    print(system.ffatype_ids)
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_qmdffrep.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     qmdffrep = ff.part_pair_qmdffrep
     # check parameters
     A_cross = qmdffrep.pair_pot.amp_cross
     assert A_cross.shape == (2,2)
-    print A_cross
+    print(A_cross)
     assert abs(A_cross[0,0] - 3.2490000000e+01) < 1e-10
     assert abs(A_cross[0,1] - 1.3395000000e+01) < 1e-10
     assert abs(A_cross[1,0] - 1.3395000000e+01) < 1e-10
@@ -578,7 +652,7 @@ def test_generator_water32_qmdffrep():
 
 def test_generator_water32_fixq():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_fixq.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_fixq.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 4
     part_pair_ei = ff.part_pair_ei
@@ -591,7 +665,7 @@ def test_generator_water32_fixq():
     assert part_pair_ei.pair_pot.alpha == part_ewald_cor.alpha
     assert part_pair_ei.pair_pot.alpha == part_ewald_neut.alpha
     # check charges and atomic radii
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         if system.numbers[i] == 1:
             assert abs(system.charges[i] - 0.417) < 1e-5
             assert abs(system.radii[i] - 1.2*angstrom) < 1e-5
@@ -601,11 +675,11 @@ def test_generator_water32_fixq():
 
     system = get_system_water32()
     log.set_level(log.silent)
-    fn_pars = context.get_fn('test/parameters_water_fixq.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_fixq.txt')
     ff2 = ForceField.generate(system, fn_pars)
     log.set_level(log.debug)
     # check charges
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         if system.numbers[i] == 1:
             assert abs(system.charges[i] - 0.417) < 1e-5
             assert abs(system.radii[i] - 1.2*angstrom) < 1e-5
@@ -619,7 +693,7 @@ def test_generator_water32_fixq():
 
 def test_generator_glycine_fixq():
     system = get_system_glycine()
-    fn_pars = context.get_fn('test/parameters_glycine_fixq.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_glycine_fixq.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1 #Non-periodic, so only one part
     part_pair_ei = ff.part_pair_ei
@@ -628,19 +702,19 @@ def test_generator_glycine_fixq():
     # check charges and atomic radii
     ac = {1:0.2, 6:0.5, 7:-1.0, 8:-0.5 } #Charges
     ar = {1:1.2*angstrom, 6: 1.7*angstrom, 7: 1.55*angstrom, 8: 1.50*angstrom} #Radii
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         assert abs(system.charges[i] - ac[system.numbers[i]]) < 1e-5
         assert abs(system.radii[i] - ar[system.numbers[i]]) < 1e-5
 
     system = get_system_glycine()
     log.set_level(log.silent)
-    fn_pars = context.get_fn('test/parameters_glycine_fixq.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_glycine_fixq.txt')
     ff2 = ForceField.generate(system, fn_pars)
     log.set_level(log.debug)
     # check charges and atomic radii
     ac = {1:0.2, 6:0.5, 7:-1.0, 8:-0.5 } #Charges
     ar = {1:1.2*angstrom, 6: 1.7*angstrom, 7: 1.55*angstrom, 8: 1.50*angstrom} #Radii
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         assert abs(system.charges[i] - ac[system.numbers[i]]) < 1e-5
         assert abs(system.radii[i] - ar[system.numbers[i]]) < 1e-5
     energy = ff.compute()
@@ -650,7 +724,7 @@ def test_generator_glycine_fixq():
 
 def test_generator_water32_fixq_dielectric():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_fixq_dielectric.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_fixq_dielectric.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 4
     part_pair_ei = ff.part_pair_ei
@@ -658,10 +732,10 @@ def test_generator_water32_fixq_dielectric():
     part_ewald_cor = ff.part_ewald_cor
     part_ewald_neut = ff.part_ewald_neut
     # check part settings
-    print part_pair_ei.pair_pot.dielectric
-    print part_ewald_reci.dielectric
-    print part_ewald_cor.dielectric
-    print part_ewald_neut.dielectric
+    print(part_pair_ei.pair_pot.dielectric)
+    print(part_ewald_reci.dielectric)
+    print(part_ewald_cor.dielectric)
+    print(part_ewald_neut.dielectric)
     assert part_pair_ei.pair_pot.dielectric == 1.44
     assert part_pair_ei.pair_pot.dielectric == part_ewald_reci.dielectric
     assert part_pair_ei.pair_pot.dielectric == part_ewald_cor.dielectric
@@ -670,7 +744,7 @@ def test_generator_water32_fixq_dielectric():
 
 def test_generator_water32():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water.txt')
     ff = ForceField.generate(system, fn_pars)
     # get all ff parts
     assert len(ff.parts) == 7
@@ -682,7 +756,7 @@ def test_generator_water32():
     part_ewald_cor = ff.part_ewald_cor
     part_ewald_neut = ff.part_ewald_neut
     # check dampdisp parameters
-    c6_cross = part_pair_dampdisp.pair_pot.c6_cross
+    c6_cross = part_pair_dampdisp.pair_pot.cn_cross
     assert abs(c6_cross[0,0] - 1.9550248340e+01) < 1e-10
     assert abs(c6_cross[1,1] - 2.7982205915e+00) < 1e-10
     assert (c6_cross == c6_cross.T).all()
@@ -705,7 +779,7 @@ def test_generator_water32():
     assert abs(b_cross[0,0] - 4.4661933834e+00/angstrom) < 1e-10
     assert abs(b_cross[1,1] - 4.4107388814e+00/angstrom) < 1e-10
     # check charges
-    for i in xrange(system.natom):
+    for i in range(system.natom):
         if system.numbers[i] == 1:
             assert abs(system.charges[i] - 3.6841957737e-01) < 1e-5
         else:
@@ -713,18 +787,20 @@ def test_generator_water32():
     # check valence
     assert part_valence.dlist.ndelta == 64
     assert part_valence.iclist.nic == 96
-    assert (part_valence.iclist.ictab['kind'][:64] == 0).all()
-    assert (part_valence.iclist.ictab['kind'][64:96] == 1).all()
+    assert (part_valence.iclist.ictab['kind'][:96] == 0).sum() == 64
+    assert (part_valence.iclist.ictab['kind'][:96] == 1).sum() == 32
     assert part_valence.vlist.nv == 96
-    assert abs(part_valence.vlist.vtab['par0'][:64] - 4.0088096730e+03*(kjmol/angstrom**2)).max() < 1e-10
-    assert abs(part_valence.vlist.vtab['par1'][:64] - 1.0238240000e+00*angstrom).max() < 1e-10
-    assert abs(part_valence.vlist.vtab['par0'][64:96] - 3.0230353700e+02*kjmol).max() < 1e-10
-    assert abs(part_valence.vlist.vtab['par1'][64:96] - np.cos(8.8401698835e+01*deg)).max() < 1e-10
+    mask_kind_0 = part_valence.iclist.ictab['kind'][:96] == 0
+    assert abs(part_valence.vlist.vtab['par0'][:96][mask_kind_0] - 4.0088096730e+03*(kjmol/angstrom**2)).max() < 1e-10
+    assert abs(part_valence.vlist.vtab['par1'][:96][mask_kind_0] - 1.0238240000e+00*angstrom).max() < 1e-10
+    mask_kind_1 = part_valence.iclist.ictab['kind'][:96] == 1
+    assert abs(part_valence.vlist.vtab['par0'][:96][mask_kind_1] - 3.0230353700e+02*kjmol).max() < 1e-10
+    assert abs(part_valence.vlist.vtab['par1'][:96][mask_kind_1] - np.cos(8.8401698835e+01*deg)).max() < 1e-10
 
 
 def test_add_part():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water_bondharm.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_bondharm.txt')
     ff = ForceField.generate(system, fn_pars)
     part_press = ForcePartPressure(system, 1e-3)
     ff.add_part(part_press)
@@ -735,7 +811,7 @@ def test_add_part():
 
 def test_generator_formaldehyde_oopangle():
     system = get_system_formaldehyde()
-    fn_pars = context.get_fn('test/parameters_formaldehyde_inversion.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_formaldehyde_inversion.txt')
     ff = ForceField.generate(system, fn_pars)
     assert len(ff.parts) == 1
     assert isinstance(ff.parts[0], ForcePartValence)

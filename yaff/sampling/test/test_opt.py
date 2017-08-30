@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,10 +20,13 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 
 
-import h5py as h5, numpy as np
+from __future__ import division
+
+import h5py as h5
+import numpy as np
 
 from yaff import *
 from yaff.sampling.test.common import get_ff_water32, get_ff_bks
@@ -117,8 +120,7 @@ def check_hdf5_common(f):
 
 
 def test_cg_hdf5():
-    f = h5.File('yaff.sampling.test.test_opt.test_cg_hdf5.h5', driver='core', backing_store=False)
-    try:
+    with h5.File(__name__ + '.test_cg_hdf5.h5', driver='core', backing_store=False) as f:
         hdf5 = HDF5Writer(f)
         opt = CGOptimizer(CartesianDOF(get_ff_water32()), hooks=hdf5)
         opt.run(15)
@@ -126,8 +128,6 @@ def test_cg_hdf5():
         check_hdf5_common(hdf5.f)
         assert get_last_trajectory_row(f['trajectory']) == 16
         assert f['trajectory/counter'][15] == 15
-    finally:
-        f.close()
 
 
 def test_qn_5steps():
@@ -153,7 +153,7 @@ def test_qn_5steps_initial_hessian():
 def test_solve_trust_radius_random1():
     N = 10
     eps = 1e-4
-    for i in xrange(100):
+    for i in range(100):
         grad = np.random.normal(0, 1, N)
         evals = np.random.normal(0, 1, N)
         step = solve_trust_radius(grad, evals, 1, eps)
@@ -163,7 +163,7 @@ def test_solve_trust_radius_random1():
 def test_solve_trust_radius_random2():
     N = 10
     eps = 1e-4
-    for i in xrange(100):
+    for i in range(100):
         grad = np.random.normal(0, 1, N)
         evals = np.exp(np.random.normal(0, 3, N))
         step = solve_trust_radius(grad, evals, 1, eps)
@@ -173,7 +173,7 @@ def test_solve_trust_radius_random2():
 def test_solve_trust_radius_random3():
     N = 10
     eps = 1e-4
-    for i in xrange(100):
+    for i in range(100):
         grad = np.random.normal(0, 1, N)
         evals = np.exp(np.random.normal(0, 3, N))-0.01
         step = solve_trust_radius(grad, evals, 1, eps)

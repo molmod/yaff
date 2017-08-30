@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,9 +20,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 '''Gaussian09 BOMD log Files'''
 
+
+from __future__ import division
 
 import numpy as np
 
@@ -38,7 +40,7 @@ __all__ = ['g09log_to_hdf5']
 
 def _scan_to_line(f, marker):
     while True:
-        line = f.next()
+        line = next(f)
         if line.startswith(marker):
             return line
 
@@ -46,13 +48,13 @@ def _scan_to_line(f, marker):
 def _scan_g09_forces(f):
     '''Search for the next forces block and return numbers and forces'''
     _scan_to_line(f, " Center     Atomic                   Forces (Hartrees/Bohr)")
-    f.next() # skip line
-    f.next() # skip line
+    next(f) # skip line
+    next(f) # skip line
     # read the numbers and forces
     numbers = []
     frc = []
     while True:
-        line = f.next()
+        line = next(f)
         if line.startswith(" ---------------"):
             break
         words = line.split()
@@ -64,9 +66,9 @@ def _scan_g09_forces(f):
 def _scan_g09_time(f):
     line = _scan_to_line(f, " Summary information for step")
     step = int(line[30:])
-    line = f.next()
+    line = next(f)
     time = float(line[12:])*femtosecond
-    line = f.next()
+    line = next(f)
     parts = line.split(';')
     ekin = float(parts[0].split()[2])
     epot = float(parts[1].split()[2])
@@ -80,7 +82,7 @@ def _scan_g09_pos_vel(f):
 
     pos = []
     while True:
-        line = f.next()
+        line = next(f)
         if not line.startswith(" I="):
             break
         words = line.split()
@@ -88,7 +90,7 @@ def _scan_g09_pos_vel(f):
 
     vel = []
     while True:
-        line = f.next()
+        line = next(f)
         if not line.startswith(" I="):
             break
         words = line.split()
@@ -131,7 +133,7 @@ def _iter_frames_g09(fn_g09):
     '''
     with open(fn_g09) as f:
         # Skip the first and second block of Forces
-        for i in xrange(2):
+        for i in range(2):
             _scan_to_line(f, " Center     Atomic                   Forces (Hartrees/Bohr)")
 
         # Keep reading MD steps until the file ends

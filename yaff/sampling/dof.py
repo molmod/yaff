@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,7 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 """Abstraction layer for degrees of freedom
 
    All these classes are called DOF classes, because they specify a set of
@@ -28,6 +28,8 @@
    and harmonic approximations.
 """
 
+
+from __future__ import division
 
 import numpy as np
 
@@ -469,13 +471,13 @@ class BaseCellDOF(DOF):
         log("Final Unit Cell:")
         log("----------------")
         log("- cell vectors:")
-        for i in xrange(len(rvecs)):
+        for i in range(len(rvecs)):
             log("    %s = %s %s %s" %(rvec_names[i], log.length(rvecs[i,0]), log.length(rvecs[i,1]), log.length(rvecs[i,2]) ))
         log(" ")
         log("- lengths, angles and volume:")
-        for i in xrange(len(rvecs)):
+        for i in range(len(rvecs)):
             log("    |%s|  = %s" % (rvec_names[i], log.length(lengths[i])))
-        for i in xrange(len(angles)):
+        for i in range(len(angles)):
             log("    %5s = %s" % (angle_names[i], log.angle(angles[i])))
         log("    volume = %s" % log.volume(self.ff.system.cell.volume) )
 
@@ -572,7 +574,7 @@ class StrainCellDOF(BaseCellDOF):
 
     def _cellvars_to_rvecs(self, x):
         nvec = self.ff.system.cell.nvec
-        scales = x[:(nvec*(nvec+1))/2]
+        scales = x[:(nvec*(nvec+1))//2]
         if nvec == 3:
             deform = np.array([
                 [    scales[0], 0.5*scales[5], 0.5*scales[4]],

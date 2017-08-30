@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,9 +20,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 '''Base class for iterative algorithms'''
 
+
+from __future__ import division
 
 import numpy as np
 
@@ -122,7 +124,7 @@ class Iterative(object):
                     if self.propagate():
                         break
             else:
-                for i in xrange(nstep):
+                for i in range(nstep):
                     if self.propagate():
                         break
             self.finalize()
@@ -230,7 +232,7 @@ class EPotContribStateItem(StateItem):
         return np.array([part.energy for part in iterative.ff.parts])
 
     def iter_attrs(self, iterative):
-        yield 'epot_contrib_names', tuple(part.name for part in iterative.ff.parts)
+        yield 'epot_contrib_names', np.array([part.name for part in iterative.ff.parts], dtype='S')
 
 
 class EpotBondsStateItem(StateItem):

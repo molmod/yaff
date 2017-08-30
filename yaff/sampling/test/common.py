@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,9 +20,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 
 
+from __future__ import division
+
+import pkg_resources
 import numpy as np
 
 from yaff import *
@@ -39,13 +42,13 @@ __all__ = [
 
 def get_ff_water32():
     system = get_system_water32()
-    fn_pars = context.get_fn('test/parameters_water.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water.txt')
     return ForceField.generate(system, fn_pars, skin=2)
 
 
 def get_ff_water():
     system = get_system_water()
-    fn_pars = context.get_fn('test/parameters_water.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water.txt')
     return ForceField.generate(system, fn_pars)
 
 
@@ -59,26 +62,26 @@ def get_ff_bks(**kwargs):
         rvecs[0, 1] = 0.0
         rvecs[0, 2] = 0.0
         system.cell.update_rvecs(rvecs)
-    fn_pars = context.get_fn('test/parameters_bks.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_bks.txt')
     return ForceField.generate(system, fn_pars, **kwargs)
 
 
 def get_ff_graphene(**kwargs):
     system = get_system_graphene8()
     system = system.supercell(2, 2)
-    fn_pars = context.get_fn('test/parameters_polyene.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_polyene.txt')
     return ForceField.generate(system, fn_pars, **kwargs)
 
 
 def get_ff_polyethylene(**kwargs):
     system = get_system_polyethylene4()
     system = system.supercell(2)
-    fn_pars = context.get_fn('test/parameters_alkane.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_alkane.txt')
     return ForceField.generate(system, fn_pars, **kwargs)
 
 
 def get_ff_nacl(**kwargs):
     kwargs.setdefault('rcut', 5.0*angstrom)
     system = get_system_nacl_cubic()
-    fn_pars = context.get_fn('test/parameters_nacl.txt')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_nacl.txt')
     return ForceField.generate(system, fn_pars, **kwargs)

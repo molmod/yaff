@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,9 +20,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 '''Auxiliary routines for initial velocities'''
 
+
+from __future__ import division
 
 from molmod import boltzmann
 
@@ -320,11 +322,11 @@ def cell_symmetrize(ff, vector_list = None, tensor_list = None):
     new_tensor_list = []
     # update the additional vectors from vector_list
     if vector_list is not None:
-        for i in xrange(len(vector_list)):
+        for i in range(len(vector_list)):
             new_vector_list.append(np.dot(vector_list[i], rot_mat))
     # update the additional tensors from tensor_list
     if tensor_list is not None:
-        for i in xrange(len(tensor_list)):
+        for i in range(len(tensor_list)):
             new_tensor_list.append(np.dot(np.dot(rot_mat.T, tensor_list[i]), rot_mat))
     return new_vector_list, new_tensor_list
 
@@ -344,8 +346,8 @@ def get_random_vel_press(mass, temp):
     rand = np.random.normal(0, np.sqrt(mass*boltzmann*temp), shape)/mass
     vel_press = np.zeros(shape)
     # create initial symmetric pressure velocity tensor
-    for i in xrange(3):
-        for j in xrange(3):
+    for i in range(3):
+        for j in range(3):
             if i >= j:
                 vel_press[i,j] = rand[i,j]
             else:
@@ -373,7 +375,7 @@ def get_ndof_baro(dim, anisotropic, vol_constraint):
     baro_ndof = 1
     # degrees of freedom for a symmetric cell tensor
     if anisotropic:
-        baro_ndof = dim*(dim+1)/2
+        baro_ndof = dim*(dim+1)//2
     # decrease the number of dof by one if volume is constant
     if vol_constraint:
         baro_ndof -= 1

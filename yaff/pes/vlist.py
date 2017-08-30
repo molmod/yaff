@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,7 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 '''Module for the complete list of covalent energy terms.
 
    A ``ValenceList`` object contains a table with all the energy terms that
@@ -55,10 +55,12 @@
 '''
 
 
+from __future__ import division
+
 import numpy as np
 
 from yaff.log import log
-from yaff.pes.ext import vlist_forward, vlist_back
+from yaff.pes.ext import vlist_dtype, vlist_forward, vlist_back
 
 
 __all__ = [
@@ -66,17 +68,6 @@ __all__ = [
     'Cosine', 'Chebychev1', 'Chebychev2', 'Chebychev3', 'Chebychev4',
     'Chebychev6', 'PolySix', 'MM3Quartic', 'MM3Bend', 'BondDoubleWell',
     'Morse',
-]
-
-
-vlist_dtype = [
-    ('kind', int),                      # The kind of energy term, e.g. harmonic, fues, ...
-    ('par0', float), ('par1', float),   # The parameters for the energy term. Meaning of par0, par1, ... depends on kind.
-    ('par2', float), ('par3', float),
-    ('par4', float), ('par5', float),
-    ('ic0', int), ('ic1', int),         # Indexes of rows in the table of internal coordinates. (See InternalCoordinatList class.)
-#    ('ic2', int),
-    ('energy', float),                  # The computed value of the energy, output of forward method.
 ]
 
 
@@ -106,13 +97,16 @@ class ValenceList(object):
         # extend the table if needed.
         if self.nv >= len(self.vtab):
             self.vtab = np.resize(self.vtab, int(len(self.vtab)*1.5))
-        # fill in the new term
+        # initialize the new row with -1
         row = self.nv
+        self.vtab[row] = (-1, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1, -1, np.nan)
+        # fill in the new term
         self.vtab[row]['kind'] = term.kind
-        for i in xrange(len(term.pars)):
+        for i in range(len(term.pars)):
             self.vtab[row]['par%i'%i] = term.pars[i]
-        ic_indexes = term.get_ic_indexes(self.iclist) # registers ics in InternalCoordinateList.
-        for i in xrange(len(ic_indexes)):
+        # registers ics in InternalCoordinateList.
+        ic_indexes = term.get_ic_indexes(self.iclist)
+        for i in range(len(ic_indexes)):
             self.vtab[row]['ic%i'%i] = ic_indexes[i]
         self.nv += 1
 
@@ -132,6 +126,15 @@ class ValenceList(object):
            The actual computation is carried out by a low-level C routine.
         """
         vlist_back(self.iclist.ictab, self.vtab, self.nv)
+
+    def lookup_atoms(self, row):
+        """Look up the atom for a given row index."""
+        result = []
+        for i in range(2):
+            key = 'ic{}'.format(i)
+            if self.vtab[row][key] >= 0:
+                result.append(self.iclist.lookup_atoms(self.vtab[row][key]))
+        return result
 
 
 class ValenceTerm(object):
@@ -595,6 +598,7 @@ class MM3Bend(ValenceTerm):
             self.pars[1]/c
         )
 
+
 class BondDoubleWell(ValenceTerm):
     '''Sixth-order polynomial term: K/(2*(r1-r2)^4)*(r-r1)^2*(r-r2)^4'''
     kind = 13
@@ -619,6 +623,7 @@ class BondDoubleWell(ValenceTerm):
             self.pars[1]/c,
             self.pars[2]/c
         )
+
 
 class Morse(ValenceTerm):
     ''' The morse potential: E0*( exp(-2*k*(r-r1)) - 2*exp(-k*(r-r1)) )'''

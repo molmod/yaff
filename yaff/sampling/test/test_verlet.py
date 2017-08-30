@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,14 +20,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 
 
-import h5py as h5, numpy as np
+from __future__ import division
+
+import os
+
+import pkg_resources
+import h5py as h5
+import numpy as np
 
 from yaff import *
 from yaff.test.common import get_system_water
 from yaff.sampling.test.common import get_ff_water32, get_ff_water
+from molmod.test.common import tmpdir
+
 
 def test_basic_water32():
     nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond)
@@ -69,8 +77,7 @@ def check_hdf5_common(f, isolated=False):
 
 
 def test_hdf5():
-    f = h5.File('yaff.sampling.test.test_verlet.test_hdf5.h5', driver='core', backing_store=False)
-    try:
+    with h5.File('yaff.sampling.test.test_verlet.test_hdf5.h5', driver='core', backing_store=False) as f:
         hdf5 = HDF5Writer(f)
         nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
         nve.run(15)
@@ -78,13 +85,10 @@ def test_hdf5():
         check_hdf5_common(hdf5.f)
         assert get_last_trajectory_row(f['trajectory']) == 16
         assert f['trajectory/counter'][15] == 15
-    finally:
-        f.close()
 
 
 def test_hdf5_start():
-    f = h5.File('yaff.sampling.test.test_verlet.test_hdf5_start.h5', driver='core', backing_store=False)
-    try:
+    with h5.File('yaff.sampling.test.test_verlet.test_hdf5_start.h5', driver='core', backing_store=False) as f:
         hdf5 = HDF5Writer(f, start=2)
         nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
         nve.run(5)
@@ -92,13 +96,10 @@ def test_hdf5_start():
         check_hdf5_common(hdf5.f)
         assert get_last_trajectory_row(f['trajectory']) == 4
         assert f['trajectory/counter'][3] == 5
-    finally:
-        f.close()
 
 
 def test_hdf5_step():
-    f = h5.File('yaff.sampling.test.test_verlet.test_hdf5_step.h5', driver='core', backing_store=False)
-    try:
+    with h5.File('yaff.sampling.test.test_verlet.test_hdf5_step.h5', driver='core', backing_store=False) as f:
         hdf5 = HDF5Writer(f, step=2)
         nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=hdf5)
         nve.run(5)
@@ -106,16 +107,13 @@ def test_hdf5_step():
         check_hdf5_common(hdf5.f)
         assert get_last_trajectory_row(f['trajectory']) == 3
         assert f['trajectory/counter'][2] == 4
-    finally:
-        f.close()
 
 
 def test_hdf5_simple():
     # This test does not write all possible outputs
     sys = get_system_water()
-    ff = ForceField.generate(sys, context.get_fn('test/parameters_water_bondharm.txt'))
-    f = h5.File('yaff.sampling.test.test_verlet.test_hdf5_simple.h5', driver='core', backing_store=False)
-    try:
+    ff = ForceField.generate(sys, pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_bondharm.txt'))
+    with h5.File('yaff.sampling.test.test_verlet.test_hdf5_simple.h5', driver='core', backing_store=False) as f:
         hdf5 = HDF5Writer(f)
         nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=hdf5)
         nve.run(15)
@@ -123,24 +121,36 @@ def test_hdf5_simple():
         check_hdf5_common(hdf5.f, isolated=True)
         assert get_last_trajectory_row(f['trajectory']) == 16
         assert f['trajectory/counter'][15] == 15
-    finally:
-        f.close()
 
 
 def test_xyz():
-    xyz = XYZWriter('/dev/null')
-    nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[xyz])
-    com_vel = np.dot(nve.masses, nve.vel)/nve.masses.sum()
-    nve.run(15)
-    com_vel = np.dot(nve.masses, nve.vel)/nve.masses.sum()
-    assert nve.counter == 15
+    with tmpdir(__name__, 'test_xyz') as dn:
+        fn_xyz = os.path.join(dn, 'foobar.xyz')
+        xyz = XYZWriter(fn_xyz)
+        nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[xyz])
+        com_vel = np.dot(nve.masses, nve.vel)/nve.masses.sum()
+        nve.run(15)
+        com_vel = np.dot(nve.masses, nve.vel)/nve.masses.sum()
+        assert os.path.isfile(fn_xyz)
+        assert nve.counter == 15
+        ## Ugly hack to make tests pass on Windows. The root cause is that the SliceReader
+        ## in molmod.io.common is poorly written.
+        xyz.xyz_writer._auto_close = False
+        xyz.xyz_writer._f.close()
 
 
 def test_xyz_select():
-    xyz = XYZWriter('/dev/null', select=[0,1,2])
-    nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[xyz])
-    nve.run(15)
-    assert nve.counter == 15
+    with tmpdir(__name__, 'test_xyz_select') as dn:
+        fn_xyz = os.path.join(dn, 'foobar.xyz')
+        xyz = XYZWriter(fn_xyz, select=[0,1,2])
+        nve = VerletIntegrator(get_ff_water32(), 1.0*femtosecond, hooks=[xyz])
+        nve.run(15)
+        assert os.path.isfile(fn_xyz)
+        assert nve.counter == 15
+        ## Ugly hack to make tests pass on Windows. The root cause is that the SliceReader
+        ## in molmod.io.common is poorly written.
+        xyz.xyz_writer._auto_close = False
+        xyz.xyz_writer._f.close()
 
 
 def test_kinetic_annealing():

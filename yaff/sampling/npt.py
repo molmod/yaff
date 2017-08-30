@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,9 +20,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 '''Barostats'''
 
+
+from __future__ import division
 
 import numpy as np
 
@@ -500,8 +502,8 @@ class LangevinBarostat(VerletHook):
         rand = np.random.normal(0, 1, shape)*np.sqrt(2*self.mass_press*boltzmann*self.temp/(self.timestep_press*self.timecon))
         R = np.zeros(shape)
         # create initial symmetric pressure velocity tensor
-        for i in xrange(3):
-            for j in xrange(3):
+        for i in range(3):
+            for j in range(3):
                 if i >= j:
                     R[i,j] = rand[i,j]
                 else:
@@ -635,7 +637,10 @@ class MTKBarostat(VerletHook):
         # propagate the barostat
         self.baro(iterative, chainvel0)
         # calculate the correction due to the barostat alone
-        self.econs_correction = self.press*iterative.ff.system.cell.volume + self._compute_ekin_baro()
+        self.econs_correction = self._compute_ekin_baro()
+        # add the PV term if the volume is not constrained
+        if not self.vol_constraint:
+            self.econs_correction += self.press*iterative.ff.system.cell.volume
         if self.baro_thermo is not None:
             # add the correction due to the barostat thermostat
             self.econs_correction += self.baro_thermo.chain.get_econs_correction()

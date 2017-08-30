@@ -1,5 +1,5 @@
-// YAFF is yet another force-field code
-// Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+// YAFF is yet another force-field code.
+// Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 // Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 // (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 // stated.
@@ -19,7 +19,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, see <http://www.gnu.org/licenses/>
 //
-//--
+// --
 
 
 #include <math.h>
@@ -400,15 +400,16 @@ double pair_fn_ljcross(void *pair_data, long center_index, long other_index, dou
 
 
 
-void pair_data_dampdisp_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *c6_cross, double *b_cross) {
+void pair_data_dampdisp_init(pair_pot_type *pair_pot, long nffatype, long power, long* ffatype_ids, double *cn_cross, double *b_cross) {
   pair_data_dampdisp_type *pair_data;
   pair_data = malloc(sizeof(pair_data_dampdisp_type));
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
     (*pair_pot).pair_fn = pair_fn_dampdisp;
     (*pair_data).nffatype = nffatype;
+    (*pair_data).power = power;
     (*pair_data).ffatype_ids = ffatype_ids;
-    (*pair_data).c6_cross = c6_cross;
+    (*pair_data).cn_cross = cn_cross;
     (*pair_data).b_cross = b_cross;
   }
 }
@@ -434,33 +435,34 @@ double tang_toennies(double x, int order, double *g){
 }
 
 double pair_fn_dampdisp(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
-  long i;
-  double b, disp, damp, c6;
+  long i,j,power;
+  double b, disp, damp, cn;
   // Load parameters from data structure and mix
   pair_data_dampdisp_type *pd;
   pd = (pair_data_dampdisp_type*)pair_data;
   i = (*pd).ffatype_ids[center_index]*(*pd).nffatype + (*pd).ffatype_ids[other_index];
-  c6 = (*pd).c6_cross[i];
-  if (c6==0.0) return 0.0;
+  power = (*pd).power;
+  cn = (*pd).cn_cross[i];
+  if (cn==0.0) return 0.0;
   b = (*pd).b_cross[i];
   if (b==0.0) {
     // without damping
-    disp = d*d;
-    disp *= disp*disp;
-    disp = -c6/disp;
+    disp = 1.0;
+    for (j=0;j<power;j++) { disp *= d; }
+    disp = -cn/disp;
     if (g != NULL) {
-      *g = -6.0*disp/(d*d);
+      *g = -power*disp/(d*d);
     }
     return disp;
   } else {
     // with damping
-    damp = tang_toennies(b*d, 6, g);
+    damp = tang_toennies(b*d, power, g);
     // compute the energy
-    disp = d*d;
-    disp *= disp*disp;
-    disp = -c6/disp;
+    disp = 1.0;
+    for (j=0;j<power;j++) { disp *= d; }
+    disp = -cn/disp;
     if (g != NULL) {
-      *g = ((*g)*b-6.0/d*damp)*disp/d;
+      *g = ((*g)*b-power/d*damp)*disp/d;
     }
     return damp*disp;
   }

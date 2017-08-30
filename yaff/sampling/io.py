@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,9 +20,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 '''Trajectory writers'''
 
+
+from __future__ import division
 
 from yaff.sampling.iterative import Hook, AttributeStateItem, PosStateItem, CellStateItem, ConsErrStateItem
 from yaff.sampling.nvt import NHCThermostat, NHCAttributeStateItem
@@ -33,7 +35,7 @@ __all__ = ['HDF5Writer', 'XYZWriter', 'RestartWriter']
 
 
 class HDF5Writer(Hook):
-    def __init__(self, f, start=0, step=1, flush=None):
+    def __init__(self, f, start=0, step=1):
         """
            **Argument:**
 
@@ -47,15 +49,8 @@ class HDF5Writer(Hook):
 
            step
                 The hook will be called every `step` iterations.
-
-           flush
-                Flush the h5.File object every `flush` iterations so it can be
-                read up to the latest flush. This is useful to avoid data loss
-                for long calculations or to monitor running calculations.
-                Note that flushing too often might impact performance of hdf5.
         """
         self.f = f
-        self.flush = flush
         Hook.__init__(self, start, step)
 
     def __call__(self, iterative):
@@ -67,30 +62,26 @@ class HDF5Writer(Hook):
         # determine the row to write the current iteration to. If a previous
         # iterations was not completely written, then the last row is reused.
         row = min(tgrp[key].shape[0] for key in iterative.state if key in tgrp.keys())
-        for key, item in iterative.state.iteritems():
+        for key, item in iterative.state.items():
             if item.value is None:
                 continue
             if len(item.shape) > 0 and min(item.shape) == 0:
-                continue
-            if item.dtype is type(None):
                 continue
             ds = tgrp[key]
             if ds.shape[0] <= row:
                 # do not over-allocate. hdf5 works with chunks internally.
                 ds.resize(row+1, axis=0)
             ds[row] = item.value
-        if self.flush is not None:
-            if row%self.flush == 0: self.f.flush()
 
     def dump_system(self, system):
         system.to_hdf5(self.f)
 
     def init_trajectory(self, iterative):
         tgrp = self.f.create_group('trajectory')
-        for key, item in iterative.state.iteritems():
+        for key, item in iterative.state.items():
             if len(item.shape) > 0 and min(item.shape) == 0:
                 continue
-            if item.dtype is type(None):
+            if item.value is None:
                 continue
             maxshape = (None,) + item.shape
             shape = (0,) + item.shape
@@ -146,7 +137,7 @@ class XYZWriter(Hook):
 
 
 class RestartWriter(Hook):
-    def __init__(self, f, start=0, step=1000, flush=None):
+    def __init__(self, f, start=0, step=1000):
         """
             **Argument:**
 
@@ -160,15 +151,8 @@ class RestartWriter(Hook):
 
             step
                 The hook will be called every `step` iterations.
-
-            flush
-                Flush the h5.File object every `flush` iterations so it can be
-                read up to the latest flush. This is useful to avoid data loss
-                for long calculations or to monitor running calculations.
-                Note that flushing too often might impact performance of hdf5.
         """
         self.f = f
-        self.flush = flush
         self.state = None
         self.default_state = None
         Hook.__init__(self, start, step)
@@ -231,30 +215,28 @@ class RestartWriter(Hook):
         # determine the row to write the current iteration to. If a previous
         # iterations was not completely written, then the last row is reused.
         row = min(tgrp[key].shape[0] for key in self.state if key in tgrp.keys())
-        for key, item in self.state.iteritems():
+        for key, item in self.state.items():
             if item.value is None:
                 continue
             if len(item.shape) > 0 and min(item.shape) == 0:
                 continue
-            if item.dtype is type(None):
+            if item.value is None:
                 continue
             ds = tgrp[key]
             if ds.shape[0] <= row:
                 # do not over-allocate. hdf5 works with chunks internally.
                 ds.resize(row+1, axis=0)
             ds[row] = item.value
-        if self.flush is not None:
-            if row%self.flush == 0: self.f.flush()
 
     def dump_system(self, system):
         system.to_hdf5(self.f)
 
     def init_trajectory(self, iterative):
         tgrp = self.f.create_group('trajectory')
-        for key, item in self.state.iteritems():
+        for key, item in self.state.items():
             if len(item.shape) > 0 and min(item.shape) == 0:
                 continue
-            if item.dtype is type(None):
+            if item.value is None:
                 continue
             maxshape = (None,) + item.shape
             shape = (0,) + item.shape

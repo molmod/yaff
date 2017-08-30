@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,13 +20,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 #cython: embedsignature=True
 '''Low-level C routines
 
    This extension module is used by various modules of the ``yaff.pes``
    package.
 '''
+
+
+from __future__ import division
 
 
 import numpy as np
@@ -45,16 +48,20 @@ from yaff.log import log
 
 
 __all__ = [
-    'Cell', 'nlist_status_init', 'nlist_build', 'nlist_status_finish',
-    'nlist_recompute', 'nlist_inc_r', 'Hammer', 'Switch3', 'PairPot',
-    'PairPotLJ', 'PairPotMM3', 'PairPotGrimme', 'PairPotExpRep',
-    'PairPotQMDFFRep', 'PairPotLJCross', 'PairPotDampDisp',
-    'PairPotDisp68BJDamp', 'PairPotEI', 'PairPotEIDip',
-    'PairPotEiSlater1s1sCorr', 'PairPotEiSlater1sp1spCorr',
-    'PairPotOlpSlater1s1s','PairPotChargeTransferSlater1s1s',
+    'Cell',
+    'neigh_dtype', 'nlist_status_init', 'nlist_build', 'nlist_status_finish',
+    'nlist_recompute', 'nlist_inc_r',
+    'Hammer', 'Switch3',
+    'scaling_dtype', 'PairPot', 'PairPotLJ', 'PairPotMM3', 'PairPotGrimme',
+    'PairPotExpRep', 'PairPotQMDFFRep', 'PairPotLJCross', 'PairPotDampDisp',
+    'PairPotDisp68BJDamp', 'PairPotEI', 'PairPotEIDip', 'PairPotEiSlater1s1sCorr',
+    'PairPotEiSlater1sp1spCorr', 'PairPotOlpSlater1s1s','PairPotChargeTransferSlater1s1s',
     'compute_ewald_reci', 'compute_ewald_reci_dd',  'compute_ewald_corr_dd',
-    'compute_ewald_corr', 'dlist_forward', 'dlist_back', 'iclist_forward',
-    'iclist_back', 'vlist_forward', 'vlist_back', 'compute_grid3d',
+    'compute_ewald_corr',
+    'delta_dtype', 'dlist_forward', 'dlist_back',
+    'iclist_dtype', 'iclist_forward', 'iclist_back',
+    'vlist_dtype', 'vlist_forward', 'vlist_back',
+    'compute_grid3d',
 ]
 
 
@@ -314,7 +321,7 @@ cdef class Cell:
             if do_include:
                 npair == output.shape[0]
             else:
-                assert factor*(natom0*(natom0-1))/2 - npair == output.shape[0]
+                assert factor*(natom0*(natom0-1))//2 - npair == output.shape[0]
             if cell.is_invalid_exclude(pairs_pointer, natom0, natom0, npair, True):
                 raise ValueError('The pairs array must countain indices within proper bounds and must be lexicographically sorted.')
             cell.cell_compute_distances1(self._c_cell, <double*> pos0.data,
@@ -340,6 +347,10 @@ cdef class Cell:
 #
 # Neighbor lists
 #
+
+
+cdef nlist.neigh_row_type _neigh_row_tmp
+neigh_dtype = np.asarray(<nlist.neigh_row_type[:1]>(&_neigh_row_tmp)).dtype
 
 
 def nlist_status_init(rmax):
@@ -596,6 +607,10 @@ cdef class Switch3(Truncation):
 #
 
 
+cdef pair_pot.scaling_row_type _scaling_row_tmp
+scaling_dtype = np.asarray(<pair_pot.scaling_row_type[:1]>(&_scaling_row_tmp)).dtype
+
+
 cdef class PairPot:
     '''Base class for the pair potentials'''
     cdef pair_pot.pair_pot_type* _c_pair_pot
@@ -747,7 +762,7 @@ cdef class PairPotLJ(PairPot):
             log.hline()
             log('   Atom      Sigma    Epsilon')
             log.hline()
-            for i in xrange(self._c_sigmas.shape[0]):
+            for i in range(self._c_sigmas.shape[0]):
                 log('%7i %s %s' % (i, log.length(self._c_sigmas[i]), log.energy(self._c_epsilons[i])))
 
     def _get_sigmas(self):
@@ -830,7 +845,7 @@ cdef class PairPotMM3(PairPot):
             log.hline()
             log('   Atom      Sigma    Epsilon    OnlyPauli')
             log.hline()
-            for i in xrange(self._c_sigmas.shape[0]):
+            for i in range(self._c_sigmas.shape[0]):
                 log('%7i %s %s            %i' % (i, log.length(self._c_sigmas[i]), log.energy(self._c_epsilons[i]), self._c_onlypaulis[i]))
 
     def _get_sigmas(self):
@@ -876,7 +891,7 @@ cdef class PairPotGrimme(PairPot):
             log.hline()
             log('   Atom         r0         c6')
             log.hline()
-            for i in xrange(self._c_r0.shape[0]):
+            for i in range(self._c_r0.shape[0]):
                 log('%7i %s %s' % (i, log.length(self._c_r0[i]), log.c6(self._c_c6[i])))
 
     def _get_r0(self):
@@ -999,8 +1014,8 @@ cdef class PairPotExpRep(PairPot):
         self._c_b_cross = b_cross
 
     def _init_amp_cross(self, nffatype, amp_cross, amps, amp_mix, amp_mix_coeff):
-        for i0 in xrange(nffatype):
-            for i1 in xrange(i0+1):
+        for i0 in range(nffatype):
+            for i1 in range(i0+1):
                 if amp_cross[i0, i1] == 0.0:
                     if amp_mix == 0:
                         amp_cross[i0, i1] = np.sqrt(amps[i0]*amps[i1])
@@ -1013,8 +1028,8 @@ cdef class PairPotExpRep(PairPot):
                     amp_cross[i1, i0] = amp_cross[i0, i1]
 
     def _init_b_cross(self, nffatype, b_cross, bs, b_mix, b_mix_coeff, amps):
-        for i0 in xrange(nffatype):
-            for i1 in xrange(i0+1):
+        for i0 in range(nffatype):
+            for i1 in range(i0+1):
                 if b_cross[i0, i1] == 0.0:
                     if b_mix == 0:
                         b_cross[i0, i1] = (bs[i0] + bs[i1])/2
@@ -1032,8 +1047,8 @@ cdef class PairPotExpRep(PairPot):
             log.hline()
             log('ffatype_id0 ffatype_id1          A          B')
             log.hline()
-            for i0 in xrange(self._c_nffatype):
-                for i1 in xrange(i0+1):
+            for i0 in range(self._c_nffatype):
+                for i1 in range(i0+1):
                     log('%11i %11i %s %s' % (i0, i1, log.energy(self._c_amp_cross[i0, i1]), log.invlength(self._c_b_cross[i0,i1])))
 
     def _get_amp_cross(self):
@@ -1158,8 +1173,8 @@ cdef class PairPotQMDFFRep(PairPot):
         self._c_b_cross = b_cross
 
     def _init_amp_cross(self, nffatype, amp_cross, amps, amp_mix, amp_mix_coeff):
-        for i0 in xrange(nffatype):
-            for i1 in xrange(i0+1):
+        for i0 in range(nffatype):
+            for i1 in range(i0+1):
                 if amp_cross[i0, i1] == 0.0:
                     if amp_mix == 0:
                         amp_cross[i0, i1] = np.sqrt(amps[i0]*amps[i1])
@@ -1172,8 +1187,8 @@ cdef class PairPotQMDFFRep(PairPot):
                     amp_cross[i1, i0] = amp_cross[i0, i1]
 
     def _init_b_cross(self, nffatype, b_cross, bs, b_mix, b_mix_coeff, amps):
-        for i0 in xrange(nffatype):
-            for i1 in xrange(i0+1):
+        for i0 in range(nffatype):
+            for i1 in range(i0+1):
                 if b_cross[i0, i1] == 0.0:
                     if b_mix == 0:
                         b_cross[i0, i1] = (bs[i0] + bs[i1])/2
@@ -1191,8 +1206,8 @@ cdef class PairPotQMDFFRep(PairPot):
             log.hline()
             log('ffatype_id0 ffatype_id1          A          B')
             log.hline()
-            for i0 in xrange(self._c_nffatype):
-                for i1 in xrange(i0+1):
+            for i0 in range(self._c_nffatype):
+                for i1 in range(i0+1):
                     log('%11i %11i %s %s' % (i0, i1, log.energy(self._c_amp_cross[i0, i1]), log.invlength(self._c_b_cross[i0,i1])))
 
     def _get_amp_cross(self):
@@ -1281,8 +1296,8 @@ cdef class PairPotLJCross(PairPot):
             log.hline()
             log('ffatype_id0 ffatype_id1         eps          sig')
             log.hline()
-            for i0 in xrange(self._c_nffatype):
-                for i1 in xrange(i0+1):
+            for i0 in range(self._c_nffatype):
+                for i1 in range(i0+1):
                     log('%11i %11i %s %s' % (i0, i1, log.energy(self._c_eps_cross[i0,i1]), log.length(self._c_sig_cross[i0,i1])))
 
     def _get_eps_cross(self):
@@ -1303,18 +1318,18 @@ cdef class PairPotDampDisp(PairPot):
 
         **Energy:**
 
-        .. math:: E_\text{DAMPDISP} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} C_{6,ij} f_\text{damp,6}(d_{ij}) d_{ij}^{-6}
+        .. math:: E_\text{DAMPDISP} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} C_{n,ij} f_\text{damp,n}(d_{ij}) d_{ij}^{-n}
 
         where the damping factor :math:`f_\text{damp}(d_{ij})` is optional. When used
         it has the Tang-Toennies form:
 
         .. math:: f_\text{damp,n}(d_{ij}) = 1 - \exp(-B_{ij}r)\sum_{k=0}^n\frac{(B_{ij}r)^k}{k!}
 
-        The pair parameters :math:`C_{6,ij}` and :math:`B_{ij}` are derived from atomic
+        The pair parameters :math:`C_{n,ij}` and :math:`B_{ij}` are derived from atomic
         parameters using mixing rules, unless they are provided explicitly for a given
         pair of atom types. These are the mixing rules:
 
-        .. math:: C_{6,ij} = \frac{2 C_{6,i} C_{6,j}}{\left(\frac{V_j}{V_i}\right)^2 C_{6,i} + \left(\frac{V_i}{V_j}\right)^2 C_{6,j}}
+        .. math:: C_{n,ij} = \frac{2 C_{n,i} C_{n,j}}{\left(\frac{V_j}{V_i}\right)^2 C_{n,i} + \left(\frac{V_i}{V_j}\right)^2 C_{n,j}}
 
         .. math:: B_{ij} = \frac{B_i+B_j}{2}
 
@@ -1325,8 +1340,8 @@ cdef class PairPotDampDisp(PairPot):
             indexes for the atom types that start counting from zero. shape =
             (natom,).
 
-        c6_cross
-            The :math:`C_{6,ij}` cross parameters.
+        cn_cross
+            The :math:`C_{n,ij}` cross parameters.
 
         b_cross
             The :math:`B_{ij}` cross parameters. When zero, the damping factor
@@ -1341,8 +1356,8 @@ cdef class PairPotDampDisp(PairPot):
             The truncation scheme, an instance of a subclass of ``Truncation``.
             When not given, no truncation is applied
 
-        c6s
-            The diagonal :math:`C_{6,i}` parameters
+        cns
+            The diagonal :math:`C_{n,i}` parameters
 
         bs
             The diagonal :math:`B_{i}` parameters
@@ -1350,66 +1365,74 @@ cdef class PairPotDampDisp(PairPot):
         vols
             The atomic volumes, :math:`V_i`.
 
+        power
+            The power to which :math:`1/d_{ij}` is raised.
+            Default value is 6, which corresponds to the first term in a
+            perturbation expansion of the dispersion energy.
+
         The three last optional arguments are used to determine pair parameters
         from the mixing rules. These mixing rules are only applied of the
         corresponding cross parameters are initially set to zero in the arrays
-        ``c6_corss`` and ``b_cross``.
+        ``cn_cross`` and ``b_cross``.
     '''
     cdef long _c_nffatype
-    cdef np.ndarray _c_c6_cross
+    cdef long _c_power
+    cdef np.ndarray _c_cn_cross
     cdef np.ndarray _c_b_cross
     name = 'dampdisp'
 
     def __cinit__(self, np.ndarray[long, ndim=1] ffatype_ids not None,
-                  np.ndarray[double, ndim=2] c6_cross not None,
+                  np.ndarray[double, ndim=2] cn_cross not None,
                   np.ndarray[double, ndim=2] b_cross not None,
                   double rcut, Truncation tr=None,
-                  np.ndarray[double, ndim=1] c6s=None,
+                  np.ndarray[double, ndim=1] cns=None,
                   np.ndarray[double, ndim=1] bs=None,
-                  np.ndarray[double, ndim=1] vols=None):
+                  np.ndarray[double, ndim=1] vols=None,
+                  long power=6):
         assert ffatype_ids.flags['C_CONTIGUOUS']
-        assert c6_cross.flags['C_CONTIGUOUS']
+        assert cn_cross.flags['C_CONTIGUOUS']
         assert b_cross.flags['C_CONTIGUOUS']
-        nffatype = c6_cross.shape[0]
+        nffatype = cn_cross.shape[0]
         assert ffatype_ids.min() >= 0
         assert ffatype_ids.max() < nffatype
-        assert c6_cross.shape[1] == nffatype
+        assert cn_cross.shape[1] == nffatype
         assert b_cross.shape[0] == nffatype
         assert b_cross.shape[1] == nffatype
-        if c6s is not None or vols is not None:
-            assert c6s is not None
+        if cns is not None or vols is not None:
+            assert cns is not None
             assert vols is not None
-            assert c6s.flags['C_CONTIGUOUS']
+            assert cns.flags['C_CONTIGUOUS']
             assert vols.flags['C_CONTIGUOUS']
-            assert c6s.shape[0] == nffatype
+            assert cns.shape[0] == nffatype
             assert bs.shape[0] == nffatype
-            self._init_c6_cross(nffatype, c6_cross, c6s, vols)
+            self._init_cn_cross(nffatype, cn_cross, cns, vols)
         if bs is not None:
             assert bs.flags['C_CONTIGUOUS']
             self._init_b_cross(nffatype, b_cross, bs)
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
         self.set_truncation(tr)
         pair_pot.pair_data_dampdisp_init(
-            self._c_pair_pot, nffatype, <long*> ffatype_ids.data,
-            <double*> c6_cross.data, <double*> b_cross.data,
+            self._c_pair_pot, nffatype, power, <long*> ffatype_ids.data,
+            <double*> cn_cross.data, <double*> b_cross.data,
         )
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
         self._c_nffatype = nffatype
-        self._c_c6_cross = c6_cross
+        self._c_power = power
+        self._c_cn_cross = cn_cross
         self._c_b_cross = b_cross
 
-    def _init_c6_cross(self, nffatype, c6_cross, c6s, vols):
-        for i0 in xrange(nffatype):
-            for i1 in xrange(i0+1):
-                if c6_cross[i0, i1] == 0.0 and vols[i0] != 0.0 and vols[i1] != 0.0:
+    def _init_cn_cross(self, nffatype, cn_cross, cns, vols):
+        for i0 in range(nffatype):
+            for i1 in range(i0+1):
+                if cn_cross[i0, i1] == 0.0 and vols[i0] != 0.0 and vols[i1] != 0.0:
                     ratio = vols[i0]/vols[i1]
-                    c6_cross[i0, i1] = 2.0*c6s[i0]*c6s[i1]/(c6s[i0]/ratio+c6s[i1]*ratio)
-                    c6_cross[i1, i0] = c6_cross[i0, i1]
+                    cn_cross[i0, i1] = 2.0*cns[i0]*cns[i1]/(cns[i0]/ratio+cns[i1]*ratio)
+                    cn_cross[i1, i0] = cn_cross[i0, i1]
 
     def _init_b_cross(self, nffatype, b_cross, bs):
-        for i0 in xrange(nffatype):
-            for i1 in xrange(i0+1):
+        for i0 in range(nffatype):
+            for i1 in range(i0+1):
                 if b_cross[i0, i1] == 0.0 and bs[i0] != 0.0 and bs[i1] != 0.0:
                     b_cross[i0, i1] = 0.5*(bs[i0] + bs[i1])
                     b_cross[i1, i0] = b_cross[i0, i1]
@@ -1418,17 +1441,17 @@ cdef class PairPotDampDisp(PairPot):
         '''Print suitable initialization info on screen.'''
         if log.do_high:
             log.hline()
-            log('ffatype_id0 ffatype_id1         C6          B')
+            log('ffatype_id0 ffatype_id1         cn[au]        B')
             log.hline()
-            for i0 in xrange(self._c_nffatype):
-                for i1 in xrange(i0+1):
-                    log('%11i %11i %s %s' % (i0, i1, log.c6(self._c_c6_cross[i0,i1]), log.invlength(self._c_b_cross[i0,i1])))
+            for i0 in range(self._c_nffatype):
+                for i1 in range(i0+1):
+                    log('%11i %11i %10.5f %s' % (i0, i1, self._c_cn_cross[i0,i1], log.invlength(self._c_b_cross[i0,i1])))
 
-    def _get_c6_cross(self):
-        '''The C6 cross parameters'''
-        return self._c_c6_cross.view()
+    def _get_cn_cross(self):
+        '''The cn cross parameters'''
+        return self._c_cn_cross.view()
 
-    c6_cross = property(_get_c6_cross)
+    cn_cross = property(_get_cn_cross)
 
     def _get_b_cross(self):
         '''The damping cross parameters'''
@@ -1561,8 +1584,8 @@ cdef class PairPotDisp68BJDamp(PairPot):
             log.hline()
             log('ffatype_id0 ffatype_id1         C6         C8          R')
             log.hline()
-            for i0 in xrange(self._c_nffatype):
-                for i1 in xrange(i0+1):
+            for i0 in range(self._c_nffatype):
+                for i1 in range(i0+1):
                     log('%11i %11i %s %s %s' % (i0, i1, log.c6(self._c_c6_cross[i0,i1]), "%10.5f"%self._c_c8_cross[i0,i1], log.length(self._c_R_cross[i0,i1])))
 
     def _get_c6_cross(self):
@@ -1676,7 +1699,7 @@ cdef class PairPotEI(PairPot):
             log.hline()
             log('   Atom     Charge     Radius')
             log.hline()
-            for i in xrange(self._c_charges.shape[0]):
+            for i in range(self._c_charges.shape[0]):
                 log('%7i %s %s' % (i, log.charge(self._c_charges[i]), log.length(self._c_radii[i])))
 
     def _get_charges(self):
@@ -1718,6 +1741,7 @@ cdef class PairPotEIDip(PairPot):
 
         poltens_i
             An array that gives the inverse atomic polarizabilities, shape = (3natom, 3)
+
         TODO: What about other parameters, for example from EEM? More general way
         to include necessary parameters.
 
@@ -1756,7 +1780,7 @@ cdef class PairPotEIDip(PairPot):
         self._c_radii2 = radii2
         #Put the polarizability tensors in a matrix with shape that is more convenient for energy calculation
         self._c_poltens_i = np.zeros( (np.shape(poltens_i)[0],np.shape(poltens_i)[0]) )
-        for i in xrange(np.shape(poltens_i)[0]/3):
+        for i in range(np.shape(poltens_i)[0]//3):
             self.poltens_i[3*i:3*(i+1) , 3*i:3*(i+1)] = poltens_i[3*i:3*(i+1),:]
 
     def compute(self, np.ndarray[nlist.neigh_row_type, ndim=1] neighs,
@@ -1777,7 +1801,7 @@ cdef class PairPotEIDip(PairPot):
             log.hline()
             log('Atom     Charge     Radius   Dipole_x   Dipole_y   Dipole_z   Radius')
             log.hline()
-            for i in xrange(self._c_charges.shape[0]):
+            for i in range(self._c_charges.shape[0]):
                 log('%4i %s %s %s %s %s %s' % (i, log.charge(self._c_charges[i]),log.length(self._c_radii[i]),\
                 log.charge(self._c_dipoles[i,0]), log.charge(self._c_dipoles[i,1]),log.charge(self._c_dipoles[i,2]),\
                 log.length(self._c_radii2[i])))
@@ -1859,7 +1883,7 @@ cdef class PairPotEiSlater1s1sCorr(PairPot):
             log.hline()
             log('   Atom  Slater charge  Core charge   Slater width')
             log.hline()
-            for i in xrange(self._c_slater1s_widths.shape[0]):
+            for i in range(self._c_slater1s_widths.shape[0]):
                 log('%7i     %s   %s     %s' % (i, log.charge(self._c_slater1s_N[i]),log.charge(self._c_slater1s_Z[i]),log.length(self._c_slater1s_widths[i])))
 
     def _get_slater1s_widths(self):
@@ -1956,7 +1980,7 @@ cdef class PairPotEiSlater1sp1spCorr(PairPot):
             log.hline()
             log('   Atom  Slater charge  Core charge   Slater width')
             log.hline()
-            for i in xrange(self._c_slater1s_widths.shape[0]):
+            for i in range(self._c_slater1s_widths.shape[0]):
                 log('%7i     %s   %s     %s' % (i, log.charge(self._c_slater1s_N[i]),log.charge(self._c_slater1s_Z[i]),log.length(self._c_slater1s_widths[i])))
 
     def _get_slater1s_widths(self):
@@ -2063,7 +2087,7 @@ cdef class PairPotOlpSlater1s1s(PairPot):
             log.hline()
             log('   Atom  Slater charge   Slater width')
             log.hline()
-            for i in xrange(self._c_slater1s_widths.shape[0]):
+            for i in range(self._c_slater1s_widths.shape[0]):
                 log('%7i     %s     %s' % (i, log.charge(self._c_slater1s_N[i]),log.length(self._c_slater1s_widths[i])))
 
     def _get_slater1s_widths(self):
@@ -2160,7 +2184,7 @@ cdef class PairPotChargeTransferSlater1s1s(PairPot):
             log.hline()
             log('   Atom  Slater charge   Slater width')
             log.hline()
-            for i in xrange(self._c_slater1s_widths.shape[0]):
+            for i in range(self._c_slater1s_widths.shape[0]):
                 log('%7i     %s     %s' % (i, log.charge(self._c_slater1s_N[i]),log.length(self._c_slater1s_widths[i])))
 
     def _get_slater1s_widths(self):
@@ -2534,6 +2558,10 @@ def compute_ewald_corr_dd(np.ndarray[double, ndim=2] pos,
 #
 
 
+cdef dlist.dlist_row_type _dlist_row_tmp
+delta_dtype = np.asarray(<dlist.dlist_row_type[:1]>(&_dlist_row_tmp)).dtype
+
+
 def dlist_forward(np.ndarray[double, ndim=2] pos,
                   Cell unitcell,
                   np.ndarray[dlist.dlist_row_type, ndim=1] deltas, long ndelta):
@@ -2611,6 +2639,9 @@ def dlist_back(np.ndarray[double, ndim=2] gpos,
 # InternalCoordinate list
 #
 
+cdef iclist.iclist_row_type _iclist_row_tmp
+iclist_dtype = np.asarray(<iclist.iclist_row_type[:1]>(&_iclist_row_tmp)).dtype
+
 
 def iclist_forward(np.ndarray[dlist.dlist_row_type, ndim=1] deltas,
                    np.ndarray[iclist.iclist_row_type, ndim=1] ictab, long nic):
@@ -2660,6 +2691,9 @@ def iclist_back(np.ndarray[dlist.dlist_row_type, ndim=1] deltas,
 # Valence list
 #
 
+cdef vlist.vlist_row_type _vlist_row_tmp
+vlist_dtype = np.asarray(<vlist.vlist_row_type[:1]>(&_vlist_row_tmp)).dtype
+
 
 def vlist_forward(np.ndarray[iclist.iclist_row_type, ndim=1] ictab,
                   np.ndarray[vlist.vlist_row_type, ndim=1] vtab, long nv):
@@ -2708,7 +2742,10 @@ def vlist_back(np.ndarray[iclist.iclist_row_type, ndim=1] ictab,
 # grid
 #
 
-def compute_grid3d(np.ndarray[double, ndim=1] center, Cell unitcell, np.ndarray[double, ndim=3] egrid):
-    assert center.flags['C_CONTIGUOUS']
+def compute_grid3d(double[::1] center not None,
+                   Cell unitcell,
+                   double[:,:,::1] egrid not None):
     assert center.shape[0] == 3
-    return grid.compute_grid3d(<double*>center.data, unitcell._c_cell, <double*>egrid.data, <long*>egrid.shape)
+    cdef size_t shape[3]
+    shape[:] = egrid.shape
+    return grid.compute_grid3d(&center[0], unitcell._c_cell, &egrid[0, 0, 0], &shape[0])

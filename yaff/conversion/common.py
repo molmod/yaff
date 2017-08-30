@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,9 +20,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 '''Tools for writing trajectory data'''
 
+
+from __future__ import division
 
 import h5py as h5
 
@@ -93,7 +95,7 @@ def get_last_trajectory_row(dss):
             A list of datasets or the trajectory group.
     '''
     if isinstance(dss, h5.Group):
-        dss = dss.itervalues()
+        dss = dss.values()
     row = min(ds.shape[0] for ds in dss)
     return row
 

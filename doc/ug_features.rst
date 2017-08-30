@@ -1,5 +1,32 @@
+..
+    : YAFF is yet another force-field code.
+    : Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+    : Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
+    : (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
+    : stated.
+    :
+    : This file is part of YAFF.
+    :
+    : YAFF is free software; you can redistribute it and/or
+    : modify it under the terms of the GNU General Public License
+    : as published by the Free Software Foundation; either version 3
+    : of the License, or (at your option) any later version.
+    :
+    : YAFF is distributed in the hope that it will be useful,
+    : but WITHOUT ANY WARRANTY; without even the implied warranty of
+    : MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    : GNU General Public License for more details.
+    :
+    : You should have received a copy of the GNU General Public License
+    : along with this program; if not, see <http://www.gnu.org/licenses/>
+    :
+    : --
+
+Features and release notes
+==========================
+
 Features
-========
+--------
 
 The main features of Yaff are:
 
@@ -25,4 +52,42 @@ Missing features (work in progress) include:
 
 * Parallel force evaluaton.
 * Parallel sampling schemes.
-* Constant-pressure sampling schemes: Martyna-Tuckerman-Tobias-Klein.
+
+
+Release notes
+-------------
+
+
+* **Version 1.4.1** August 30, 2017
+
+  - Fix corner case when writing out HDF files for the system.
+  - Fix typo in install docs.
+
+* **Version 1.4.0** August 11, 2017
+
+  - Conda packages for Windows, Linux and OSX.
+  - Fix some consistency issues with cross terms.
+  - Less pedantic warnings for missing energy terms.
+
+* **Version 1.3.0** August 5, 2017
+
+  - Python 3 support
+
+* Version 1.2.0
+
+  - Installable with pip.
+  - Installable with conda.
+  - Automatic deployment of new releases.
+  - Fix parallel unit testing issues.
+
+* Version 1.1.3
+
+  - Correct anharmonic covalent MM3 terms.
+
+* Version 1.1.2
+
+  - Removed flush option from HDF5Writer.
+
+* Version 1.1.1
+
+  - Fixed a few bugs in `System.iter_matches`.

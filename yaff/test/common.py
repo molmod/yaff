@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# YAFF is yet another force-field code
-# Copyright (C) 2011 - 2013 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
+# YAFF is yet another force-field code.
+# Copyright (C) 2011 Toon Verstraelen <Toon.Verstraelen@UGent.be>,
 # Louis Vanduyfhuys <Louis.Vanduyfhuys@UGent.be>, Center for Molecular Modeling
 # (CMM), Ghent University, Ghent, Belgium; all rights reserved unless otherwise
 # stated.
@@ -20,8 +20,10 @@
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
-#--
+# --
 
+
+from __future__ import division
 
 import numpy as np
 
@@ -82,7 +84,7 @@ def get_system_water32():
             [3.655, 3.021, 0.988], [2.706, 3.053, 1.282], [3.542, 2.615, 0.020]
         ])*angstrom,
         ffatypes=['O', 'H', 'H']*32,
-        bonds=np.array([[(i/3)*3,i] for i in xrange(96) if i%3!=0]),
+        bonds=np.array([[(i//3)*3,i] for i in range(96) if i%3!=0]),
         rvecs=np.array([[9.865, 0.0, 0.0], [0.0, 9.865, 0.0], [0.0, 0.0, 9.865]])*angstrom,
         charges=np.array([-0.834, 0.417, 0.417]*32)
     )
@@ -507,7 +509,7 @@ def get_system_4113_01WaterWater():
                                -0.575295591836335, -0.5752744321374641])
     slater_Z = np.array([6.340131543436602,1.0,1.0,6.34008454441325,1.0,1.0])
     charges = slater_Z + slater_charges
-    ffatypes = ['at%03d'%i for i in xrange(len(numbers))]
+    ffatypes = ['at%03d'%i for i in range(len(numbers))]
     system = System(numbers, pos, bonds=bonds, ffatypes=ffatypes,
                     charges=charges, radii=slater_widths,
                     valence_charges=slater_charges)
