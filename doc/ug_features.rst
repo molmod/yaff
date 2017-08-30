@@ -58,6 +58,10 @@ Release notes
 -------------
 
 
+* **Version 1.4.2** August 30, 2017
+
+  - Numerically more stable computation of error on the conserved quantity.
+
 * **Version 1.4.1** August 30, 2017
 
   - Fix corner case when writing out HDF files for the system.
