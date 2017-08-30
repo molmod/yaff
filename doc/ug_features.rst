@@ -57,7 +57,13 @@ Missing features (work in progress) include:
 Release notes
 -------------
 
-* **Version 1.4.0** August ??, 2017
+
+* **Version 1.4.1** August 30, 2017
+
+  - Fix corner case when writing out HDF files for the system.
+  - Fix typo in install docs.
+
+* **Version 1.4.0** August 11, 2017
 
   - Conda packages for Windows, Linux and OSX.
   - Fix some consistency issues with cross terms.
