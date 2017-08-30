@@ -1,0 +1,171 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>5. Overview of Yaff &#8212; Yaff 1.4.2 documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.4.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="6. Representation of a molecular system" href="ug_system.html" />
+    <link rel="prev" title="4. How to cite Yaff" href="ug_cite.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="ug_system.html" title="6. Representation of a molecular system"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="ug_cite.html" title="4. How to cite Yaff"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="overview-of-yaff">
+<h1>5. Overview of Yaff<a class="headerlink" href="#overview-of-yaff" title="Permalink to this headline">¶</a></h1>
+<p>Yaff is a Python library that can be used to implement all sorts of
+force-field simulations. A useful simulation typically consists of four steps:</p>
+<ol class="arabic simple">
+<li>Specification of the molecular system that will be simulated.</li>
+<li>Specification of the force field model used to compute energies and forces.</li>
+<li>An (iterative) simulation protocol, such as a Molecular Dynamics or a Monte
+Carlo simulation, a geometry optimization, or yet something else.</li>
+<li>Analysis of the output to extract meaningful numbers from the simulation.</li>
+</ol>
+<p>Each step will be discussed in more detail in the following sections.</p>
+<p>In Yaff, the conventional input file is replaced by an input script. This means
+that one must write one or more small <cite>main</cite> programs that specify what type of
+simulation is carried out. A minimalistic example, which covers all four steps,
+is given in the file <code class="docutils literal"><span class="pre">data/examples/000_overview/simulation.py</span></code>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># import the yaff library</span>
+<span class="kn">from</span> <span class="nn">yaff</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="c1"># Control the amount of screen output and the unit system.</span>
+<span class="n">log</span><span class="o">.</span><span class="n">set_level</span><span class="p">(</span><span class="n">log</span><span class="o">.</span><span class="n">medium</span><span class="p">)</span>
+<span class="n">log</span><span class="o">.</span><span class="n">set_unitsys</span><span class="p">(</span><span class="n">log</span><span class="o">.</span><span class="n">joule</span><span class="p">)</span>
+
+<span class="c1"># import the h5py library to write output in the HDF5 format.</span>
+<span class="kn">import</span> <span class="nn">h5py</span> <span class="k">as</span> <span class="nn">h5</span>
+
+<span class="c1"># 1) specify the system (32 water molecules)</span>
+<span class="n">system</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s1">&#39;system.chk&#39;</span><span class="p">)</span>
+
+<span class="c1"># 2) specify the force field (experimental FF)</span>
+<span class="n">ff</span> <span class="o">=</span> <span class="n">ForceField</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">system</span><span class="p">,</span> <span class="s1">&#39;parameters.txt&#39;</span><span class="p">)</span>
+
+<span class="c1"># Open an HDF5 trajectory file for step 3 and 4. If file exists, it is overwritten.</span>
+<span class="k">with</span> <span class="n">h5</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s1">&#39;output.h5&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="c1"># 3) Integrate Newton&#39;s equation of motion and write the trajectory in HDF5</span>
+    <span class="c1"># format.</span>
+    <span class="n">hdf5_writer</span> <span class="o">=</span> <span class="n">HDF5Writer</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="n">xyz</span> <span class="o">=</span> <span class="n">XYZWriter</span><span class="p">(</span><span class="s1">&#39;traj.xyz&#39;</span><span class="p">)</span>
+    <span class="n">verlet</span> <span class="o">=</span> <span class="n">VerletIntegrator</span><span class="p">(</span><span class="n">ff</span><span class="p">,</span> <span class="mi">1</span><span class="o">*</span><span class="n">femtosecond</span><span class="p">,</span> <span class="n">hooks</span><span class="o">=</span><span class="p">[</span><span class="n">hdf5_writer</span><span class="p">,</span> <span class="n">xyz</span><span class="p">],</span> <span class="n">temp0</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+    <span class="n">verlet</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+
+    <span class="c1"># 4) perform an analysis, in this case an RDF computation for O-O pairs.</span>
+    <span class="n">indexes</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">get_indexes</span><span class="p">(</span><span class="s1">&#39;O&#39;</span><span class="p">)</span>
+    <span class="n">rdf</span> <span class="o">=</span> <span class="n">RDF</span><span class="p">(</span><span class="mf">4.5</span><span class="o">*</span><span class="n">angstrom</span><span class="p">,</span> <span class="mf">0.1</span><span class="o">*</span><span class="n">angstrom</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">select0</span><span class="o">=</span><span class="n">indexes</span><span class="p">)</span>
+    <span class="n">rdf</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="s1">&#39;rdf.png&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Yaff internally works with atomic units, although other unit systems can be used
+in input and (some) output files. The units used for the screen output are
+controlled with the <code class="docutils literal"><span class="pre">log.set_unitsys</span></code> method. Output written in HDF5
+files will always be in atomic units. When output is written to a format from
+other projects/programs, the units of that program/project will be used.</p>
+<p>Numpy, Cython and h5py are used extensively in Yaff for numerical efficiency.
+The examples below often use Numpy too, assuming the following import
+statement:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span><span class="o">,</span> <span class="nn">h5py</span> <span class="k">as</span> <span class="nn">h5</span>
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="ug_cite.html"
+                        title="previous chapter">4. How to cite Yaff</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="ug_system.html"
+                        title="next chapter">6. Representation of a molecular system</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/ug_overview.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="ug_system.html" title="6. Representation of a molecular system"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="ug_cite.html" title="4. How to cite Yaff"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2011, Toon Verstraelen, Louis Vanduyfhuys.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,1194 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>4. yaff.analysis – Trajectory analysis &#8212; Yaff 1.4.2 documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.4.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="5. yaff.conversion – Conversion of external trajectory data" href="rg_yaff_conversion.html" />
+    <link rel="prev" title="3. yaff.sampling – Phase-space sampling" href="rg_yaff_sampling.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="rg_yaff_conversion.html" title="5. yaff.conversion – Conversion of external trajectory data"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="rg_yaff_sampling.html" title="3. yaff.sampling – Phase-space sampling"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="yaff-analysis-trajectory-analysis">
+<h1>4. <code class="docutils literal"><span class="pre">yaff.analysis</span></code> – Trajectory analysis<a class="headerlink" href="#yaff-analysis-trajectory-analysis" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-yaff.analysis.basic">
+<span id="yaff-analysis-basic-basic-trajectory-analysis-routines"></span><h2>4.1. <code class="docutils literal"><span class="pre">yaff.analysis.basic</span></code> – Basic trajectory analysis routines<a class="headerlink" href="#module-yaff.analysis.basic" title="Permalink to this headline">¶</a></h2>
+<p>Basic trajectory analysis routines</p>
+<dl class="function">
+<dt id="yaff.analysis.basic.plot_energies">
+<code class="descclassname">yaff.analysis.basic.</code><code class="descname">plot_energies</code><span class="sig-paren">(</span><em>f</em>, <em>fn_png='energies.png'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.basic.plot_energies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a plot of the potential, total and conserved energy as f. of time</p>
+<p><strong>Arguments:</strong></p>
+<p>f
+An h5.File instance containing the trajectory data.</p>
+<p><strong>Optional arguments:</strong></p>
+<p>fn_png
+The png file to write the figure to</p>
+<p>The optional arguments of the <code class="docutils literal"><span class="pre">get_slice</span></code> function are also accepted in
+the form of keyword arguments.</p>
+<p>The units for making the plot are taken from the yaff screen logger. This
+type of plot is essential for checking the sanity of a simulation.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.basic.plot_temperature">
+<code class="descclassname">yaff.analysis.basic.</code><code class="descname">plot_temperature</code><span class="sig-paren">(</span><em>f</em>, <em>fn_png='temperature.png'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.basic.plot_temperature" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a plot of the temperature as function of time</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>fn_png</dt>
+<dd>The png file to write the figure to</dd>
+</dl>
+<p>The optional arguments of the <code class="docutils literal"><span class="pre">get_slice</span></code> function are also accepted in
+the form of keyword arguments.</p>
+<p>The units for making the plot are taken from the yaff screen logger. This
+type of plot is essential for checking the sanity of a simulation.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.basic.plot_pressure">
+<code class="descclassname">yaff.analysis.basic.</code><code class="descname">plot_pressure</code><span class="sig-paren">(</span><em>f</em>, <em>fn_png='pressure.png'</em>, <em>window=1</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.basic.plot_pressure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a plot of the pressure as function of time</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>fn_png</dt>
+<dd>The png file to write the figure to</dd>
+<dt>window</dt>
+<dd>The window over which the pressure is averaged</dd>
+</dl>
+<p>The optional arguments of the <code class="docutils literal"><span class="pre">get_slice</span></code> function are also accepted in
+the form of keyword arguments.</p>
+<p>The units for making the plot are taken from the yaff screen logger. This
+type of plot is essential for checking the sanity of a simulation.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.basic.plot_temp_dist">
+<code class="descclassname">yaff.analysis.basic.</code><code class="descname">plot_temp_dist</code><span class="sig-paren">(</span><em>f</em>, <em>fn_png='temp_dist.png'</em>, <em>temp=None</em>, <em>ndof=None</em>, <em>select=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.basic.plot_temp_dist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the distribution of the weighted atomic velocities</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>fn_png</dt>
+<dd>The png file to write the figure to</dd>
+<dt>select</dt>
+<dd>A list of atom indexes that should be considered for the analysis.
+By default, information from all atoms is combined.</dd>
+<dt>temp</dt>
+<dd>The (expected) average temperature used to plot the theoretical
+distributions.</dd>
+<dt>ndof</dt>
+<dd>The number of degrees of freedom. If not specified, this is chosen
+to be 3*(number of atoms)</dd>
+<dt>start, end, step, max_sample</dt>
+<dd>The optional arguments of the <code class="docutils literal"><span class="pre">get_slice</span></code> function are also
+accepted in the form of keyword arguments.</dd>
+</dl>
+<p>This type of plot is essential for checking the sanity of a simulation.
+The empirical cumulative distribution is plotted and overlayed with the
+analytical cumulative distribution one would expect if the data were
+taken from an NVT ensemble.</p>
+<p>This type of plot reveals issues with parts that are relatively cold or
+warm compared to the total average temperature. This helps to determine
+(the lack of) thermal equilibrium.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.basic.plot_press_dist">
+<code class="descclassname">yaff.analysis.basic.</code><code class="descname">plot_press_dist</code><span class="sig-paren">(</span><em>f</em>, <em>temp</em>, <em>fn_png='press_dist.png'</em>, <em>press=None</em>, <em>ndof=None</em>, <em>select=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.basic.plot_press_dist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the distribution of the internal pressure</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data.</dd>
+<dt>temp</dt>
+<dd>The (expected) average temperature used to plot the theoretical
+distributions.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>fn_png</dt>
+<dd>The png file to write the figure to</dd>
+<dt>select</dt>
+<dd>A list of atom indexes that should be considered for the analysis.
+By default, information from all atoms is combined.</dd>
+<dt>press</dt>
+<dd>The (expected) average pressure used to plot the theoretical
+distributions.</dd>
+<dt>ndof</dt>
+<dd>The number of degrees of freedom. If not specified, this is chosen
+to be 3*(number of atoms)</dd>
+<dt>start, end, step, max_sample</dt>
+<dd>The optional arguments of the <code class="docutils literal"><span class="pre">get_slice</span></code> function are also
+accepted in the form of keyword arguments.</dd>
+</dl>
+<p>This type of plot is essential for checking the sanity of a simulation.
+The empirical cumulative distribution is plotted and overlayed with the
+analytical cumulative distribution one would expect if the data were
+taken from an NPT ensemble.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.basic.plot_volume_dist">
+<code class="descclassname">yaff.analysis.basic.</code><code class="descname">plot_volume_dist</code><span class="sig-paren">(</span><em>f</em>, <em>fn_png='volume_dist.png'</em>, <em>temp=None</em>, <em>press=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.basic.plot_volume_dist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plots the distribution of the volume</p>
+<blockquote>
+<div><p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>fn_png</dt>
+<dd>The png file to write the figure to</dd>
+<dt>temp</dt>
+<dd>The (expected) average temperature used to plot the theoretical
+distributions.</dd>
+<dt>press</dt>
+<dd>The (expected) average pressure used to plot the theoretical
+distributions.</dd>
+<dt>start, end, step, max_sample</dt>
+<dd>The optional arguments of the <code class="docutils literal"><span class="pre">get_slice</span></code> function are also
+accepted in the form of keyword arguments.</dd>
+</dl>
+</div></blockquote>
+<p>This type of plot is essential for checking the sanity of a simulation.
+The empirical cumulative distribution is plotted and overlayed with the
+analytical cumulative distribution one would expect if the data were
+taken from an NPT ensemble.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.basic.plot_density">
+<code class="descclassname">yaff.analysis.basic.</code><code class="descname">plot_density</code><span class="sig-paren">(</span><em>f</em>, <em>fn_png='density.png'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.basic.plot_density" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a plot of the mass density as function of time</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>fn_png</dt>
+<dd>The png file to write the figure to</dd>
+</dl>
+<p>The optional arguments of the <code class="docutils literal"><span class="pre">get_slice</span></code> function are also accepted in
+the form of keyword arguments.</p>
+<p>The units for making the plot are taken from the yaff screen logger.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.basic.plot_cell_pars">
+<code class="descclassname">yaff.analysis.basic.</code><code class="descname">plot_cell_pars</code><span class="sig-paren">(</span><em>f</em>, <em>fn_png='cell_pars.png'</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.basic.plot_cell_pars" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a plot of the cell parameters as function of time</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>fn_png</dt>
+<dd>The png file to write the figure to</dd>
+</dl>
+<p>The optional arguments of the <code class="docutils literal"><span class="pre">get_slice</span></code> function are also accepted in
+the form of keyword arguments.</p>
+<p>The units for making the plot are taken from the yaff screen logger.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.basic.plot_epot_contribs">
+<code class="descclassname">yaff.analysis.basic.</code><code class="descname">plot_epot_contribs</code><span class="sig-paren">(</span><em>f</em>, <em>fn_png='epot_contribs.png'</em>, <em>size=1.0</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.basic.plot_epot_contribs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a plot of the contributions to the potential energy as f. of time</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>fn_png</dt>
+<dd>The png file to write the figure to</dd>
+</dl>
+<p>The optional arguments of the <code class="docutils literal"><span class="pre">get_slice</span></code> function are also accepted in
+the form of keyword arguments.</p>
+<p>The units for making the plot are taken from the yaff screen logger. This
+type of plot is essential for checking the sanity of a simulation.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.basic.plot_angle">
+<code class="descclassname">yaff.analysis.basic.</code><code class="descname">plot_angle</code><span class="sig-paren">(</span><em>f</em>, <em>index</em>, <em>fn_png='angle.png'</em>, <em>n_int=1</em>, <em>xlim=None</em>, <em>ymax=None</em>, <em>angle_lim=None</em>, <em>angle_shift=False</em>, <em>oriented=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.basic.plot_angle" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a plot of the angle between the given atoms as f. of time</p>
+<blockquote>
+<div><p><strong>Arguments:</strong></p>
+<blockquote>
+<div><dl class="docutils">
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data</dd>
+<dt>index</dt>
+<dd>A list containing the three indices of the atoms as in the h5 file</dd>
+</dl>
+</div></blockquote>
+</div></blockquote>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>fn_png</dt>
+<dd><blockquote class="first">
+<div>The png file to write the figure to</div></blockquote>
+<dl class="last docutils">
+<dt>n_int</dt>
+<dd>The number of equidistant intervals considered in the FFT and histogram</dd>
+<dt>xlim</dt>
+<dd>Frequency interval of interest</dd>
+<dt>ymax</dt>
+<dd>Maximal intensity of interest in the FFT</dd>
+<dt>angle_lim</dt>
+<dd>Angle interval of interest in the histogram</dd>
+<dt>angle_shift</dt>
+<dd>If True, all angles are shifted towards positive values</dd>
+<dt>oriented</dt>
+<dd>If True, a distinction is made between positive and negative angles</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.basic.plot_dihedral">
+<code class="descclassname">yaff.analysis.basic.</code><code class="descname">plot_dihedral</code><span class="sig-paren">(</span><em>f</em>, <em>index</em>, <em>fn_png='dihedral.png'</em>, <em>n_int=1</em>, <em>xlim=None</em>, <em>ymax=None</em>, <em>angle_lim=None</em>, <em>angle_shift=False</em>, <em>oriented=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.basic.plot_dihedral" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a plot of the angle between the given atoms as f. of time</p>
+<blockquote>
+<div><p><strong>Arguments:</strong></p>
+<blockquote>
+<div><dl class="docutils">
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data</dd>
+<dt>index</dt>
+<dd>A list containing the four indices of the atoms as in the h5 file</dd>
+</dl>
+</div></blockquote>
+</div></blockquote>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>fn_png</dt>
+<dd><blockquote class="first">
+<div>The png file to write the figure to</div></blockquote>
+<dl class="last docutils">
+<dt>n_int</dt>
+<dd>The number of equidistant intervals considered in the FFT and histogram</dd>
+<dt>xlim</dt>
+<dd>Frequency interval of interest</dd>
+<dt>ymax</dt>
+<dd>Maximal intensity of interest in the FFT</dd>
+<dt>angle_lim</dt>
+<dd>Angle interval of interest in the histogram</dd>
+<dt>angle_shift</dt>
+<dd>If True, all angles are shifted towards positive values</dd>
+<dt>oriented</dt>
+<dd>If True, a distinction is made between positive and negative angles</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-yaff.analysis.blav">
+<span id="yaff-analysis-blav-the-block-average-method"></span><h2>4.2. <code class="docutils literal"><span class="pre">yaff.analysis.blav</span></code> – The block-average method<a class="headerlink" href="#module-yaff.analysis.blav" title="Permalink to this headline">¶</a></h2>
+<p>The block-average method</p>
+<dl class="function">
+<dt id="yaff.analysis.blav.blav">
+<code class="descclassname">yaff.analysis.blav.</code><code class="descname">blav</code><span class="sig-paren">(</span><em>signal</em>, <em>minblock=100</em>, <em>fn_png=None</em>, <em>unit=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.blav.blav" title="Permalink to this definition">¶</a></dt>
+<dd><p>Analyze the signal with the block average method.</p>
+<p>The variance on the block average error as function of block size is
+fitted using the <code class="docutils literal"><span class="pre">a+b/bsize</span></code> model, where <code class="docutils literal"><span class="pre">a</span></code> is a measure for the
+error on the average, i.e. when the block size becomes infintely large.
+If the fit fails, a coarse estimate of the error on the average is
+returned, i.e. the largest block average error.</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>signal</dt>
+<dd>An array containing time-dependent data.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>minblock</dt>
+<dd>The minimum number of blocks to be considered.</dd>
+<dt>fn_png</dt>
+<dd>When given, the data used for the fit and the fitted model are
+plotted.</dd>
+<dt>unit</dt>
+<dd>This is only relevant when a plot is made. It is used as the unit
+for the y-axis, e.g. <code class="docutils literal"><span class="pre">log.length</span></code>.</dd>
+</dl>
+<p><strong>Returns:</strong></p>
+<dl class="docutils">
+<dt>error</dt>
+<dd>The fitted error.</dd>
+<dt>sinef</dt>
+<dd>The fitted statistical inefficiency.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.blav.inefficiency">
+<code class="descclassname">yaff.analysis.blav.</code><code class="descname">inefficiency</code><span class="sig-paren">(</span><em>signal</em>, <em>time=None</em>, <em>fn_png='stat_ineff.png'</em>, <em>taus=None</em>, <em>eq_limits=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.blav.inefficiency" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>Analyze the signal to determine the statistical inefficiency. The statistical
+inefficiency of a signal is defined as the limiting ratio of the observed
+variance of its long-term averages to their expected variance. It can hence be
+regarded as the factor (&gt;1) with which the sample size should be multiplied in
+order to compensate for correlation. This is derived in:</p>
+<blockquote>
+<div>Friedberg, R; Cameron, J.E. J. Chem. Phys. 1970, 52, 6049-6058.</div></blockquote>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>signal</dt>
+<dd>An array containing time-dependent data.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>time</dt>
+<dd>An array containing the time information of the provided signal.</dd>
+<dt>fn_png</dt>
+<dd>Name of the plot to which the data is written.</dd>
+<dt>taus</dt>
+<dd>An array, where for each element tau the block averages with this
+block size are determined.</dd>
+<dt>eq_limits</dt>
+<dd>An array containing the fractions of the signal to be considered
+as equilibration.</dd>
+</dl>
+</div></blockquote>
+<p><strong>Returns:</strong></p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-yaff.analysis.diffusion">
+<span id="yaff-analysis-diffusion-diffusion-constants"></span><h2>4.3. <code class="docutils literal"><span class="pre">yaff.analysis.diffusion</span></code> – Diffusion constants<a class="headerlink" href="#module-yaff.analysis.diffusion" title="Permalink to this headline">¶</a></h2>
+<p>Diffusion constants</p>
+<dl class="class">
+<dt id="yaff.analysis.diffusion.Diffusion">
+<em class="property">class </em><code class="descclassname">yaff.analysis.diffusion.</code><code class="descname">Diffusion</code><span class="sig-paren">(</span><em>f=None</em>, <em>start=0</em>, <em>end=-1</em>, <em>step=1</em>, <em>mult=20</em>, <em>select=None</em>, <em>bsize=None</em>, <em>pospath='trajectory/pos'</em>, <em>poskey='pos'</em>, <em>outpath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.diffusion.Diffusion" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#yaff.analysis.hook.AnalysisHook" title="yaff.analysis.hook.AnalysisHook"><code class="xref py py-class docutils literal"><span class="pre">yaff.analysis.hook.AnalysisHook</span></code></a></p>
+<p>Computes mean-squared displacements and diffusion constants</p>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data. If <code class="docutils literal"><span class="pre">f</span></code>
+is not given, or it does not contain the dataset referred to
+with the <code class="docutils literal"><span class="pre">path</span></code> argument, an on-line analysis is carried out.</dd>
+<dt>start, end, step</dt>
+<dd>Optional arguments for the <code class="docutils literal"><span class="pre">get_slice</span></code> function. max_sample is
+not supported because the choice of the step argument is
+critical for a useful result.</dd>
+<dt>mult</dt>
+<dd>In the first place, the mean square displacement (MSD) between
+subsequent step is computed. The MSD is also computed between
+every, two, three, …, until <code class="docutils literal"><span class="pre">mult</span></code> steps.</dd>
+<dt>select</dt>
+<dd>A list of atom indexes that are considered for the computation
+of the MSD’s. If not given, all atoms are used.</dd>
+<dt>bsize</dt>
+<dd>If given, time intervals that coincide with the boundaries of
+the block size, will not be considered form the analysis. This
+is useful when there is a significant monte carlo move between
+subsequent blocks. If step &gt; 1, the intervals will be left out
+if the overlap with boundaries of blocks with size bsize*step.</dd>
+<dt>pospath</dt>
+<dd>The path of the dataset that contains the time dependent data in
+the HDF5 file. The first axis of the array must be the time
+axis.</dd>
+<dt>poskey</dt>
+<dd>In case of an on-line analysis, this is the key of the state
+item that contains the data from which the MSD’s are derived.</dd>
+<dt>outpath</dt>
+<dd>The output path for the MSD results. If not given, it defaults
+to ‘%s_diff’ % path. If this path already exists, it will be
+removed first.</dd>
+</dl>
+<dl class="method">
+<dt id="yaff.analysis.diffusion.Diffusion.init_first">
+<code class="descname">init_first</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.diffusion.Diffusion.init_first" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.diffusion.Diffusion.configure_online">
+<code class="descname">configure_online</code><span class="sig-paren">(</span><em>iterative</em>, <em>st_pos</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.diffusion.Diffusion.configure_online" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.diffusion.Diffusion.configure_offline">
+<code class="descname">configure_offline</code><span class="sig-paren">(</span><em>ds_pos</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.diffusion.Diffusion.configure_offline" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.diffusion.Diffusion.init_timestep">
+<code class="descname">init_timestep</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.diffusion.Diffusion.init_timestep" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.diffusion.Diffusion.read_online">
+<code class="descname">read_online</code><span class="sig-paren">(</span><em>st_pos</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.diffusion.Diffusion.read_online" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.diffusion.Diffusion.read_offline">
+<code class="descname">read_offline</code><span class="sig-paren">(</span><em>i</em>, <em>ds_pos</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.diffusion.Diffusion.read_offline" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.diffusion.Diffusion.compute_iteration">
+<code class="descname">compute_iteration</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.diffusion.Diffusion.compute_iteration" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.diffusion.Diffusion.compute_derived">
+<code class="descname">compute_derived</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.diffusion.Diffusion.compute_derived" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.diffusion.Diffusion.overlap_bsize">
+<code class="descname">overlap_bsize</code><span class="sig-paren">(</span><em>m</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.diffusion.Diffusion.overlap_bsize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.diffusion.Diffusion.update_msd">
+<code class="descname">update_msd</code><span class="sig-paren">(</span><em>msd</em>, <em>m</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.diffusion.Diffusion.update_msd" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.diffusion.Diffusion.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>fn_png='msds.png'</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.diffusion.Diffusion.plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-yaff.analysis.hook">
+<span id="yaff-analysis-hook-abstract-hook-implementation-for-trajectory-analysis"></span><h2>4.4. <code class="docutils literal"><span class="pre">yaff.analysis.hook</span></code> – Abstract hook implementation for trajectory analysis<a class="headerlink" href="#module-yaff.analysis.hook" title="Permalink to this headline">¶</a></h2>
+<p>Abstract hook implementation for trajectory analysis</p>
+<dl class="class">
+<dt id="yaff.analysis.hook.AnalysisInput">
+<em class="property">class </em><code class="descclassname">yaff.analysis.hook.</code><code class="descname">AnalysisInput</code><span class="sig-paren">(</span><em>path</em>, <em>key</em>, <em>required=True</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.hook.AnalysisInput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Describes the location of the time-dependent input for an analysis.</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>path</dt>
+<dd>The path in the HDF5 file were the input can be found. This
+is only relevant for an off-line analysis. This must be a
+dataset in the trajectory folder.</dd>
+<dt>key</dt>
+<dd>The key of the state item that contains the input. This is
+only relevant for an on-line analysis.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>required</dt>
+<dd>When true, this input is mandatory. When false, it is optional.</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="yaff.analysis.hook.AnalysisHook">
+<em class="property">class </em><code class="descclassname">yaff.analysis.hook.</code><code class="descname">AnalysisHook</code><span class="sig-paren">(</span><em>f=None</em>, <em>start=0</em>, <em>end=-1</em>, <em>max_sample=None</em>, <em>step=None</em>, <em>analysis_inputs={}</em>, <em>outpath='trajectory/noname'</em>, <em>do_timestep=False</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.hook.AnalysisHook" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.iterative.Hook" title="yaff.sampling.iterative.Hook"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.iterative.Hook</span></code></a></p>
+<p>Base class for the analysis hooks.</p>
+<p>Analysis hooks in Yaff support both off-line and on-line analysis.</p>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data. If <code class="docutils literal"><span class="pre">f</span></code>
+is not given, or it does not contain the dataset referred to
+with the <code class="docutils literal"><span class="pre">path</span></code> argument, an on-line analysis is carried out.</dd>
+<dt>start, end, max_sample, step</dt>
+<dd>Optional arguments for the <code class="docutils literal"><span class="pre">get_slice</span></code> function.</dd>
+<dt>analysis_inputs</dt>
+<dd>A list with AnalysisInput instances</dd>
+<dt>outpath</dt>
+<dd>The output path for the analysis.</dd>
+<dt>do_timestep</dt>
+<dd>When True, a self.timestep attribute will be initialized as
+early as possible.</dd>
+</dl>
+<dl class="method">
+<dt id="yaff.analysis.hook.AnalysisHook.__call__">
+<code class="descname">__call__</code><span class="sig-paren">(</span><em>iterative</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.hook.AnalysisHook.__call__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.hook.AnalysisHook.compute_offline">
+<code class="descname">compute_offline</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.hook.AnalysisHook.compute_offline" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.hook.AnalysisHook.init_first">
+<code class="descname">init_first</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.hook.AnalysisHook.init_first" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.hook.AnalysisHook.init_online">
+<code class="descname">init_online</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.hook.AnalysisHook.init_online" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.hook.AnalysisHook.offline_loop">
+<code class="descname">offline_loop</code><span class="sig-paren">(</span><em>**datasets</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.hook.AnalysisHook.offline_loop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.hook.AnalysisHook.configure_online">
+<code class="descname">configure_online</code><span class="sig-paren">(</span><em>**state_items</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.hook.AnalysisHook.configure_online" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.hook.AnalysisHook.configure_offline">
+<code class="descname">configure_offline</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.hook.AnalysisHook.configure_offline" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.hook.AnalysisHook.init_timestep">
+<code class="descname">init_timestep</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.hook.AnalysisHook.init_timestep" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.hook.AnalysisHook.read_online">
+<code class="descname">read_online</code><span class="sig-paren">(</span><em>**state_items</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.hook.AnalysisHook.read_online" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.hook.AnalysisHook.read_offline">
+<code class="descname">read_offline</code><span class="sig-paren">(</span><em>i</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.hook.AnalysisHook.read_offline" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.hook.AnalysisHook.compute_iteration">
+<code class="descname">compute_iteration</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.hook.AnalysisHook.compute_iteration" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.hook.AnalysisHook.compute_derived">
+<code class="descname">compute_derived</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.hook.AnalysisHook.compute_derived" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-yaff.analysis.pca">
+<span id="yaff-analysis-pca-toolkit-for-principal-component-analysis-pca"></span><h2>4.5. <code class="docutils literal"><span class="pre">yaff.analysis.pca</span></code> – Toolkit for Principal Component Analysis (PCA)<a class="headerlink" href="#module-yaff.analysis.pca" title="Permalink to this headline">¶</a></h2>
+<p>Toolkit for Principal Component Analysis (PCA)</p>
+<dl class="function">
+<dt id="yaff.analysis.pca.calc_cov_mat_internal">
+<code class="descclassname">yaff.analysis.pca.</code><code class="descname">calc_cov_mat_internal</code><span class="sig-paren">(</span><em>q</em>, <em>q_ref=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.pca.calc_cov_mat_internal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the covariance matrix of a time-dependent matrix q,
+containing the independent components in its columns. The rows are treated
+as different times at which the components are evaluated.</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>q</dt>
+<dd>The txN matrix for which the NxN covariance matrix is determined</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>q_ref</dt>
+<dd>Reference vector of size 1xN. If not provided, the ensemble average is taken.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.pca.calc_cov_mat">
+<code class="descclassname">yaff.analysis.pca.</code><code class="descname">calc_cov_mat</code><span class="sig-paren">(</span><em>f</em>, <em>q_ref=None</em>, <em>start=0</em>, <em>end=None</em>, <em>step=1</em>, <em>select=None</em>, <em>path='trajectory/pos'</em>, <em>mw=True</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.pca.calc_cov_mat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the covariance matrix of the given trajectory.</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>q_ref</dt>
+<dd>Reference vector of the positions. If not provided, the ensemble
+average is taken.</dd>
+<dt>start</dt>
+<dd>The first sample to be considered for analysis. This may be
+negative to indicate that the analysis should start from the
+-start last samples.</dd>
+<dt>end</dt>
+<dd>The last sample to be considered for analysis. This may be
+negative to indicate that the last -end sample should not be
+considered.</dd>
+<dt>step</dt>
+<dd>The spacing between the samples used for the analysis</dd>
+<dt>select</dt>
+<dd>A list of atom indexes that are considered for the computation
+of the spectrum. If not given, all atoms are used.</dd>
+<dt>path</dt>
+<dd>The path of the dataset that contains the time dependent data in
+the HDF5 file. The first axis of the array must be the time
+axis.</dd>
+<dt>mw</dt>
+<dd>If mw is True, the covariance matrix is mass-weighted.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.pca.calc_pca">
+<code class="descclassname">yaff.analysis.pca.</code><code class="descname">calc_pca</code><span class="sig-paren">(</span><em>f_target</em>, <em>cov_mat=None</em>, <em>f=None</em>, <em>q_ref=None</em>, <em>start=0</em>, <em>end=None</em>, <em>step=1</em>, <em>select=None</em>, <em>path='trajectory/pos'</em>, <em>mw=True</em>, <em>temp=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.pca.calc_pca" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a principle component analysis of the given trajectory.</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f_target</dt>
+<dd>Path to an h5.File instance to which the results are written.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>cov_mat</dt>
+<dd>The covariance matrix, if already calculated. If not provided,
+the covariance matrix will be calculatd based on the file f.</dd>
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data.</dd>
+<dt>q_ref</dt>
+<dd>Reference vector of the positions. If not provided, the ensemble
+average is taken.</dd>
+<dt>start</dt>
+<dd>The first sample to be considered for analysis. This may be
+negative to indicate that the analysis should start from the
+-start last samples.</dd>
+<dt>end</dt>
+<dd>The last sample to be considered for analysis. This may be
+negative to indicate that the last -end sample should not be
+considered.</dd>
+<dt>step</dt>
+<dd>The spacing between the samples used for the analysis</dd>
+<dt>select</dt>
+<dd>A list of atom indexes that are considered for the computation
+of the spectrum. If not given, all atoms are used.</dd>
+<dt>path</dt>
+<dd>The path of the dataset that contains the time dependent data in
+the HDF5 file. The first axis of the array must be the time
+axis.</dd>
+<dt>mw</dt>
+<dd>If mass_weighted is True, the covariance matrix is mass-weighted.</dd>
+<dt>temp</dt>
+<dd>Temperature at which the simulation is carried out, necessary to determine the frequencies</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.pca.pca_projection">
+<code class="descclassname">yaff.analysis.pca.</code><code class="descname">pca_projection</code><span class="sig-paren">(</span><em>f_target</em>, <em>f</em>, <em>pm</em>, <em>start=0</em>, <em>end=None</em>, <em>step=1</em>, <em>select=None</em>, <em>path='trajectory/pos'</em>, <em>mw=True</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.pca.pca_projection" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines the principal components of an MD simulation</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f_target</dt>
+<dd>Path to an h5.File instance to which the results are written.</dd>
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data.</dd>
+<dt>pm</dt>
+<dd>An array containing the principal modes in its columns</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>start</dt>
+<dd>The first sample to be considered for analysis. This may be
+negative to indicate that the analysis should start from the
+-start last samples.</dd>
+<dt>end</dt>
+<dd>The last sample to be considered for analysis. This may be
+negative to indicate that the last -end sample should not be
+considered.</dd>
+<dt>step</dt>
+<dd>The spacing between the samples used for the analysis</dd>
+<dt>select</dt>
+<dd>A list of atom indexes that are considered for the computation
+of the spectrum. If not given, all atoms are used.</dd>
+<dt>path</dt>
+<dd>The path of the dataset that contains the time dependent data in
+the HDF5 file. The first axis of the array must be the time
+axis.</dd>
+<dt>mw</dt>
+<dd>If mass_weighted is True, the covariance matrix is mass-weighted.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.pca.write_principal_mode">
+<code class="descclassname">yaff.analysis.pca.</code><code class="descname">write_principal_mode</code><span class="sig-paren">(</span><em>f</em>, <em>f_pca</em>, <em>index</em>, <em>n_frames=100</em>, <em>select=None</em>, <em>mw=True</em>, <em>scaling=1.0</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.pca.write_principal_mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes out one xyz file per principal mode given in index</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>Path to an h5.File instance containing the original data.</dd>
+<dt>f_pca</dt>
+<dd>Path to an h5.File instance containing the PCA, with reference structure, eigenvalues
+and principal modes.</dd>
+<dt>index</dt>
+<dd>An array containing the principal modes which need to be written out.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>n_frames</dt>
+<dd>The number of frames in each xyz file.</dd>
+<dt>select</dt>
+<dd>A list of atom indexes that are considered for the computation
+of the spectrum. If not given, all atoms are used.</dd>
+<dt>mw</dt>
+<dd>If mass_weighted is True, the covariance matrix is assumed to be mass-weighted.</dd>
+<dt>scaling</dt>
+<dd>Scaling factor applied to the maximum deviation of the principal mode (i.e. the maximum
+principal component for that mode)</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.pca.pca_similarity">
+<code class="descclassname">yaff.analysis.pca.</code><code class="descname">pca_similarity</code><span class="sig-paren">(</span><em>covar_a</em>, <em>covar_b</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.pca.pca_similarity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the similarity between the two covariance matrices</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>covar_a</dt>
+<dd>The first covariance matrix.</dd>
+<dt>covar_b</dt>
+<dd>The second covariance matrix.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.analysis.pca.pca_convergence">
+<code class="descclassname">yaff.analysis.pca.</code><code class="descname">pca_convergence</code><span class="sig-paren">(</span><em>f</em>, <em>eq_time=0.0</em>, <em>n_parts=None</em>, <em>step=1</em>, <em>fn='PCA_convergence'</em>, <em>n_bootstrap=50</em>, <em>mw=True</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.pca.pca_convergence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the convergence of the simulation by calculating the pca
+similarity for different subsets of the simulation.</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>eq_time</dt>
+<dd>Equilibration time, discarded from the simulation.</dd>
+<dt>n_parts</dt>
+<dd>Array containing the number of parts in which
+the total simulation is divided.</dd>
+<dt>step</dt>
+<dd>Stepsize used in the trajectory.</dd>
+<dt>fn</dt>
+<dd>Filename containing the convergence plot.</dd>
+<dt>n_bootstrap</dt>
+<dd>The number of bootstrapped trajectories.</dd>
+<dt>mw</dt>
+<dd>If mass_weighted is True, the covariance matrix is mass-weighted.</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-yaff.analysis.rdf">
+<span id="yaff-analysis-rdf-radial-distribution-functions"></span><h2>4.6. <code class="docutils literal"><span class="pre">yaff.analysis.rdf</span></code> – Radial distribution functions<a class="headerlink" href="#module-yaff.analysis.rdf" title="Permalink to this headline">¶</a></h2>
+<p>Radial distribution functions</p>
+<dl class="class">
+<dt id="yaff.analysis.rdf.RDF">
+<em class="property">class </em><code class="descclassname">yaff.analysis.rdf.</code><code class="descname">RDF</code><span class="sig-paren">(</span><em>rcut</em>, <em>rspacing</em>, <em>f=None</em>, <em>start=0</em>, <em>end=-1</em>, <em>max_sample=None</em>, <em>step=None</em>, <em>select0=None</em>, <em>select1=None</em>, <em>pairs_sr=None</em>, <em>nimage=0</em>, <em>pospath='trajectory/pos'</em>, <em>poskey='pos'</em>, <em>cellpath=None</em>, <em>cellkey=None</em>, <em>outpath=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.rdf.RDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#yaff.analysis.hook.AnalysisHook" title="yaff.analysis.hook.AnalysisHook"><code class="xref py py-class docutils literal"><span class="pre">yaff.analysis.hook.AnalysisHook</span></code></a></p>
+<p>Computes a radial distribution function (RDF)</p>
+<p><strong>Argument:</strong></p>
+<dl class="docutils">
+<dt>rcut</dt>
+<dd>The cutoff for the RDF analysis. This should be lower than the
+spacing between the primitive cell planes, multiplied by (1+2*nimage).</dd>
+<dt>rspacing</dt>
+<dd>The width of the bins to build up the RDF.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data. If <code class="docutils literal"><span class="pre">f</span></code>
+is not given, or it does not contain the dataset referred to
+with the <code class="docutils literal"><span class="pre">path</span></code> argument, an on-line analysis is carried out.</dd>
+<dt>start, end, max_sample, step</dt>
+<dd>arguments to setup the selection of time slices. See
+<code class="docutils literal"><span class="pre">get_slice</span></code> for more information.</dd>
+<dt>select0</dt>
+<dd>A list of atom indexes that are considered for the computation
+of the rdf. If not given, all atoms are used.</dd>
+<dt>select1</dt>
+<dd>A list of atom indexes that are needed to compute an RDF between
+two disjoint sets of atoms. (If there is some overlap between
+select0 and select1, an error will be raised.) If this is None,
+an ‘internal’ RDF will be computed for the atoms specified in
+select0.</dd>
+<dt>pairs_sr</dt>
+<dd>An array with short-range pairs of atoms (shape K x 2). When
+given, an additional RDFs is generated for the short-range pairs
+(rdf_sr).</dd>
+<dt>nimage</dt>
+<dd>The number of cell images to consider in the computation of the
+pair distances. By default, this is zero, meaning that only the
+minimum image convention is used.</dd>
+<dt>pospath</dt>
+<dd>The path of the dataset that contains the time dependent data in
+the HDF5 file. The first axis of the array must be the time
+axis. This is only needed for an off-line analysis</dd>
+<dt>poskey</dt>
+<dd>In case of an on-line analysis, this is the key of the state
+item that contains the data from which the RDF is derived.</dd>
+<dt>cellpath</dt>
+<dd>The path the time-dependent cell vector data. This is only
+needed when the cell parameters are variable and the analysis is
+off-line.</dd>
+<dt>cellkey</dt>
+<dd>The key of the stateitem that contains the cell vectors. This
+is only needed when the cell parameters are variable and the
+analysis is done on-line.</dd>
+<dt>outpath</dt>
+<dd>The output path for the frequency computation in the HDF5 file.
+If not given, it defaults to ‘%s_rdf’ % path. If this path
+already exists, it will be removed first.</dd>
+</dl>
+<p>When f is None, or when the path does not exist in the HDF5 file, the
+class can be used as an on-line analysis hook for the iterative
+algorithms in yaff.sampling package. This means that the RDF
+is built up as the itertive algorithm progresses. The end option is
+ignored and max_sample is not applicable to an on-line analysis.</p>
+<dl class="method">
+<dt id="yaff.analysis.rdf.RDF.configure_online">
+<code class="descname">configure_online</code><span class="sig-paren">(</span><em>iterative</em>, <em>st_pos</em>, <em>st_cell=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.rdf.RDF.configure_online" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.rdf.RDF.configure_offline">
+<code class="descname">configure_offline</code><span class="sig-paren">(</span><em>ds_pos</em>, <em>ds_cell=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.rdf.RDF.configure_offline" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.rdf.RDF.init_first">
+<code class="descname">init_first</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.rdf.RDF.init_first" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setup some work arrays</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.rdf.RDF.read_online">
+<code class="descname">read_online</code><span class="sig-paren">(</span><em>st_pos</em>, <em>st_cell=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.rdf.RDF.read_online" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.rdf.RDF.read_offline">
+<code class="descname">read_offline</code><span class="sig-paren">(</span><em>i</em>, <em>ds_pos</em>, <em>ds_cell=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.rdf.RDF.read_offline" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.rdf.RDF.compute_iteration">
+<code class="descname">compute_iteration</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.rdf.RDF.compute_iteration" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.rdf.RDF.compute_derived">
+<code class="descname">compute_derived</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.rdf.RDF.compute_derived" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.rdf.RDF.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>fn_png='rdf.png'</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.rdf.RDF.plot" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-yaff.analysis.spectrum">
+<span id="yaff-analysis-spectrum-spectral-analysis-and-autocorrelation-functions"></span><h2>4.7. <code class="docutils literal"><span class="pre">yaff.analysis.spectrum</span></code> – Spectral analysis and autocorrelation functions<a class="headerlink" href="#module-yaff.analysis.spectrum" title="Permalink to this headline">¶</a></h2>
+<p>Spectral analysis and autocorrelation functions</p>
+<dl class="class">
+<dt id="yaff.analysis.spectrum.Spectrum">
+<em class="property">class </em><code class="descclassname">yaff.analysis.spectrum.</code><code class="descname">Spectrum</code><span class="sig-paren">(</span><em>f=None</em>, <em>start=0</em>, <em>end=-1</em>, <em>step=1</em>, <em>bsize=4096</em>, <em>select=None</em>, <em>path='trajectory/vel'</em>, <em>key='vel'</em>, <em>outpath=None</em>, <em>weights=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.spectrum.Spectrum" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#yaff.analysis.hook.AnalysisHook" title="yaff.analysis.hook.AnalysisHook"><code class="xref py py-class docutils literal"><span class="pre">yaff.analysis.hook.AnalysisHook</span></code></a></p>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An h5.File instance containing the trajectory data. If <code class="docutils literal"><span class="pre">f</span></code>
+is not given, or it does not contain the dataset referred to
+with the <code class="docutils literal"><span class="pre">path</span></code> argument, an on-line analysis is carried out.</dd>
+<dt>start</dt>
+<dd>The first sample to be considered for analysis. This may be
+negative to indicate that the analysis should start from the
+-start last samples.</dd>
+<dt>end</dt>
+<dd>The last sample to be considered for analysis. This may be
+negative to indicate that the last -end sample should not be
+considered.</dd>
+<dt>step</dt>
+<dd>The spacing between the samples used for the analysis</dd>
+<dt>bsize</dt>
+<dd>The size of the blocks used for individual FFT calls.</dd>
+<dt>select</dt>
+<dd>A list of atom indexes that are considered for the computation
+of the spectrum. If not given, all atoms are used.</dd>
+<dt>path</dt>
+<dd>The path of the dataset that contains the time dependent data in
+the HDF5 file. The first axis of the array must be the time
+axis. The spectra are summed over the other axes.</dd>
+<dt>key</dt>
+<dd>In case of an on-line analysis, this is the key of the state
+item that contains the data from which the spectrum is derived.</dd>
+<dt>outpath</dt>
+<dd>The output path for the frequency computation in the HDF5 file.
+If not given, it defaults to ‘%s_spectrum’ % path. If this path
+already exists, it will be removed first.</dd>
+<dt>weights</dt>
+<dd>If not given, the spectrum is just a simple sum of contributions
+from different time-dependent functions. If given, a linear
+combination is made based on these weights.</dd>
+</dl>
+<p>The max_sample argument from get_slice is not used because the choice
+step value is an important parameter: it is best to choose step*bsize
+such that it coincides with a part of the trajectory in which the
+velocities (or other data) are continuous.</p>
+<p>The block size should be set such that it corresponds to a decent
+resolution on the frequency axis, i.e. 33356 fs of MD data
+corresponds to a resolution of about 1 cm^-1. The step size should be
+set such that the highest frequency is above the highest relevant
+frequency in the spectrum, e.g. a step of 10 fs corresponds to a
+frequency maximum of 3336 cm^-1. The total number of FFT’s, i.e.
+length of the simulation divided by the block size multiplied by the
+number of time-dependent functions in the data, determines the noise
+reduction on the (the amplitude of) spectrum. If there is sufficient
+data to perform 10K FFT’s, one should get a reasonably smooth
+spectrum.</p>
+<p>Depending on the FFT implementation in numpy, it may be interesting
+to tune the bsize argument. A power of 2 is typically a good choice.</p>
+<p>When f is None, or when the path does not exist in the HDF5 file, the
+class can be used as an on-line analysis hook for the iterative
+algorithms in yaff.sampling package. This means that the spectrum
+is built up as the iterative algorithm progresses. The end option is
+ignored for an on-line analysis.</p>
+<dl class="method">
+<dt id="yaff.analysis.spectrum.Spectrum.init_online">
+<code class="descname">init_online</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.spectrum.Spectrum.init_online" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.spectrum.Spectrum.init_timestep">
+<code class="descname">init_timestep</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.spectrum.Spectrum.init_timestep" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.spectrum.Spectrum.offline_loop">
+<code class="descname">offline_loop</code><span class="sig-paren">(</span><em>ds_signal</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.spectrum.Spectrum.offline_loop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.spectrum.Spectrum.configure_online">
+<code class="descname">configure_online</code><span class="sig-paren">(</span><em>iterative</em>, <em>st_signal</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.spectrum.Spectrum.configure_online" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.spectrum.Spectrum.configure_offline">
+<code class="descname">configure_offline</code><span class="sig-paren">(</span><em>ds_signal</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.spectrum.Spectrum.configure_offline" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.spectrum.Spectrum.init_first">
+<code class="descname">init_first</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.spectrum.Spectrum.init_first" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.spectrum.Spectrum.read_online">
+<code class="descname">read_online</code><span class="sig-paren">(</span><em>st_signal</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.spectrum.Spectrum.read_online" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.spectrum.Spectrum.compute_iteration">
+<code class="descname">compute_iteration</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.spectrum.Spectrum.compute_iteration" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.spectrum.Spectrum.compute_derived">
+<code class="descname">compute_derived</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.spectrum.Spectrum.compute_derived" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.spectrum.Spectrum.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>fn_png='spectrum.png'</em>, <em>do_wavenum=True</em>, <em>xlim=None</em>, <em>verticals=None</em>, <em>thermostat=None</em>, <em>ndof=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.spectrum.Spectrum.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>verticals: array containing as first entry the timeconstant of the original
+system, and as following entries the wavenumbers of the original system.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.analysis.spectrum.Spectrum.plot_ac">
+<code class="descname">plot_ac</code><span class="sig-paren">(</span><em>fn_png='ac.png'</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.spectrum.Spectrum.plot_ac" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-yaff.analysis.utils">
+<span id="yaff-analysis-utils-auxiliary-analysis-routines"></span><h2>4.8. <code class="docutils literal"><span class="pre">yaff.analysis.utils</span></code> – Auxiliary analysis routines<a class="headerlink" href="#module-yaff.analysis.utils" title="Permalink to this headline">¶</a></h2>
+<p>Auxiliary analysis routines</p>
+<dl class="function">
+<dt id="yaff.analysis.utils.get_slice">
+<code class="descclassname">yaff.analysis.utils.</code><code class="descname">get_slice</code><span class="sig-paren">(</span><em>f</em>, <em>start=0</em>, <em>end=-1</em>, <em>max_sample=None</em>, <em>step=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.analysis.utils.get_slice" title="Permalink to this definition">¶</a></dt>
+<dd><p><strong>Argument:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>A HDF5.File instance, may be None if it is not available. If it
+contains a trajectory group, this group will be used to determine
+the number of time steps in the trajectory.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>start</dt>
+<dd>The first sample to be considered for analysis. This may be negative
+to indicate that the analysis should start from the -start last
+samples.</dd>
+<dt>end</dt>
+<dd>The last sample to be considered for analysis. This may be negative
+to indicate that the last -end sample should not be considered.</dd>
+<dt>max_sample</dt>
+<dd>When given, step is set such that the number of samples does not
+exceed max_sample.</dd>
+<dt>step</dt>
+<dd>The spacing between the samples used for the analysis</dd>
+</dl>
+<p>The optional arguments can be given to all of the analysis routines. Just
+make sure you never specify step and max_sample at the same time. The
+max_sample argument assures that the step is set such that the number of
+samples does (just) not exceed max_sample. The max_sample option only
+works when f is not None, or when end is positive.</p>
+<p>if f is present or start and end are positive, and max_sample and step or
+not given, max_sample defaults to 1000.</p>
+<p>Returns start, end and step. When f is given, start and end are always
+positive.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">4. <code class="docutils literal"><span class="pre">yaff.analysis</span></code> – Trajectory analysis</a><ul>
+<li><a class="reference internal" href="#module-yaff.analysis.basic">4.1. <code class="docutils literal"><span class="pre">yaff.analysis.basic</span></code> – Basic trajectory analysis routines</a></li>
+<li><a class="reference internal" href="#module-yaff.analysis.blav">4.2. <code class="docutils literal"><span class="pre">yaff.analysis.blav</span></code> – The block-average method</a></li>
+<li><a class="reference internal" href="#module-yaff.analysis.diffusion">4.3. <code class="docutils literal"><span class="pre">yaff.analysis.diffusion</span></code> – Diffusion constants</a></li>
+<li><a class="reference internal" href="#module-yaff.analysis.hook">4.4. <code class="docutils literal"><span class="pre">yaff.analysis.hook</span></code> – Abstract hook implementation for trajectory analysis</a></li>
+<li><a class="reference internal" href="#module-yaff.analysis.pca">4.5. <code class="docutils literal"><span class="pre">yaff.analysis.pca</span></code> – Toolkit for Principal Component Analysis (PCA)</a></li>
+<li><a class="reference internal" href="#module-yaff.analysis.rdf">4.6. <code class="docutils literal"><span class="pre">yaff.analysis.rdf</span></code> – Radial distribution functions</a></li>
+<li><a class="reference internal" href="#module-yaff.analysis.spectrum">4.7. <code class="docutils literal"><span class="pre">yaff.analysis.spectrum</span></code> – Spectral analysis and autocorrelation functions</a></li>
+<li><a class="reference internal" href="#module-yaff.analysis.utils">4.8. <code class="docutils literal"><span class="pre">yaff.analysis.utils</span></code> – Auxiliary analysis routines</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="rg_yaff_sampling.html"
+                        title="previous chapter">3. <code class="docutils literal"><span class="pre">yaff.sampling</span></code> – Phase-space sampling</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="rg_yaff_conversion.html"
+                        title="next chapter">5. <code class="docutils literal"><span class="pre">yaff.conversion</span></code> – Conversion of external trajectory data</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/rg_yaff_analysis.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="rg_yaff_conversion.html" title="5. yaff.conversion – Conversion of external trajectory data"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="rg_yaff_sampling.html" title="3. yaff.sampling – Phase-space sampling"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2011, Toon Verstraelen, Louis Vanduyfhuys.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
+    </div>
+  </body>
+</html>

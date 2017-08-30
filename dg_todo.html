@@ -1,0 +1,229 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>1. Informal TODO list &#8212; Yaff 1.4.2 documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.4.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="2. The back-propagation algorithm for the computation of energy derivatives" href="dg_backprop.html" />
+    <link rel="prev" title="6. yaff.tune – Tools to calibrated FF parameters" href="rg_yaff_tune.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="dg_backprop.html" title="2. The back-propagation algorithm for the computation of energy derivatives"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="rg_yaff_tune.html" title="6. yaff.tune – Tools to calibrated FF parameters"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="informal-todo-list">
+<h1>1. Informal TODO list<a class="headerlink" href="#informal-todo-list" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="general">
+<h2>1.1. General<a class="headerlink" href="#general" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p class="first">Never ending: write more documentation.</p>
+</li>
+<li><p class="first">Link with ASE.</p>
+</li>
+<li><p class="first">More strict unit checking in the parameter files. Change ‘e’ to ‘electron’.</p>
+</li>
+<li><p class="first">Literature reference system, so users know what papers to cite when they run a
+simulation.</p>
+</li>
+<li><p class="first">ATSELECT</p>
+<blockquote>
+<div><ul class="simple">
+<li>Add support for <code class="docutils literal"><span class="pre">&#64;N</span></code> feature to ATSELECT.</li>
+<li>Add caching to the ATSELECT compiler.</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first">System IO stuff:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Read system from pdb, hdf5 file.</li>
+<li>Write system to xyz, pdf file.</li>
+<li>Optional link to openbabel (if installed, not a mandatory dependency).</li>
+<li>More compact chk file.</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first">Add topological analysis to System class.</p>
+</li>
+<li><p class="first">See TODO comments in code.</p>
+</li>
+</ul>
+</div>
+<div class="section" id="yaff-pes">
+<h2>1.2. <code class="docutils literal"><span class="pre">yaff.pes</span></code><a class="headerlink" href="#yaff-pes" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p class="first">FF Generator</p>
+<blockquote>
+<div><ul class="simple">
+<li>Add support for scopes to the Generator classes, through sections in the
+parameter file, or by requiring a different file for every scope.</li>
+<li>Make an FF for methanol, and a methanol-water system to facilitate the testing.</li>
+<li><code class="docutils literal"><span class="pre">scope:ffatype</span></code> and <code class="docutils literal"><span class="pre">scope:number</span></code> combinations in the parameter.</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first">FF models</p>
+<blockquote>
+<div><ul class="simple">
+<li>Gaussian charge distributions.</li>
+<li>ACKS2.</li>
+<li>Dielectric background for fixed charge models.</li>
+</ul>
+</div></blockquote>
+</li>
+<li><p class="first">Parallel force evaluation.</p>
+</li>
+<li><p class="first">Convert from C to C++.</p>
+</li>
+<li><p class="first">Smooth truncation of electrostatic interactions in reciprocal space to obtain
+a perfectly differentiable PES.</p>
+</li>
+<li><p class="first">Cell lists.</p>
+</li>
+<li><p class="first">NlogN scaling of the electrostatics.</p>
+</li>
+<li><p class="first">Correctly treat the periodic boundary conditions in very skewed cells.
+The current implementation of the minimum image convention is, just like in
+most MD codes, rather naive. Check the answers on the scicomp faq.</p>
+</li>
+<li><p class="first">Allow one to override the default names of the ForcePart* instances, e.g.
+to allow two different valence parts.</p>
+</li>
+</ul>
+</div>
+<div class="section" id="yaff-sampling">
+<h2>1.3. <code class="docutils literal"><span class="pre">yaff.sampling</span></code><a class="headerlink" href="#yaff-sampling" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Restart functionality.</li>
+<li>Constraints and restraints.</li>
+<li>An optional select argument for the iterative algorithms, e.g. to easily freeze
+the remaining atoms during an MD or optimization. Similarly, one should also
+be able to construct a partial force field model.</li>
+<li>RefTraj derivative of the Iterative class.</li>
+<li>Parallel sampling methods.</li>
+</ul>
+</div>
+<div class="section" id="yaff-analysis">
+<h2>1.4. <code class="docutils literal"><span class="pre">yaff.analysis</span></code><a class="headerlink" href="#yaff-analysis" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Port more things from MD-Tracks, including the conversion stuff.</li>
+</ul>
+</div>
+<div class="section" id="yaff-tune">
+<h2>1.5. <code class="docutils literal"><span class="pre">yaff.tune</span></code><a class="headerlink" href="#yaff-tune" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Stabilize parameter optimizer.</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">1. Informal TODO list</a><ul>
+<li><a class="reference internal" href="#general">1.1. General</a></li>
+<li><a class="reference internal" href="#yaff-pes">1.2. <code class="docutils literal"><span class="pre">yaff.pes</span></code></a></li>
+<li><a class="reference internal" href="#yaff-sampling">1.3. <code class="docutils literal"><span class="pre">yaff.sampling</span></code></a></li>
+<li><a class="reference internal" href="#yaff-analysis">1.4. <code class="docutils literal"><span class="pre">yaff.analysis</span></code></a></li>
+<li><a class="reference internal" href="#yaff-tune">1.5. <code class="docutils literal"><span class="pre">yaff.tune</span></code></a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="rg_yaff_tune.html"
+                        title="previous chapter">6. <code class="docutils literal"><span class="pre">yaff.tune</span></code> – Tools to calibrated FF parameters</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="dg_backprop.html"
+                        title="next chapter">2. The back-propagation algorithm for the computation of energy derivatives</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/dg_todo.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="dg_backprop.html" title="2. The back-propagation algorithm for the computation of energy derivatives"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="rg_yaff_tune.html" title="6. yaff.tune – Tools to calibrated FF parameters"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2011, Toon Verstraelen, Louis Vanduyfhuys.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
+    </div>
+  </body>
+</html>

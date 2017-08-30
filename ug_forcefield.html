@@ -1,0 +1,1018 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>8. Force-field models &#8212; Yaff 1.4.2 documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.4.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="9. Exploring the phase space" href="ug_sampling.html" />
+    <link rel="prev" title="7. The ATSELECT language" href="ug_atselect.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="ug_sampling.html" title="9. Exploring the phase space"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="ug_atselect.html" title="7. The ATSELECT language"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="force-field-models">
+<span id="ug-sec-forcefield"></span><h1>8. Force-field models<a class="headerlink" href="#force-field-models" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>8.1. Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>Once the system is defined (see <a class="reference internal" href="ug_system.html#ug-system"><span class="std std-ref">Representation of a molecular system</span></a>), one can continue with the
+specification of the force field model. The simplest way to create a force-field
+is as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">ff</span> <span class="o">=</span> <span class="n">ForceField</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span><span class="n">system</span><span class="p">,</span> <span class="s1">&#39;parameters.txt&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where the file <code class="docutils literal"><span class="pre">parameters.txt</span></code> contains all force field parameters. See <a class="reference internal" href="#ug-sec-ff-par-format"><span class="std std-ref">Force field parameter file format</span></a>
+for a detailed description of the file format. Additional <cite>technical</cite>
+parameters that determine the behavior of the force field, such as the
+real-space cutoff, the verlet skin, and so on, may be specified as keyword
+arguments in the <code class="docutils literal"><span class="pre">generate</span></code> method. See
+<a class="reference internal" href="rg_yaff_pes.html#yaff.pes.ff.ForceField.generate" title="yaff.pes.ff.ForceField.generate"><code class="xref py py-meth docutils literal"><span class="pre">yaff.pes.ff.ForceField.generate()</span></code></a> for a detailed description of the
+<code class="docutils literal"><span class="pre">generate</span></code> method.</p>
+<p>Once an <code class="docutils literal"><span class="pre">ff</span></code> object is created, it can be used to evaluate the energy (and
+optionally the forces and/or the virial tensor) for a given set of Cartesian
+coordinates and/or cell parameters:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># change the atomic positions and cell parameters</span>
+<span class="n">ff</span><span class="o">.</span><span class="n">update_pos</span><span class="p">(</span><span class="n">new_pos</span><span class="p">)</span>
+<span class="n">ff</span><span class="o">.</span><span class="n">update_rvecs</span><span class="p">(</span><span class="n">new_rvecs</span><span class="p">)</span>
+<span class="c1"># compute the energy</span>
+<span class="n">new_energy</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">compute</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>One may also allocate arrays to store the derivative of the energy towards
+the atomic positions and uniform deformations of the system:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># allocate arrays for the Cartesian gradient of the energy and the virial</span>
+<span class="c1"># tensor.</span>
+<span class="n">gpos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">system</span><span class="o">.</span><span class="n">pos</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+<span class="n">vtens</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">),</span> <span class="nb">float</span><span class="p">)</span>
+<span class="c1"># change the atomic positions and cell parameters</span>
+<span class="n">ff</span><span class="o">.</span><span class="n">update_pos</span><span class="p">(</span><span class="n">new_pos</span><span class="p">)</span>
+<span class="n">ff</span><span class="o">.</span><span class="n">update_rvecs</span><span class="p">(</span><span class="n">new_rvecs</span><span class="p">)</span>
+<span class="c1"># compute the energy</span>
+<span class="n">new_energy</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">gpos</span><span class="p">,</span> <span class="n">vtens</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This will take a little more CPU time because the presence of the optional
+arguments implies that a large number of partial derivatives must be computed.</p>
+<p>After the <code class="docutils literal"><span class="pre">compute</span></code> method is called, one can obtain many intermediate
+results by accessing attributes of the <code class="docutils literal"><span class="pre">ff</span></code> object. Some examples:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="nb">print</span> <span class="n">ff</span><span class="o">.</span><span class="n">part_pair_ei</span><span class="o">.</span><span class="n">energy</span><span class="o">/</span><span class="n">kjmol</span>
+<span class="nb">print</span> <span class="n">ff</span><span class="o">.</span><span class="n">part_valence</span><span class="o">.</span><span class="n">gpos</span>
+<span class="nb">print</span> <span class="n">ff</span><span class="o">.</span><span class="n">part_ewald_cor</span><span class="o">.</span><span class="n">vtens</span>
+</pre></div>
+</div>
+<p>Depending on the system and the contents of the file <code class="docutils literal"><span class="pre">parameters.txt</span></code> some
+<code class="docutils literal"><span class="pre">part_*</span></code> attributes may not be present. All parts are also accessible through
+the list <code class="docutils literal"><span class="pre">ff.parts</span></code>.</p>
+<p>Instead of using the <code class="docutils literal"><span class="pre">ForceField.generate</span></code> method, one may also construct all
+the parts of the force field manually. However, this can become very tedious.
+This is a simple example of a Lennard-Jones force field:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">system</span> <span class="o">=</span> <span class="n">System</span><span class="p">(</span>
+    <span class="n">numbers</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">18</span><span class="p">]</span><span class="o">*</span><span class="mi">10</span><span class="p">),</span>
+    <span class="n">pos</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="o">*</span><span class="n">angstrom</span><span class="p">,</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span><span class="mi">3</span><span class="p">)),</span>
+    <span class="n">ffatypes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Ar&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">bonds</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">rvecs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">*</span><span class="mi">10</span><span class="o">*</span><span class="n">angstrom</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">sigmas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">3.98e-4</span><span class="p">]</span><span class="o">*</span><span class="mi">10</span><span class="p">),</span>
+<span class="n">epsilons</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">6.32</span><span class="p">]</span><span class="o">*</span><span class="mi">10</span><span class="p">),</span>
+<span class="n">pair_pot_lj</span> <span class="o">=</span> <span class="n">PairPotLJ</span><span class="p">(</span><span class="n">sigmas</span><span class="p">,</span> <span class="n">epsilons</span><span class="p">,</span> <span class="n">rcut</span><span class="o">=</span><span class="mi">15</span><span class="o">*</span><span class="n">angstrom</span><span class="p">,</span> <span class="n">smooth</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">nlists</span> <span class="o">=</span> <span class="n">NeighborLists</span><span class="p">(</span><span class="n">system</span><span class="p">)</span>
+<span class="n">scalings</span> <span class="o">=</span> <span class="n">Scalings</span><span class="p">(</span><span class="n">system</span><span class="o">.</span><span class="n">topology</span><span class="p">)</span>
+<span class="n">part_pair_lj</span> <span class="o">=</span> <span class="n">ForcePartPair</span><span class="p">(</span><span class="n">system</span><span class="p">,</span> <span class="n">nlists</span><span class="p">,</span> <span class="n">scalings</span><span class="p">,</span> <span class="n">pair_pot_lj</span><span class="p">)</span>
+<span class="n">ff</span> <span class="o">=</span> <span class="n">ForceField</span><span class="p">(</span><span class="n">system</span><span class="p">,</span> <span class="p">[</span><span class="n">part_pair_lj</span><span class="p">],</span> <span class="n">nlists</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="force-field-parameter-file-format">
+<span id="ug-sec-ff-par-format"></span><h2>8.2. Force field parameter file format<a class="headerlink" href="#force-field-parameter-file-format" title="Permalink to this headline">¶</a></h2>
+<p>The force field parameter file has a case-insensitive line-based format. The
+order of the lines is not relevant when Yaff processes the file. Nevertheless,
+for the sake of human readability, it is best to follow some logical ordering.
+Comments start with a pound sign (<code class="docutils literal"><span class="pre">#</span></code>) and reach until the end of the line.
+These comments and empty lines are ignored when processing the parameter file.</p>
+<p>Each (non-empty) line has the following format:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">PREFIX</span><span class="p">:</span><span class="n">COMMAND</span> <span class="n">DATA</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal"><span class="pre">PREFIX</span></code> and <code class="docutils literal"><span class="pre">COMMAND</span></code> do not contain white spaces and <code class="docutils literal"><span class="pre">DATA</span></code> may
+consist of multiple words and/or numbers. Each prefix corresponds to a certain
+type of energy term. Each command for a given prefix configures certain
+properties and parameters for that type of energy terms.</p>
+<p>When a PREFIX is present in a parameter file, all known commands for that prefix
+must be included. Some commands may repeat. This imposes a complete definition
+of a type of energy term without implicit default settings. This requirement
+guarantees that the parameter file is self-explaining.</p>
+<p>All possible prefixes and corresponding commands are documented in the following
+subsections. Some commands have comparable behavior for different prefixes and
+are therefore document in a separate subsection,
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</p>
+<div class="section" id="prefix-bondharm">
+<h3>8.2.1. Prefix – BONDHARM<a class="headerlink" href="#prefix-bondharm" title="Permalink to this headline">¶</a></h3>
+<p><strong>Energy term:</strong></p>
+<div class="math">
+\[E_\text{BONDHARM} = \sum_{i=1}^{N_b} \frac{1}{2} K_i (r_i - R_{0,i})^2\]</div>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><span class="math">\(K_i\)</span> (<code class="docutils literal"><span class="pre">K</span></code>): the force constant parameter of bond <span class="math">\(i\)</span>.</li>
+<li><span class="math">\(R_{0,i}\)</span> (<code class="docutils literal"><span class="pre">R0</span></code>): the rest value parameter of bond <span class="math">\(i\)</span>.</li>
+</ul>
+<p><strong>Constants:</strong></p>
+<ul class="simple">
+<li><span class="math">\(N_b\)</span>: the number of bonds.</li>
+</ul>
+<p><strong>Geometry dependent variables:</strong></p>
+<ul class="simple">
+<li><span class="math">\(r_i\)</span>: the length of bond <span class="math">\(i\)</span>.</li>
+</ul>
+<p><strong>Commands:</strong></p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">UNIT</span></code> (may repeat): Specify the units of the parameters <code class="docutils literal"><span class="pre">K</span></code> and <code class="docutils literal"><span class="pre">R0</span></code>. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">PARS</span></code> (may repeat): Specify parameters for a given combination of atom types.
+(Bonds are defined in the System instance.) Four
+data fields must be given: <code class="docutils literal"><span class="pre">ffatype0</span></code>, <code class="docutils literal"><span class="pre">ffatype1</span></code>, <code class="docutils literal"><span class="pre">K</span></code> and <code class="docutils literal"><span class="pre">R0</span></code>.</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">BONDHARM</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">K</span> <span class="n">kjmol</span><span class="o">/</span><span class="n">angstrom</span><span class="o">**</span><span class="mi">2</span>
+<span class="n">BONDHARM</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">R0</span> <span class="n">angstrom</span>
+<span class="n">BONDHARM</span><span class="p">:</span><span class="n">PARS</span> <span class="n">O</span> <span class="n">H</span>  <span class="mf">4.0088096730e+03</span>  <span class="mf">1.0238240000e+00</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="prefix-bondfues">
+<h3>8.2.2. Prefix – BONDFUES<a class="headerlink" href="#prefix-bondfues" title="Permalink to this headline">¶</a></h3>
+<p><strong>Energy term:</strong></p>
+<div class="math">
+\[E_\text{BONDFUES} = \sum_{i=1}^{N_b} \frac{1}{2} K_i R^2_{0,i} \left(1 - \frac{R_{0,i}}{r_i}\right)^2\]</div>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><span class="math">\(K_i\)</span> (<code class="docutils literal"><span class="pre">K</span></code>): the force constant parameter of bond <span class="math">\(i\)</span>.</li>
+<li><span class="math">\(R_{0,i}\)</span> (<code class="docutils literal"><span class="pre">R0</span></code>): the rest value parameter of bond <span class="math">\(i\)</span>.</li>
+</ul>
+<p><strong>Constants:</strong></p>
+<ul class="simple">
+<li><span class="math">\(N_b\)</span>: the number of bonds.</li>
+</ul>
+<p><strong>Geometry dependent variables:</strong></p>
+<ul class="simple">
+<li><span class="math">\(r_i\)</span>: the length of bond <span class="math">\(i\)</span>.</li>
+</ul>
+<p><strong>Commands:</strong></p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">UNIT</span></code> (may repeat): Specify the units of the parameters <code class="docutils literal"><span class="pre">K</span></code> and <code class="docutils literal"><span class="pre">R0</span></code>. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">PARS</span></code> (may repeat): Specify parameters for a given combination of atom types.
+(Bonds are defined in the System instance.) Four
+data fields must be given: <code class="docutils literal"><span class="pre">ffatype0</span></code>, <code class="docutils literal"><span class="pre">ffatype1</span></code>, <code class="docutils literal"><span class="pre">K</span></code> and <code class="docutils literal"><span class="pre">R0</span></code>.</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">BONDFUES</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">K</span> <span class="n">kjmol</span><span class="o">/</span><span class="n">angstrom</span><span class="o">**</span><span class="mi">2</span>
+<span class="n">BONDFUES</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">R0</span> <span class="n">angstrom</span>
+<span class="n">BONDFUES</span><span class="p">:</span><span class="n">PARS</span> <span class="n">O</span> <span class="n">H</span>  <span class="mf">4.0088096730e+03</span>  <span class="mf">1.0238240000e+00</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="prefix-bendaharm">
+<h3>8.2.3. Prefix – BENDAHARM<a class="headerlink" href="#prefix-bendaharm" title="Permalink to this headline">¶</a></h3>
+<p><strong>Energy term:</strong></p>
+<div class="math">
+\[E_\text{BENDAHARM} = \sum_{i=1}^{N_a} \frac{1}{2} K_i (\theta_i - \Theta_{0,i})^2\]</div>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><span class="math">\(K_i\)</span> (<code class="docutils literal"><span class="pre">K</span></code>): the force constant parameter of bend <span class="math">\(i\)</span>.</li>
+<li><span class="math">\(\Theta_{0,i}\)</span> (<code class="docutils literal"><span class="pre">THETA0</span></code>): the angle rest value parameter of bend <span class="math">\(i\)</span>.</li>
+</ul>
+<p><strong>Constants:</strong></p>
+<ul class="simple">
+<li><span class="math">\(N_a\)</span>: the number of bending angles.</li>
+</ul>
+<p><strong>Geometry dependent variables:</strong></p>
+<ul class="simple">
+<li><span class="math">\(\theta_i\)</span>: the angle of bend <span class="math">\(i\)</span>.</li>
+</ul>
+<p><strong>Commands:</strong></p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">UNIT</span></code> (may repeat): Specify the units of the parameters <code class="docutils literal"><span class="pre">K</span></code> and <code class="docutils literal"><span class="pre">THETA0</span></code>. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">PARS</span></code> (may repeat): Specify parameters for a given combination of atom types.
+Five data fields must be given: <code class="docutils literal"><span class="pre">ffatype0</span></code>,
+<code class="docutils literal"><span class="pre">ffatype1</span></code>, <code class="docutils literal"><span class="pre">ffatype2</span></code>, <code class="docutils literal"><span class="pre">K</span></code> and <code class="docutils literal"><span class="pre">THETA0</span></code>.</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">BENDAHARM</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">K</span> <span class="n">kjmol</span><span class="o">/</span><span class="n">rad</span><span class="o">**</span><span class="mi">2</span>
+<span class="n">BENDAHARM</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">THETA0</span> <span class="n">deg</span>
+<span class="n">BENDAHARM</span><span class="p">:</span><span class="n">PARS</span>        <span class="n">H</span>        <span class="n">O</span>        <span class="n">H</span>  <span class="mf">3.0230353700e+02</span>  <span class="mf">8.8401698835e+01</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="prefix-bendcharm">
+<h3>8.2.4. Prefix – BENDCHARM<a class="headerlink" href="#prefix-bendcharm" title="Permalink to this headline">¶</a></h3>
+<p><strong>Energy term:</strong></p>
+<div class="math">
+\[E_\text{BENDAHARM} = \sum_{i=1}^{N_a} \frac{1}{2} K_i (\cos(\theta_i) - C_{0,i})^2\]</div>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><span class="math">\(K_i\)</span> (<code class="docutils literal"><span class="pre">K</span></code>): the force constant parameter of bend <span class="math">\(i\)</span>.</li>
+<li><span class="math">\(C_{0,i}\)</span> (<code class="docutils literal"><span class="pre">COS0</span></code>): the cosine rest value parameter of bend <span class="math">\(i\)</span>.</li>
+</ul>
+<p><strong>Constants:</strong></p>
+<ul class="simple">
+<li><span class="math">\(N_a\)</span>: the number of bending angles.</li>
+</ul>
+<p><strong>Geometry dependent variables:</strong></p>
+<ul class="simple">
+<li><span class="math">\(\cos(\theta_i)\)</span>: the cosine of the angle of bend <span class="math">\(i\)</span>.</li>
+</ul>
+<p><strong>Commands:</strong></p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">UNIT</span></code> (may repeat): Specify the units of the parameters <code class="docutils literal"><span class="pre">K</span></code> and <code class="docutils literal"><span class="pre">COS0</span></code>. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">PARS</span></code> (may repeat): Specify parameters for a given combination of atom types.
+Five data fields must be given: <code class="docutils literal"><span class="pre">ffatype0</span></code>,
+<code class="docutils literal"><span class="pre">ffatype1</span></code>, <code class="docutils literal"><span class="pre">ffatype2</span></code>, <code class="docutils literal"><span class="pre">K</span></code> and <code class="docutils literal"><span class="pre">COS0</span></code>.</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">BENDCHARM</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">K</span> <span class="n">kjmol</span>
+<span class="n">BENDCHARM</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">COS0</span> <span class="mi">1</span>
+<span class="n">BENDCHARM</span><span class="p">:</span><span class="n">PARS</span>        <span class="n">H</span>        <span class="n">O</span>        <span class="n">H</span>  <span class="mf">3.0230353700e+02</span>  <span class="mf">2.7892000007e-02</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="prefix-ubharm">
+<h3>8.2.5. Prefix – UBHARM<a class="headerlink" href="#prefix-ubharm" title="Permalink to this headline">¶</a></h3>
+<p><strong>Energy term:</strong></p>
+<div class="math">
+\[E_\text{UBHARM} = \sum_{i=1}^{N_a} \frac{1}{2} K_i (r_i - R_{0,i})^2\]</div>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><span class="math">\(K_i\)</span> (<code class="docutils literal"><span class="pre">K</span></code>): the force constant parameter of the Urey-Bradley term <span class="math">\(i\)</span>.</li>
+<li><span class="math">\(R_{0,i}\)</span> (<code class="docutils literal"><span class="pre">R0</span></code>): the rest value parameter of the Urey-Bradley term <span class="math">\(i\)</span>.</li>
+</ul>
+<p><strong>Constants:</strong></p>
+<ul class="simple">
+<li><span class="math">\(N_a\)</span>: the number of bending angles.</li>
+</ul>
+<p><strong>Geometry dependent variables:</strong></p>
+<ul class="simple">
+<li><span class="math">\(r_i\)</span>: the distance between the two outermost atoms in bending angle <span class="math">\(i\)</span>.</li>
+</ul>
+<p><strong>Commands:</strong></p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">UNIT</span></code> (may repeat): Specify the units of the parameters <code class="docutils literal"><span class="pre">K</span></code> and <code class="docutils literal"><span class="pre">R0</span></code>. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">PARS</span></code> (may repeat): Specify parameters for a given combination of atom types.
+Five data fields must be given: <code class="docutils literal"><span class="pre">ffatype0</span></code>,
+<code class="docutils literal"><span class="pre">ffatype1</span></code>, <code class="docutils literal"><span class="pre">ffatype2</span></code>, <code class="docutils literal"><span class="pre">K</span></code> and <code class="docutils literal"><span class="pre">R0</span></code>.</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">UBHARM</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">K</span> <span class="n">kjmol</span><span class="o">/</span><span class="n">A</span><span class="o">**</span><span class="mi">2</span>
+<span class="n">UBHARM</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">R0</span> <span class="n">A</span>
+<span class="n">UBHARM</span><span class="p">:</span><span class="n">PARS</span>        <span class="n">H</span>        <span class="n">O</span>        <span class="n">H</span>  <span class="mf">2.5465456475e+02</span>  <span class="mf">2.6123213151e+00</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="prefix-torsion">
+<h3>8.2.6. Prefix – TORSION<a class="headerlink" href="#prefix-torsion" title="Permalink to this headline">¶</a></h3>
+<p><strong>Energy term:</strong></p>
+<div class="math">
+\[E_\text{TORSION} = \sum_{i=1}^{N_t} \frac{1}{2} A_i (1 - \cos(M_i (\phi_i-\Phi_{0,i})))\]</div>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><span class="math">\(M_i\)</span> (<code class="docutils literal"><span class="pre">M</span></code>): The multiplicity of the torsional potential.</li>
+<li><span class="math">\(A_i\)</span> (<code class="docutils literal"><span class="pre">A</span></code>): The amplitude of torsional barrier <span class="math">\(i\)</span>.</li>
+<li><span class="math">\(\Phi_{0,i}\)</span> (<code class="docutils literal"><span class="pre">PHI0</span></code>): The location of the (or a) minimum in the torsional potential <span class="math">\(i\)</span>.</li>
+</ul>
+<p><strong>Constants:</strong></p>
+<ul class="simple">
+<li><span class="math">\(N_t\)</span>: the number of torsional terms.</li>
+</ul>
+<p><strong>Geometry dependent variables:</strong></p>
+<ul class="simple">
+<li><span class="math">\(\phi_i\)</span>: the dihedral angle of torsional term <span class="math">\(i\)</span>.</li>
+</ul>
+<p><strong>Commands:</strong></p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">UNIT</span></code> (may repeat): Specify the units of the parameters <code class="docutils literal"><span class="pre">K</span></code>, <code class="docutils literal"><span class="pre">M</span></code> and <code class="docutils literal"><span class="pre">PHI0</span></code>. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">PARS</span></code> (may repeat): Specify parameters for a given combination of atom types.
+Seven data fields must be given: <code class="docutils literal"><span class="pre">ffatype0</span></code>,
+<code class="docutils literal"><span class="pre">ffatype1</span></code>, <code class="docutils literal"><span class="pre">ffatype2</span></code>, <code class="docutils literal"><span class="pre">ffatype3</span></code>, <code class="docutils literal"><span class="pre">M</span></code>, <code class="docutils literal"><span class="pre">A</span></code> and <code class="docutils literal"><span class="pre">PHI0</span></code>.</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">TORSION</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">A</span> <span class="n">kjmol</span>
+<span class="n">TORSION</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">PHI0</span> <span class="n">deg</span>
+<span class="n">TORSION</span><span class="p">:</span><span class="n">PARS</span> <span class="n">H</span> <span class="n">N</span> <span class="n">C</span> <span class="n">H</span> <span class="mi">3</span> <span class="mf">4.0801759881e+00</span> <span class="mf">1.8000000000e+02</span>
+<span class="n">TORSION</span><span class="p">:</span><span class="n">PARS</span> <span class="n">H</span> <span class="n">N</span> <span class="n">C</span> <span class="n">H</span> <span class="mi">1</span> <span class="mf">4.0801759881e+01</span> <span class="mf">1.8000000000e+02</span>
+<span class="n">TORSION</span><span class="p">:</span><span class="n">PARS</span> <span class="n">H</span> <span class="n">O</span> <span class="n">C</span> <span class="n">C</span> <span class="mi">1</span> <span class="mf">5.6235012389e+01</span> <span class="mf">1.8000000000e+02</span>
+<span class="n">TORSION</span><span class="p">:</span><span class="n">PARS</span> <span class="n">O</span> <span class="n">C</span> <span class="n">C</span> <span class="n">N</span> <span class="mi">2</span> <span class="mf">4.5335291185e+00</span> <span class="mf">0.0000000000e+00</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="prefix-inversion">
+<h3>8.2.7. Prefix – INVERSION<a class="headerlink" href="#prefix-inversion" title="Permalink to this headline">¶</a></h3>
+<p><strong>Energy term:</strong></p>
+<div class="math">
+\[E_\text{INVERSION} = \sum_{i=1}^{N_t} \frac{1}{2} A_i (1 - \cos( \chi_i ))\]</div>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><span class="math">\(A_i\)</span> (<code class="docutils literal"><span class="pre">A</span></code>): The amplitude of inversion barrier <span class="math">\(i\)</span>.</li>
+</ul>
+<p><strong>Constants:</strong></p>
+<ul class="simple">
+<li><span class="math">\(N_t\)</span>: the number of inversion terms.</li>
+</ul>
+<p><strong>Geometry dependent variables:</strong></p>
+<ul class="simple">
+<li><span class="math">\(\chi_i\)</span>: the out-of-plane angle between the plane spanned by atoms 1,2,4 and the bond between atoms 3 and 4.</li>
+</ul>
+<p><strong>Commands:</strong></p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">UNIT</span></code> (may repeat): Specify the units of the parameter <code class="docutils literal"><span class="pre">A</span></code>. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">PARS</span></code> (may repeat): Specify parameters for a given combination of atom types.
+Five data fields must be given: <code class="docutils literal"><span class="pre">ffatype0</span></code>,
+<code class="docutils literal"><span class="pre">ffatype1</span></code>, <code class="docutils literal"><span class="pre">ffatype2</span></code>, <code class="docutils literal"><span class="pre">ffatype3</span></code> and <code class="docutils literal"><span class="pre">A</span></code>.</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">OOPCOS</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">A</span> <span class="n">kjmol</span>
+<span class="n">OOPCOS</span><span class="p">:</span><span class="n">PARS</span>  <span class="n">H</span>   <span class="n">H</span>   <span class="n">O</span>   <span class="n">C</span>  <span class="mf">1.0</span>
+<span class="n">OOPCOS</span><span class="p">:</span><span class="n">PARS</span>  <span class="n">H</span>   <span class="n">O</span>   <span class="n">H</span>   <span class="n">C</span>  <span class="mf">1.0</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="prefix-bondcross">
+<h3>8.2.8. Prefix – BONDCROSS<a class="headerlink" href="#prefix-bondcross" title="Permalink to this headline">¶</a></h3>
+<p><strong>Energy term:</strong></p>
+<div class="math">
+\[E_\text{BONDCROSS} = \sum_{i=1}^{N_a} \frac{1}{2} K_i (r_{0,i} - R_{0,i})*(r_{1,i} - R_{1,i})\]</div>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><span class="math">\(K_i\)</span> (<code class="docutils literal"><span class="pre">K</span></code>): the off-diagonal force constant of cross term <span class="math">\(i\)</span>.</li>
+<li><span class="math">\(R_{0,i}\)</span> (<code class="docutils literal"><span class="pre">R0</span></code>): the rest value parameter for the first bond in angle <span class="math">\(i\)</span>.</li>
+<li><span class="math">\(R_{0,i}\)</span> (<code class="docutils literal"><span class="pre">R1</span></code>): the rest value parameter for the second bond in angle <span class="math">\(i\)</span>.</li>
+</ul>
+<p><strong>Constants:</strong></p>
+<ul class="simple">
+<li><span class="math">\(N_a\)</span>: the number of bending angles.</li>
+</ul>
+<p><strong>Geometry dependent variables:</strong></p>
+<ul class="simple">
+<li><span class="math">\(r_{0,i}\)</span>: the first bond length in angle <span class="math">\(i\)</span>.</li>
+<li><span class="math">\(r_{1,i}\)</span>: the second bond length in angle <span class="math">\(i\)</span>.</li>
+</ul>
+<p><strong>Commands:</strong></p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">UNIT</span></code> (may repeat): Specify the units of the parameters <code class="docutils literal"><span class="pre">K</span></code>, <code class="docutils literal"><span class="pre">R0</span></code> and <code class="docutils literal"><span class="pre">R1</span></code>. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">PARS</span></code> (may repeat): Specify parameters for a given combination of atom types.
+Six data fields must be given: <code class="docutils literal"><span class="pre">ffatype0</span></code>,
+<code class="docutils literal"><span class="pre">ffatype1</span></code>, <code class="docutils literal"><span class="pre">ffatype2</span></code>, <code class="docutils literal"><span class="pre">K</span></code>, <code class="docutils literal"><span class="pre">R0</span></code> and <code class="docutils literal"><span class="pre">R1</span></code>.</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">BONDCROSS</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">K</span> <span class="n">kjmol</span><span class="o">/</span><span class="n">angstrom</span><span class="o">**</span><span class="mi">2</span>
+<span class="n">BONDCROSS</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">R0</span> <span class="n">angstrom</span>
+<span class="n">BONDCROSS</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">R1</span> <span class="n">angstrom</span>
+<span class="n">BONDCROSS</span><span class="p">:</span><span class="n">PARS</span>        <span class="n">H</span>        <span class="n">O</span>        <span class="n">H</span>  <span class="mf">1.1354652314e+01</span>  <span class="mf">1.1247753211e+00</span>  <span class="mf">1.1247753211e+00</span>
+</pre></div>
+</div>
+<p><strong>Note</strong>:</p>
+<p>In the case of symmetric angles, i.e. with the same ffatypes for the outermost
+angles, R0 has to be equal to R1. When the outermost ffatypes are different,
+<code class="docutils literal"><span class="pre">R0</span></code> corresponds to the bond between <code class="docutils literal"><span class="pre">ffatype0</span></code> and <code class="docutils literal"><span class="pre">ffatype1</span></code> and <code class="docutils literal"><span class="pre">R1</span></code>
+corresponds to the bond between <code class="docutils literal"><span class="pre">ffatype1</span></code> and <code class="docutils literal"><span class="pre">ffatype2</span></code>.</p>
+</div>
+<div class="section" id="prefix-lj">
+<h3>8.2.9. Prefix – LJ<a class="headerlink" href="#prefix-lj" title="Permalink to this headline">¶</a></h3>
+<p><strong>Description:</strong> the traditional Lennard-Jones potential.</p>
+<p><strong>Energy term:</strong></p>
+<div class="math">
+\[E_\text{LJ} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} 4 s_{ij} \epsilon_{ij} \left[
+\left(\frac{\sigma_{ij}}{d_{ij}}\right)^{12} - \left(\frac{\sigma_{ij}}{d_{ij}}\right)^6
+\right]\]</div>
+<p>with</p>
+<div class="math">
+\[\sigma_{ij} = \frac{\sigma_i + \sigma_j}{2}\]</div>
+<div class="math">
+\[\epsilon_{ij} = \sqrt{\epsilon_i \epsilon_j}\]</div>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><span class="math">\(\sigma_i\)</span> (<code class="docutils literal"><span class="pre">SIGMA</span></code>): the (finite) distance at which the energy becomes zero (for a pair of atoms of the same type).</li>
+<li><span class="math">\(\epsilon_i\)</span> (<code class="docutils literal"><span class="pre">EPSILON</span></code>): the depth of the energy minimum (for a pair of atoms of the same type).</li>
+</ul>
+<p><strong>Constants:</strong></p>
+<ul class="simple">
+<li><span class="math">\(N\)</span>: the number of atoms.</li>
+<li><span class="math">\(s_{ij}\)</span>: the scaling of the interaction between atoms <span class="math">\(i\)</span> and <span class="math">\(j\)</span>.</li>
+</ul>
+<p><strong>Geometry dependent variables:</strong></p>
+<ul class="simple">
+<li><span class="math">\(d_{ij}\)</span>: the distance between atoms <span class="math">\(i\)</span> and <span class="math">\(j\)</span>.</li>
+</ul>
+<p><strong>Commands:</strong></p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">UNIT</span></code> (may repeat): Specify the units of the parameters <code class="docutils literal"><span class="pre">SIGMA</span></code> and <code class="docutils literal"><span class="pre">EPSILON</span></code>. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">SCALE</span></code> (may repeat): Specify the scaling of short-ranged interactions. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">PARS</span></code> (may repeat): Specify parameters for a given atom type.
+Three data fields must be given: <code class="docutils literal"><span class="pre">ffatype</span></code>, <code class="docutils literal"><span class="pre">SIGMA</span></code> and <code class="docutils literal"><span class="pre">EPSILON</span></code>.</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># Lennard-Jones parameters for the CHARMM TIP3P variant</span>
+<span class="n">LJ</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">SIGMA</span> <span class="n">angstrom</span>
+<span class="n">LJ</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">EPSILON</span> <span class="n">kcalmol</span>
+<span class="n">LJ</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">1</span> <span class="mf">0.0</span>
+<span class="n">LJ</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">2</span> <span class="mf">0.0</span>
+<span class="n">LJ</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">3</span> <span class="mf">1.0</span>
+<span class="n">LJ</span><span class="p">:</span><span class="n">PARS</span> <span class="n">O</span> <span class="mf">3.15</span> <span class="mf">0.1521</span>
+<span class="n">LJ</span><span class="p">:</span><span class="n">PARS</span> <span class="n">H</span> <span class="mf">0.4</span> <span class="mf">0.046</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="prefix-mm3">
+<h3>8.2.10. Prefix – MM3<a class="headerlink" href="#prefix-mm3" title="Permalink to this headline">¶</a></h3>
+<p><strong>Description:</strong> the MM3 variant of the Lennard-Jones potential.</p>
+<p><strong>Energy:</strong></p>
+<div class="math">
+\[E_\text{MM3} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} \epsilon_{ij} \left[
+1.84\times10^{5} \exp\left(\frac{\sigma_{ij}}{d_{ij}}\right) - 2.25\left(\frac{\sigma_{ij}}{d_{ij}}\right)^6
+\right]\]</div>
+<p>with</p>
+<div class="math">
+\[\epsilon_{ij} = \sqrt{\epsilon_i \epsilon_j}\]</div>
+<div class="math">
+\[\sigma_{ij} = \frac{\sigma_i + \sigma_j}{2}\]</div>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><span class="math">\(\sigma_i\)</span> (<code class="docutils literal"><span class="pre">SIGMA</span></code>): the (finite) distance at which the energy becomes zero (for a pair of atoms of the same type).</li>
+<li><span class="math">\(\epsilon_i\)</span> (<code class="docutils literal"><span class="pre">EPSILON</span></code>): the depth of the energy minimum (for a pair of atoms of the same type).</li>
+</ul>
+<p><strong>Constants:</strong></p>
+<ul class="simple">
+<li><span class="math">\(N\)</span>: the number of atoms.</li>
+<li><span class="math">\(s_{ij}\)</span>: the scaling of the interaction between atoms <span class="math">\(i\)</span> and <span class="math">\(j\)</span>.</li>
+</ul>
+<p><strong>Geometry dependent variables:</strong></p>
+<ul class="simple">
+<li><span class="math">\(d_{ij}\)</span>: the distance between atoms <span class="math">\(i\)</span> and <span class="math">\(j\)</span>.</li>
+</ul>
+<p><strong>Commands:</strong></p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">UNIT</span></code> (may repeat): Specify the units of the parameters <code class="docutils literal"><span class="pre">SIGMA</span></code> and <code class="docutils literal"><span class="pre">EPSILON</span></code>. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">SCALE</span></code> (may repeat): Specify the scaling of short-ranged interactions. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">PARS</span></code> (may repeat): Specify parameters for a given atom type.
+Four data fields must be given: <code class="docutils literal"><span class="pre">ffatype</span></code>, <code class="docutils literal"><span class="pre">SIGMA</span></code>, <code class="docutils literal"><span class="pre">EPSILON</span></code> and <code class="docutils literal"><span class="pre">ONLYPAULI</span></code>.
+The last data field corresponds to an undocumented feature. Set it to <code class="docutils literal"><span class="pre">0</span></code> to
+get the original MM3 form.</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">MM3</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">SIGMA</span> <span class="n">angstrom</span>
+<span class="n">MM3</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">EPSILON</span> <span class="n">kcalmol</span>
+<span class="n">MM3</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">1</span> <span class="mf">0.0</span>
+<span class="n">MM3</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">2</span> <span class="mf">0.0</span>
+<span class="n">MM3</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">3</span> <span class="mf">1.0</span>
+<span class="n">MM3</span><span class="p">:</span><span class="n">PARS</span> <span class="n">O</span> <span class="mf">1.7</span> <span class="mf">0.12</span> <span class="mi">1</span>
+<span class="n">MM3</span><span class="p">:</span><span class="n">PARS</span> <span class="n">H</span> <span class="mf">0.2</span> <span class="mf">0.04</span> <span class="mi">0</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="prefix-exprep">
+<h3>8.2.11. Prefix – EXPREP<a class="headerlink" href="#prefix-exprep" title="Permalink to this headline">¶</a></h3>
+<p><strong>Description:</strong> an exponential repulsion term.</p>
+<p><strong>Energy:</strong></p>
+<div class="math">
+\[E_\text{EXPREP} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} A_{ij} \exp(-B_{ij} d_{ij})\]</div>
+<p>The pair parameters can be provided explicitly, or can be derived from atomic
+parameters using two possible mixing rules for each parameter:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">GEOMETRIC</span></code> mixing for <span class="math">\(A_{ij}\)</span>: <span class="math">\(A_{ij} = \sqrt{A_i A_j}\)</span></li>
+<li><code class="docutils literal"><span class="pre">GEOMETRIC_COR</span></code> mixing for <span class="math">\(A_{ij}\)</span>: <span class="math">\(\ln A_{ij} = (\ln A_i + \ln A_j)\frac{1-x\vert\ln(A_i/A_j)\vert}{2}\)</span> where <span class="math">\(x\)</span> is a configurable parameter</li>
+<li><code class="docutils literal"><span class="pre">ARITHMETIC</span></code> mixing for <span class="math">\(B_{ij}\)</span>: <span class="math">\(B_{ij} = \frac{B_i + B_j}{2}\)</span></li>
+<li><code class="docutils literal"><span class="pre">ARITHMETIC_COR</span></code> mixing for <span class="math">\(B_{ij}\)</span>: <span class="math">\(B_{ij} = (B_i + B_j)\frac{1-x\vert\ln(A_i/A_j)\vert}{2}\)</span> where <span class="math">\(x\)</span> is a configurable parameter</li>
+</ul>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><span class="math">\(A_i\)</span> or <span class="math">\(A_{ij}\)</span> (<code class="docutils literal"><span class="pre">A</span></code>): the amplitude of the exponential repulsion.</li>
+<li><span class="math">\(B_i\)</span> or <span class="math">\(B_{ij}`(``B`\)</span>): the decay of the exponential repulsion.</li>
+</ul>
+<p><strong>Constants:</strong></p>
+<ul class="simple">
+<li><span class="math">\(N\)</span>: the number of atoms.</li>
+<li><span class="math">\(s_{ij}\)</span>: the scaling of the interaction between atoms <span class="math">\(i\)</span> and <span class="math">\(j\)</span>.</li>
+</ul>
+<p><strong>Geometry dependent variables:</strong></p>
+<ul class="simple">
+<li><span class="math">\(d_{ij}\)</span>: the distance between atoms <span class="math">\(i\)</span> and <span class="math">\(j\)</span>.</li>
+</ul>
+<p><strong>Commands:</strong></p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">UNIT</span></code> (may repeat): Specify the units of the parameters <code class="docutils literal"><span class="pre">A</span></code> and <code class="docutils literal"><span class="pre">B</span></code>. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">SCALE</span></code> (may repeat): Specify the scaling of short-ranged interactions. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">PARS</span></code> (may repeat): Specify parameters for a given atom type.
+Three data fields must be given: <code class="docutils literal"><span class="pre">ffatype</span></code>, <code class="docutils literal"><span class="pre">A</span></code> and <code class="docutils literal"><span class="pre">B</span></code>.</li>
+<li><code class="docutils literal"><span class="pre">CPARS</span></code> (may repeat): Specify parameters for a given combination of atom types. This
+overrides parameters derived from mixing rules.
+Four data fields must be given: <code class="docutils literal"><span class="pre">ffatype0</span></code>, <code class="docutils literal"><span class="pre">ffatype1</span></code>, <code class="docutils literal"><span class="pre">A</span></code> and <code class="docutils literal"><span class="pre">B</span></code>.</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">EXPREP</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">A</span> <span class="n">au</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">B</span> <span class="mi">1</span><span class="o">/</span><span class="n">angstrom</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">1</span> <span class="mf">0.0</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">2</span> <span class="mf">1.0</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">3</span> <span class="mf">1.0</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">MIX</span> <span class="n">A</span> <span class="n">GEOMETRIC</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">MIX</span> <span class="n">B</span> <span class="n">ARITHMETIC</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">PARS</span> <span class="n">O</span> <span class="mf">4.2117588157e+02</span> <span class="mf">4.4654231357e+00</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">PARS</span> <span class="n">N</span> <span class="mf">4.9873214987e+00</span> <span class="mf">4.4265465464e+00</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">PARS</span> <span class="n">C</span> <span class="mf">4.3843216584e+02</span> <span class="mf">4.4132795167e+00</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">PARS</span> <span class="n">H</span> <span class="mf">2.9875648798e+00</span> <span class="mf">4.4371927495e+00</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="prefix-dampdisp">
+<h3>8.2.12. Prefix – DAMPDISP<a class="headerlink" href="#prefix-dampdisp" title="Permalink to this headline">¶</a></h3>
+<p><strong>Description:</strong> a dispersion term with optional Tang-Toennies damping.</p>
+<p><strong>Energy:</strong></p>
+<div class="math">
+\[E_\text{DAMPDISP} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} C_{6,ij} f_\text{damp,6}(d_{ij}) d_{ij}^{-6}\]</div>
+<p>where the damping factor <span class="math">\(f_\text{damp}(d_{ij})\)</span> is optional. When used
+it has the Tang-Toennies form:</p>
+<div class="math">
+\[f_\text{damp,n}(d_{ij}) = 1 - \exp(-B_{ij}r)\sum_{k=0}^n\frac{(B_{ij}r)^k}{k!}\]</div>
+<p>The pair parameters <span class="math">\(C_{6,ij}\)</span> and <span class="math">\(B_{ij}\)</span> are derived from atomic
+parameters using mixing rules, unless they are provided explicitly for a given
+pair of atom types. These are the mixing rules:</p>
+<div class="math">
+\[C_{6,ij} = \frac{2 C_{6,i} C_{6,j}}{\left(\frac{V_j}{V_i}\right)^2 C_{6,i} + \left(\frac{V_i}{V_j}\right)^2 C_{6,j}}\]</div>
+<div class="math">
+\[B_{ij} = \frac{B_i+B_j}{2}\]</div>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><span class="math">\(C_i\)</span> or <span class="math">\(C_{ij}\)</span> (<code class="docutils literal"><span class="pre">C</span></code>): the strength of the dispersion interaction.</li>
+<li><span class="math">\(B_i\)</span> or <span class="math">\(B_{ij}\)</span> (<code class="docutils literal"><span class="pre">B</span></code>): the decay of the damping function. When
+this parameter is zero, the damping is not applied.</li>
+<li><span class="math">\(V_i\)</span> (<code class="docutils literal"><span class="pre">VOL</span></code>): the atomic volume parameter used in the mixing rule for the
+<span class="math">\(C_{ij}\)</span>.</li>
+</ul>
+<p><strong>Constants:</strong></p>
+<ul class="simple">
+<li><span class="math">\(N\)</span>: the number of atoms.</li>
+<li><span class="math">\(s_{ij}\)</span>: the scaling of the interaction between atoms <span class="math">\(i\)</span> and <span class="math">\(j\)</span>.</li>
+</ul>
+<p><strong>Geometry dependent variables:</strong></p>
+<ul class="simple">
+<li><span class="math">\(d_{ij}\)</span>: the distance between atoms <span class="math">\(i\)</span> and <span class="math">\(j\)</span>.</li>
+</ul>
+<p><strong>Commands:</strong></p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">UNIT</span></code> (may repeat): Specify the units of the parameters <code class="docutils literal"><span class="pre">C6</span></code>, <code class="docutils literal"><span class="pre">B</span></code> and <code class="docutils literal"><span class="pre">VOL</span></code>. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">SCALE</span></code> (may repeat): Specify the scaling of short-ranged interactions. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">PARS</span></code> (may repeat): Specify parameters for a given atom type.
+Four data fields must be given: <code class="docutils literal"><span class="pre">ffatype</span></code>, <code class="docutils literal"><span class="pre">C6</span></code>, <code class="docutils literal"><span class="pre">B</span></code> and <code class="docutils literal"><span class="pre">VOL</span></code>.</li>
+<li><code class="docutils literal"><span class="pre">CPARS</span></code> (may repeat): Specify parameters for a given combination of atom types. This
+overrides parameters derived from mixing rules.
+Four data fields must be given: <code class="docutils literal"><span class="pre">ffatype0</span></code>, <code class="docutils literal"><span class="pre">ffatype1</span></code>, <code class="docutils literal"><span class="pre">C6</span></code> and <code class="docutils literal"><span class="pre">B</span></code>.</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">DAMPDISP</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">C6</span> <span class="n">au</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">B</span> <span class="mi">1</span><span class="o">/</span><span class="n">angstrom</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">VOL</span> <span class="n">au</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">1</span> <span class="mf">1.0</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">2</span> <span class="mf">1.0</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">3</span> <span class="mf">1.0</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">PARS</span> <span class="n">H</span> <span class="mf">2.4261074778e+00</span> <span class="mf">3.13071058512e+00</span> <span class="mf">5.3061016452e+00</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">PARS</span> <span class="n">C</span> <span class="mf">2.5121581791e+01</span> <span class="mf">5.01673173654e+00</span> <span class="mf">3.7957349423e+00</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">PARS</span> <span class="n">N</span> <span class="mf">2.0121581791e+01</span> <span class="mf">5.13207980365e+00</span> <span class="mf">3.6001863542e+00</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">PARS</span> <span class="n">O</span> <span class="mf">1.4633211522e+01</span> <span class="mf">5.74321564987e+00</span> <span class="mf">2.7513028856e+00</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="prefix-fixq">
+<h3>8.2.13. Prefix – FIXQ<a class="headerlink" href="#prefix-fixq" title="Permalink to this headline">¶</a></h3>
+<p><strong>Description:</strong> Electrostatic interactions with constant atomic point charges.</p>
+<p><strong>Energy:</strong></p>
+<div class="math">
+\[E_\text{FIXQ} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} \frac{q_i q_j}{d_{ij}} \textrm{erf}\left(\frac{d_{ij}}{R_{ij}}\right)\]</div>
+<p>with <span class="math">\(R_{ij}^2 = R_i^2 + R_j^2\)</span>. When <span class="math">\(R_{ij}=0\)</span>, this simplifies
+to the familiar expression for point charges:</p>
+<div class="math">
+\[E_\text{FIXQ} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} \frac{q_i q_j}{d_{ij}}\]</div>
+<p>The charges are derived from so-called <cite>pre-charges</cite> (<span class="math">\(q_{0,i}\)</span>) and
+<cite>bond charge increments</cite> (<span class="math">\(p_{i,j}\)</span>) as follows:</p>
+<div class="math">
+\[q_i = q_{0,i} + \sum_{j \text{ bonded to } i}p_{ij}\]</div>
+<p>where the summation is limited to atoms <span class="math">\(j\)</span> that are bonded to atom
+<span class="math">\(i\)</span>. The parameter <span class="math">\(p_{i,j}\)</span> represents the amount of charge
+transfered from atom <span class="math">\(i\)</span> to <span class="math">\(j\)</span>. Hence
+<span class="math">\(p_{i,j}=-p_{j,i}\)</span>. The pre-charge is the charge on an atom when
+it is not bonded to any other atom. From a physical perspective, the pre-charge
+should always be integer, which would also impose integer charges on molecules.
+However, one is free to follow other conventions for the sake of convenience.
+The charge density <span class="math">\(\rho_i(\mathbf{r})\)</span> for a charge with radius
+<span class="math">\(R_i\)</span> is given by the Gaussian distribution:</p>
+<div class="math">
+\[\rho_i(\mathbf{r}) = \frac{q_i}{\left(\sqrt{\pi}R_i\right)^3}\exp{-\frac{|\mathbf{r}-\mathbf{r}_i|^2}{R_i^2}}\]</div>
+<p>When <span class="math">\(R_i=0\)</span>, the distribution becomes a point charge:</p>
+<div class="math">
+\[\rho_i(\mathbf{r}) = q_i\delta\left( \mathbf{r}-\mathbf{r}_i \right)\]</div>
+<p><strong>Parameters:</strong></p>
+<ul class="simple">
+<li><span class="math">\(q_{0,i}\)</span> (<code class="docutils literal"><span class="pre">Q0</span></code>): the pre-charge</li>
+<li><span class="math">\(p_{ij}\)</span> (<code class="docutils literal"><span class="pre">P</span></code>): the bond charge increment</li>
+<li><span class="math">\(R_{i}\)</span> (<code class="docutils literal"><span class="pre">R</span></code>): the charge radius</li>
+</ul>
+<p><strong>Constants:</strong></p>
+<ul class="simple">
+<li><span class="math">\(N\)</span>: the number of atoms.</li>
+<li><span class="math">\(s_{ij}\)</span>: the scaling of the interaction between atoms <span class="math">\(i\)</span> and <span class="math">\(j\)</span>.</li>
+</ul>
+<p><strong>Geometry dependent variables:</strong></p>
+<ul class="simple">
+<li><span class="math">\(d_{ij}\)</span>: the distance between atoms <span class="math">\(i\)</span> and <span class="math">\(j\)</span>.</li>
+</ul>
+<p><strong>Commands:</strong></p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">UNIT</span></code> (may repeat): Specify the units of the parameters <code class="docutils literal"><span class="pre">Q0</span></code>, <code class="docutils literal"><span class="pre">P</span></code> and
+<code class="docutils literal"><span class="pre">R</span></code>. See <a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">SCALE</span></code> (may repeat): Specify the scaling of short-ranged interactions. See
+<a class="reference internal" href="#sub-sub-sec-general-commands"><span class="std std-ref">General commands</span></a>.</li>
+<li><code class="docutils literal"><span class="pre">DIELECTRIC</span></code>: Specify scalar relative permittivity, must be at least 1.0.</li>
+<li><code class="docutils literal"><span class="pre">ATOM</span></code> (may repeat): Specify the pre-charge and radius for a given atom type.
+Three data fields must be given: <code class="docutils literal"><span class="pre">ffatype</span></code>, <code class="docutils literal"><span class="pre">Q0</span></code>, <code class="docutils literal"><span class="pre">R</span></code>.</li>
+<li><code class="docutils literal"><span class="pre">BOND</span></code> (may repeat): Specify a bond charge increment for a given combination of atom types.
+Three data fields must be given: <code class="docutils literal"><span class="pre">ffatype0</span></code>, <code class="docutils literal"><span class="pre">ffatype1</span></code> and <code class="docutils literal"><span class="pre">P</span></code>.</li>
+</ul>
+<p><strong>Example</strong>:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">FIXQ</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">Q0</span> <span class="n">e</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">P</span> <span class="n">e</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">R</span> <span class="n">angstrom</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">1</span> <span class="mf">0.0</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">2</span> <span class="mf">0.0</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">3</span> <span class="mf">1.0</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">DIELECTRIC</span> <span class="mf">1.0</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">ATOM</span> <span class="n">O</span> <span class="mf">0.0000000000e+00</span> <span class="mf">1.5000000000e-00</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">ATOM</span> <span class="n">H</span> <span class="mf">0.0000000000e+00</span> <span class="mf">1.2000000000e-00</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">BOND</span> <span class="n">H</span> <span class="n">O</span> <span class="mf">0.417</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="general-commands">
+<span id="sub-sub-sec-general-commands"></span><h3>8.2.14. General commands<a class="headerlink" href="#general-commands" title="Permalink to this headline">¶</a></h3>
+<p><strong>UNIT</strong></p>
+<p>The <code class="docutils literal"><span class="pre">UNIT</span></code> command is used to specify the units of the parameters given in
+the parameter file. The format is as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">PREFIX</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">PARAMETER_NAME</span> <span class="n">UNIT_NAME</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal"><span class="pre">PARAMETER_NAME</span></code> refers to one of the parameters discussed above, e.g.
+<code class="docutils literal"><span class="pre">K</span></code>, <code class="docutils literal"><span class="pre">R0</span></code>, etc. The <code class="docutils literal"><span class="pre">UNIT_NAME</span></code> may be any mathematical expression
+involving the following constants: <code class="docutils literal"><span class="pre">coulomb</span></code>, <code class="docutils literal"><span class="pre">kilogram</span></code>, <code class="docutils literal"><span class="pre">gram</span></code>,
+<code class="docutils literal"><span class="pre">miligram</span></code>, <code class="docutils literal"><span class="pre">unified</span></code>, <code class="docutils literal"><span class="pre">meter</span></code>, <code class="docutils literal"><span class="pre">centimeter</span></code>, <code class="docutils literal"><span class="pre">milimeter</span></code>,
+<code class="docutils literal"><span class="pre">micrometer</span></code>, <code class="docutils literal"><span class="pre">nanometer</span></code>, <code class="docutils literal"><span class="pre">angstrom</span></code>, <code class="docutils literal"><span class="pre">picometer</span></code>, <code class="docutils literal"><span class="pre">liter</span></code>,
+<code class="docutils literal"><span class="pre">joule</span></code>, <code class="docutils literal"><span class="pre">calorie</span></code>, <code class="docutils literal"><span class="pre">electronvolt</span></code>, <code class="docutils literal"><span class="pre">newton</span></code>, <code class="docutils literal"><span class="pre">second</span></code>, <code class="docutils literal"><span class="pre">hertz</span></code>,
+<code class="docutils literal"><span class="pre">nanosecond</span></code>, <code class="docutils literal"><span class="pre">femtosecond</span></code>, <code class="docutils literal"><span class="pre">picosecond</span></code>, <code class="docutils literal"><span class="pre">pascal</span></code>, <code class="docutils literal"><span class="pre">e</span></code>.</p>
+<p>A unit must be specified for each parameter. There are no default units. This
+convention is introduced to make sure that there can be no confusion about the
+units of the parameters.</p>
+<p><strong>SCALE</strong></p>
+<p>The <code class="docutils literal"><span class="pre">SCALE</span></code> command is used to determine how pairwise interactions are scaled
+for atoms that are involved in bond, bend or torsion terms. The command adheres
+to the following format:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">PREFIX</span><span class="p">:</span><span class="n">SCALE</span> <span class="n">N</span> <span class="n">FACTOR</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal"><span class="pre">N</span></code> is <code class="docutils literal"><span class="pre">1</span></code>, <code class="docutils literal"><span class="pre">2</span></code> or <code class="docutils literal"><span class="pre">3</span></code> and represents the number bonds between
+two atoms to which the scaling of the pairwise interaction is applied. <code class="docutils literal"><span class="pre">1</span></code>
+is for bonded atoms, <code class="docutils literal"><span class="pre">2</span></code> applies to atoms separated by two bonds and <code class="docutils literal"><span class="pre">3</span></code>
+is used for atoms separated by three bonds. The <code class="docutils literal"><span class="pre">FACTOR</span></code> determines the amount
+of scaling and must lie in the range [0.0,1.0]. When set to zero, the pairwise
+term is completely disabled.</p>
+</div>
+</div>
+<div class="section" id="example-force-field-file">
+<h2>8.3. Example force field file<a class="headerlink" href="#example-force-field-file" title="Permalink to this headline">¶</a></h2>
+<p>The following is an example for a reasonable non-polarizable water FF. The
+parameters were generated with an old beta version of our in-house parameter
+calibration software. Don’t expect it to be a great water model!</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># BEGIN SCOPE WATER</span>
+
+
+<span class="c1"># Bond stretch</span>
+<span class="c1"># ============</span>
+
+<span class="c1"># Mathematical form depends on the kind selected below. Few kinds are supported:</span>
+<span class="c1"># - BONDHARM: 0.5*K*(r-R0)**2</span>
+<span class="c1"># - BONDFUES: 0.5*K*R0**2*(1+(R0/r)*((R0/r)-2.0))</span>
+<span class="c1"># The actual parameters and their units may depend on the kind.</span>
+<span class="n">BONDFUES</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">K</span> <span class="n">kjmol</span><span class="o">/</span><span class="n">angstrom</span><span class="o">**</span><span class="mi">2</span>
+<span class="n">BONDFUES</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">R0</span> <span class="n">angstrom</span>
+<span class="c1"># -----------------------------------------------------------------</span>
+<span class="c1"># KEY           label0   label1  K                 R0</span>
+<span class="c1"># -----------------------------------------------------------------</span>
+<span class="n">BONDFUES</span><span class="p">:</span><span class="n">PARS</span>        <span class="n">O</span>        <span class="n">H</span>  <span class="mf">4.0088096730e+03</span>  <span class="mf">1.0238240000e+00</span>
+
+
+<span class="c1"># Angle bending</span>
+<span class="c1"># =============</span>
+
+<span class="c1"># Mathematical form depends on the kind selected below. Few kinds are supported:</span>
+<span class="c1"># - BENDAHARM: 0.5*K*(theta-THETA0)**2</span>
+<span class="c1"># - BENDCHARM: 0.5*K*(cos(theta)-cos(COS0))**2</span>
+<span class="c1"># The actual parameters and their units may depend on the kind.</span>
+<span class="n">BENDCHARM</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">K</span> <span class="n">kjmol</span>
+<span class="n">BENDCHARM</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">COS0</span> <span class="mi">1</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># KEY            label0   label1   label2  K                 THETA0/COS0</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="n">BENDCHARM</span><span class="p">:</span><span class="n">PARS</span>        <span class="n">H</span>        <span class="n">O</span>        <span class="n">H</span>  <span class="mf">3.0230353700e+02</span>  <span class="mf">2.7892000007e-02</span>
+
+
+<span class="c1"># Fixed charges</span>
+<span class="c1"># =============</span>
+
+<span class="c1"># Mathematical form: q_A = q_0A + sum&#39;_B p_BA</span>
+<span class="c1"># where q0_A is the reference charge of atom A. It is mostly zero, sometimes a</span>
+<span class="c1"># non-zero integer. The total charge of a fragment is the sum of all reference</span>
+<span class="c1"># charges. The parameter p_BA is the charge transfered from B to A. Such charge</span>
+<span class="c1"># transfers are only carried out over bonds in the FF topology.</span>
+<span class="c1"># The charge on an atom is modeled as a Gaussian distribution. The spread on the</span>
+<span class="c1"># Gaussian is called the radius R. When the radius is set to zero, point charges</span>
+<span class="c1"># will be used instead of smeared charges.</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">Q0</span> <span class="n">e</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">P</span> <span class="n">e</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">R</span> <span class="n">angstrom</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">1</span> <span class="mf">1.0</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">2</span> <span class="mf">1.0</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">3</span> <span class="mf">1.0</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">DIELECTRIC</span> <span class="mf">1.0</span>
+<span class="c1"># ----------------------------------------------------</span>
+<span class="c1"># KEY        label  Q_0A              R_A</span>
+<span class="c1"># ----------------------------------------------------</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">ATOM</span>        <span class="n">O</span>  <span class="mf">0.0000000000e+00</span>  <span class="mf">0.0000000000e-00</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">ATOM</span>        <span class="n">H</span>  <span class="mf">0.0000000000e+00</span>  <span class="mf">0.0000000000e-00</span>
+<span class="c1"># -------------------------------------------</span>
+<span class="c1"># KEY       label0   label1  P_AB</span>
+<span class="c1"># -------------------------------------------</span>
+<span class="n">FIXQ</span><span class="p">:</span><span class="n">BOND</span>        <span class="n">H</span>        <span class="n">O</span>  <span class="mf">3.6841957737e-01</span>
+
+
+<span class="c1"># Damped Dispersion</span>
+<span class="c1"># =================</span>
+
+<span class="c1"># Mathematical form:</span>
+<span class="c1">#   C6_AB*f(r)*r**-6</span>
+<span class="c1"># where C is a constant and f(r) is the Tang-Toennies damping factor</span>
+<span class="c1">#   f(r) = 1 - exp(-B_AB*r)*sum_k=0..6((B_AB*r)**k/k!)</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">C6</span> <span class="n">au</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">B</span> <span class="mi">1</span><span class="o">/</span><span class="n">angstrom</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">VOL</span> <span class="n">au</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">1</span> <span class="mf">1.0</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">2</span> <span class="mf">1.0</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">3</span> <span class="mf">1.0</span>
+<span class="c1"># The pair parameters C6AB and R0AB are derived from atomic parameters using</span>
+<span class="c1"># the following mixing rules:</span>
+<span class="c1">#   C6_AB = 2*C6_AA*C6_BB/((VOL_B/VOL_A)**2*C6_AA+(VOL_A/VOL_B)**2*C6_BB)</span>
+<span class="c1">#   B_AB = 0.5*(B_AA+B_BB)</span>
+<span class="c1"># where</span>
+<span class="c1">#   C6_AA = homonuclear dispersion coefficient</span>
+<span class="c1">#   VOL_A = atomic volume</span>
+<span class="c1">#   VOL_A**2 = proportional to atomic polarizability</span>
+<span class="c1">#   B_AA = -0.33*(2*R_VDWA)+4.339</span>
+<span class="c1">#   R_VDWA = (conventional) vdw radius of atom A</span>
+<span class="c1"># Idea taken from JCP v132, p234109, y2010.</span>
+<span class="c1"># Mixing rules are commented out because they are the only available option:</span>
+<span class="c1">##DAMPDISP:MIX C6 LONDON_VOLUME</span>
+<span class="c1">##DAMPDISP:MIX B ARITHMETIC</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="c1"># KEY            label  C6_AA             B_AA              VOL_A</span>
+<span class="c1"># ---------------------------------------------------------------------------</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">PARS</span>        <span class="n">O</span>  <span class="mf">1.9550248340e+01</span>  <span class="mf">3.2421589363e+00</span>  <span class="mf">3.13071058512e+00</span>
+<span class="n">DAMPDISP</span><span class="p">:</span><span class="n">PARS</span>        <span class="n">H</span>  <span class="mf">2.7982205915e+00</span>  <span class="mf">3.4581667399e+00</span>  <span class="mf">5.13207980365e+00</span>
+
+
+<span class="c1"># Exponential Repulsion</span>
+<span class="c1"># =====================</span>
+
+<span class="c1"># Mathematical form: A_AB*exp(-B_AB*r)</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">A</span> <span class="n">au</span>            <span class="c1"># Hartree, internal unit</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">UNIT</span> <span class="n">B</span> <span class="mi">1</span><span class="o">/</span><span class="n">angstrom</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">1</span> <span class="mf">0.0</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">2</span> <span class="mf">1.0</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">SCALE</span> <span class="mi">3</span> <span class="mf">1.0</span>
+<span class="c1"># The parameters below were derived using the frozen density approximation</span>
+<span class="c1"># applied to Hirshfeld-E AIM densities. The mixing rules are determined</span>
+<span class="c1"># empirically: A mixes more or less geometrically, B mixes more or less</span>
+<span class="c1"># arithmetically. When the A parameters of both atoms differ a lot, the simple</span>
+<span class="c1"># mixing rules overestimate the actual values. The following empirical mixing</span>
+<span class="c1"># rules compensate for the overestimation:</span>
+<span class="c1">#   ln(A_AB) = 0.5*(ln(A_AA) + ln(A_BB))*(1-x_A*abs(ln(A_AA/A_BB)))</span>
+<span class="c1">#   B_AB = 0.5*(B_AA + B_BB)*(1-x_B*abs(ln(A_AA/A_BB)))</span>
+<span class="c1"># with</span>
+<span class="c1">#   x_A = 2.385e-2</span>
+<span class="c1">#   x_B = 7.897e-3</span>
+<span class="c1">#EXPREP:MIX A GEOMETRIC</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">MIX</span> <span class="n">A</span> <span class="n">GEOMETRIC_COR</span> <span class="mf">2.385e-2</span>
+<span class="c1">#EXPREP:MIX B ARITHMETIC</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">MIX</span> <span class="n">B</span> <span class="n">ARITHMETIC_COR</span> <span class="mf">7.897e-3</span>
+<span class="c1"># -----------------------------------------------------</span>
+<span class="c1"># KEY         label  A_AA              B_AA</span>
+<span class="c1"># -----------------------------------------------------</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">PARS</span>       <span class="n">O</span>  <span class="mf">4.2117588157e+02</span>  <span class="mf">4.4661933834e+00</span>
+<span class="n">EXPREP</span><span class="p">:</span><span class="n">PARS</span>       <span class="n">H</span>  <span class="mf">2.3514195495e+00</span>  <span class="mf">4.4107388814e+00</span>
+<span class="c1"># -----------------------------------------------------</span>
+
+
+<span class="c1"># END SCOPE WATER</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="beyond-force-field-parameter-files">
+<h2>8.4. Beyond force field parameter files<a class="headerlink" href="#beyond-force-field-parameter-files" title="Permalink to this headline">¶</a></h2>
+<p>One does not have to use parameter files to construct force fields. It is also
+possible to construct them with some Python code, which can be useful in some
+corner cases.</p>
+<p>The larger part of the force field <cite>parts</cite> in Yaff are not aware
+of the actual atom types. <code class="docutils literal"><span class="pre">EXPREP</span></code> and <code class="docutils literal"><span class="pre">DAMPDISP</span></code> are the only exceptions.
+This means that one may construct a force field in which every bond has
+different parameters, irrespective of the atom types involved. The following
+simple example illustrates this by creating an <cite>unphysical</cite> model for water,
+were the bond lengths of the two O-H bonds differ:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># A system object for a single water molecule</span>
+<span class="n">system</span> <span class="o">=</span> <span class="n">System</span><span class="p">(</span>
+    <span class="n">numbers</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+    <span class="n">pos</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mf">4.583</span><span class="p">,</span> <span class="mf">5.333</span><span class="p">,</span> <span class="mf">1.560</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">3.777</span><span class="p">,</span> <span class="mf">5.331</span><span class="p">,</span> <span class="mf">0.943</span><span class="p">],</span>
+                  <span class="p">[</span><span class="o">-</span><span class="mf">5.081</span><span class="p">,</span> <span class="mf">4.589</span><span class="p">,</span> <span class="mf">1.176</span><span class="p">]])</span><span class="o">*</span><span class="n">angstrom</span><span class="p">,</span>
+    <span class="n">ffatypes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;O&#39;</span><span class="p">,</span> <span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="s1">&#39;H&#39;</span><span class="p">],</span>
+    <span class="n">bonds</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]]),</span>
+<span class="p">)</span>
+<span class="c1"># A valence force field with only two harmonic bond terms, which have</span>
+<span class="c1"># different rest value parameters.</span>
+<span class="n">part</span> <span class="o">=</span> <span class="n">ForcePartValence</span><span class="p">(</span><span class="n">system</span><span class="p">)</span>
+<span class="n">part</span><span class="o">.</span><span class="n">add_term</span><span class="p">(</span><span class="n">Harmonic</span><span class="p">(</span><span class="n">fc</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">rv</span><span class="o">=</span><span class="mf">1.0</span><span class="o">*</span><span class="n">angstrom</span><span class="p">,</span> <span class="n">Bond</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+<span class="n">part</span><span class="o">.</span><span class="n">add_term</span><span class="p">(</span><span class="n">Harmonic</span><span class="p">(</span><span class="n">fc</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">rv</span><span class="o">=</span><span class="mf">1.1</span><span class="o">*</span><span class="n">angstrom</span><span class="p">,</span> <span class="n">Bond</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span>
+<span class="n">ff</span> <span class="o">=</span> <span class="n">ForceField</span><span class="p">(</span><span class="n">system</span><span class="p">,</span> <span class="p">[</span><span class="n">part</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Modifying or constructing force fields at this level of detail may be useful
+in the following cases:</p>
+<ul>
+<li><p class="first">When one wants to perform restrained molecular dynamics simulations, this
+approach allows one to add a restraint term. The following example assumes
+that a <code class="docutils literal"><span class="pre">valence_part</span></code> is already present after the force field is created
+with a parameter file:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">ff</span> <span class="o">=</span> <span class="n">ForceField</span><span class="p">(</span><span class="n">system</span><span class="p">,</span> <span class="s1">&#39;parameters.txt&#39;</span><span class="p">)</span>
+<span class="n">ff</span><span class="o">.</span><span class="n">part_valence</span><span class="o">.</span><span class="n">add_term</span><span class="p">(</span><span class="n">Harmonic</span><span class="p">(</span><span class="n">fc</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span> <span class="n">rv</span><span class="o">=</span><span class="mf">2.1</span><span class="o">*</span><span class="n">angstrom</span><span class="p">,</span> <span class="n">Bond</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">23</span><span class="p">)))</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">One may also derive a force field without paying attention to transferability
+of parameters, e.g. when a force field is designed for one specific molecule.
+In that case, each bond, bend, etc. may have different parameters (except for
+symmetry considerations). This is similar to the elastic network models in
+coarse-grained protein simulations.</p>
+</li>
+<li><p class="first">In some cases, one is interested in constructing a molecular system with
+certain geometric prescriptions. Building such a structure from scratch can
+be very difficult for complex systems. One may design a non-physical force
+field such that the optimal geometry satisfies the geometrical criteria.</p>
+</li>
+<li><p class="first">Several combinations of internal coordinates and valence energy terms are not
+supported through the parameter file, simply because they are uncommon. The
+above example shows how one can program any combination of internal coordinate
+and valence energy term in the force field.</p>
+</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">8. Force-field models</a><ul>
+<li><a class="reference internal" href="#introduction">8.1. Introduction</a></li>
+<li><a class="reference internal" href="#force-field-parameter-file-format">8.2. Force field parameter file format</a><ul>
+<li><a class="reference internal" href="#prefix-bondharm">8.2.1. Prefix – BONDHARM</a></li>
+<li><a class="reference internal" href="#prefix-bondfues">8.2.2. Prefix – BONDFUES</a></li>
+<li><a class="reference internal" href="#prefix-bendaharm">8.2.3. Prefix – BENDAHARM</a></li>
+<li><a class="reference internal" href="#prefix-bendcharm">8.2.4. Prefix – BENDCHARM</a></li>
+<li><a class="reference internal" href="#prefix-ubharm">8.2.5. Prefix – UBHARM</a></li>
+<li><a class="reference internal" href="#prefix-torsion">8.2.6. Prefix – TORSION</a></li>
+<li><a class="reference internal" href="#prefix-inversion">8.2.7. Prefix – INVERSION</a></li>
+<li><a class="reference internal" href="#prefix-bondcross">8.2.8. Prefix – BONDCROSS</a></li>
+<li><a class="reference internal" href="#prefix-lj">8.2.9. Prefix – LJ</a></li>
+<li><a class="reference internal" href="#prefix-mm3">8.2.10. Prefix – MM3</a></li>
+<li><a class="reference internal" href="#prefix-exprep">8.2.11. Prefix – EXPREP</a></li>
+<li><a class="reference internal" href="#prefix-dampdisp">8.2.12. Prefix – DAMPDISP</a></li>
+<li><a class="reference internal" href="#prefix-fixq">8.2.13. Prefix – FIXQ</a></li>
+<li><a class="reference internal" href="#general-commands">8.2.14. General commands</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#example-force-field-file">8.3. Example force field file</a></li>
+<li><a class="reference internal" href="#beyond-force-field-parameter-files">8.4. Beyond force field parameter files</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="ug_atselect.html"
+                        title="previous chapter">7. The ATSELECT language</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="ug_sampling.html"
+                        title="next chapter">9. Exploring the phase space</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/ug_forcefield.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="ug_sampling.html" title="9. Exploring the phase space"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="ug_atselect.html" title="7. The ATSELECT language"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2011, Toon Verstraelen, Louis Vanduyfhuys.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
+    </div>
+  </body>
+</html>

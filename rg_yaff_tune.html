@@ -1,0 +1,363 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>6. yaff.tune – Tools to calibrated FF parameters &#8212; Yaff 1.4.2 documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.4.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="1. Informal TODO list" href="dg_todo.html" />
+    <link rel="prev" title="5. yaff.conversion – Conversion of external trajectory data" href="rg_yaff_conversion.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="dg_todo.html" title="1. Informal TODO list"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="rg_yaff_conversion.html" title="5. yaff.conversion – Conversion of external trajectory data"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="yaff-tune-tools-to-calibrated-ff-parameters">
+<h1>6. <code class="docutils literal"><span class="pre">yaff.tune</span></code> – Tools to calibrated FF parameters<a class="headerlink" href="#yaff-tune-tools-to-calibrated-ff-parameters" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-yaff.tune.cost">
+<span id="yaff-tune-cost-cost-functions-for-the-calibration-of-ff-parameters"></span><h2>6.1. <code class="docutils literal"><span class="pre">yaff.tune.cost</span></code> – Cost functions for the calibration of FF parameters<a class="headerlink" href="#module-yaff.tune.cost" title="Permalink to this headline">¶</a></h2>
+<p>Cost functions for the calibration of FF parameters</p>
+<dl class="class">
+<dt id="yaff.tune.cost.CostFunction">
+<em class="property">class </em><code class="descclassname">yaff.tune.cost.</code><code class="descname">CostFunction</code><span class="sig-paren">(</span><em>parameter_transform</em>, <em>test_groups</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.CostFunction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="yaff.tune.cost.CostFunction.__call__">
+<code class="descname">__call__</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.CostFunction.__call__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="yaff.tune.cost.Simulation">
+<em class="property">class </em><code class="descclassname">yaff.tune.cost.</code><code class="descname">Simulation</code><span class="sig-paren">(</span><em>name</em>, <em>system</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.Simulation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="yaff.tune.cost.Simulation.__call__">
+<code class="descname">__call__</code><span class="sig-paren">(</span><em>parameters</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.Simulation.__call__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.tune.cost.Simulation.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>ff</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.Simulation.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="yaff.tune.cost.GeoOptSimulation">
+<em class="property">class </em><code class="descclassname">yaff.tune.cost.</code><code class="descname">GeoOptSimulation</code><span class="sig-paren">(</span><em>name</em>, <em>system</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.GeoOptSimulation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#yaff.tune.cost.Simulation" title="yaff.tune.cost.Simulation"><code class="xref py py-class docutils literal"><span class="pre">yaff.tune.cost.Simulation</span></code></a></p>
+<dl class="method">
+<dt id="yaff.tune.cost.GeoOptSimulation.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>ff</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.GeoOptSimulation.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="yaff.tune.cost.GeoOptHessianSimulation">
+<em class="property">class </em><code class="descclassname">yaff.tune.cost.</code><code class="descname">GeoOptHessianSimulation</code><span class="sig-paren">(</span><em>name</em>, <em>system</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.GeoOptHessianSimulation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#yaff.tune.cost.GeoOptSimulation" title="yaff.tune.cost.GeoOptSimulation"><code class="xref py py-class docutils literal"><span class="pre">yaff.tune.cost.GeoOptSimulation</span></code></a></p>
+<dl class="method">
+<dt id="yaff.tune.cost.GeoOptHessianSimulation.run">
+<code class="descname">run</code><span class="sig-paren">(</span><em>ff</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.GeoOptHessianSimulation.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="yaff.tune.cost.ICGroup">
+<em class="property">class </em><code class="descclassname">yaff.tune.cost.</code><code class="descname">ICGroup</code><span class="sig-paren">(</span><em>system</em>, <em>rules=None</em>, <em>cases=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.ICGroup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="attribute">
+<dt id="yaff.tune.cost.ICGroup.natom">
+<code class="descname">natom</code><em class="property"> = None</em><a class="headerlink" href="#yaff.tune.cost.ICGroup.natom" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.tune.cost.ICGroup.compute_ic">
+<code class="descname">compute_ic</code><span class="sig-paren">(</span><em>pos</em>, <em>indexes</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.ICGroup.compute_ic" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.tune.cost.ICGroup.compute_tangent">
+<code class="descname">compute_tangent</code><span class="sig-paren">(</span><em>pos</em>, <em>indexes</em>, <em>tangent</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.ICGroup.compute_tangent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="yaff.tune.cost.BondGroup">
+<em class="property">class </em><code class="descclassname">yaff.tune.cost.</code><code class="descname">BondGroup</code><span class="sig-paren">(</span><em>system</em>, <em>rules=None</em>, <em>cases=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.BondGroup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#yaff.tune.cost.ICGroup" title="yaff.tune.cost.ICGroup"><code class="xref py py-class docutils literal"><span class="pre">yaff.tune.cost.ICGroup</span></code></a></p>
+<dl class="attribute">
+<dt id="yaff.tune.cost.BondGroup.natom">
+<code class="descname">natom</code><em class="property"> = 2</em><a class="headerlink" href="#yaff.tune.cost.BondGroup.natom" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="yaff.tune.cost.BendGroup">
+<em class="property">class </em><code class="descclassname">yaff.tune.cost.</code><code class="descname">BendGroup</code><span class="sig-paren">(</span><em>system</em>, <em>rules=None</em>, <em>cases=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.BendGroup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#yaff.tune.cost.ICGroup" title="yaff.tune.cost.ICGroup"><code class="xref py py-class docutils literal"><span class="pre">yaff.tune.cost.ICGroup</span></code></a></p>
+<dl class="attribute">
+<dt id="yaff.tune.cost.BendGroup.natom">
+<code class="descname">natom</code><em class="property"> = 3</em><a class="headerlink" href="#yaff.tune.cost.BendGroup.natom" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="yaff.tune.cost.Test">
+<em class="property">class </em><code class="descclassname">yaff.tune.cost.</code><code class="descname">Test</code><span class="sig-paren">(</span><em>tolerance</em>, <em>simulations</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.Test" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="yaff.tune.cost.Test.__call__">
+<code class="descname">__call__</code><span class="sig-paren">(</span><em>results</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.Test.__call__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.tune.cost.Test.filter_results">
+<code class="descname">filter_results</code><span class="sig-paren">(</span><em>results</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.Test.filter_results" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.tune.cost.Test.compute_error">
+<code class="descname">compute_error</code><span class="sig-paren">(</span><em>results</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.Test.compute_error" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="yaff.tune.cost.ICTest">
+<em class="property">class </em><code class="descclassname">yaff.tune.cost.</code><code class="descname">ICTest</code><span class="sig-paren">(</span><em>tolerance</em>, <em>refpos</em>, <em>simulation</em>, <em>icgroup</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.ICTest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#yaff.tune.cost.Test" title="yaff.tune.cost.Test"><code class="xref py py-class docutils literal"><span class="pre">yaff.tune.cost.Test</span></code></a></p>
+<dl class="method">
+<dt id="yaff.tune.cost.ICTest.compute_error">
+<code class="descname">compute_error</code><span class="sig-paren">(</span><em>results</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.ICTest.compute_error" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="yaff.tune.cost.FCTest">
+<em class="property">class </em><code class="descclassname">yaff.tune.cost.</code><code class="descname">FCTest</code><span class="sig-paren">(</span><em>tolerance</em>, <em>refpos</em>, <em>refhessian</em>, <em>simulation</em>, <em>icgroup</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.FCTest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#yaff.tune.cost.Test" title="yaff.tune.cost.Test"><code class="xref py py-class docutils literal"><span class="pre">yaff.tune.cost.Test</span></code></a></p>
+<p>A test for force constants</p>
+<p>This is special in the sense that the force constants derived from the
+hessian are not sensitive to either orientation of the molecule or the
+choice of other internal coordinates. This is realized by comparing the
+second order derivatives along PES scanes of selected internal
+coordinates.</p>
+<dl class="method">
+<dt id="yaff.tune.cost.FCTest.compute_error">
+<code class="descname">compute_error</code><span class="sig-paren">(</span><em>results</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.FCTest.compute_error" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.tune.cost.FCTest.compute_fc">
+<code class="descname">compute_fc</code><span class="sig-paren">(</span><em>pos</em>, <em>hessian</em>, <em>indexes</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.cost.FCTest.compute_fc" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-yaff.tune.transform">
+<span id="yaff-tune-transform-specification-of-variables-in-a-parameters-file"></span><h2>6.2. <code class="docutils literal"><span class="pre">yaff.tune.transform</span></code> – Specification of variables in a parameters file<a class="headerlink" href="#module-yaff.tune.transform" title="Permalink to this headline">¶</a></h2>
+<p>Specification of variables in a parameters file</p>
+<dl class="class">
+<dt id="yaff.tune.transform.ParameterTransform">
+<em class="property">class </em><code class="descclassname">yaff.tune.transform.</code><code class="descname">ParameterTransform</code><span class="sig-paren">(</span><em>parameters0</em>, <em>mods</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.transform.ParameterTransform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="yaff.tune.transform.ParameterTransform.get_init">
+<code class="descname">get_init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.transform.ParameterTransform.get_init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.tune.transform.ParameterTransform.__call__">
+<code class="descname">__call__</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.transform.ParameterTransform.__call__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="yaff.tune.transform.ParameterModifier">
+<em class="property">class </em><code class="descclassname">yaff.tune.transform.</code><code class="descname">ParameterModifier</code><span class="sig-paren">(</span><em>rules</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.transform.ParameterModifier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="yaff.tune.transform.ParameterModifier.get_init">
+<code class="descname">get_init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.transform.ParameterModifier.get_init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.tune.transform.ParameterModifier.__call__">
+<code class="descname">__call__</code><span class="sig-paren">(</span><em>x</em>, <em>parameters</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.transform.ParameterModifier.__call__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="yaff.tune.transform.ModifierRule">
+<em class="property">class </em><code class="descclassname">yaff.tune.transform.</code><code class="descname">ModifierRule</code><span class="sig-paren">(</span><em>prefix</em>, <em>suffix</em>, <em>regex</em>, <em>index</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.transform.ModifierRule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="yaff.tune.transform.ModifierRule.__call__">
+<code class="descname">__call__</code><span class="sig-paren">(</span><em>x</em>, <em>parameters</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.transform.ModifierRule.__call__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.tune.transform.ModifierRule.modify_value">
+<code class="descname">modify_value</code><span class="sig-paren">(</span><em>x</em>, <em>value</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.transform.ModifierRule.modify_value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.tune.transform.ModifierRule.get_init">
+<code class="descname">get_init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.transform.ModifierRule.get_init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="yaff.tune.transform.ScaleRule">
+<em class="property">class </em><code class="descclassname">yaff.tune.transform.</code><code class="descname">ScaleRule</code><span class="sig-paren">(</span><em>prefix</em>, <em>suffix</em>, <em>regex</em>, <em>index</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.transform.ScaleRule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#yaff.tune.transform.ModifierRule" title="yaff.tune.transform.ModifierRule"><code class="xref py py-class docutils literal"><span class="pre">yaff.tune.transform.ModifierRule</span></code></a></p>
+<dl class="method">
+<dt id="yaff.tune.transform.ScaleRule.modify_value">
+<code class="descname">modify_value</code><span class="sig-paren">(</span><em>x</em>, <em>value</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.transform.ScaleRule.modify_value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.tune.transform.ScaleRule.get_init">
+<code class="descname">get_init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.transform.ScaleRule.get_init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="yaff.tune.transform.IncrementRule">
+<em class="property">class </em><code class="descclassname">yaff.tune.transform.</code><code class="descname">IncrementRule</code><span class="sig-paren">(</span><em>prefix</em>, <em>suffix</em>, <em>regex</em>, <em>index</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.transform.IncrementRule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#yaff.tune.transform.ModifierRule" title="yaff.tune.transform.ModifierRule"><code class="xref py py-class docutils literal"><span class="pre">yaff.tune.transform.ModifierRule</span></code></a></p>
+<dl class="method">
+<dt id="yaff.tune.transform.IncrementRule.modify_value">
+<code class="descname">modify_value</code><span class="sig-paren">(</span><em>x</em>, <em>value</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.transform.IncrementRule.modify_value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="yaff.tune.transform.IncrementRule.get_init">
+<code class="descname">get_init</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.tune.transform.IncrementRule.get_init" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">6. <code class="docutils literal"><span class="pre">yaff.tune</span></code> – Tools to calibrated FF parameters</a><ul>
+<li><a class="reference internal" href="#module-yaff.tune.cost">6.1. <code class="docutils literal"><span class="pre">yaff.tune.cost</span></code> – Cost functions for the calibration of FF parameters</a></li>
+<li><a class="reference internal" href="#module-yaff.tune.transform">6.2. <code class="docutils literal"><span class="pre">yaff.tune.transform</span></code> – Specification of variables in a parameters file</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="rg_yaff_conversion.html"
+                        title="previous chapter">5. <code class="docutils literal"><span class="pre">yaff.conversion</span></code> – Conversion of external trajectory data</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="dg_todo.html"
+                        title="next chapter">1. Informal TODO list</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/rg_yaff_tune.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="dg_todo.html" title="1. Informal TODO list"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="rg_yaff_conversion.html" title="5. yaff.conversion – Conversion of external trajectory data"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2011, Toon Verstraelen, Louis Vanduyfhuys.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
+    </div>
+  </body>
+</html>

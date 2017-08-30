@@ -1,0 +1,412 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>9. Exploring the phase space &#8212; Yaff 1.4.2 documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.4.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="10. Trajectory Analysis" href="ug_analysis.html" />
+    <link rel="prev" title="8. Force-field models" href="ug_forcefield.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="ug_analysis.html" title="10. Trajectory Analysis"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="ug_forcefield.html" title="8. Force-field models"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="exploring-the-phase-space">
+<h1>9. Exploring the phase space<a class="headerlink" href="#exploring-the-phase-space" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>9.1. Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>This section assumes that one has defined a force-field model as explained in
+the previous section, <a class="reference internal" href="ug_forcefield.html#ug-sec-forcefield"><span class="std std-ref">Force-field models</span></a>. The tools discussed in this
+section allow one to explore the phase space of a system (and derive its
+thermodynamic properties) using a force field model.</p>
+<p>All algorithms are implemented such that they assume very little about the
+internals of the force field models. The force field takes atomic positions and
+cell vectors as input, and returns the energy (and optionally forces and a
+virial tensor). All algorithms below are only relying on this basic interface.</p>
+<p>Most of the algorithms are extensible through so-called <cite>hooks</cite>. These hooks are
+pieces of code that can be plugged into a basic algorithm (like a Verlet
+integrator) to add functionality like writing trajectory files, sampling other
+ensembles or computing statistical properties on the fly.</p>
+<p>One important aspect of <code class="xref py py-mod docutils literal"><span class="pre">yaff.analysis</span></code> is that that trajectory data can
+be written to an HDF5 file. In short, HDF5 is a cross-platform format to store
+efficiently any type of binary array data. A HDF5 file stores arrays
+in a tree sturcture, which is similar to files and directories in a regular file
+system. More details about HDF5 can be found on <a class="reference external" href="http://en.wikipedia.org/wiki/Hdf5">wikipedia</a> and on the <a class="reference external" href="http://www.hdfgroup.org/">non-profit HDF Group website</a>. This format is designed to handle huge amounts of
+binary data and it greatly facilitates post-processing analysis of the
+trajectory data. By convention, Yaff stores all data in HDF5 files in atomic
+units.</p>
+</div>
+<div class="section" id="molecular-dynacmis">
+<h2>9.2. Molecular Dynacmis<a class="headerlink" href="#molecular-dynacmis" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="overview-of-the-verlet-algorithms">
+<h3>9.2.1. Overview of the Verlet algorithms<a class="headerlink" href="#overview-of-the-verlet-algorithms" title="Permalink to this headline">¶</a></h3>
+<p>The equations of motion in the NVE ensemble can be integrated as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">verlet</span> <span class="o">=</span> <span class="n">VerletIntegrator</span><span class="p">(</span><span class="n">ff</span><span class="p">,</span> <span class="mi">1</span><span class="o">*</span><span class="n">femtosecond</span><span class="p">,</span> <span class="n">temp0</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+<span class="n">verlet</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This example just propagates the system with 5000 steps of 1 fs, but does nearly
+nothing else. After calling the <code class="docutils literal"><span class="pre">run</span></code> method, one can inspect atomic positions
+and velocities of the final time step:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="nb">print</span> <span class="n">verlet</span><span class="o">.</span><span class="n">vel</span>
+<span class="nb">print</span> <span class="n">verlet</span><span class="o">.</span><span class="n">pos</span>
+<span class="nb">print</span> <span class="n">ff</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">pos</span>     <span class="c1"># equivalent to the previous line</span>
+<span class="nb">print</span> <span class="n">verlet</span><span class="o">.</span><span class="n">ekin</span><span class="o">/</span><span class="n">kjmol</span> <span class="c1"># the kinetic energy in kJ/mol.</span>
+</pre></div>
+</div>
+<p>By default all information from past steps is discarded. If one is interested
+in writing a trajectory file, one must add a hook to do so. The following
+example writes a HDF5 trajectory file:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">hdf5_writer</span> <span class="o">=</span> <span class="n">HDF5Writer</span><span class="p">(</span><span class="n">h5</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s1">&#39;output.h5&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">))</span>
+<span class="n">verlet</span> <span class="o">=</span> <span class="n">VerletIntegrator</span><span class="p">(</span><span class="n">ff</span><span class="p">,</span> <span class="mi">1</span><span class="o">*</span><span class="n">femtosecond</span><span class="p">,</span> <span class="n">hooks</span><span class="o">=</span><span class="n">hdf5_writer</span><span class="p">,</span> <span class="n">temp0</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+<span class="n">verlet</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The parameters of the integrator can be tuned with several optional arguments of
+the <code class="docutils literal"><span class="pre">VerletIntegrator</span></code> constructor. See
+<a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.verlet.VerletIntegrator" title="yaff.sampling.verlet.VerletIntegrator"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.verlet.VerletIntegrator</span></code></a> for more details. The exact contents
+of the HDF5 file depends on the integrator used and the optional arguments of
+the integrator and the <a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.io.HDF5Writer" title="yaff.sampling.io.HDF5Writer"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.io.HDF5Writer</span></code></a>. The typical tree
+structure of a trajectory HDF5 file is as follows. (Comments were added manually
+to the output of h5dump to describe all the arrays.):</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span>$ h5dump -n production.h5
+HDF5 &quot;production.h5&quot; {
+FILE_CONTENTS {
+ group      /
+ group      /system                          # The &#39;system&#39; group contains most attributes of the System class.
+ dataset    /system/bonds
+ dataset    /system/charges
+ dataset    /system/ffatype_ids
+ dataset    /system/ffatypes
+ dataset    /system/masses
+ dataset    /system/numbers
+ dataset    /system/pos
+ dataset    /system/rvecs
+ group      /trajectory                      # The &#39;trajectory&#39; group contains the time-dependent data.
+ dataset    /trajectory/cell                 # cell vectors
+ dataset    /trajectory/cons_err             # the root of the ratio of the variance on the conserved quantity
+                                             #     and the variance on the kinetic energy
+ dataset    /trajectory/counter              # an integer counter for the integrator steps
+ dataset    /trajectory/dipole               # the dipole moment
+ dataset    /trajectory/dipole_vel           # the time derivative of the dipole moment
+ dataset    /trajectory/econs                # the conserved quantity
+ dataset    /trajectory/ekin                 # the kinetic energy
+ dataset    /trajectory/epot                 # the potential energy
+ dataset    /trajectory/epot_contribs        # the contributions to the potential energy from the force field parts.
+ dataset    /trajectory/etot                 # the total energy (kinetic + potential)
+ dataset    /trajectory/pos                  # the atomic positions
+ dataset    /trajectory/rmsd_delta           # the RMSD change of the atomic positions
+ dataset    /trajectory/rmsd_gpos            # the RMSD value of the Cartesian energy gradient (forces if you like)
+ dataset    /trajectory/temp                 # the instantaneous temperature
+ dataset    /trajectory/time                 # the time
+ dataset    /trajectory/vel                  # the atomic velocities
+ dataset    /trajectory/volume               # the (generalized) volume of the unit cell
+ }
+}
+</pre></div>
+</div>
+<p>The hooks argument may also be a list of hook objects. For example, one may
+include the <a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.nvt.AndersenThermostat" title="yaff.sampling.nvt.AndersenThermostat"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.nvt.AndersenThermostat</span></code></a> to reset the velocities
+every 200 steps. The <a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.io.XYZWriter" title="yaff.sampling.io.XYZWriter"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.io.XYZWriter</span></code></a> can be added to write a
+trajectory of the atomic positions in XYZ format:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">hooks</span><span class="o">=</span><span class="p">[</span>
+    <span class="n">HDF5Writer</span><span class="p">(</span><span class="n">h5</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s1">&#39;output.h5&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">)),</span>
+    <span class="n">AndersenThermostat</span><span class="p">(</span><span class="n">temp</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">200</span><span class="p">),</span>
+    <span class="n">XYZWriter</span><span class="p">(</span><span class="s1">&#39;trajectory.xyz&#39;</span><span class="p">),</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>By default a screen logging hook is added (if not yet present) to print one line
+per iteration with some critical integrator parameters. The output of the
+<code class="docutils literal"><span class="pre">VerletIntegrator</span></code> is as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">VERLET</span> <span class="o">~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+<span class="n">VERLET</span> <span class="n">Cons</span><span class="o">.</span><span class="n">Err</span><span class="o">.</span> <span class="o">=</span> <span class="n">the</span> <span class="n">root</span> <span class="n">of</span> <span class="n">the</span> <span class="n">ratio</span> <span class="n">of</span> <span class="n">the</span> <span class="n">variance</span> <span class="n">on</span> <span class="n">the</span> <span class="n">conserved</span>
+<span class="n">VERLET</span>             <span class="n">quantity</span> <span class="ow">and</span> <span class="n">the</span> <span class="n">variance</span> <span class="n">on</span> <span class="n">the</span> <span class="n">kinetic</span> <span class="n">energy</span><span class="o">.</span>
+<span class="n">VERLET</span> <span class="n">d</span><span class="o">-</span><span class="n">rmsd</span>    <span class="o">=</span> <span class="n">the</span> <span class="n">root</span><span class="o">-</span><span class="n">mean</span><span class="o">-</span><span class="n">square</span> <span class="n">displacement</span> <span class="n">of</span> <span class="n">the</span> <span class="n">atoms</span><span class="o">.</span>
+<span class="n">VERLET</span> <span class="n">g</span><span class="o">-</span><span class="n">rmsd</span>    <span class="o">=</span> <span class="n">the</span> <span class="n">root</span><span class="o">-</span><span class="n">mean</span><span class="o">-</span><span class="n">square</span> <span class="n">gradient</span> <span class="n">of</span> <span class="n">the</span> <span class="n">energy</span><span class="o">.</span>
+<span class="n">VERLET</span> <span class="n">counter</span>  <span class="n">Cons</span><span class="o">.</span><span class="n">Err</span><span class="o">.</span>       <span class="n">Temp</span>     <span class="n">d</span><span class="o">-</span><span class="n">RMSD</span>     <span class="n">g</span><span class="o">-</span><span class="n">RMSD</span>   <span class="n">Walltime</span>
+<span class="n">VERLET</span> <span class="o">~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</span>
+<span class="n">VERLET</span>       <span class="mi">0</span>    <span class="mf">0.00000</span>      <span class="mf">299.5</span>     <span class="mf">0.0000</span>       <span class="mf">93.7</span>        <span class="mf">0.0</span>
+<span class="n">VERLET</span>       <span class="mi">1</span>    <span class="mf">0.15231</span>      <span class="mf">286.4</span>     <span class="mf">0.0133</span>      <span class="mf">100.1</span>        <span class="mf">0.0</span>
+<span class="n">VERLET</span>       <span class="mi">2</span>    <span class="mf">0.17392</span>      <span class="mf">297.8</span>     <span class="mf">0.0132</span>       <span class="mf">90.6</span>        <span class="mf">0.0</span>
+<span class="n">VERLET</span>       <span class="mi">3</span>    <span class="mf">0.19803</span>      <span class="mf">306.8</span>     <span class="mf">0.0137</span>       <span class="mf">82.1</span>        <span class="mf">0.0</span>
+</pre></div>
+</div>
+<p>The screen output is geared towards detecting simulation errors. The
+parameters <code class="docutils literal"><span class="pre">Cons.Err.</span></code>, <code class="docutils literal"><span class="pre">Temp</span></code>, <code class="docutils literal"><span class="pre">d-RMSD</span></code>, <code class="docutils literal"><span class="pre">g-RMSD</span></code> should exhibit only
+minor fluctuations in a proper MD run, except when the system only consists of
+just a few atoms. The wall time should increase at a somewhat constant rate.</p>
+<p>It is often desirable to control the amount of data processed by the hooks, e.g.
+to limit the size of the trajectory files and the amount of screen output.
+Most hooks have <code class="docutils literal"><span class="pre">start</span></code> and <code class="docutils literal"><span class="pre">step</span></code> arguments for this purpose. Consider
+the following example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">hooks</span><span class="o">=</span><span class="p">[</span>
+    <span class="n">VerletScreenLog</span><span class="p">(</span><span class="n">step</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+    <span class="n">HDF5Writer</span><span class="p">(</span><span class="n">h5</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s1">&#39;output.h5&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">),</span> <span class="n">start</span><span class="o">=</span><span class="mi">5000</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">10</span><span class="p">),</span>
+    <span class="n">XYZWriter</span><span class="p">(</span><span class="s1">&#39;trajectory.xyz&#39;</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">50</span><span class="p">),</span>
+    <span class="n">AndersenThermostat</span><span class="p">(</span><span class="n">temp</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="mi">1000</span><span class="p">),</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+<p>In this example, the screen output contains only one line per 100 NVE iterations.
+The HDF5 trajectory only contains trajectory data starting from step 5000 with
+intervals of 10 steps. The <code class="docutils literal"><span class="pre">XYZwriter</span></code> only contains the positions of the atoms
+every 50 steps. The Andersen thermostat only resets the atomic velocities every
+1000 steps.</p>
+<p>For a detailed description of all options of the VerletIntegrator and the supported
+hooks, we refer to the reference documentation:</p>
+<ul class="simple">
+<li><a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.verlet.VerletIntegrator" title="yaff.sampling.verlet.VerletIntegrator"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.verlet.VerletIntegrator</span></code></a>: Generic Verlet integrator, whose
+functionality can be extended through hooks.</li>
+<li><a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.io.HDF5Writer" title="yaff.sampling.io.HDF5Writer"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.io.HDF5Writer</span></code></a>: Writes HDF5 trajectory files and is
+compatible with most other algorithms discussed below.</li>
+<li><a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.io.XYZWriter" title="yaff.sampling.io.XYZWriter"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.io.XYZWriter</span></code></a>: Writes XYZ trajectory files, which may be
+useful for visualization purposes.</li>
+<li><a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.verlet.VerletScreenLog" title="yaff.sampling.verlet.VerletScreenLog"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.verlet.VerletScreenLog</span></code></a>: The Verlet screen logger.</li>
+<li><a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.nvt.AndersenThermostat" title="yaff.sampling.nvt.AndersenThermostat"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.nvt.AndersenThermostat</span></code></a>: Switch from NVE to NVT with the
+Andersen thermostat.</li>
+<li><a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.nvt.NHCThermostat" title="yaff.sampling.nvt.NHCThermostat"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.nvt.NHCThermostat</span></code></a>: Switch from NVE to NVT with the
+Nose-Hoover chains thermostat.</li>
+<li><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.nvt.LangevingThermostat</span></code>: Switch from NVE to NVT with
+the Langevin thermostat.</li>
+<li><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.npt.AndersenMcDonaldBarostat</span></code>: experimental
+support for the NpT ensemble.</li>
+<li><a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.verlet.KineticAnnealing" title="yaff.sampling.verlet.KineticAnnealing"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.verlet.KineticAnnealing</span></code></a>: simulated annealing based on
+slow dissipation of the kinetic energy.</li>
+</ul>
+</div>
+<div class="section" id="initial-atomic-velocities">
+<h3>9.2.2. Initial atomic velocities<a class="headerlink" href="#initial-atomic-velocities" title="Permalink to this headline">¶</a></h3>
+<p>When no initial velocities are given to the constructor of the
+<code class="docutils literal"><span class="pre">VerletIntegrator</span></code> constructor, these velocities are randomly sampled from a
+Poisson-Boltzmann distribution. The temperature of the distribution is
+controlled by the <code class="docutils literal"><span class="pre">temp0</span></code> argument and if needed, the velocities can be
+rescaled by using the <code class="docutils literal"><span class="pre">scalevel0=True</span></code> argument.</p>
+<p>The default behavior is to not remove center-of-mass and global angular momenta.
+However, for the Nose-Hoover thermostat, this is mandatory and done
+automatically. For the computation of the instantanuous temperature, one must
+know the number of degrees of freedom (<code class="docutils literal"><span class="pre">ndof</span></code>) in which the kinetic energy is
+distributed. The default value for <code class="docutils literal"><span class="pre">ndof</span></code> is in line with the default initial
+velocities. <code class="docutils literal"><span class="pre">ndof</span></code> is always set to 3N, except for the Nose-Hoover thermostat,
+where ndof is set to the number of internal degrees of freedom.</p>
+<p>One may specify custom initial velocities and ndof by using the <code class="docutils literal"><span class="pre">vel0</span></code> and
+<code class="docutils literal"><span class="pre">ndof</span></code> arguments of the <code class="docutils literal"><span class="pre">VerletIntegrator</span></code> constructor. The module
+<code class="xref py py-mod docutils literal"><span class="pre">yaff.samplling.utils</span></code> contains various functions to set up initial
+velocities.</p>
+</div>
+</div>
+<div class="section" id="geometry-optimization">
+<h2>9.3. Geometry optimization<a class="headerlink" href="#geometry-optimization" title="Permalink to this headline">¶</a></h2>
+<p>A basic geometry optimization (with trajectory output in an HDF5 file) is
+implemented as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">hdf5</span> <span class="o">=</span> <span class="n">HDF5Writer</span><span class="p">(</span><span class="n">h5</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s1">&#39;output.h5&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">))</span>
+<span class="n">opt</span> <span class="o">=</span> <span class="n">CGOptimizer</span><span class="p">(</span><span class="n">CartesianDOF</span><span class="p">(</span><span class="n">ff</span><span class="p">),</span> <span class="n">hooks</span><span class="o">=</span><span class="n">hdf5</span><span class="p">)</span>
+<span class="n">opt</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal"><span class="pre">CartesianDOF()</span></code> argument indicates that only the positions of the nuclei
+will be optimized. The convergence criteria are controlled through optional
+arguments of the <a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.dof.CartesianDOF" title="yaff.sampling.dof.CartesianDOF"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.dof.CartesianDOF</span></code></a> class. The <code class="docutils literal"><span class="pre">run</span></code> method has the maximum
+number of iterations as the only optional argument. If <code class="docutils literal"><span class="pre">run</span></code> is called without
+arguments, the optimization continues until convergence is reached.</p>
+<p>One may also perform an optimization of the nuclei and the cell parameters as
+follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">hdf5</span> <span class="o">=</span> <span class="n">HDF5Writer</span><span class="p">(</span><span class="n">h5</span><span class="o">.</span><span class="n">File</span><span class="p">(</span><span class="s1">&#39;output.h5&#39;</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;w&#39;</span><span class="p">))</span>
+<span class="n">opt</span> <span class="o">=</span> <span class="n">CGOptimizer</span><span class="p">(</span><span class="n">FullCellDOF</span><span class="p">(</span><span class="n">ff</span><span class="p">),</span> <span class="n">hooks</span><span class="o">=</span><span class="n">hdf5</span><span class="p">)</span>
+<span class="n">opt</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This will transform the degrees of freedom (DOFs) of the system (cell vectors
+and Cartesian coordinates) into a new set of DOF’s (scaled cell vectors
+and reduced coordinates) to allow an efficient optimization of both cell
+parameters atomic positions. One may replace <a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.dof.FullCellDOF" title="yaff.sampling.dof.FullCellDOF"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.dof.FullCellDOF</span></code></a> by any of the following:</p>
+<ul class="simple">
+<li><a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.dof.StrainCellDOF" title="yaff.sampling.dof.StrainCellDOF"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.dof.StrainCellDOF</span></code></a>: like <code class="docutils literal"><span class="pre">FullCellDOF</span></code>, but constrains
+cell rotations. This should be equivalent to <code class="docutils literal"><span class="pre">FullCellDOF</span></code> and even more
+robust in practice.</li>
+<li><a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.dof.IsoCellDOF" title="yaff.sampling.dof.IsoCellDOF"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.dof.IsoCellDOF</span></code></a>: only allows isotropic scaling of the
+unit cell.</li>
+<li><a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.dof.AnisoCellDOF" title="yaff.sampling.dof.AnisoCellDOF"><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.dof.AnisoCellDOF</span></code></a>: like <code class="docutils literal"><span class="pre">FullCellDOF</span></code>, but fixes the
+angles between the cell vectors.</li>
+<li><code class="xref py py-class docutils literal"><span class="pre">yaff.sampling.dof.ACRatioCellDOF</span></code>: special case designed to study the
+breathing of MIL-53(Al).</li>
+</ul>
+<p>The optional arguments of any <code class="docutils literal"><span class="pre">CellDOF</span></code> variant includes convergence criteria
+for the cell parameters and the <code class="docutils literal"><span class="pre">do_frozen</span></code> option to freeze the fractional
+coordinates of the atoms.</p>
+</div>
+<div class="section" id="harmonic-approximations">
+<h2>9.4. Harmonic approximations<a class="headerlink" href="#harmonic-approximations" title="Permalink to this headline">¶</a></h2>
+<p>Yaff can compute matrices of second order derivatives of the energy based on
+symmetric finite differences of analytic gradients for an arbitrary DOF object.
+This is the most general approach to compute such a generic Hessian:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">hessian</span> <span class="o">=</span> <span class="n">estimate_hessian</span><span class="p">(</span><span class="n">dof</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal"><span class="pre">dof</span></code> is a DOF object like CellDOF and others discussed in the previous
+section. The routines discussed in the following subsections are based on this
+generic Hessian routine. See <a class="reference internal" href="rg_yaff_sampling.html#module-yaff.sampling.harmonic" title="yaff.sampling.harmonic"><code class="xref py py-mod docutils literal"><span class="pre">yaff.sampling.harmonic</span></code></a> for a
+description of the harmonic approximation routines.</p>
+<div class="section" id="vibrational-analysis">
+<h3>9.4.1. Vibrational analysis<a class="headerlink" href="#vibrational-analysis" title="Permalink to this headline">¶</a></h3>
+<p>The <cite>Cartesian</cite> Hessian is computed as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">hessian</span> <span class="o">=</span> <span class="n">estimate_cart_hessian</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This function uses the symmetric finite difference approximation to estimate the
+Hessian using many analytic gradient computations. Further vibrational
+analysis based on this Hessian can be carried out with TAMkin:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">hessian</span> <span class="o">=</span> <span class="n">estimate_cart_hessian</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span>
+<span class="n">gpos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ff</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">pos</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span>
+<span class="n">epot</span> <span class="o">=</span> <span class="n">ff</span><span class="o">.</span><span class="n">compute</span><span class="p">(</span><span class="n">gpos</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">tamkin</span>
+<span class="n">mol</span> <span class="o">=</span> <span class="n">tamkin</span><span class="o">.</span><span class="n">Molecule</span><span class="p">(</span><span class="n">system</span><span class="o">.</span><span class="n">numbers</span><span class="p">,</span> <span class="n">system</span><span class="o">.</span><span class="n">pos</span><span class="p">,</span> <span class="n">system</span><span class="o">.</span><span class="n">masses</span><span class="p">,</span> <span class="n">epot</span><span class="p">,</span> <span class="n">gpos</span><span class="p">,</span> <span class="n">hessian</span><span class="p">)</span>
+<span class="n">nma</span> <span class="o">=</span> <span class="n">tamkin</span><span class="o">.</span><span class="n">NMA</span><span class="p">(</span><span class="n">mol</span><span class="p">)</span>
+<span class="n">invcm</span> <span class="o">=</span> <span class="n">lightspeed</span><span class="o">/</span><span class="n">centimeter</span>
+<span class="nb">print</span> <span class="n">nma</span><span class="o">.</span><span class="n">freqs</span><span class="o">/</span><span class="n">invcm</span>
+</pre></div>
+</div>
+<p>One may also compute the Hessian of a subsystem, e.g. for the first three atoms,
+as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">hessian</span> <span class="o">=</span> <span class="n">estimate_cart_hessian</span><span class="p">(</span><span class="n">ff</span><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="elastic-constants">
+<h3>9.4.2. Elastic constants<a class="headerlink" href="#elastic-constants" title="Permalink to this headline">¶</a></h3>
+<p>Yaff can estimate the elastic constants of a system at zero Kelvin. Just like the
+computation of the Hessian, the elastic constants are obtained from symmetric
+finite differences of analytic gradient computations. The standard approach
+is:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">elastic</span> <span class="o">=</span> <span class="n">estimate_elastic</span><span class="p">(</span><span class="n">ff</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal"><span class="pre">elastic</span></code> is a symmetric 6 by 6 matrix with the elastic constants stored
+in Voight notation. If the system under scrutiny does not change its relative
+coordinates when the cell is deformed, one may use a faster approach:</p>
+<blockquote>
+<div>elastic = estimate_elastic(ff, do_frozen=True)</div></blockquote>
+<p>A detailed description of this routine can be found here:
+<a class="reference internal" href="rg_yaff_sampling.html#yaff.sampling.harmonic.estimate_elastic" title="yaff.sampling.harmonic.estimate_elastic"><code class="xref py py-func docutils literal"><span class="pre">yaff.sampling.harmonic.estimate_elastic()</span></code></a>.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">9. Exploring the phase space</a><ul>
+<li><a class="reference internal" href="#introduction">9.1. Introduction</a></li>
+<li><a class="reference internal" href="#molecular-dynacmis">9.2. Molecular Dynacmis</a><ul>
+<li><a class="reference internal" href="#overview-of-the-verlet-algorithms">9.2.1. Overview of the Verlet algorithms</a></li>
+<li><a class="reference internal" href="#initial-atomic-velocities">9.2.2. Initial atomic velocities</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#geometry-optimization">9.3. Geometry optimization</a></li>
+<li><a class="reference internal" href="#harmonic-approximations">9.4. Harmonic approximations</a><ul>
+<li><a class="reference internal" href="#vibrational-analysis">9.4.1. Vibrational analysis</a></li>
+<li><a class="reference internal" href="#elastic-constants">9.4.2. Elastic constants</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="ug_forcefield.html"
+                        title="previous chapter">8. Force-field models</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="ug_analysis.html"
+                        title="next chapter">10. Trajectory Analysis</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/ug_sampling.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="ug_analysis.html" title="10. Trajectory Analysis"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="ug_forcefield.html" title="8. Force-field models"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2011, Toon Verstraelen, Louis Vanduyfhuys.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
+    </div>
+  </body>
+</html>

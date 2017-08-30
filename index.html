@@ -1,0 +1,271 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Yaff Documentation &#8212; Yaff 1.4.2 documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.4.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="1. Features and release notes" href="ug_features.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="ug_features.html" title="1. Features and release notes"
+             accesskey="N">next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="yaff-documentation">
+<h1>Yaff Documentation<a class="headerlink" href="#yaff-documentation" title="Permalink to this headline">¶</a></h1>
+<p>Yaff stands for “Yet another force field”. It is a pythonic force-field (FF) code
+used at the <a class="reference external" href="http://molmod.ugent.be/">Center for Molecular Modeling</a> (CMM) to
+test-drive new FF models. The original motivation to develop Yaff was to provide
+a good reference implementation of the force fields developed at the CMM. In its
+current version, Yaff is general and flexible enough to handle a large variety
+of force field models.</p>
+<div class="section" id="user-guide">
+<h2>User Guide<a class="headerlink" href="#user-guide" title="Permalink to this headline">¶</a></h2>
+<p>This guide is a gentle introduction to Yaff with many examples.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ug_features.html">1. Features and release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ug_features.html#features">1.1. Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ug_features.html#release-notes">1.2. Release notes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ug_install.html">2. Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ug_install.html#disclaimer">2.1. Disclaimer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ug_install.html#external-dependencies">2.2. External dependencies</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ug_install.html#id1">2.3. Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ug_install.html#test-your-installation">2.4. Test your installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ug_troubles.html">3. If you encounter a problem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ug_cite.html">4. How to cite Yaff</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ug_overview.html">5. Overview of Yaff</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ug_system.html">6. Representation of a molecular system</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ug_system.html#introduction">6.1. Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ug_system.html#working-with-the-system-class">6.2. Working with the <code class="docutils literal"><span class="pre">System</span></code> class</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ug_atselect.html">7. The ATSELECT language</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ug_forcefield.html">8. Force-field models</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ug_forcefield.html#introduction">8.1. Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ug_forcefield.html#force-field-parameter-file-format">8.2. Force field parameter file format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ug_forcefield.html#example-force-field-file">8.3. Example force field file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ug_forcefield.html#beyond-force-field-parameter-files">8.4. Beyond force field parameter files</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ug_sampling.html">9. Exploring the phase space</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ug_sampling.html#introduction">9.1. Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ug_sampling.html#molecular-dynacmis">9.2. Molecular Dynacmis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ug_sampling.html#geometry-optimization">9.3. Geometry optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ug_sampling.html#harmonic-approximations">9.4. Harmonic approximations</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ug_analysis.html">10. Trajectory Analysis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ug_analysis.html#slicing-the-data">10.1. Slicing the data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ug_analysis.html#basic-analysis">10.2. Basic analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ug_analysis.html#advanced-analysis">10.3. Advanced analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="ug_analysis.html#post-processing-external-trajectory-data">10.4. Post-processing external trajectory data</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ug_tune.html">11. Tuning force field parameters</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="tutorials">
+<h2>Tutorials<a class="headerlink" href="#tutorials" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tu_silica.html">1. Yaff experiments on alpha quartz with the BKS potential</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tu_silica.html#introduction">1.1. Introduction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tu_silica.html#preparation">1.2. Preparation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tu_silica.html#bulk-modulus">1.3. Bulk modulus</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tu_silica.html#thermal-expansion">1.4. Thermal expansion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tu_silica.html#references">1.5. References</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="reference-guide">
+<h2>Reference Guide<a class="headerlink" href="#reference-guide" title="Permalink to this headline">¶</a></h2>
+<p>This guide is mostly generated automatically based on the doc strings in the
+source code.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="rg_yaff.html">1. <code class="docutils literal"><span class="pre">yaff</span></code> – YAFF - Yet another force field</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff.html#module-yaff.atselect">1.1. <code class="docutils literal"><span class="pre">yaff.atselect</span></code> – The ATSELECT language</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff.html#module-yaff.log">1.2. <code class="docutils literal"><span class="pre">yaff.log</span></code> – Screen logger</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff.html#module-yaff.system">1.3. <code class="docutils literal"><span class="pre">yaff.system</span></code> – Representation of a molecular systems</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff.html#module-yaff.version">1.4. <code class="docutils literal"><span class="pre">yaff.version</span></code> – Do not edit this file, versioning is governed by <code class="docutils literal"><span class="pre">git</span> <span class="pre">describe</span> <span class="pre">--tags</span></code> and <code class="docutils literal"><span class="pre">setup.py</span></code>.</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rg_yaff_pes.html">2. <code class="docutils literal"><span class="pre">yaff.pes</span></code> – Force-field potential energy surfaces (PESs)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_pes.html#module-yaff.pes.dlist">2.1. <code class="docutils literal"><span class="pre">yaff.pes.dlist</span></code> – Short-range neighbor lists for covalent energy terms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_pes.html#module-yaff.pes.ff">2.2. <code class="docutils literal"><span class="pre">yaff.pes.ff</span></code> – Force field models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_pes.html#module-yaff.pes.generator">2.3. <code class="docutils literal"><span class="pre">yaff.pes.generator</span></code> – Automatically generate force field models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_pes.html#module-yaff.pes.iclist">2.4. <code class="docutils literal"><span class="pre">yaff.pes.iclist</span></code> – Internal-coordinate lists for covalent energy terms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_pes.html#module-yaff.pes.nlist">2.5. <code class="docutils literal"><span class="pre">yaff.pes.nlist</span></code> – Neighbor lists for pairwise (non-bonding) interactions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_pes.html#module-yaff.pes.parameters">2.6. <code class="docutils literal"><span class="pre">yaff.pes.parameters</span></code> – Object-oriented representation of parameter files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_pes.html#module-yaff.pes.scaling">2.7. <code class="docutils literal"><span class="pre">yaff.pes.scaling</span></code> – Short-range scaling of pairwise interactions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_pes.html#module-yaff.pes.vlist">2.8. <code class="docutils literal"><span class="pre">yaff.pes.vlist</span></code> – Module for the complete list of covalent energy terms.</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rg_yaff_sampling.html">3. <code class="docutils literal"><span class="pre">yaff.sampling</span></code> – Phase-space sampling</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_sampling.html#module-yaff.sampling.dof">3.1. <code class="docutils literal"><span class="pre">yaff.sampling.dof</span></code> – Abstraction layer for degrees of freedom</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_sampling.html#module-yaff.sampling.harmonic">3.2. <code class="docutils literal"><span class="pre">yaff.sampling.harmonic</span></code> – Harmonic models</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_sampling.html#module-yaff.sampling.io">3.3. <code class="docutils literal"><span class="pre">yaff.sampling.io</span></code> – Trajectory writers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_sampling.html#module-yaff.sampling.iterative">3.4. <code class="docutils literal"><span class="pre">yaff.sampling.iterative</span></code> – Base class for iterative algorithms</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_sampling.html#module-yaff.sampling.npt">3.5. <code class="docutils literal"><span class="pre">yaff.sampling.npt</span></code> – Barostats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_sampling.html#module-yaff.sampling.nvt">3.6. <code class="docutils literal"><span class="pre">yaff.sampling.nvt</span></code> – Thermostats</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_sampling.html#module-yaff.sampling.opt">3.7. <code class="docutils literal"><span class="pre">yaff.sampling.opt</span></code> – Geometry/Cell optimization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_sampling.html#module-yaff.sampling.trajectory">3.8. <code class="docutils literal"><span class="pre">yaff.sampling.trajectory</span></code> – Computations on a reference trajectory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_sampling.html#module-yaff.sampling.utils">3.9. <code class="docutils literal"><span class="pre">yaff.sampling.utils</span></code> – Auxiliary routines for initial velocities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_sampling.html#module-yaff.sampling.verlet">3.10. <code class="docutils literal"><span class="pre">yaff.sampling.verlet</span></code> – Generic Verlet integrator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rg_yaff_analysis.html">4. <code class="docutils literal"><span class="pre">yaff.analysis</span></code> – Trajectory analysis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_analysis.html#module-yaff.analysis.basic">4.1. <code class="docutils literal"><span class="pre">yaff.analysis.basic</span></code> – Basic trajectory analysis routines</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_analysis.html#module-yaff.analysis.blav">4.2. <code class="docutils literal"><span class="pre">yaff.analysis.blav</span></code> – The block-average method</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_analysis.html#module-yaff.analysis.diffusion">4.3. <code class="docutils literal"><span class="pre">yaff.analysis.diffusion</span></code> – Diffusion constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_analysis.html#module-yaff.analysis.hook">4.4. <code class="docutils literal"><span class="pre">yaff.analysis.hook</span></code> – Abstract hook implementation for trajectory analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_analysis.html#module-yaff.analysis.pca">4.5. <code class="docutils literal"><span class="pre">yaff.analysis.pca</span></code> – Toolkit for Principal Component Analysis (PCA)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_analysis.html#module-yaff.analysis.rdf">4.6. <code class="docutils literal"><span class="pre">yaff.analysis.rdf</span></code> – Radial distribution functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_analysis.html#module-yaff.analysis.spectrum">4.7. <code class="docutils literal"><span class="pre">yaff.analysis.spectrum</span></code> – Spectral analysis and autocorrelation functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_analysis.html#module-yaff.analysis.utils">4.8. <code class="docutils literal"><span class="pre">yaff.analysis.utils</span></code> – Auxiliary analysis routines</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rg_yaff_conversion.html">5. <code class="docutils literal"><span class="pre">yaff.conversion</span></code> – Conversion of external trajectory data</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_conversion.html#module-yaff.conversion.common">5.1. <code class="docutils literal"><span class="pre">yaff.conversion.common</span></code> – Tools for writing trajectory data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_conversion.html#module-yaff.conversion.cp2k">5.2. <code class="docutils literal"><span class="pre">yaff.conversion.cp2k</span></code> – CP2K Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_conversion.html#module-yaff.conversion.dlpoly">5.3. <code class="docutils literal"><span class="pre">yaff.conversion.dlpoly</span></code> – DLPOLY Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_conversion.html#module-yaff.conversion.gaussian">5.4. <code class="docutils literal"><span class="pre">yaff.conversion.gaussian</span></code> – Gaussian09 BOMD log Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_conversion.html#module-yaff.conversion.xyz">5.5. <code class="docutils literal"><span class="pre">yaff.conversion.xyz</span></code> – XYZ Files</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="rg_yaff_tune.html">6. <code class="docutils literal"><span class="pre">yaff.tune</span></code> – Tools to calibrated FF parameters</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_tune.html#module-yaff.tune.cost">6.1. <code class="docutils literal"><span class="pre">yaff.tune.cost</span></code> – Cost functions for the calibration of FF parameters</a></li>
+<li class="toctree-l2"><a class="reference internal" href="rg_yaff_tune.html#module-yaff.tune.transform">6.2. <code class="docutils literal"><span class="pre">yaff.tune.transform</span></code> – Specification of variables in a parameters file</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="development-information">
+<h2>Development information<a class="headerlink" href="#development-information" title="Permalink to this headline">¶</a></h2>
+<p>The git repository is hosted at <a class="reference external" href="https://github.com/molmod/yaff">Github</a>.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="dg_todo.html">1. Informal TODO list</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dg_backprop.html">2. The back-propagation algorithm for the computation of energy derivatives</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Yaff Documentation</a><ul>
+<li><a class="reference internal" href="#user-guide">User Guide</a></li>
+<li><a class="reference internal" href="#tutorials">Tutorials</a></li>
+<li><a class="reference internal" href="#reference-guide">Reference Guide</a></li>
+<li><a class="reference internal" href="#development-information">Development information</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Next topic</h4>
+  <p class="topless"><a href="ug_features.html"
+                        title="next chapter">1. Features and release notes</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="ug_features.html" title="1. Features and release notes"
+             >next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2011, Toon Verstraelen, Louis Vanduyfhuys.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
+    </div>
+  </body>
+</html>

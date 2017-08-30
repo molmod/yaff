@@ -1,0 +1,618 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>1. yaff – YAFF - Yet another force field &#8212; Yaff 1.4.2 documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.4.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="2. yaff.pes – Force-field potential energy surfaces (PESs)" href="rg_yaff_pes.html" />
+    <link rel="prev" title="1. Yaff experiments on alpha quartz with the BKS potential" href="tu_silica.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="rg_yaff_pes.html" title="2. yaff.pes – Force-field potential energy surfaces (PESs)"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="tu_silica.html" title="1. Yaff experiments on alpha quartz with the BKS potential"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="yaff-yaff-yet-another-force-field">
+<h1>1. <code class="docutils literal"><span class="pre">yaff</span></code> – YAFF - Yet another force field<a class="headerlink" href="#yaff-yaff-yet-another-force-field" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-yaff.atselect">
+<span id="yaff-atselect-the-atselect-language"></span><h2>1.1. <code class="docutils literal"><span class="pre">yaff.atselect</span></code> – The ATSELECT language<a class="headerlink" href="#module-yaff.atselect" title="Permalink to this headline">¶</a></h2>
+<p>The ATSELECT language</p>
+<p>The ATSELECT language is a single-line language that can be used to define
+atom types in Yaff, or to construct a list of atoms in a system that match an
+ATSELECT rule.</p>
+<dl class="function">
+<dt id="yaff.atselect.check_name">
+<code class="descclassname">yaff.atselect.</code><code class="descname">check_name</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.atselect.check_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raise a <code class="docutils literal"><span class="pre">ValueError</span></code> if the given ffatype or scope name is invalid.</p>
+<p><strong>Arugments:</strong></p>
+<dl class="docutils">
+<dt>name</dt>
+<dd>The name to be checked.</dd>
+</dl>
+<p>A name is invalid …</p>
+<ul class="simple">
+<li>if it has length zero,</li>
+<li>if it contains any of <code class="docutils literal"><span class="pre">:%=&lt;&gt;&#64;()&amp;|!</span></code>, or</li>
+<li>if it starts with a digit [0-9].</li>
+</ul>
+<p>These rules make sure that the ffatype and scope names do not conflict
+with the ATSELECT language.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.atselect.find_first">
+<code class="descclassname">yaff.atselect.</code><code class="descname">find_first</code><span class="sig-paren">(</span><em>s</em>, <em>subs</em>, <em>start=0</em>, <em>end=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.atselect.find_first" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the first occurence of a set of substrings in <code class="docutils literal"><span class="pre">s</span></code></p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>s</dt>
+<dd>The string that must be searched for the patterns in the <code class="docutils literal"><span class="pre">subs</span></code>
+list.</dd>
+<dt>subs</dt>
+<dd>A list of patterns.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>start</dt>
+<dd>Only start searching at this index in the string <code class="docutils literal"><span class="pre">s</span></code>.</dd>
+<dt>end</dt>
+<dd>When given, no subs occuring after end are mathcing.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.atselect.lex_find">
+<code class="descclassname">yaff.atselect.</code><code class="descname">lex_find</code><span class="sig-paren">(</span><em>s</em>, <em>sub</em>, <em>start=0</em>, <em>end=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.atselect.lex_find" title="Permalink to this definition">¶</a></dt>
+<dd><p>find sub in s that is not enclosed in brackets</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.atselect.lex_split">
+<code class="descclassname">yaff.atselect.</code><code class="descname">lex_split</code><span class="sig-paren">(</span><em>s</em>, <em>splitter</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.atselect.lex_split" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split the string at the given character, ignoring characters in brackets</p>
+<p>This routine also checks if the number of opening and closing brackets
+match, and that there is no character in the string that is preceeded by
+more closing than opening brackets.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.atselect.atsel_compile">
+<code class="descclassname">yaff.atselect.</code><code class="descname">atsel_compile</code><span class="sig-paren">(</span><em>s</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.atselect.atsel_compile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compiles an ATSELECT line into a boolean function</p>
+<p><strong>Argument:</strong></p>
+<dl class="docutils">
+<dt>s</dt>
+<dd>a string with one ATSELECT line. Before this line is processed, all
+whitespace (including newline) charachters are removed.</dd>
+</dl>
+<p><strong>Returns:</strong></p>
+<dl class="docutils">
+<dt>rule</dt>
+<dd>A function that takes two arguments: <code class="docutils literal"><span class="pre">system</span></code> and <code class="docutils literal"><span class="pre">i</span></code>, where
+system is a <code class="docutils literal"><span class="pre">System</span></code> instance and <code class="docutils literal"><span class="pre">i</span></code> is an atom index. The
+function returns <code class="docutils literal"><span class="pre">True</span></code> if the atom matches the ATSELECT line
+in the string <code class="docutils literal"><span class="pre">s</span></code>.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.atselect.iter_matches">
+<code class="descclassname">yaff.atselect.</code><code class="descname">iter_matches</code><span class="sig-paren">(</span><em>dm0</em>, <em>dm1</em>, <em>allowed</em>, <em>threshold=0.001</em>, <em>error_sq_fn=None</em>, <em>overlapping=True</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.atselect.iter_matches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over all possible renumberings of system 1 that are present in system 0.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>dm0</strong> (<em>np.ndarray</em><em>, </em><em>shape=</em><em>(</em><em>n0</em><em>, </em><em>n0</em><em>)</em>) – A reference distance matrix (or analogeous object).</li>
+<li><strong>dm1</strong> (<em>np.ndarray</em><em>, </em><em>shape=</em><em>(</em><em>n1</em><em>, </em><em>n1</em><em>)</em><em>, </em><em>n1 &lt;= n0</em>) – A distance matrix of the system to be reordered.</li>
+<li><strong>allowed</strong> (<em>list</em><em> (</em><em>length n1</em><em>) </em><em>of lists of integer indexes</em>) – For each element in system 1, the allowed corresponding indexes in system 0. This
+can be based on corresponding chemical elements, atom types, etc. The more
+specific, the more efficient this function becomes.</li>
+<li><strong>threshold</strong> (<em>float</em>) – An allowed deviation (L2-norm) between the distance matrix of the
+reference and the reordered system 1.</li>
+<li><strong>error_sq_fn</strong> (<em>function taking two arguments</em>) – When not given, the squared difference is computed as error measure when comparing
+two distance matrix elements (dm0 versus dm1). This can be replaced by any
+user-provided squared error function.</li>
+<li><strong>overlapping</strong> (<em>bool</em>) – When set to False, the algorithm excludes matches that are permutations of
+previous matches or that have a partial overlap with any previous match.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Yields:</th><td class="field-body"><p class="first last"><strong>match</strong> (<em>tuple</em>) – All possible renumberings of elements in system 1 that match with (a subset of)
+system 0. All elements of the tuple are integers.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-yaff.log">
+<span id="yaff-log-screen-logger"></span><h2>1.2. <code class="docutils literal"><span class="pre">yaff.log</span></code> – Screen logger<a class="headerlink" href="#module-yaff.log" title="Permalink to this headline">¶</a></h2>
+<p>Screen logger</p>
+<p>This module holds the main screen loging object of Yaff. The <code class="docutils literal"><span class="pre">log</span></code> object
+is an instance off the <code class="docutils literal"><span class="pre">ScreenLog</span></code> class in the module <code class="docutils literal"><span class="pre">molmod.log</span></code>.
+The logger also comes with a timer infrastructure, which is also implemented
+in the <code class="docutils literal"><span class="pre">molmod.log</span></code> module.</p>
+</div>
+<div class="section" id="module-yaff.system">
+<span id="yaff-system-representation-of-a-molecular-systems"></span><h2>1.3. <code class="docutils literal"><span class="pre">yaff.system</span></code> – Representation of a molecular systems<a class="headerlink" href="#module-yaff.system" title="Permalink to this headline">¶</a></h2>
+<p>Representation of a molecular systems</p>
+<dl class="class">
+<dt id="yaff.system.System">
+<em class="property">class </em><code class="descclassname">yaff.system.</code><code class="descname">System</code><span class="sig-paren">(</span><em>numbers</em>, <em>pos</em>, <em>scopes=None</em>, <em>scope_ids=None</em>, <em>ffatypes=None</em>, <em>ffatype_ids=None</em>, <em>bonds=None</em>, <em>rvecs=None</em>, <em>charges=None</em>, <em>radii=None</em>, <em>valence_charges=None</em>, <em>dipoles=None</em>, <em>radii2=None</em>, <em>masses=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>Initialize a System object.</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>numbers</dt>
+<dd>A numpy array with atomic numbers</dd>
+<dt>pos</dt>
+<dd>A numpy array (N,3) with atomic coordinates in Bohr.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>scopes</dt>
+<dd>A list with scope names</dd>
+<dt>scope_ids</dt>
+<dd>A list of scope indexes that links each atom with an element of
+the scopes list. If this argument is not present, while scopes
+is given, it is assumed that scopes contains a scope name for
+every atom, i.e. that it is a list with length natom. In that
+case, it will be converted automatically to a scopes list
+with only unique name together with a corresponding scope_ids
+array.</dd>
+<dt>ffatypes</dt>
+<dd>A list of labels of the force field atom types.</dd>
+<dt>ffatype_ids</dt>
+<dd>A list of atom type indexes that links each atom with an element
+of the list ffatypes. If this argument is not present, while
+ffatypes is given, it is assumed that ffatypes contains an
+atom type for every element, i.e. that it is a list with length
+natom. In that case, it will be converted automatically to
+a short ffatypes list with only unique elements (within each
+scope) together with a corresponding ffatype_ids array.</dd>
+<dt>bonds</dt>
+<dd>a numpy array (B,2) with atom indexes (counting starts from
+zero) to define the chemical bonds.</dd>
+<dt>rvecs</dt>
+<dd>An array whose rows are the unit cell vectors. At most three
+rows are allowed, each containing three Cartesian coordinates.</dd>
+<dt>charges</dt>
+<dd>An array of atomic charges</dd>
+<dt>radii</dt>
+<dd><p class="first">An array of atomic radii, <span class="math">\(R_{A,c}\)</span>, that determine shape of the atomic
+charge distribution:</p>
+<div class="last math">
+\[\rho_{A,c}(\mathbf{r}) = \frac{q_A}{\pi^{3/2}R_{A,c}^3} \exp\left(
+-\frac{|r - \mathbf{R}_A|^2}{R_{A,c}^2}
+\right)\]</div>
+</dd>
+<dt>valence_charges</dt>
+<dd>In case a point-core + distribute valence charge is used, this
+vector contains the valence charges. The core charges can be
+computed by subtracting the valence charges from the net
+charges.</dd>
+<dt>dipoles</dt>
+<dd>An array of atomic dipoles</dd>
+<dt>radii2</dt>
+<dd><p class="first">An array of atomic radii, <span class="math">\(R_{A,d}\)</span>, that determine shape of the
+atomic dipole distribution:</p>
+<div class="last math">
+\[\rho_{A,d}(\mathbf{r}) = -2\frac{\mathbf{d}_A \cdot (\mathbf{r} - \mathbf{R}_A)}{
+\sqrt{\pi} R_{A,d}^5
+}\exp\left(
+ -\frac{|r - \mathbf{R}_A|^2}{R_{A,d}^2}
+ \right)\]</div>
+</dd>
+<dt>masses</dt>
+<dd>The atomic masses (in atomic units, i.e. m_e)</dd>
+</dl>
+<p>Several attributes are derived from the (optional) arguments:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">cell</span></code> contains the rvecs attribute and is an instance of the
+<code class="docutils literal"><span class="pre">Cell</span></code> class.</li>
+<li><code class="docutils literal"><span class="pre">neighs1</span></code>, <code class="docutils literal"><span class="pre">neighs2</span></code> and <code class="docutils literal"><span class="pre">neighs3</span></code> are dictionaries derived
+from <code class="docutils literal"><span class="pre">bonds</span></code> that contain atoms that are separated 1, 2 and 3
+bonds from a given atom, respectively. This means that i in
+system.neighs3[j] is <code class="docutils literal"><span class="pre">True</span></code> if there are three bonds between
+atoms i and j.</li>
+</ul>
+<dl class="attribute">
+<dt id="yaff.system.System.natom">
+<code class="descname">natom</code><a class="headerlink" href="#yaff.system.System.natom" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of atoms</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="yaff.system.System.nffatype">
+<code class="descname">nffatype</code><a class="headerlink" href="#yaff.system.System.nffatype" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of atom types</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="yaff.system.System.nbond">
+<code class="descname">nbond</code><a class="headerlink" href="#yaff.system.System.nbond" title="Permalink to this definition">¶</a></dt>
+<dd><p>The number of bonds</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="yaff.system.System.from_file">
+<em class="property">classmethod </em><code class="descname">from_file</code><span class="sig-paren">(</span><em>*fns</em>, <em>**user_kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.from_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct a new System instance from one or more files</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>fn1, fn2, …</dt>
+<dd>A list of filenames that are read in order. Information in later
+files overrides information in earlier files.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<p>Any argument from the default constructor <code class="docutils literal"><span class="pre">__init__</span></code>. These must be
+given with keywords.</p>
+<p><strong>Supported file formats</strong></p>
+<dl class="docutils">
+<dt>.xyz</dt>
+<dd>Standard Cartesian coordinates file (in angstroms). Atomic
+positions and atomic numbers are read from this file. If the
+title consists of 3, 6 or 9 numbers, each group of three numbers
+is interpreted as a cell vector (in angstroms). A guess of the
+bonds will be made based on inter-atomic distances.</dd>
+<dt>.psf</dt>
+<dd>Atom types and bonds are read from this file</dd>
+<dt>.chk</dt>
+<dd>Internal text-based checkpoint format. It just contains a
+dictionary with the constructor arguments.</dd>
+</dl>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="yaff.system.System.from_hdf5">
+<em class="property">classmethod </em><code class="descname">from_hdf5</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.from_hdf5" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a system from an HDF5 file/group containing a system group</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An open h5.File object with a system group. The system group
+must at least contain a numbers and pos dataset.</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.to_file">
+<code class="descname">to_file</code><span class="sig-paren">(</span><em>fn</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the system to a file</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>fn</dt>
+<dd>The file to write to.</dd>
+</dl>
+<p>Supported formats are:</p>
+<dl class="docutils">
+<dt>chk</dt>
+<dd>Internal human-readable checkpoint format. This format includes
+all the information of a system object. All data are stored in
+atomic units.</dd>
+<dt>h5</dt>
+<dd>Internal binary checkpoint format. This format includes
+all the information of a system object. All data are stored in
+atomic units.</dd>
+<dt>xyz</dt>
+<dd>A simple file with atomic positions and elements. Coordinates
+are written in Angstroms.</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.to_hdf5">
+<code class="descname">to_hdf5</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.to_hdf5" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the system to a HDF5 file.</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>A Writable h5.File object.</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.get_scope">
+<code class="descname">get_scope</code><span class="sig-paren">(</span><em>index</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.get_scope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the of the scope (string) of atom with given index</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.get_ffatype">
+<code class="descname">get_ffatype</code><span class="sig-paren">(</span><em>index</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.get_ffatype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the of the ffatype (string) of atom with given index</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.get_indexes">
+<code class="descname">get_indexes</code><span class="sig-paren">(</span><em>rule</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.get_indexes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the atom indexes that match the filter <code class="docutils literal"><span class="pre">rule</span></code></p>
+<p><code class="docutils literal"><span class="pre">rule</span></code> can be a function that accepts two arguments: system and an
+atom index and that returns True of the atom with index i is of a
+given type. On the other hand <code class="docutils literal"><span class="pre">rule</span></code> can be an ATSELECT string that
+defines the atoms of interest.</p>
+<p>A list of atom indexes is returned.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.iter_bonds">
+<code class="descname">iter_bonds</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.iter_bonds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterate over all bonds.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.iter_angles">
+<code class="descname">iter_angles</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.iter_angles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterative over all possible valence angles.</p>
+<p>This routine is based on the attribute <code class="docutils literal"><span class="pre">bonds</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.iter_dihedrals">
+<code class="descname">iter_dihedrals</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.iter_dihedrals" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterative over all possible dihedral angles.</p>
+<p>This routine is based on the attribute <code class="docutils literal"><span class="pre">bonds</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.iter_oops">
+<code class="descname">iter_oops</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.iter_oops" title="Permalink to this definition">¶</a></dt>
+<dd><p>Iterative over all possible oop patterns.”</p>
+<p>This routine is based on the attribute <code class="docutils literal"><span class="pre">bonds</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.detect_bonds">
+<code class="descname">detect_bonds</code><span class="sig-paren">(</span><em>exceptions=None</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.detect_bonds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize the <code class="docutils literal"><span class="pre">bonds</span></code> attribute based on inter-atomic distances</p>
+<p><strong>Optional argument:</strong></p>
+<dl class="docutils">
+<dt>exceptions:</dt>
+<dd>Specify custom threshold for certain pairs of elements. This
+must be a dictionary with ((num0, num1), threshold) as items.</dd>
+</dl>
+<p>For each pair of elements, a distance threshold is used to detect
+bonded atoms. The distance threshold is based on a database of known
+bond lengths. If the database does not contain a record for the given
+element pair, the threshold is based on the sum of covalent radii.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.detect_ffatypes">
+<code class="descname">detect_ffatypes</code><span class="sig-paren">(</span><em>rules</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.detect_ffatypes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize the <code class="docutils literal"><span class="pre">ffatypes</span></code> attribute based on ATSELECT rules.</p>
+<p><strong>Argument:</strong></p>
+<dl class="docutils">
+<dt>rules</dt>
+<dd>A list of (ffatype, rule) pairs that will be used to initialize
+the attributes <code class="docutils literal"><span class="pre">self.ffatypes</span></code> and <code class="docutils literal"><span class="pre">self.ffatype_ids</span></code>.</dd>
+</dl>
+<p>If the system already has FF atom types, they will be overwritten.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.set_standard_masses">
+<code class="descname">set_standard_masses</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.set_standard_masses" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize the <code class="docutils literal"><span class="pre">masses</span></code> attribute based on the atomic numbers.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.align_cell">
+<code class="descname">align_cell</code><span class="sig-paren">(</span><em>lcs=None</em>, <em>swap=True</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.align_cell" title="Permalink to this definition">¶</a></dt>
+<dd><p>Align the unit cell with respect to the Cartesian Axes frame</p>
+<p><strong>Optional Arguments:</strong></p>
+<dl class="docutils">
+<dt>lcs</dt>
+<dd><p class="first">The linear combinations of the unit cell that must get aligned.
+This is a 2x3 array, where each row represents a linear
+combination of cell vectors. The first row is for alignment with
+the x-axis, second for the z-axis. The default value is:</p>
+<div class="last highlight-default"><div class="highlight"><pre><span></span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+<span class="p">])</span>
+</pre></div>
+</div>
+</dd>
+<dt>swap</dt>
+<dd>By default, the first alignment is done with the z-axis, then
+with the x-axis. The order is reversed when swap is set to
+False.</dd>
+</dl>
+<p>The alignment of the first linear combination is always perfect. The
+alignment of the second linear combination is restricted to a plane.
+The cell is always made right-handed. The coordinates are also
+rotated with respect to the origin, but never inverted.</p>
+<p>The attributes of the system are modified in-place. Note that this
+method only works on 3D periodic systems.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.supercell">
+<code class="descname">supercell</code><span class="sig-paren">(</span><em>*reps</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.supercell" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a supercell of the system.</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>reps</dt>
+<dd>An array with repetitions, which must have the same number of
+elements as the number of cell vectors.</dd>
+</dl>
+<p>If this method is called with a non-periodic system, a TypeError is
+raised.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.remove_duplicate">
+<code class="descname">remove_duplicate</code><span class="sig-paren">(</span><em>threshold=0.1</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.remove_duplicate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a system object in which the duplicate atoms and bonds are removed.</p>
+<p><strong>Optional argument:</strong></p>
+<dl class="docutils">
+<dt>threshold</dt>
+<dd>The minimum distance between two atoms that are supposed to be
+different.</dd>
+</dl>
+<p>When it makes sense, properties of overlapping atoms are averaged
+out. In other cases, the atom with the lowest index in a cluster of
+overlapping atoms defines the new value of a property.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.subsystem">
+<code class="descname">subsystem</code><span class="sig-paren">(</span><em>indexes</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.subsystem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a System instance in which only the given atom are retained.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.cut_bonds">
+<code class="descname">cut_bonds</code><span class="sig-paren">(</span><em>indexes</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.cut_bonds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove all bonds of a fragment with the remainder of the system;</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>indexes</dt>
+<dd>The atom indexes in the fragment</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="yaff.system.System.iter_matches">
+<code class="descname">iter_matches</code><span class="sig-paren">(</span><em>other</em>, <em>overlapping=True</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.system.System.iter_matches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yield all renumberings of atoms that map the given system on the current.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>other</strong> (<em>yaff.System</em>) – Another system with the same number of atoms (and chemical formula), or less
+atoms.</li>
+<li><strong>overlapping</strong> (<em>bool</em>) – When set to False, the returned matches are guaranteed to be mutually
+exclusive. The result may not be unique when partially overlapping matches
+would exist. Use with care.</li>
+<li><strong>graph distance is used to perform the mapping</strong><strong>, </strong><strong>so bonds must be defined in</strong> (<em>The</em>) – </li>
+<li><strong>current and the given system.</strong> (<em>the</em>) – </li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-yaff.version">
+<span id="yaff-version-do-not-edit-this-file-versioning-is-governed-by-git-describe-tags-and-setup-py"></span><h2>1.4. <code class="docutils literal"><span class="pre">yaff.version</span></code> – Do not edit this file, versioning is governed by <code class="docutils literal"><span class="pre">git</span> <span class="pre">describe</span> <span class="pre">--tags</span></code> and <code class="docutils literal"><span class="pre">setup.py</span></code>.<a class="headerlink" href="#module-yaff.version" title="Permalink to this headline">¶</a></h2>
+<p>Do not edit this file, versioning is governed by <code class="docutils literal"><span class="pre">git</span> <span class="pre">describe</span> <span class="pre">--tags</span></code> and <code class="docutils literal"><span class="pre">setup.py</span></code>.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">1. <code class="docutils literal"><span class="pre">yaff</span></code> – YAFF - Yet another force field</a><ul>
+<li><a class="reference internal" href="#module-yaff.atselect">1.1. <code class="docutils literal"><span class="pre">yaff.atselect</span></code> – The ATSELECT language</a></li>
+<li><a class="reference internal" href="#module-yaff.log">1.2. <code class="docutils literal"><span class="pre">yaff.log</span></code> – Screen logger</a></li>
+<li><a class="reference internal" href="#module-yaff.system">1.3. <code class="docutils literal"><span class="pre">yaff.system</span></code> – Representation of a molecular systems</a></li>
+<li><a class="reference internal" href="#module-yaff.version">1.4. <code class="docutils literal"><span class="pre">yaff.version</span></code> – Do not edit this file, versioning is governed by <code class="docutils literal"><span class="pre">git</span> <span class="pre">describe</span> <span class="pre">--tags</span></code> and <code class="docutils literal"><span class="pre">setup.py</span></code>.</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="tu_silica.html"
+                        title="previous chapter">1. Yaff experiments on alpha quartz with the BKS potential</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="rg_yaff_pes.html"
+                        title="next chapter">2. <code class="docutils literal"><span class="pre">yaff.pes</span></code> – Force-field potential energy surfaces (PESs)</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/rg_yaff.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="rg_yaff_pes.html" title="2. yaff.pes – Force-field potential energy surfaces (PESs)"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="tu_silica.html" title="1. Yaff experiments on alpha quartz with the BKS potential"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2011, Toon Verstraelen, Louis Vanduyfhuys.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
+    </div>
+  </body>
+</html>

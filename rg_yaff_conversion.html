@@ -1,0 +1,307 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>5. yaff.conversion – Conversion of external trajectory data &#8212; Yaff 1.4.2 documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.4.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="6. yaff.tune – Tools to calibrated FF parameters" href="rg_yaff_tune.html" />
+    <link rel="prev" title="4. yaff.analysis – Trajectory analysis" href="rg_yaff_analysis.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="rg_yaff_tune.html" title="6. yaff.tune – Tools to calibrated FF parameters"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="rg_yaff_analysis.html" title="4. yaff.analysis – Trajectory analysis"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="yaff-conversion-conversion-of-external-trajectory-data">
+<h1>5. <code class="docutils literal"><span class="pre">yaff.conversion</span></code> – Conversion of external trajectory data<a class="headerlink" href="#yaff-conversion-conversion-of-external-trajectory-data" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-yaff.conversion.common">
+<span id="yaff-conversion-common-tools-for-writing-trajectory-data"></span><h2>5.1. <code class="docutils literal"><span class="pre">yaff.conversion.common</span></code> – Tools for writing trajectory data<a class="headerlink" href="#module-yaff.conversion.common" title="Permalink to this headline">¶</a></h2>
+<p>Tools for writing trajectory data</p>
+<dl class="function">
+<dt id="yaff.conversion.common.get_trajectory_group">
+<code class="descclassname">yaff.conversion.common.</code><code class="descname">get_trajectory_group</code><span class="sig-paren">(</span><em>f</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.conversion.common.get_trajectory_group" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create or return an existing trajectory group</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An open HDF5 File or Group object.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.conversion.common.get_trajectory_datasets">
+<code class="descclassname">yaff.conversion.common.</code><code class="descname">get_trajectory_datasets</code><span class="sig-paren">(</span><em>tgrp</em>, <em>*fields</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.conversion.common.get_trajectory_datasets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of new/existing datasets corresponding to the given fields</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>tgrp</dt>
+<dd>The trajectory group</dd>
+<dt>fields</dt>
+<dd>A list of fields, i.e. pairs of name and row_shape.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.conversion.common.get_last_trajectory_row">
+<code class="descclassname">yaff.conversion.common.</code><code class="descname">get_last_trajectory_row</code><span class="sig-paren">(</span><em>dss</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.conversion.common.get_last_trajectory_row" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the first row to write new trajectory data.</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>dss</dt>
+<dd>A list of datasets or the trajectory group.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.conversion.common.write_to_dataset">
+<code class="descclassname">yaff.conversion.common.</code><code class="descname">write_to_dataset</code><span class="sig-paren">(</span><em>ds</em>, <em>value</em>, <em>row</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.conversion.common.write_to_dataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write a result at a given row in a trajectory. If needed, the dataset is extended.</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>ds</dt>
+<dd>The dataset</dd>
+<dt>value</dt>
+<dd>The data to be written</dd>
+<dt>row</dt>
+<dd>The row index.</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="yaff.conversion.common.check_trajectory_rows">
+<code class="descclassname">yaff.conversion.common.</code><code class="descname">check_trajectory_rows</code><span class="sig-paren">(</span><em>tgrp</em>, <em>dss</em>, <em>row</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.conversion.common.check_trajectory_rows" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the datasets with the new trajectory data have consistent sizes.</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>tgrp</dt>
+<dd>The trajectory group.</dd>
+<dt>dss</dt>
+<dd>The list of datasets that was filled with data.</dd>
+<dt>row</dt>
+<dd>The last row.</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-yaff.conversion.cp2k">
+<span id="yaff-conversion-cp2k-cp2k-files"></span><h2>5.2. <code class="docutils literal"><span class="pre">yaff.conversion.cp2k</span></code> – CP2K Files<a class="headerlink" href="#module-yaff.conversion.cp2k" title="Permalink to this headline">¶</a></h2>
+<p>CP2K Files</p>
+<dl class="function">
+<dt id="yaff.conversion.cp2k.cp2k_ener_to_hdf5">
+<code class="descclassname">yaff.conversion.cp2k.</code><code class="descname">cp2k_ener_to_hdf5</code><span class="sig-paren">(</span><em>f</em>, <em>fn_ener</em>, <em>sub=slice(None</em>, <em>None</em>, <em>None)</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.conversion.cp2k.cp2k_ener_to_hdf5" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a CP2K energy trajectory file to Yaff HDF5 format.</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An open and writable HDF5 file.</dd>
+<dt>fn_ener</dt>
+<dd>The filename of the CP2K energy trajectory file.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>sub</dt>
+<dd>This must be a slice object that defines the sub-sampling of the
+CP2K energy file. By default all time steps are read.</dd>
+</dl>
+<p>This routine will also test the consistency of the row attribute of the
+trajectory group. If some trajectory data is already present, it will be
+replaced by the new data. Furthermore, this routine also checks the
+header of the CP2K energy file to make sure the values are interpreted
+correctly.</p>
+<p>It is highly recommended to first initialize the HDF5 file with the
+<code class="docutils literal"><span class="pre">to_hdf5</span></code> method of the System class.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-yaff.conversion.dlpoly">
+<span id="yaff-conversion-dlpoly-dlpoly-files"></span><h2>5.3. <code class="docutils literal"><span class="pre">yaff.conversion.dlpoly</span></code> – DLPOLY Files<a class="headerlink" href="#module-yaff.conversion.dlpoly" title="Permalink to this headline">¶</a></h2>
+<p>DLPOLY Files</p>
+<dl class="function">
+<dt id="yaff.conversion.dlpoly.dlpoly_history_to_hdf5">
+<code class="descclassname">yaff.conversion.dlpoly.</code><code class="descname">dlpoly_history_to_hdf5</code><span class="sig-paren">(</span><em>f</em>, <em>fn_history</em>, <em>sub=slice(None</em>, <em>None</em>, <em>None)</em>, <em>pos_unit=1.889726133921252</em>, <em>vel_unit=4.5710289267195566e-05</em>, <em>frc_unit=2.015529715950126e-06</em>, <em>time_unit=41341.37333664682</em>, <em>mass_unit=1822.8886273532887</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.conversion.dlpoly.dlpoly_history_to_hdf5" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert DLPolay History trajectory file to Yaff HDF5 format.</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An open and writable HDF5 file.</dd>
+<dt>fn_history</dt>
+<dd>The filename of the DLPOLY history file.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>sub</dt>
+<dd>The sub argument for the DLPolyHistoryReader. This must be a slice
+object that defines the subsampling of the samples from the history
+file. By default all frames are read.</dd>
+<dt>pos_unit, vel_unit, frc_unit, time_unit and mass_unit</dt>
+<dd>The units used in the dlpoly history file. The default values
+correspond to the defaults used in DLPOLY.</dd>
+</dl>
+<p>This routine will also test the consistency of the row attribute of the
+trajectory group. If some trajectory data is already present, it will be
+replaced by the new data. It is highly recommended to first initialize
+the HDF5 file with the <code class="docutils literal"><span class="pre">to_hdf5</span></code> method of the System class.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-yaff.conversion.gaussian">
+<span id="yaff-conversion-gaussian-gaussian09-bomd-log-files"></span><h2>5.4. <code class="docutils literal"><span class="pre">yaff.conversion.gaussian</span></code> – Gaussian09 BOMD log Files<a class="headerlink" href="#module-yaff.conversion.gaussian" title="Permalink to this headline">¶</a></h2>
+<p>Gaussian09 BOMD log Files</p>
+<dl class="function">
+<dt id="yaff.conversion.gaussian.g09log_to_hdf5">
+<code class="descclassname">yaff.conversion.gaussian.</code><code class="descname">g09log_to_hdf5</code><span class="sig-paren">(</span><em>f</em>, <em>fn_log</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.conversion.gaussian.g09log_to_hdf5" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert Gaussian09 BOMD log file to Yaff HDF5 format.</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An open and writable HDF5 file.</dd>
+<dt>fn_log</dt>
+<dd>The name of the Gaussian log file.</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-yaff.conversion.xyz">
+<span id="yaff-conversion-xyz-xyz-files"></span><h2>5.5. <code class="docutils literal"><span class="pre">yaff.conversion.xyz</span></code> – XYZ Files<a class="headerlink" href="#module-yaff.conversion.xyz" title="Permalink to this headline">¶</a></h2>
+<p>XYZ Files</p>
+<dl class="function">
+<dt id="yaff.conversion.xyz.xyz_to_hdf5">
+<code class="descclassname">yaff.conversion.xyz.</code><code class="descname">xyz_to_hdf5</code><span class="sig-paren">(</span><em>f</em>, <em>fn_xyz</em>, <em>sub=slice(None</em>, <em>None</em>, <em>None)</em>, <em>file_unit=1.889726133921252</em>, <em>name='pos'</em><span class="sig-paren">)</span><a class="headerlink" href="#yaff.conversion.xyz.xyz_to_hdf5" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert XYZ trajectory file to Yaff HDF5 format.</p>
+<p><strong>Arguments:</strong></p>
+<dl class="docutils">
+<dt>f</dt>
+<dd>An open and writable HDF5 file.</dd>
+<dt>fn_xyz</dt>
+<dd>The filename of the XYZ trajectory file.</dd>
+</dl>
+<p><strong>Optional arguments:</strong></p>
+<dl class="docutils">
+<dt>sub</dt>
+<dd>The sub argument for the XYZReader. This must be a slice object that
+defines the subsampling of the XYZ file reader. By default all
+frames are read.</dd>
+<dt>file_unit</dt>
+<dd>The unit of the data in the XYZ file. [default=angstrom]</dd>
+<dt>name</dt>
+<dd>The name of the HDF5 dataset where the trajectory is stored. This
+array is stored in the ‘trajectory’ group.</dd>
+</dl>
+<p>This routine will also test the consistency of the row attribute of the
+trajectory group. If some trajectory data is already present, it will be
+replaced by the new data. It is highly recommended to first initialize
+the HDF5 file with the <code class="docutils literal"><span class="pre">to_hdf5</span></code> method of the System class.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">5. <code class="docutils literal"><span class="pre">yaff.conversion</span></code> – Conversion of external trajectory data</a><ul>
+<li><a class="reference internal" href="#module-yaff.conversion.common">5.1. <code class="docutils literal"><span class="pre">yaff.conversion.common</span></code> – Tools for writing trajectory data</a></li>
+<li><a class="reference internal" href="#module-yaff.conversion.cp2k">5.2. <code class="docutils literal"><span class="pre">yaff.conversion.cp2k</span></code> – CP2K Files</a></li>
+<li><a class="reference internal" href="#module-yaff.conversion.dlpoly">5.3. <code class="docutils literal"><span class="pre">yaff.conversion.dlpoly</span></code> – DLPOLY Files</a></li>
+<li><a class="reference internal" href="#module-yaff.conversion.gaussian">5.4. <code class="docutils literal"><span class="pre">yaff.conversion.gaussian</span></code> – Gaussian09 BOMD log Files</a></li>
+<li><a class="reference internal" href="#module-yaff.conversion.xyz">5.5. <code class="docutils literal"><span class="pre">yaff.conversion.xyz</span></code> – XYZ Files</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="rg_yaff_analysis.html"
+                        title="previous chapter">4. <code class="docutils literal"><span class="pre">yaff.analysis</span></code> – Trajectory analysis</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="rg_yaff_tune.html"
+                        title="next chapter">6. <code class="docutils literal"><span class="pre">yaff.tune</span></code> – Tools to calibrated FF parameters</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/rg_yaff_conversion.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="rg_yaff_tune.html" title="6. yaff.tune – Tools to calibrated FF parameters"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="rg_yaff_analysis.html" title="4. yaff.analysis – Trajectory analysis"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2011, Toon Verstraelen, Louis Vanduyfhuys.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
+    </div>
+  </body>
+</html>

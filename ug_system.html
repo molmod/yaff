@@ -1,0 +1,266 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>6. Representation of a molecular system &#8212; Yaff 1.4.2 documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.4.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="7. The ATSELECT language" href="ug_atselect.html" />
+    <link rel="prev" title="5. Overview of Yaff" href="ug_overview.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="ug_atselect.html" title="7. The ATSELECT language"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="ug_overview.html" title="5. Overview of Yaff"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="representation-of-a-molecular-system">
+<span id="ug-system"></span><h1>6. Representation of a molecular system<a class="headerlink" href="#representation-of-a-molecular-system" title="Permalink to this headline">¶</a></h1>
+<p>Mote: the reference documentation (based on the source code) of the System class
+can be found here: <a class="reference internal" href="rg_yaff.html#module-yaff.system" title="yaff.system"><code class="xref py py-mod docutils literal"><span class="pre">yaff.system</span></code></a>.</p>
+<div class="section" id="introduction">
+<h2>6.1. Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>A <code class="docutils literal"><span class="pre">System</span></code> instance in Yaff contains all the physical properties of a
+molecular system plus some extra information that is useful to define a force
+field. Most properties are optional.</p>
+<p><strong>Basic physical properties:</strong></p>
+<ol class="arabic simple">
+<li>Atomic numbers</li>
+<li>Positions of the atoms</li>
+<li>0, 1, 2, or 3 Cell vectors (optional)</li>
+<li>Atomic charges (optional)</li>
+<li>Atomic masses (optional)</li>
+</ol>
+<p><strong>Basic auxiliary properties:</strong> (useful to define FF)</p>
+<ol class="arabic simple">
+<li>Bonds (optional). The bonds are representated as an array with two columns.
+Each row contains the atom indexes of a pair of bonded atoms.</li>
+<li>Atom types (optional). Each atom can be given a specific atom type. Atoms of the
+same type should also be the same elements, but two atoms with the same
+atomic number do not need to be of the same type. This data is stored as an
+ordered list of unique atom type names and a numpy array with an atom type
+index for each atom. The atom type index refers to an item in the list of
+unique atom types.</li>
+<li>Scopes (optional). Each atom can be part of one scope.  A scope
+is a part of the system for which a certain force field must be used.
+This information will be used in future versions of
+Yaff to combine different force fields in a single simulation. It is similar
+to the treatment of residues in biochemical force fields. This data is stored
+as an ordered list of unique scope names and a numpy array with a scope index
+for each atom. The scope index refers to one of the unique scope names.</li>
+</ol>
+<p>Other properties such as valence angles, dihedral angles, assignment of energy
+terms, exclusion rules, and so on, can be derived from these basic properties.</p>
+<p>The positions and the cell parameters may change during the simulation. All
+other properties (including the number of atoms and the number of cell vectors)
+do not change during a simulation. If such changes seem to be necessary, one
+should create a new System instance instead of modifying an existing one.</p>
+<p>The <code class="docutils literal"><span class="pre">System</span></code> constructor arguments can be specified with some python code:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">system</span> <span class="o">=</span> <span class="n">System</span><span class="p">(</span>
+    <span class="n">numbers</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span><span class="p">),</span>
+    <span class="n">pos</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mf">4.583</span><span class="p">,</span> <span class="mf">5.333</span><span class="p">,</span> <span class="mf">1.560</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">3.777</span><span class="p">,</span> <span class="mf">5.331</span><span class="p">,</span> <span class="mf">0.943</span><span class="p">],</span>
+                  <span class="p">[</span><span class="o">-</span><span class="mf">5.081</span><span class="p">,</span> <span class="mf">4.589</span><span class="p">,</span> <span class="mf">1.176</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.083</span><span class="p">,</span> <span class="mf">4.218</span><span class="p">,</span> <span class="mf">0.070</span><span class="p">],</span>
+                  <span class="p">[</span><span class="o">-</span><span class="mf">0.431</span><span class="p">,</span> <span class="mf">3.397</span><span class="p">,</span> <span class="mf">0.609</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.377</span><span class="p">,</span> <span class="mf">3.756</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.688</span><span class="p">]])</span><span class="o">*</span><span class="n">angstrom</span><span class="p">,</span>
+    <span class="n">scopes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;WAT&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">6</span><span class="p">,</span>
+    <span class="n">ffatypes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;O&#39;</span><span class="p">,</span> <span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="s1">&#39;H&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">bonds</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[(</span><span class="n">i</span><span class="o">//</span><span class="mi">3</span><span class="p">)</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span><span class="o">%</span><span class="mi">3</span><span class="o">!=</span><span class="mi">0</span><span class="p">]),</span>
+    <span class="n">rvecs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">9.865</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">9.865</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">9.865</span><span class="p">]])</span><span class="o">*</span><span class="n">angstrom</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>where the <code class="docutils literal"><span class="pre">*angstrom</span></code> converts the numbers from angstrom to atomic units. The
+scopes and atom types may be given as ordinary lists with a single string for
+each atom. Such lists are converted automatically to a list of unique strings
+and arrays with scope and atom type indexes for each atom. The following is
+equivalent to the previous example:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">system</span> <span class="o">=</span> <span class="n">System</span><span class="p">(</span>
+    <span class="n">numbers</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span><span class="p">),</span>
+    <span class="n">pos</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="o">-</span><span class="mf">4.583</span><span class="p">,</span> <span class="mf">5.333</span><span class="p">,</span> <span class="mf">1.560</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">3.777</span><span class="p">,</span> <span class="mf">5.331</span><span class="p">,</span> <span class="mf">0.943</span><span class="p">],</span>
+                  <span class="p">[</span><span class="o">-</span><span class="mf">5.081</span><span class="p">,</span> <span class="mf">4.589</span><span class="p">,</span> <span class="mf">1.176</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.083</span><span class="p">,</span> <span class="mf">4.218</span><span class="p">,</span> <span class="mf">0.070</span><span class="p">],</span>
+                  <span class="p">[</span><span class="o">-</span><span class="mf">0.431</span><span class="p">,</span> <span class="mf">3.397</span><span class="p">,</span> <span class="mf">0.609</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.377</span><span class="p">,</span> <span class="mf">3.756</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.688</span><span class="p">]])</span><span class="o">*</span><span class="n">angstrom</span><span class="p">,</span>
+    <span class="n">scopes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;WAT&#39;</span><span class="p">],</span>
+    <span class="n">scope_ids</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mi">6</span>
+    <span class="n">ffatypes</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;O&#39;</span><span class="p">,</span> <span class="s1">&#39;H&#39;</span><span class="p">],</span>
+    <span class="n">ffatype_ids</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span><span class="o">*</span><span class="mi">2</span>
+    <span class="n">bonds</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[(</span><span class="n">i</span><span class="o">//</span><span class="mi">3</span><span class="p">)</span><span class="o">*</span><span class="mi">3</span><span class="p">,</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">6</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span><span class="o">%</span><span class="mi">3</span><span class="o">!=</span><span class="mi">0</span><span class="p">]),</span>
+    <span class="n">rvecs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">9.865</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">9.865</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">9.865</span><span class="p">]])</span><span class="o">*</span><span class="n">angstrom</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The second example initializes the scope and atom type information in the
+native form of the <code class="docutils literal"><span class="pre">System</span></code> class.</p>
+<p>One can also load the system from one or more files:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">system</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s1">&#39;initial.xyz&#39;</span><span class="p">,</span> <span class="n">cell</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">*</span><span class="mf">9.865</span><span class="o">*</span><span class="n">angstrom</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal"><span class="pre">from_file</span></code> class method accepts one or more files and any constructor
+argument from the System class as keyword arguments. A system can be easily
+stored to a file using the <code class="docutils literal"><span class="pre">to_file</span></code> method:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">system</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="s1">&#39;last.chk&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>where the <code class="docutils literal"><span class="pre">.chk</span></code>-format is the standard text-based checkpoint file format in
+Yaff. It can also be used in the <code class="docutils literal"><span class="pre">from_file</span></code> method.</p>
+</div>
+<div class="section" id="working-with-the-system-class">
+<h2>6.2. Working with the <code class="docutils literal"><span class="pre">System</span></code> class<a class="headerlink" href="#working-with-the-system-class" title="Permalink to this headline">¶</a></h2>
+<p>For production runs, we recommend that one writes a separate script to prepare
+a systems instance, which is then written to the <code class="docutils literal"><span class="pre">.chk</span></code> format for later use
+in scripts that perform the actual simulation and/or analysis. The example
+below shows how this can be done, starting from a simple <code class="docutils literal"><span class="pre">.xyz</span></code> file with
+coordinates for a water box with 32 molecules.</p>
+<p>The first step is to load the <code class="docutils literal"><span class="pre">.xyz</span></code> file and add some extra information, cell
+parameters in this example, through keyword arguments.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sys</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s1">&#39;waterbox.xyz&#39;</span><span class="p">,</span> <span class="n">cell</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span><span class="o">*</span><span class="mf">9.865</span><span class="o">*</span><span class="n">angstrom</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In order to run a force field simulation, one has to identify covalent bonds in
+the system. We could have added these via keyword arguments of the <code class="docutils literal"><span class="pre">from_file</span></code>
+method. In this example, the <a class="reference internal" href="rg_yaff.html#yaff.system.System.detect_bonds" title="yaff.system.System.detect_bonds"><code class="xref py py-meth docutils literal"><span class="pre">yaff.system.System.detect_bonds()</span></code></a> method is
+used:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sys</span><span class="o">.</span><span class="n">detect_bonds</span><span class="p">()</span>
+<span class="nb">print</span> <span class="s1">&#39;The number of bonds:&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">bonds</span><span class="p">)</span>
+<span class="nb">print</span> <span class="n">sys</span><span class="o">.</span><span class="n">bonds</span>
+</pre></div>
+</div>
+<p>For the analysis of some simulations on crystals, it may be useful to align
+the unit cell vectors with the Cartesian frame. This can be
+done with the <a class="reference internal" href="rg_yaff.html#yaff.system.System.align_cell" title="yaff.system.System.align_cell"><code class="xref py py-meth docutils literal"><span class="pre">yaff.system.System.align_cell()</span></code></a> method. The following
+will allign the 110 vector with the x-axis and the 001 vector with the z-axis:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sys</span><span class="o">.</span><span class="n">align_cell</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">]]))</span>
+</pre></div>
+</div>
+<p>On several occasions, it is also useful to construct a supercell:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sys2</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">supercell</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p>For most force fields, one has to define atom types. This can be done on the
+basis of ATSELECT rules. (See <a class="reference internal" href="ug_atselect.html#ug-sec-atselect"><span class="std std-ref">The ATSELECT language</span></a> for details.) The following
+will assign <code class="docutils literal"><span class="pre">O_W</span></code> and <code class="docutils literal"><span class="pre">H_W</span></code> to oxygen and hydrogen atoms, respectively:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sys2</span><span class="o">.</span><span class="n">detect_ffatypes</span><span class="p">([(</span><span class="s1">&#39;O_W&#39;</span><span class="p">,</span> <span class="s1">&#39;8&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;H_W&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">)])</span>
+</pre></div>
+</div>
+<p>The first string in each tuple is an <cite>ffatype</cite> string. The second string is an
+ATSELECT rule. In this case, the rules only inspect the atomic number, but more
+complicated rules are possible that also take into account the chemical
+environment of the atom.</p>
+<p>Although one can assign arbitrary masses to each atom, one is typically interested
+in assigning standard atomic weights. This is done as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sys2</span><span class="o">.</span><span class="n">set_standard_masses</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>When the system is finally ready to be used as a starting point for a Yaff
+simulation, it is convenient to write it as a <code class="docutils literal"><span class="pre">.chk</span></code> file that can be easily
+loaded in subsequent scripts:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sys2</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="s1">&#39;waterbox333.chk&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>It is instructive to open this <code class="docutils literal"><span class="pre">.chk</span></code> file with a text editor. One will see
+that all attributes of the system class are present in this file.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">6. Representation of a molecular system</a><ul>
+<li><a class="reference internal" href="#introduction">6.1. Introduction</a></li>
+<li><a class="reference internal" href="#working-with-the-system-class">6.2. Working with the <code class="docutils literal"><span class="pre">System</span></code> class</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="ug_overview.html"
+                        title="previous chapter">5. Overview of Yaff</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="ug_atselect.html"
+                        title="next chapter">7. The ATSELECT language</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/ug_system.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="ug_atselect.html" title="7. The ATSELECT language"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="ug_overview.html" title="5. Overview of Yaff"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2011, Toon Verstraelen, Louis Vanduyfhuys.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
+    </div>
+  </body>
+</html>

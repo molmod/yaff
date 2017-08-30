@@ -1,0 +1,432 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>2. The back-propagation algorithm for the computation of energy derivatives &#8212; Yaff 1.4.2 documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.4.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="1. Informal TODO list" href="dg_todo.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="dg_todo.html" title="1. Informal TODO list"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="the-back-propagation-algorithm-for-the-computation-of-energy-derivatives">
+<span id="dg-sec-backprop"></span><h1>2. The back-propagation algorithm for the computation of energy derivatives<a class="headerlink" href="#the-back-propagation-algorithm-for-the-computation-of-energy-derivatives" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>2.1. Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>The implementation of partial derivatives of the potential energy towards Cartesian
+coordinates, uniform scalings (virial), partial charges, inducible dipoles, and
+so on, can become rather tedious when the potential has a complicated functional form. This chapter describes an
+implementation strategy that brings the fun back in coding partial
+derivatives, even when the functional form is complicated. The discussion is limited to first-order partial derivatives, but
+generalizations of the same idea towards higher-order derivatives are possible.
+The idea is taken from the field of neural networks and is casted in a form that
+makes sense for molecular mechanics models. In analogy with neural networks, the
+same technique can be used to compute derivatives of the energy towards
+force-field parameters, which may be useful for the calibration of parameters.</p>
+<p>No knowledge about neural networks is required to understand the algorithm.
+Basic knowledge of multidimensional functions, the chain rule and the Jacobian
+transformation are sufficient. The examples are written in Python and use the
+Numpy library for array operations. It is assumed that the Numpy library is
+imported as follows:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="abstract-example">
+<h2>2.2. Abstract example<a class="headerlink" href="#abstract-example" title="Permalink to this headline">¶</a></h2>
+<p>Consider the following function of a vector <span class="math">\(\mathbf{x}\)</span>:</p>
+<div class="math">
+\[e(\mathbf{g}(\mathbf{f}(\mathbf{x})), \mathbf{h}(\mathbf{x}))\]</div>
+<p>The functions <span class="math">\(\mathbf{f}\)</span>, <span class="math">\(\mathbf{g}\)</span> and
+<span class="math">\(\mathbf{h}\)</span> take vectors as input and produce vectors as output. The
+function <span class="math">\(e\)</span> takes two vectors as input and produces a scalar as output.
+The sizes of all vectors are not essential and can all be different. For the
+sake of completeness, they are defined as follows:</p>
+<div class="math">
+\[ \begin{align}\begin{aligned}\mathbf{x} \in \mathbb{R}^{N_x}\\\mathbf{f}(\mathbf{x}) \in \mathbb{R}^{N_f}\\\mathbf{g}(\mathbf{f}(\mathbf{x})) \in \mathbb{R}^{N_g}\\\mathbf{h}(\mathbf{x}) \in \mathbb{R}^{N_h}\end{aligned}\end{align} \]</div>
+<p>We want to obtain a straight-forward and easily verifiable implementation of the
+function <span class="math">\(e\)</span> and its first-order derivatives towards the components of
+the vector <span class="math">\(\mathbf{x}\)</span>. This can be achieved by implementing the
+complicated function <span class="math">\(e(x)\)</span> in separate steps and by applying the same
+decomposition to the computation of the partial derivatives.</p>
+<p><strong>The forward code path</strong> implements the evaluation of <span class="math">\(e(x)\)</span> as
+follows:</p>
+<ol class="arabic simple">
+<li>Compute <span class="math">\(\tilde{\mathbf{f}} = \mathbf{f}(\mathbf{x})\)</span></li>
+<li>Compute <span class="math">\(\tilde{\mathbf{h}} = \mathbf{h}(\mathbf{x})\)</span></li>
+<li>Compute <span class="math">\(\tilde{\mathbf{g}} = \mathbf{g}(\tilde{\mathbf{f}})\)</span></li>
+<li>Compute <span class="math">\(\tilde{e} = e(\tilde{\mathbf{g}}, \tilde{\mathbf{h}})\)</span></li>
+</ol>
+<p>From a mathematical perspective, nothing new is achieved, like it should. From
+the programming perspective, this breakdown is actually different. This can
+be seen by coding up both approaches in python:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="c1"># The following functions are ingredients for the two examples below.</span>
+<span class="c1"># The actual code inside these functions is not essential and</span>
+<span class="c1"># represented by the ``function.foo.of.vector.bar`` stubs.</span>
+
+<span class="k">def</span> <span class="nf">vector_fn_f</span><span class="p">(</span><span class="n">vector_x</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;takes vector x as input, returns vector f(x)&#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">function</span><span class="o">.</span><span class="n">f</span><span class="o">.</span><span class="n">of</span><span class="o">.</span><span class="n">vector</span><span class="o">.</span><span class="n">x</span>
+
+<span class="k">def</span> <span class="nf">vector_fn_g</span><span class="p">(</span><span class="n">vector_f</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;takes vector f as input, returns vector g(f)&#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">function</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="n">of</span><span class="o">.</span><span class="n">vector</span><span class="o">.</span><span class="n">f</span>
+
+<span class="k">def</span> <span class="nf">vector_fn_h</span><span class="p">(</span><span class="n">vector_x</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;takes vector x as input, returns vector h(x)&#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">function</span><span class="o">.</span><span class="n">h</span><span class="o">.</span><span class="n">of</span><span class="o">.</span><span class="n">vector</span><span class="o">.</span><span class="n">x</span>
+
+<span class="k">def</span> <span class="nf">scalar_fn_e</span><span class="p">(</span><span class="n">vector_g</span><span class="p">,</span> <span class="n">vector_h</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;takes vectors g and h as input, returns scalar e(g,h)&#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">function</span><span class="o">.</span><span class="n">e</span><span class="o">.</span><span class="n">of</span><span class="o">.</span><span class="n">vectors</span><span class="o">.</span><span class="n">g</span><span class="o">.</span><span class="n">h</span>
+
+<span class="c1"># Original formulation, nested calls</span>
+
+<span class="k">def</span> <span class="nf">g_nested</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">vector_fn_g</span><span class="p">(</span><span class="n">vector_fn_f</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">e_nested</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">scalar_fn_e</span><span class="p">(</span><span class="n">g_nested</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">vector_fn_h</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+<span class="c1"># Formulation broken down in pieces, no nested calls.</span>
+
+<span class="k">def</span> <span class="nf">e_flat</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="n">vector_fn_f</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">vector_fn_h</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">vector_fn_g</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="n">e</span> <span class="o">=</span> <span class="n">scalar_fn_e</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">e</span>
+</pre></div>
+</div>
+<p><strong>The backward code path</strong> computes the partial derivatives of the energy
+towards each intermediate result from the forward code path, in reversed order:</p>
+<ol class="arabic simple">
+<li>Compute <span class="math">\(\displaystyle g^*_k = \frac{\partial e}{\partial g_k}\)</span> and <span class="math">\(\displaystyle h^*_l = \frac{\partial e}{\partial h_l}\)</span></li>
+<li>Apply the chain rule to compute <span class="math">\(\displaystyle f^*_j = \frac{\partial e}{\partial f_j} = \sum_k \frac{\partial g_k}{f_j} g^*_k\)</span></li>
+<li>Apply the chain rule to compute <span class="math">\(\displaystyle x^*_i = \frac{\partial e}{\partial x_i} = \sum_j \frac{\partial f_j}{x_i} f^*_j + \sum_l \frac{\partial h_l}{x_i} h^*_l\)</span></li>
+</ol>
+<p>where <span class="math">\(x_i\)</span>, <span class="math">\(f_j\)</span>, <span class="math">\(g_k\)</span> and <span class="math">\(h_l\)</span> are the components
+of the vectors or vector functions <span class="math">\(\mathbf{x}\)</span>, <span class="math">\(\mathbf{f}\)</span>,
+<span class="math">\(\mathbf{g}\)</span> and <span class="math">\(\mathbf{h}\)</span>, respectively. When coding the chain
+rules, one may make use of the sparsity of Jacobian matrix elements instead
+of using BLAS routines to implement the matrix-vector products in step 2
+and 3.</p>
+<p><strong>Combined implementation of forward and backward paths.</strong> There is an elegant
+object-oriented way to code both forward and backward paths, such that the
+forward and backward steps of a single mathematical function, e.g.
+<span class="math">\(\mathbf{g}(\mathbf{f})\)</span>, are tied closely together. The example code
+below is academic. Real-life code may deviate in terms of style and API
+deteails. All mathematical functions in this abstract example are implemented as
+derived class of the <code class="docutils literal"><span class="pre">Bead</span></code> class:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">Bead</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="c1"># The name `Bead&#39; stresses that each class implements a part of</span>
+    <span class="c1"># a complete function to which the `Chain&#39;-rule is applied.</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nins</span><span class="p">,</span> <span class="n">nout</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nins</span> <span class="o">=</span> <span class="n">nins</span> <span class="c1"># list of sizes of the input arrays.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nout</span> <span class="o">=</span> <span class="n">nout</span> <span class="c1"># size of the output array</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ar_out</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nout</span><span class="p">)</span> <span class="c1"># the output of the function</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ar_gout</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">nout</span><span class="p">)</span> <span class="c1"># the derivative of the final scalar</span>
+                                      <span class="c1"># function towards the outputs</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ars_in</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Subclasses implement a mathematical function here.</span>
+
+<span class="sd">           **Arguments:**</span>
+
+<span class="sd">           ars_in</span>
+<span class="sd">                A list of input arrays</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nins</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">ars_in</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nins</span><span class="p">)):</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ars_in</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">nins</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">back</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ars_gin</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Subclasses implement the chain rule for the mathematical function here.</span>
+
+<span class="sd">           **Arguments:**</span>
+
+<span class="sd">           ars_gin</span>
+<span class="sd">                A list of output arrays for the derivatives of the final</span>
+<span class="sd">                scalar towards the corresponding input arrays of the forward</span>
+<span class="sd">                method. Results must be added to the arrays ars_gin, not</span>
+<span class="sd">                overwritten.</span>
+
+<span class="sd">           This routine assumes that the contents of self.ar_gout is already</span>
+<span class="sd">           computed before this routine is called. The code in the subclass</span>
+<span class="sd">           must transform &#39;the derivatives of the energy towards the output</span>
+<span class="sd">           of this function&#39; (self.ar_gout) into &#39;the derivatives of the</span>
+<span class="sd">           energy towards the input of this function&#39; (ars_gin).</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nins</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">ars_gin</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nins</span><span class="p">)):</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ars_gin</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">nins</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">resetg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># clear the gout array</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ar_gout</span><span class="p">[:]</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="k">class</span> <span class="nc">BeadF</span><span class="p">(</span><span class="n">Bead</span><span class="p">):</span>
+    <span class="c1"># Imagine some implementations of ``__init__``, ``forward`` and ``back`` methods.</span>
+    <span class="c1"># The init routine must not have arguments. It may pass fixed input and</span>
+    <span class="c1"># output sizes to the constructor of the super class.</span>
+
+<span class="k">class</span> <span class="nc">BeadG</span><span class="p">(</span><span class="n">Bead</span><span class="p">):</span>
+    <span class="c1"># Imagine some implementations of ``__init__``, ``forward`` and ``back`` methods</span>
+
+<span class="k">class</span> <span class="nc">BeadH</span><span class="p">(</span><span class="n">Bead</span><span class="p">):</span>
+    <span class="c1"># Imagine some implementations of ``__init__``, ``forward`` and ``back`` methods</span>
+
+<span class="k">class</span> <span class="nc">BeadE</span><span class="p">(</span><span class="n">Bead</span><span class="p">):</span>
+    <span class="c1"># Imagine some implementations of ``__init__``, ``forward`` and ``back`` methods</span>
+    <span class="c1"># In this case, nout has to be equal to one, because this is a scalar function.</span>
+
+<span class="n">f</span> <span class="o">=</span> <span class="n">BeadF</span><span class="p">(</span><span class="o">...</span><span class="p">)</span> <span class="c1"># arugments can be anything, not relevant here</span>
+<span class="n">g</span> <span class="o">=</span> <span class="n">BeadG</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="n">h</span> <span class="o">=</span> <span class="n">BeadH</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="n">e</span> <span class="o">=</span> <span class="n">BeadE</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">e_flat</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">gx</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;When gx is given, it must be an output array for the derivatives of</span>
+<span class="sd">       e towards the components of the vector x.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="c1"># forward code path, order does matter</span>
+    <span class="n">f</span><span class="o">.</span><span class="n">forward</span><span class="p">([</span><span class="n">x</span><span class="p">])</span>
+    <span class="n">h</span><span class="o">.</span><span class="n">forward</span><span class="p">([</span><span class="n">x</span><span class="p">])</span>
+    <span class="n">g</span><span class="o">.</span><span class="n">forward</span><span class="p">([</span><span class="n">f</span><span class="o">.</span><span class="n">ar_out</span><span class="p">])</span>
+    <span class="n">e</span><span class="o">.</span><span class="n">forward</span><span class="p">([</span><span class="n">g</span><span class="o">.</span><span class="n">ar_out</span><span class="p">,</span> <span class="n">h</span><span class="o">.</span><span class="n">ar_out</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">gx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+       <span class="c1"># clear the ar_gout arrays, order does not matter</span>
+       <span class="n">e</span><span class="o">.</span><span class="n">resetg</span><span class="p">()</span>
+       <span class="n">g</span><span class="o">.</span><span class="n">resetg</span><span class="p">()</span>
+       <span class="n">h</span><span class="o">.</span><span class="n">resetg</span><span class="p">()</span>
+       <span class="n">f</span><span class="o">.</span><span class="n">resetg</span><span class="p">()</span>
+       <span class="c1"># backward code path, order does matter</span>
+       <span class="n">e</span><span class="o">.</span><span class="n">ar_gout</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="c1"># we now that e is a scalar function</span>
+       <span class="n">e</span><span class="o">.</span><span class="n">back</span><span class="p">([</span><span class="n">g</span><span class="o">.</span><span class="n">ar_gout</span><span class="p">,</span> <span class="n">h</span><span class="o">.</span><span class="n">ar_gout</span><span class="p">])</span>
+       <span class="n">g</span><span class="o">.</span><span class="n">back</span><span class="p">([</span><span class="n">f</span><span class="o">.</span><span class="n">ar_gout</span><span class="p">])</span>
+       <span class="n">h</span><span class="o">.</span><span class="n">back</span><span class="p">([</span><span class="n">gx</span><span class="p">])</span>
+       <span class="n">f</span><span class="o">.</span><span class="n">back</span><span class="p">([</span><span class="n">gx</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">e</span><span class="o">.</span><span class="n">ar_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="c1"># we now that e is a scalar function</span>
+</pre></div>
+</div>
+<p>The function <code class="docutils literal"><span class="pre">e_flat</span></code> can also be represented schematically:</p>
+<img alt="_images/backprop.png" src="_images/backprop.png" />
+<p>The example above shows that the complexity of the partial derivatives is
+broken down into smaller pieces that are easier to handle. In fact, this
+approach has more advantages:</p>
+<ul class="simple">
+<li>One can envision multiple different implementations of one of the Beads, say
+BeadG, that can be swapped in and out without having to re-implement the
+function e_flat. The back-propagation technique chops the computation of
+the function e and its partial derivatives into orthogonal (in the IT sense)
+steps.</li>
+<li>Each bead can be tested separately with unit tests, see below.</li>
+</ul>
+<p>Final remark: the above code could be done with more Python tricks to make the
+code snappier. This is avoided to make this chapter more accessible to readers
+with a limited Python background.</p>
+</div>
+<div class="section" id="simple-examples-of-bead-subclasses">
+<h2>2.3. Simple examples of <code class="docutils literal"><span class="pre">Bead</span></code> subclasses<a class="headerlink" href="#simple-examples-of-bead-subclasses" title="Permalink to this headline">¶</a></h2>
+<p>The following two examples are kept as simple as possible. There is nothing
+exciting about them, yet they completely show how useful the back-propagation
+may be. With the first two examples, one may implement fully functional neural
+networks in Python that can compute partial derivatives of the output. Note the
+use of <code class="docutils literal"><span class="pre">+=</span></code> in the <code class="docutils literal"><span class="pre">back</span></code> methods.</p>
+<p>Simple linear transformation plus a constant vector:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">BeadLinTransConst</span><span class="p">(</span><span class="n">Bead</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">coeffs</span><span class="p">,</span> <span class="n">consts</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="c1"># must be a transformation matrix</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">consts</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="c1"># must be a vector with constants</span>
+        <span class="k">assert</span> <span class="n">consts</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span> <span class="o">=</span> <span class="n">coeffs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">consts</span> <span class="o">=</span> <span class="n">consts</span>
+        <span class="n">Bead</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">[</span><span class="n">coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">coeffs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ars_in</span><span class="p">):</span>
+        <span class="n">Bead</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ars_in</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ar_out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span><span class="p">,</span> <span class="n">ars_in</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">consts</span>
+
+    <span class="k">def</span> <span class="nf">back</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ars_gin</span><span class="p">):</span>
+        <span class="n">Bead</span><span class="o">.</span><span class="n">back</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ars_gin</span><span class="p">)</span>
+        <span class="n">ars_gin</span><span class="p">[</span><span class="mi">0</span><span class="p">][:]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coeffs</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ar_gout</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Switching function, <code class="docutils literal"><span class="pre">tanh</span></code>, applied to each vector component separately:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">BeadSwitch</span><span class="p">(</span><span class="n">Bead</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">):</span>
+        <span class="n">Bead</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">[</span><span class="n">size</span><span class="p">],</span> <span class="n">size</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ars_in</span><span class="p">):</span>
+        <span class="n">Bead</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ars_in</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ar_out</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">ars_in</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">back</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ars_gin</span><span class="p">):</span>
+        <span class="n">Bead</span><span class="o">.</span><span class="n">back</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ars_gin</span><span class="p">)</span>
+        <span class="c1"># Recycle the intermediate result from the forward computation...</span>
+        <span class="c1"># This happens quite often in real-life code.</span>
+        <span class="n">ars_gin</span><span class="p">[</span><span class="mi">0</span><span class="p">][:]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ar_gout</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">ar_out</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The dot product of two vectors:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">BeadDot</span><span class="p">(</span><span class="n">Bead</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nin</span><span class="p">):</span>
+        <span class="n">Bead</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="p">[</span><span class="n">nin</span><span class="p">,</span> <span class="n">nin</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ars_in</span><span class="p">):</span>
+        <span class="n">Bead</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ars_in</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ar_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">ars_in</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ars_in</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="c1"># keep a hidden reference to the input arrays</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ars_in</span> <span class="o">=</span> <span class="n">ars_in</span>
+
+    <span class="k">def</span> <span class="nf">back</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ars_gin</span><span class="p">):</span>
+        <span class="n">Bead</span><span class="o">.</span><span class="n">back</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ars_gin</span><span class="p">)</span>
+        <span class="n">ars_gin</span><span class="p">[</span><span class="mi">0</span><span class="p">][:]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ar_gout</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_ars_in</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">ars_gin</span><span class="p">[</span><span class="mi">1</span><span class="p">][:]</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ar_gout</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_ars_in</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>These examples are taken from <code class="docutils literal"><span class="pre">data/examples/999_back_propagation/bp.py</span></code> in
+the source tree. That file also contains a completely functional example
+implementation of a neural network based on the <code class="docutils literal"><span class="pre">Bead</span></code> classes.</p>
+</div>
+<div class="section" id="unit-testing">
+<h2>2.4. Unit testing<a class="headerlink" href="#unit-testing" title="Permalink to this headline">¶</a></h2>
+<p>Each bead may be tested separately, which is a great way of isolating bugs. See
+<code class="docutils literal"><span class="pre">data/examples/999_back_propagation/bp.py</span></code> for practical examples. The unit
+tests in this example use the generic derivative tester from the <code class="docutils literal"><span class="pre">molmod</span></code>
+module.</p>
+</div>
+<div class="section" id="real-example">
+<h2>2.5. Real example<a class="headerlink" href="#real-example" title="Permalink to this headline">¶</a></h2>
+<p>A realistic example, which deviates a little from the <code class="docutils literal"><span class="pre">Bead</span></code> API above, can
+be found in the Yaff source code in the class <code class="docutils literal"><span class="pre">ForcePartValence</span></code> in the file
+<code class="docutils literal"><span class="pre">yaff/pes/ff.py</span></code>. This class implements the computation of valence
+interactions with a minimal amount of code. The back-propagation algorithm
+plays a crucial role in keeping the code compact.</p>
+<p>The computation of the covalent energy is broken into three major beads:</p>
+<ol class="arabic simple">
+<li>Computation of relative vectors needed for the internal coordinates. See
+<a class="reference internal" href="rg_yaff_pes.html#yaff.pes.dlist.DeltaList" title="yaff.pes.dlist.DeltaList"><code class="xref py py-class docutils literal"><span class="pre">yaff.pes.dlist.DeltaList</span></code></a>.</li>
+<li>Computation of the internal coordinates based on the <code class="docutils literal"><span class="pre">DeltaList</span></code>. See
+<a class="reference internal" href="rg_yaff_pes.html#yaff.pes.iclist.InternalCoordinateList" title="yaff.pes.iclist.InternalCoordinateList"><code class="xref py py-class docutils literal"><span class="pre">yaff.pes.iclist.InternalCoordinateList</span></code></a>.</li>
+<li>Computation of valence energy terms (including cross terms) based on the
+<code class="docutils literal"><span class="pre">InternalCoordinateList</span></code>. See <a class="reference internal" href="rg_yaff_pes.html#yaff.pes.vlist.ValenceList" title="yaff.pes.vlist.ValenceList"><code class="xref py py-class docutils literal"><span class="pre">yaff.pes.vlist.ValenceList</span></code></a>.</li>
+</ol>
+<p>Each class has its <code class="docutils literal"><span class="pre">forward</span></code> and <code class="docutils literal"><span class="pre">back</span></code> methods, which are all implemented
+in low-level C code for the sake of efficiency. In addition to the benefits
+mentioned above, this example has some additional specific amenities:</p>
+<ul class="simple">
+<li>Any internal coordinate can be combined with any functional form of the energy
+term. Yet, no code was written for each combination.</li>
+<li>Cross terms of the form <span class="math">\((x-x_0)(y-y_0)\)</span> are supported for all possible
+combinations of two internal coordinates, without having to implement all
+these combinations explicitly.</li>
+<li>The Cartesian gradient and virial are computed in the <code class="docutils literal"><span class="pre">back</span></code> method of
+step 1, based on derivatives of the energy towards the relative vectors.
+This considerably eases the implementation of the virial.</li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">2. The back-propagation algorithm for the computation of energy derivatives</a><ul>
+<li><a class="reference internal" href="#introduction">2.1. Introduction</a></li>
+<li><a class="reference internal" href="#abstract-example">2.2. Abstract example</a></li>
+<li><a class="reference internal" href="#simple-examples-of-bead-subclasses">2.3. Simple examples of <code class="docutils literal"><span class="pre">Bead</span></code> subclasses</a></li>
+<li><a class="reference internal" href="#unit-testing">2.4. Unit testing</a></li>
+<li><a class="reference internal" href="#real-example">2.5. Real example</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="dg_todo.html"
+                        title="previous chapter">1. Informal TODO list</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/dg_backprop.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="dg_todo.html" title="1. Informal TODO list"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2011, Toon Verstraelen, Louis Vanduyfhuys.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
+    </div>
+  </body>
+</html>

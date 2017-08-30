@@ -1,0 +1,215 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>7. The ATSELECT language &#8212; Yaff 1.4.2 documentation</title>
+    <link rel="stylesheet" href="_static/nature.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.4.2',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="8. Force-field models" href="ug_forcefield.html" />
+    <link rel="prev" title="6. Representation of a molecular system" href="ug_system.html" /> 
+  </head>
+  <body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="ug_forcefield.html" title="8. Force-field models"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="ug_system.html" title="6. Representation of a molecular system"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="the-atselect-language">
+<span id="ug-sec-atselect"></span><h1>7. The ATSELECT language<a class="headerlink" href="#the-atselect-language" title="Permalink to this headline">¶</a></h1>
+<p>Several functions (or methods) in Yaff have a selection atoms as one of the
+function arguments. This selection must be provided in the form of a list or
+array of selected atom indexes. The ATSELECT language allows one to define
+rules that generate such lists of atom indexes that match a certain
+specification.</p>
+<p>ATSELECT is similar to <a class="reference external" href="http://en.wikipedia.org/wiki/Smiles_arbitrary_target_specification">SMARTS</a>.
+The SMARTS system has the advantage of being very compact, but it has a few
+disadvantages that make it poorly applicable in the context of Yaff: e.g. it
+assumes that the hybridization state of first-row atoms and bond orders are
+known. The only real <cite>knowns</cite> for ATSELECT are: <code class="docutils literal"><span class="pre">numbers</span></code> and
+optionally <code class="docutils literal"><span class="pre">ffatypes</span></code>, <code class="docutils literal"><span class="pre">scopes</span></code> and <code class="docutils literal"><span class="pre">bonds</span></code>.</p>
+<p>The syntax of the ATSELECT language is defined as follows. An ATSELECT
+expression consists of a single line and is case-sensitive. White-space is
+completely ignored. An ATSELECT expression can be any of the following:</p>
+<dl class="docutils">
+<dt><code class="docutils literal"><span class="pre">[scope:]number</span></code></dt>
+<dd>Matches an atom with the given number, optionally part of the given scope.</dd>
+<dt><code class="docutils literal"><span class="pre">[scope:]ffatype</span></code></dt>
+<dd>Matches an atom with the given atop type, optionally part of the given scope.</dd>
+<dt><code class="docutils literal"><span class="pre">scope:*</span></code></dt>
+<dd>Matches any atom in the given scope.</dd>
+<dt><code class="docutils literal"><span class="pre">expr1</span> <span class="pre">&amp;</span> <span class="pre">expr2</span> <span class="pre">[&amp;</span> <span class="pre">...]</span></code></dt>
+<dd>Matches an atom that satisfies all the given expressions.</dd>
+<dt><code class="docutils literal"><span class="pre">expr1</span> <span class="pre">|</span> <span class="pre">expr2</span> <span class="pre">[|</span> <span class="pre">...]</span></code></dt>
+<dd>Matches an atom that satisfies any of the given expressions.</dd>
+<dt><code class="docutils literal"><span class="pre">!expr</span></code></dt>
+<dd>Matches an atom that does not satisfy the given expression.</dd>
+<dt><code class="docutils literal"><span class="pre">=N[%expr]</span></code></dt>
+<dd>Matches an atom that has exactly N neighbors, that optionally match the
+given expression.</dd>
+<dt><code class="docutils literal"><span class="pre">&gt;N[%expr]</span></code></dt>
+<dd>Matches an atom that has more than N neighbors, that optionally match the
+given expression.</dd>
+<dt><code class="docutils literal"><span class="pre">&lt;N[%expr]</span></code></dt>
+<dd>Matches an atom that has less than N neighbors, that optionally match the
+given expression.</dd>
+<dt><code class="docutils literal"><span class="pre">&#64;N</span></code></dt>
+<dd>Matches an atom that is part of a strong ring with N atoms. <strong>Not
+implemented yet.</strong></dd>
+<dt><code class="docutils literal"><span class="pre">(expr)</span></code></dt>
+<dd>Round brackets are part of the syntax, used to override operator precedence.
+The precedence of the operators corresponds to the order of this list.</dd>
+</dl>
+<p>In the list above, <code class="docutils literal"><span class="pre">expr</span></code> can be any valid ATSELECT expression. Atom types and
+scope names should not contain the following symbols: <code class="docutils literal"><span class="pre">:</span></code>, <code class="docutils literal"><span class="pre">%</span></code>, <code class="docutils literal"><span class="pre">=</span></code>,
+<code class="docutils literal"><span class="pre">&lt;</span></code>, <code class="docutils literal"><span class="pre">&gt;</span></code>, <code class="docutils literal"><span class="pre">&#64;</span></code>, <code class="docutils literal"><span class="pre">(</span></code>, <code class="docutils literal"><span class="pre">)</span></code>, <code class="docutils literal"><span class="pre">&amp;</span></code>, <code class="docutils literal"><span class="pre">|</span></code>, <code class="docutils literal"><span class="pre">!</span></code>, and should
+not start with a digit. Some examples of atom selectors:</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal"><span class="pre">6</span></code> – any carbon atom.</li>
+<li><code class="docutils literal"><span class="pre">TPA:6</span></code> – a carbon atom in the TPA scope.</li>
+<li><code class="docutils literal"><span class="pre">C3</span></code> – any atom with type C3.</li>
+<li><code class="docutils literal"><span class="pre">TPA:C3</span></code> – an atom with type C3 in the TPA scope.</li>
+<li><code class="docutils literal"><span class="pre">!1</span></code> – anything that is not a hydrogen.</li>
+<li><code class="docutils literal"><span class="pre">C2|C3</span></code> – an atom of type C2 or C3.</li>
+<li><code class="docutils literal"><span class="pre">6|7&amp;=1%1</span></code> or <code class="docutils literal"><span class="pre">(6|7)&amp;=1%1</span></code> – a carbon or nitrogen bonded to exactly one
+hydrogen.</li>
+<li><code class="docutils literal"><span class="pre">&gt;0%(6|=4)</span></code> – an atom bonded to at least one carbon atom or bonded to at
+least one atom with four bonds.</li>
+<li><code class="docutils literal"><span class="pre">6&amp;&#64;6</span></code> – a Carbon atom that is part of a six-membered ring.</li>
+</ul>
+</div></blockquote>
+<p>There are currently three ways to use the ATSELECT strings in Yaff:</p>
+<ol class="arabic">
+<li><p class="first">Compile the string into a function and use it directly:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">yaff</span> <span class="k">import</span> <span class="o">*</span>
+<span class="n">fn</span> <span class="o">=</span> <span class="n">atsel_compile</span><span class="p">(</span><span class="s1">&#39;C&amp;=4&#39;</span><span class="p">)</span>
+<span class="n">system</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s1">&#39;test.chk&#39;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">fn</span><span class="p">(</span><span class="n">systen</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
+    <span class="k">pass</span>
+    <span class="c1"># Do something if the first atom is a carbon with four neighbors.</span>
+    <span class="c1"># ...</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Get all atom indexes in a system that match a certain ATSELECT string:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">yaff</span> <span class="k">import</span> <span class="o">*</span>
+<span class="n">system</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s1">&#39;test.chk&#39;</span><span class="p">)</span>
+<span class="n">indexes</span> <span class="o">=</span> <span class="n">system</span><span class="o">.</span><span class="n">get_indexes</span><span class="p">(</span><span class="s1">&#39;C&amp;=4&#39;</span><span class="p">)</span>
+<span class="c1"># The array indexes contains all the indexes of the carbon atoms with</span>
+<span class="c1"># four neighbors.</span>
+</pre></div>
+</div>
+</li>
+<li><p class="first">Define FF atom types in a system based on ATSELECT strings. For this purpose,
+one can normally not rely on the presence of FF atom types in the system
+object.</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">yaff</span> <span class="k">import</span> <span class="o">*</span>
+<span class="n">system</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="s1">&#39;test.chk&#39;</span><span class="p">)</span>
+<span class="n">system</span><span class="o">.</span><span class="n">detect_ffatypes</span><span class="p">([</span>
+    <span class="p">(</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">&#39;O_water&#39;</span><span class="p">,</span> <span class="s1">&#39;8&amp;=2%1&#39;</span><span class="p">),</span>
+<span class="p">])</span>
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Whenever one uses a compiled expression on a system that does not have
+sufficient attributes, a <code class="docutils literal"><span class="pre">ValueError</span></code> is raised. For example, a ValueError
+would be raised when one would refer to atom types in the third use case.</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="ug_system.html"
+                        title="previous chapter">6. Representation of a molecular system</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="ug_forcefield.html"
+                        title="next chapter">8. Force-field models</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/ug_atselect.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="ug_forcefield.html" title="8. Force-field models"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="ug_system.html" title="6. Representation of a molecular system"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Yaff 1.4.2 documentation</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2011, Toon Verstraelen, Louis Vanduyfhuys.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.3.
+    </div>
+  </body>
+</html>
