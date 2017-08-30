@@ -182,11 +182,10 @@ class RestartWriter(Hook):
             AttributeStateItem('vel'),
             CellStateItem(),
             AttributeStateItem('econs'),
-            ConsErrStateItem('econs_counter'),
-            ConsErrStateItem('ekin_sum'),
-            ConsErrStateItem('ekin_sumsq'),
-            ConsErrStateItem('econs_sum'),
-            ConsErrStateItem('econs_sumsq')
+            ConsErrStateItem('ekin_m'),
+            ConsErrStateItem('ekin_s'),
+            ConsErrStateItem('econs_m'),
+            ConsErrStateItem('econs_s')
         ]
 
         # Dump the timestep
