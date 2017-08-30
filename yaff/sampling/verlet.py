@@ -156,8 +156,11 @@ class VerletIntegrator(Iterative):
             tgrp = self.restart_h5['trajectory']
             self.pos = tgrp['pos'][-1,:,:]
             ff.update_pos(self.pos)
-            self.rvecs = tgrp['cell'][-1,:,:]
-            ff.update_rvecs(self.rvecs)
+            if 'cell' in tgrp:
+                self.rvecs = tgrp['cell'][-1,:,:]
+                ff.update_rvecs(self.rvecs)
+            else:
+                self.rvecs = None
             # Arguments which can be provided in the VerletIntegrator object are only
             # taken from the restart file if not provided explicitly
             if time0 is None:
@@ -300,7 +303,10 @@ class VerletIntegrator(Iterative):
                     beta = rgrp['beta'][()]
                     baro = BerendsenBarostat(ff, temp, press, timecon=timecon, beta=beta, anisotropic=anisotropic, vol_constraint=vol_constraint)
                 elif baro_name == 'MTTK':
-                    vel0 = tgrp['baro_vel_press'][-1,:,:]
+                    if anisotropic:
+                        vel0 = tgrp['baro_vel_press'][-1,:,:]
+                    else:
+                        vel0 = tgrp['baro_vel_press'][-1]
                     baro = MTKBarostat(ff, temp, press, timecon=timecon, anisotropic=anisotropic, vol_constraint=vol_constraint, baro_thermo=baro_thermo, vel_press0=vel0, restart=True)
 
         # append the necessary hooks
@@ -468,41 +474,45 @@ class VerletScreenLog(Hook):
 
 
 class ConsErrTracker(object):
-    '''A class that tracks the errors on the conserved quantity'''
+    '''
+        A class that tracks the errors on the conserved quantity.
+        Given its superior numerical accuracy, the algorithm below
+        is used to calculate the running average. Its properties are discussed
+        in Donald Knuth's Art of Computer Programming, vol. 2, p. 232, 3rd edition.
+    '''
     def __init__(self, restart_h5=None):
         if restart_h5 is None:
             self.counter = 0
-            self.ekin_sum = 0.0
-            self.ekin_sumsq = 0.0
-            self.econs_sum = 0.0
-            self.econs_sumsq = 0.0
+            self.ekin_m = 0.0
+            self.ekin_s = 0.0
+            self.econs_m = 0.0
+            self.econs_s = 0.0
         else:
             tgrp = restart_h5['trajectory']
-            self.counter = tgrp['econs_counter'][-1]
-            self.ekin_sum = tgrp['ekin_sum'][-1]
-            self.ekin_sumsq = tgrp['ekin_sumsq'][-1]
-            self.econs_sum = tgrp['econs_sum'][-1]
-            self.econs_sumsq = tgrp['econs_sumsq'][-1]
-        self.eps = np.finfo(float).eps
+            self.counter = tgrp['counter'][-1]
+            self.ekin_m = tgrp['ekin_m'][-1]
+            self.ekin_s = tgrp['ekin_s'][-1]
+            self.econs_m = tgrp['econs_m'][-1]
+            self.econs_s = tgrp['econs_s'][-1]
 
     def update(self, ekin, econs):
+        if self.counter == 0:
+            self.ekin_m = ekin
+            self.econs_m = econs
+        else:
+            ekin_tmp = ekin - self.ekin_m
+            self.ekin_m += ekin_tmp/(self.counter+1)
+            self.ekin_s += ekin_tmp*(ekin - self.ekin_m)
+            econs_tmp = econs - self.econs_m
+            self.econs_m += econs_tmp/(self.counter+1)
+            self.econs_s += econs_tmp*(econs - self.econs_m)
         self.counter += 1
-        self.ekin_sum += ekin
-        self.ekin_sumsq += ekin**2
-        self.econs_sum += econs
-        self.econs_sumsq += econs**2
 
     def get(self):
-        if self.counter > 0:
-            ekin_var = self.ekin_sumsq/self.counter - (self.ekin_sum/self.counter)**2
-            max_contrib = max(self.ekin_sumsq/self.counter, (self.ekin_sum/self.counter)**2)
-            if max_contrib > 10.*self.eps and np.abs(ekin_var)/max_contrib > 10.*self.eps:
-            # only calculate further if the variance is substantially different from zero,
-            # to mediate precision errors
-                econs_var = self.econs_sumsq/self.counter - (self.econs_sum/self.counter)**2
-                max_contrib = max(self.econs_sumsq/self.counter, (self.econs_sum/self.counter)**2)
-                if np.abs(econs_var)/max_contrib > 10.*self.eps:
-                    return np.sqrt(econs_var/ekin_var)
+        if self.counter > 1:
+            # Returns the square root of the ratio of the
+            # variance in Ekin to the variance in Econs
+            return np.sqrt(self.econs_s/self.ekin_s)
         return 0.0
 
 
