@@ -55,7 +55,7 @@ trajectory data. By convention, Yaff stores all data in HDF5 files in atomic
 units.
 
 
-Molecular Dynacmis
+Molecular Dynamics
 ==================
 
 Overview of the Verlet algorithms
