@@ -170,7 +170,7 @@ def test_iclist_peroxide_dihedral_cos2():
         dlist.forward()
         iclist.forward()
         angle = dihed_angle(system.pos)[0]
-        print 'psi=%.3f deg:    target=%.6f  value=%.6f' %(angle/deg, np.cos(2*angle), iclist.ictab[3]['value'])
+        print('psi=%.3f deg:    target=%.6f  value=%.6f' %(angle/deg, np.cos(2*angle), iclist.ictab[3]['value']))
         assert abs(iclist.ictab[3]['value'] - np.cos(2*angle)) < 1e-5
 
 def test_iclist_peroxide_dihedral_cos3():
@@ -192,7 +192,7 @@ def test_iclist_peroxide_dihedral_cos3():
         dlist.forward()
         iclist.forward()
         angle = dihed_angle(system.pos)[0]
-        print 'psi=%.3f deg:    target=%.6f  value=%.6f' %(angle/deg, np.cos(3*angle), iclist.ictab[3]['value'])
+        print('psi=%.3f deg:    target=%.6f  value=%.6f' %(angle/deg, np.cos(3*angle), iclist.ictab[3]['value']))
         assert abs(iclist.ictab[3]['value'] - np.cos(3*angle)) < 1e-5
 
 def test_iclist_peroxide_dihedral_cos4():
@@ -214,7 +214,7 @@ def test_iclist_peroxide_dihedral_cos4():
         dlist.forward()
         iclist.forward()
         angle = dihed_angle(system.pos)[0]
-        print 'psi=%.3f deg:    target=%.6f  value=%.6f' %(angle/deg, np.cos(4*angle), iclist.ictab[3]['value'])
+        print('psi=%.3f deg:    target=%.6f  value=%.6f' %(angle/deg, np.cos(4*angle), iclist.ictab[3]['value']))
         assert abs(iclist.ictab[3]['value'] - np.cos(4*angle)) < 1e-5
 
 def test_iclist_peroxide_dihedral_cos6():
@@ -236,7 +236,7 @@ def test_iclist_peroxide_dihedral_cos6():
         dlist.forward()
         iclist.forward()
         angle = dihed_angle(system.pos)[0]
-        print 'psi=%.3f deg:    target=%.6f  value=%.6f' %(angle/deg, np.cos(6*angle), iclist.ictab[3]['value'])
+        print('psi=%.3f deg:    target=%.6f  value=%.6f' %(angle/deg, np.cos(6*angle), iclist.ictab[3]['value']))
         assert abs(iclist.ictab[3]['value'] - np.cos(6*angle)) < 1e-5
 
 def test_iclist_grad_dihedral_cos_mil53():

@@ -1006,8 +1006,8 @@ class ValenceCrossGenerator(Generator):
         part_valence = ff_args.get_part_valence(system)
         vterms = []
         ics = []
-        for i in xrange(6):
-            for j in xrange(i+1,6):
+        for i in range(6):
+            for j in range(i+1,6):
                 VClass = self.__class__.__dict__['VClass%i%i' %(i,j)]
                 if VClass is not None:
                     vterms.append([i,j,VClass])
@@ -1161,6 +1161,10 @@ class CrossBondDihedralGenerator(ValenceCrossGenerator):
 
     def iter_alt_keys(self, key):
         yield key
+    
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], (pars[0], pars[3], pars[2], pars[1], pars[6], pars[5], pars[4], pars[7])
 
     def iter_indexes(self, system):
         return system.iter_dihedrals()
@@ -1301,7 +1305,7 @@ class CrossBendDihedralGenerator(ValenceCrossGenerator):
     VClass03 = None
     VClass04 = None
     VClass05 = None
-    VClass12 = None  #bend123,dihed0123
+    VClass12 = Cross #bend123,dihed0123
     VClass13 = None
     VClass14 = None
     VClass15 = None
@@ -1313,7 +1317,11 @@ class CrossBendDihedralGenerator(ValenceCrossGenerator):
     VClass45 = None
 
     def iter_alt_keys(self, key):
-        yield key
+        yield key    
+
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], (pars[0], pars[2], pars[1], pars[4], pars[3], pars[5])
 
     def iter_indexes(self, system):
         return system.iter_dihedrals()
@@ -1343,7 +1351,7 @@ class CrossBendDihedral2Generator(CrossBendDihedralGenerator):
     VClass03 = None
     VClass04 = None
     VClass05 = None
-    VClass12 = None  #bend123,dihed0123
+    VClass12 = Cross #bend123,dihed0123
     VClass13 = None
     VClass14 = None
     VClass15 = None
@@ -1370,7 +1378,7 @@ class CrossBendDihedral3Generator(CrossBendDihedralGenerator):
     VClass03 = None
     VClass04 = None
     VClass05 = None
-    VClass12 = None  #bend123,dihed0123
+    VClass12 = Cross #bend123,dihed0123
     VClass13 = None
     VClass14 = None
     VClass15 = None
@@ -1397,7 +1405,7 @@ class CrossBendDihedral4Generator(CrossBendDihedralGenerator):
     VClass03 = None
     VClass04 = None
     VClass05 = None
-    VClass12 = None  #bend123,dihed0123
+    VClass12 = Cross #bend123,dihed0123
     VClass13 = None
     VClass14 = None
     VClass15 = None
@@ -1424,7 +1432,7 @@ class CrossBendDihedral6Generator(CrossBendDihedralGenerator):
     VClass03 = None
     VClass04 = None
     VClass05 = None
-    VClass12 = None  #bend123,dihed0123
+    VClass12 = Cross #bend123,dihed0123
     VClass13 = None
     VClass14 = None
     VClass15 = None
@@ -1451,7 +1459,7 @@ class CrossBendCosDihedralGenerator(ValenceCrossGenerator):
     VClass03 = None
     VClass04 = None
     VClass05 = None
-    VClass12 = None  #bend123,dihed0123
+    VClass12 = Cross #bend123,dihed0123
     VClass13 = None
     VClass14 = None
     VClass15 = None
@@ -1464,6 +1472,10 @@ class CrossBendCosDihedralGenerator(ValenceCrossGenerator):
 
     def iter_alt_keys(self, key):
         yield key
+
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], (pars[0], pars[2], pars[1], pars[4], pars[3], pars[5])
 
     def iter_indexes(self, system):
         return system.iter_dihedrals()
