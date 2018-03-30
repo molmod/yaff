@@ -70,7 +70,7 @@ __all__ = [
     'InternalCoordinateList', 'InternalCoordinate', 'Bond', 'BendAngle',
     'BendCos', 'DihedAngle', 'DihedCos', 'UreyBradley', 'OopAngle',
     'OopMeanAngle', 'OopCos', 'OopMeanCos', 'OopDist', 'DihedCos2', 'DihedCos3',
-    'DihedCos4', 'DihedCos6' 
+    'DihedCos4', 'DihedCos6'
 ]
 
 
