@@ -62,8 +62,8 @@ __all__ = [
     'UreyBradleyHarmGenerator', 'OopAngleGenerator', 'OopMeanAngleGenerator',
     'OopCosGenerator', 'OopMeanCosGenerator', 'OopDistGenerator', 'BondMorseGenerator',
 
-    'ValenceCrossGenerator', 'CrossGenerator', 'CrossCosBendGenerator', 
-    'CrossBondDihedralGenerator', 'CrossBondDihedral2Generator', 
+    'ValenceCrossGenerator', 'CrossGenerator', 'CrossCosBendGenerator',
+    'CrossBondDihedralGenerator', 'CrossBondDihedral2Generator',
     'CrossBondDihedral3Generator', 'CrossBondDihedral4Generator',
     'CrossBondDihedral6Generator',
     'CrossBendDihedralGenerator', 'CrossBendDihedral2Generator',
@@ -1148,7 +1148,7 @@ class CrossBondDihedralGenerator(ValenceCrossGenerator):
     VClass03 = Cross #bond01,dihed0123
     VClass04 = None
     VClass05 = None
-    VClass12 = None  #bond12,bond23    already in angle123 cross term  
+    VClass12 = None  #bond12,bond23    already in angle123 cross term
     VClass13 = Cross #bond12,dihed0123
     VClass14 = None
     VClass15 = None
@@ -1161,7 +1161,7 @@ class CrossBondDihedralGenerator(ValenceCrossGenerator):
 
     def iter_alt_keys(self, key):
         yield key
-    
+
     def iter_equiv_keys_and_pars(self, key, pars):
         yield key, pars
         yield key[::-1], (pars[0], pars[3], pars[2], pars[1], pars[6], pars[5], pars[4], pars[7])
@@ -1179,7 +1179,7 @@ class CrossBondDihedralGenerator(ValenceCrossGenerator):
         return indexes[2:4]
 
     def get_indexes3(self, indexes):
-        return indexes  
+        return indexes
 
 
 class CrossBondDihedral2Generator(CrossBondDihedralGenerator):
@@ -1197,7 +1197,7 @@ class CrossBondDihedral2Generator(CrossBondDihedralGenerator):
     VClass03 = Cross #bond01,dihed0123
     VClass04 = None
     VClass05 = None
-    VClass12 = None  #bond12,bond23    already in angle123 cross term  
+    VClass12 = None  #bond12,bond23    already in angle123 cross term
     VClass13 = Cross #bond12,dihed0123
     VClass14 = None
     VClass15 = None
@@ -1224,7 +1224,7 @@ class CrossBondDihedral3Generator(CrossBondDihedralGenerator):
     VClass03 = Cross #bond01,dihed0123
     VClass04 = None
     VClass05 = None
-    VClass12 = None  #bond12,bond23    already in angle123 cross term  
+    VClass12 = None  #bond12,bond23    already in angle123 cross term
     VClass13 = Cross #bond12,dihed0123
     VClass14 = None
     VClass15 = None
@@ -1251,7 +1251,7 @@ class CrossBondDihedral4Generator(CrossBondDihedralGenerator):
     VClass03 = Cross #bond01,dihed0123
     VClass04 = None
     VClass05 = None
-    VClass12 = None  #bond12,bond23    already in angle123 cross term  
+    VClass12 = None  #bond12,bond23    already in angle123 cross term
     VClass13 = Cross #bond12,dihed0123
     VClass14 = None
     VClass15 = None
@@ -1278,7 +1278,7 @@ class CrossBondDihedral6Generator(CrossBondDihedralGenerator):
     VClass03 = Cross #bond01,dihed0123
     VClass04 = None
     VClass05 = None
-    VClass12 = None  #bond12,bond23    already in angle123 cross term  
+    VClass12 = None  #bond12,bond23    already in angle123 cross term
     VClass13 = Cross #bond12,dihed0123
     VClass14 = None
     VClass15 = None
@@ -1317,7 +1317,7 @@ class CrossBendDihedralGenerator(ValenceCrossGenerator):
     VClass45 = None
 
     def iter_alt_keys(self, key):
-        yield key    
+        yield key
 
     def iter_equiv_keys_and_pars(self, key, pars):
         yield key, pars

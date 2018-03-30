@@ -153,7 +153,7 @@ def test_iclist_peroxide_dihedral_angle():
 
 def test_iclist_peroxide_dihedral_cos2():
     number_of_tests=50
-    for i in xrange(number_of_tests):
+    for i in range(number_of_tests):
         system = get_system_peroxide()
         system.pos += np.random.normal(0.0, 0.1, system.pos.shape)*angstrom
         dlist = DeltaList(system)
@@ -175,7 +175,7 @@ def test_iclist_peroxide_dihedral_cos2():
 
 def test_iclist_peroxide_dihedral_cos3():
     number_of_tests=50
-    for i in xrange(number_of_tests):
+    for i in range(number_of_tests):
         system = get_system_peroxide()
         system.pos += np.random.normal(0.0, 0.1, system.pos.shape)*angstrom
         dlist = DeltaList(system)
@@ -197,7 +197,7 @@ def test_iclist_peroxide_dihedral_cos3():
 
 def test_iclist_peroxide_dihedral_cos4():
     number_of_tests=50
-    for i in xrange(number_of_tests):
+    for i in range(number_of_tests):
         system = get_system_peroxide()
         system.pos += np.random.normal(0.0, 0.1, system.pos.shape)*angstrom
         dlist = DeltaList(system)
@@ -219,7 +219,7 @@ def test_iclist_peroxide_dihedral_cos4():
 
 def test_iclist_peroxide_dihedral_cos6():
     number_of_tests=50
-    for i in xrange(number_of_tests):
+    for i in range(number_of_tests):
         system = get_system_peroxide()
         system.pos += np.random.normal(0.0, 0.1, system.pos.shape)*angstrom
         dlist = DeltaList(system)
