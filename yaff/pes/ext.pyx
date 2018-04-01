@@ -38,6 +38,7 @@ cimport cell
 cimport nlist
 cimport pair_pot
 cimport ewald
+cimport comlist
 cimport dlist
 cimport iclist
 cimport vlist
@@ -58,6 +59,7 @@ __all__ = [
     'PairPotEiSlater1sp1spCorr', 'PairPotOlpSlater1s1s','PairPotChargeTransferSlater1s1s',
     'compute_ewald_reci', 'compute_ewald_reci_dd',  'compute_ewald_corr_dd',
     'compute_ewald_corr',
+    'comlist_dtype', 'comlist_forward', 'comlist_back',
     'delta_dtype', 'dlist_forward', 'dlist_back',
     'iclist_dtype', 'iclist_forward', 'iclist_back',
     'vlist_dtype', 'vlist_forward', 'vlist_back',
@@ -2551,6 +2553,97 @@ def compute_ewald_corr_dd(np.ndarray[double, ndim=2] pos,
         <pair_pot.scaling_row_type*>stab.data, len(stab), my_gpos,
         my_vtens, len(pos)
     )
+
+
+#
+# COM list
+#
+
+
+cdef comlist.comlist_row_type _comlist_row_tmp
+comlist_dtype = np.asarray(<comlist.comlist_row_type[:1]>(&_comlist_row_tmp)).dtype
+
+
+def comlist_forward(np.ndarray[dlist.dlist_row_type, ndim=1] deltas not None,
+                    np.ndarray[double, ndim=2] pos not None,
+                    np.ndarray[double, ndim=2] compos not None,
+                    np.ndarray[long, ndim=1] comsizes not None,
+                    np.ndarray[comlist.comlist_row_type, ndim=1] comtab not None):
+    '''Compute centers of masses of groups, taking into account periodic boundaries.
+
+       **Arguments:**
+
+       deltas
+            The delta list array
+
+       pos
+            The atomic positions. numpy array with shape (natom, 3).
+
+       compos
+            The center of mass positions. numpy array with shape (ncom, 3).
+
+       comsizes
+            The size of each group for which the center of mass is computed.
+
+       comtab
+            Indices and weights used to compute the center of mass.
+    '''
+    assert deltas.flags['C_CONTIGUOUS']
+    assert pos.flags['C_CONTIGUOUS']
+    assert pos.shape[1] == 3
+    assert compos.flags['C_CONTIGUOUS']
+    assert compos.shape[1] == 3
+    assert comsizes.flags['C_CONTIGUOUS']
+    assert comtab.flags['C_CONTIGUOUS']
+    comlist.comlist_forward(
+        <dlist.dlist_row_type*>deltas.data,
+        <double*>pos.data,
+        <double*>compos.data,
+        <long*>comsizes.data,
+        <comlist.comlist_row_type*>comtab.data,
+        len(comsizes))
+
+
+def comlist_back(np.ndarray[dlist.dlist_row_type, ndim=1] deltas not None,
+                 np.ndarray[double, ndim=2] gpos not None,
+                 np.ndarray[double, ndim=2] gcompos not None,
+                 np.ndarray[long, ndim=1] comsizes not None,
+                 np.ndarray[comlist.comlist_row_type, ndim=1] comtab not None):
+    '''The back-propagation step of the delta list
+
+       **Arguments:**
+
+       deltas
+            The delta list array
+
+       gpos
+            The derivatives of the energy w.r.t. atomic positions. numpy array with shape
+            (natom, 3). (adding to output only)
+
+       gcompos
+            The derivatives of the energy w.r.t. the center of mass positions. numpy array
+            with shape (ncom, 3).
+
+       comsizes
+            The size of each group for which the center of mass is computed.
+
+       comtab
+            Indices and weights used to compute the center of mass.
+    '''
+    assert deltas.flags['C_CONTIGUOUS']
+    assert gpos.flags['C_CONTIGUOUS']
+    assert gpos.shape[1] == 3
+    assert gcompos.flags['C_CONTIGUOUS']
+    assert gcompos.shape[1] == 3
+    assert comsizes.flags['C_CONTIGUOUS']
+    assert comtab.flags['C_CONTIGUOUS']
+    comlist.comlist_back(
+        <dlist.dlist_row_type*>deltas.data,
+        <double*>gpos.data,
+        <double*>gcompos.data,
+        <long*>comsizes.data,
+        <comlist.comlist_row_type*>comtab.data,
+        len(comsizes))
 
 
 #

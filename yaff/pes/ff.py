@@ -597,6 +597,9 @@ class ForcePartValence(ForcePart):
        The covalent force field is implemented in a three-layer approach,
        similar to the implementation of a neural network:
 
+       (0. Optional, not used by default. A layer that computes centers of mass for groups
+           of atoms.)
+
        1. The first layer consists of a :class:`yaff.pes.dlist.DeltaList` object
           that computes all the relative vectors needed for the internal
           coordinates in the covalent energy terms. This list is automatically
@@ -626,15 +629,21 @@ class ForcePartValence(ForcePart):
        comes from the field of neural networks. More details can be found in the
        chapter, :ref:`dg_sec_backprop`.
     '''
-    def __init__(self, system):
+    def __init__(self, system, comlist=None):
         '''
-           **Arguments:**
+           Parameters
+           ----------
 
            system
                 An instance of the ``System`` class.
+           comlist
+                An optional layer to derive centers of mass from the atomic positions.
+                These centers of mass are used as input for the first layer, the relative
+                vectors.
         '''
         ForcePart.__init__(self, 'valence', system)
-        self.dlist = DeltaList(system)
+        self.comlist = comlist
+        self.dlist = DeltaList(system if comlist is None else comlist)
         self.iclist = InternalCoordinateList(self.dlist)
         self.vlist = ValenceList(self.iclist)
         if log.do_medium:
@@ -661,13 +670,20 @@ class ForcePartValence(ForcePart):
 
     def _internal_compute(self, gpos, vtens):
         with timer.section('Valence'):
+            if self.comlist is not None:
+                self.comlist.forward()
             self.dlist.forward()
             self.iclist.forward()
             energy = self.vlist.forward()
             if not ((gpos is None) and (vtens is None)):
                 self.vlist.back()
                 self.iclist.back()
-                self.dlist.back(gpos, vtens)
+                if self.comlist is None:
+                    self.dlist.back(gpos, vtens)
+                else:
+                    self.comlist.gpos[:] = 0.0
+                    self.dlist.back(self.comlist.gpos, vtens)
+                    self.comlist.back(gpos, vtens)
             return energy
 
 
