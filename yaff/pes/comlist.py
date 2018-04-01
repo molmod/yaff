@@ -21,6 +21,7 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 # --
+"""Valence interactions between centers of mass."""
 
 
 import numpy as np

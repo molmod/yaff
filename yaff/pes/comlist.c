@@ -27,12 +27,14 @@
 
 void comlist_forward(dlist_row_type* deltas, double *pos, double* compos, long* comsizes,
     comlist_row_type* comtab, long ncom) {
-  for (int icom = 0; icom < ncom; icom++) {
+  int icom;
+  for (icom = 0; icom < ncom; icom++) {
     double cx = 0, cy = 0, cz = 0;
     long i0 = (*comtab).i;
     double wtot = (*comtab).w;
+    int i;
     comtab++;
-    for (int i = *comsizes - 2; i >= 0; i--) {
+    for (i = *comsizes - 2; i >= 0; i--) {
       cx += (*comtab).w*(*deltas).dx;
       cy += (*comtab).w*(*deltas).dy;
       cz += (*comtab).w*(*deltas).dz;
@@ -48,17 +50,19 @@ void comlist_forward(dlist_row_type* deltas, double *pos, double* compos, long* 
 
 void comlist_back(dlist_row_type* deltas, double *gpos, double* gcompos, long* comsizes,
     comlist_row_type* comtab, long ncom) {
-  for (int icom = 0; icom < ncom; icom++) {
+  int icom;
+  for (icom = 0; icom < ncom; icom++) {
     long i0 = (*comtab).i;
     double wtot = (*comtab).w;
-    comtab++;
     double gcx = gcompos[3*icom];
     double gcy = gcompos[3*icom + 1];
     double gcz = gcompos[3*icom + 2];
+    int i;
+    comtab++;
     gpos[3*i0] += gcx;
     gpos[3*i0 + 1] += gcy;
     gpos[3*i0 + 2] += gcz;
-    for (int i = *comsizes - 2; i >= 0; i--) {
+    for (i = *comsizes - 2; i >= 0; i--) {
       double wratio = (*comtab).w/wtot;
       (*deltas).gx += gcx*wratio;
       (*deltas).gy += gcy*wratio;
