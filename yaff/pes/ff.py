@@ -44,7 +44,7 @@ import numpy as np
 
 from yaff.log import log, timer
 from yaff.pes.ext import compute_ewald_reci, compute_ewald_reci_dd, compute_ewald_corr, \
-    compute_ewald_corr_dd, PairPotEI, PairPotLJ, PairPotMM3, PairPotGrimme, compute_grid3d
+    compute_ewald_corr_dd, PairPotEI, PairPotLJ, PairPotMM3, PairPotMM3CAP, PairPotGrimme, compute_grid3d
 from yaff.pes.dlist import DeltaList
 from yaff.pes.iclist import InternalCoordinateList
 from yaff.pes.vlist import ValenceList

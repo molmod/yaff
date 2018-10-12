@@ -37,7 +37,7 @@ from molmod.units import parse_unit, kjmol, angstrom
 from itertools import permutations
 
 from yaff.log import log
-from yaff.pes.ext import PairPotEI, PairPotLJ, PairPotMM3, PairPotExpRep, \
+from yaff.pes.ext import PairPotEI, PairPotLJ, PairPotMM3, PairPotMM3CAP, PairPotExpRep, \
     PairPotQMDFFRep, PairPotDampDisp, PairPotDisp68BJDamp, Switch3
 from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
@@ -71,7 +71,7 @@ __all__ = [
     'CrossBendDihedral6Generator',
     'CrossBendCosDihedralGenerator',
 
-    'NonbondedGenerator', 'LJGenerator', 'MM3Generator', 'ExpRepGenerator',
+    'NonbondedGenerator', 'LJGenerator', 'MM3Generator', 'MM3CAPGenerator', 'ExpRepGenerator',
     'DampDispGenerator', 'FixedChargeGenerator', 'D3BJGenerator',
 
     'apply_generators',
@@ -1683,6 +1683,44 @@ class MM3Generator(NonbondedGenerator):
         part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
         ff_args.parts.append(part_pair)
 
+
+class MM3CAPGenerator(NonbondedGenerator):
+    prefix = 'MM3CAP'
+    suffixes = ['UNIT', 'SCALE', 'PARS']
+    par_info = [('SIGMA', float), ('EPSILON', float), ('ONLYPAULI', int)]
+
+    def __call__(self, system, parsec, ff_args):
+        self.check_suffixes(parsec)
+        conversions = self.process_units(parsec['UNIT'])
+        par_table = self.process_pars(parsec['PARS'], conversions, 1)
+        scale_table = self.process_scales(parsec['SCALE'])
+        self.apply(par_table, scale_table, system, ff_args)
+
+    def apply(self, par_table, scale_table, system, ff_args):
+        # Prepare the atomic parameters
+        sigmas = np.zeros(system.natom)
+        epsilons = np.zeros(system.natom)
+        onlypaulis = np.zeros(system.natom, np.int32)
+        for i in range(system.natom):
+            key = (system.get_ffatype(i),)
+            par_list = par_table.get(key, [])
+            if len(par_list) > 2:
+                raise TypeError('Superposition should not be allowed for non-covalent terms.')
+            elif len(par_list) == 1:
+                sigmas[i], epsilons[i], onlypaulis[i] = par_list[0]
+
+        # Prepare the global parameters
+        scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3], scale_table[4])
+
+        # Get the part. It should not exist yet.
+        part_pair = ff_args.get_part_pair(PairPotMM3CAP)
+        if part_pair is not None:
+            raise RuntimeError('Internal inconsistency: the MM3CAP part should not be present yet.')
+
+        pair_pot = PairPotMM3CAP(sigmas, epsilons, onlypaulis, ff_args.rcut, ff_args.tr)
+        nlist = ff_args.get_nlist(system)
+        part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+        ff_args.parts.append(part_pair)
 
 class ExpRepGenerator(NonbondedGenerator):
     prefix = 'EXPREP'

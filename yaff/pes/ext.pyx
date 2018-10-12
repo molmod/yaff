@@ -53,7 +53,7 @@ __all__ = [
     'neigh_dtype', 'nlist_status_init', 'nlist_build', 'nlist_status_finish',
     'nlist_recompute', 'nlist_inc_r',
     'Hammer', 'Switch3',
-    'scaling_dtype', 'PairPot', 'PairPotLJ', 'PairPotMM3', 'PairPotGrimme',
+    'scaling_dtype', 'PairPot', 'PairPotLJ', 'PairPotMM3', 'PairPotMM3CAP', 'PairPotGrimme',
     'PairPotExpRep', 'PairPotQMDFFRep', 'PairPotLJCross', 'PairPotDampDisp',
     'PairPotDisp68BJDamp', 'PairPotEI', 'PairPotEIDip', 'PairPotEiSlater1s1sCorr',
     'PairPotEiSlater1sp1spCorr', 'PairPotOlpSlater1s1s','PairPotChargeTransferSlater1s1s',
@@ -835,6 +835,95 @@ cdef class PairPotMM3(PairPot):
         pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
         self.set_truncation(tr)
         pair_pot.pair_data_mm3_init(self._c_pair_pot, <double*>sigmas.data, <double*>epsilons.data, <int*>onlypaulis.data)
+        if not pair_pot.pair_pot_ready(self._c_pair_pot):
+            raise MemoryError()
+        self._c_sigmas = sigmas
+        self._c_epsilons = epsilons
+        self._c_onlypaulis = onlypaulis
+
+    def log(self):
+        '''Write some suitable post-initialization screen log'''
+        if log.do_high:
+            log.hline()
+            log('   Atom      Sigma    Epsilon    OnlyPauli')
+            log.hline()
+            for i in range(self._c_sigmas.shape[0]):
+                log('%7i %s %s            %i' % (i, log.length(self._c_sigmas[i]), log.energy(self._c_epsilons[i]), self._c_onlypaulis[i]))
+
+    def _get_sigmas(self):
+        '''The array with sigma parameters'''
+        return self._c_sigmas.view()
+
+    sigmas = property(_get_sigmas)
+
+    def _get_epsilons(self):
+        '''The array with epsilon parameters'''
+        return self._c_epsilons.view()
+
+    epsilons = property(_get_epsilons)
+
+    def _get_onlypaulis(self):
+        '''The array with the only-Pauli flag'''
+        return self._c_onlypaulis.view()
+
+    onlypaulis = property(_get_onlypaulis)
+
+
+cdef class PairPotMM3CAP(PairPot):
+    r'''The MM3 version of the Lennard-Jones pair potential
+
+       **Energy:**
+
+       .. math:: E_\text{MM3} = \sum_{i=1}^{N} \sum_{j=i+1}^{N} s_{ij} \epsilon_{ij} \left[
+                 1.84\times10^{5} \exp\left(\frac{\sigma_{ij}}{d_{ij}}\right) - 2.25\left(\frac{\sigma_{ij}}{d_{ij}}\right)^6
+                 \right]
+
+       with
+
+       .. math:: \epsilon_{ij} = \sqrt{\epsilon_i \epsilon_j}
+
+       .. math:: \sigma_{ij} = \frac{\sigma_i + \sigma_j}{2}
+
+       .. math:: s_{ij} = \text{the short-range scaling factor}
+
+       **Arguments:**
+
+       sigmas
+            An array with sigma parameters, one for each atom, shape (natom,)
+
+       epsilons
+            An array with epsilon parameters, one for each atom, shape (natom,)
+
+       onlypaulis
+            An array integers. When non-zero for both atoms in a pair, only the
+            repulsive wall is computed.
+
+       rcut
+            The cutoff radius
+
+       **Optional arguments:**
+
+       tr
+            The truncation scheme, an instance of a subclass of ``Truncation``.
+            When not given, no truncation is applied
+    '''
+    cdef np.ndarray _c_sigmas
+    cdef np.ndarray _c_epsilons
+    cdef np.ndarray _c_onlypaulis
+    name = 'mm3cap'
+
+    def __cinit__(self, np.ndarray[double, ndim=1] sigmas,
+                  np.ndarray[double, ndim=1] epsilons,
+                  np.ndarray[int, ndim=1] onlypaulis, double rcut,
+                  Truncation tr=None):
+        assert sigmas.flags['C_CONTIGUOUS']
+        assert epsilons.flags['C_CONTIGUOUS']
+        assert onlypaulis.flags['C_CONTIGUOUS']
+        assert sigmas.shape[0] == epsilons.shape[0]
+        assert sigmas.shape[0] == onlypaulis.shape[0]
+        pair_pot.pair_pot_set_rcut(self._c_pair_pot, rcut)
+        self.set_truncation(tr)
+        pair_pot.pair_data_mm3cap_init(self._c_pair_pot, <double*>sigmas.data, <double*>epsilons.data, <int*>onlypaulis.data)
         if not pair_pot.pair_pot_ready(self._c_pair_pot):
             raise MemoryError()
         self._c_sigmas = sigmas

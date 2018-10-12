@@ -54,6 +54,8 @@ cdef extern from "pair_pot.h":
 
     void pair_data_mm3_init(pair_pot_type *pair_pot, double *sigma, double *epsilon, int *onlypauli)
 
+    void pair_data_mm3cap_init(pair_pot_type *pair_pot, double *sigma, double *epsilon, int *onlypauli)
+
     void pair_data_grimme_init(pair_pot_type *pair_pot, double *r0, double *c6)
 
     void pair_data_exprep_init(pair_pot_type *pair_pot, long nffatype, long* ffatype_ids, double *amp_cross, double *b_cross)

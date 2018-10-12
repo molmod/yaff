@@ -234,6 +234,7 @@ void pair_data_mm3_init(pair_pot_type *pair_pot, double *sigma, double *epsilon,
   }
 }
 
+
 double pair_fn_mm3(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
 // E = epsilon*[1.84e5*exp(-12.0*R/sigma) - 2.25(sigma/R)^6]
   double sigma, epsilon, x, exponent;
@@ -267,6 +268,66 @@ double pair_fn_mm3(void *pair_data, long center_index, long other_index, double 
   }
 }
 
+
+void pair_data_mm3cap_init(pair_pot_type *pair_pot, double *sigma, double *epsilon, int *onlypauli) {
+  pair_data_mm3_type *pair_data;
+  pair_data = malloc(sizeof(pair_data_mm3_type));
+  (*pair_pot).pair_data = pair_data;
+  if (pair_data != NULL) {
+    (*pair_pot).pair_fn = pair_fn_mm3cap;
+    (*pair_data).sigma = sigma;
+    (*pair_data).epsilon = epsilon;
+    (*pair_data).onlypauli = onlypauli;
+  }
+}
+
+
+double pair_fn_mm3cap(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart) {
+// modified mm3 potential for MC simulations:
+// F = epsilon*[2.208e6/sigma*exp(-12.0*R/sigma) - 13.5*sigma^6/R^7]  if R > 0.355114 * sigma (maximum of F)
+//   = 12182.86986*epsilon/sigma                                      if R < 0.355114 * sigma
+// E = epsilon*[1.84e5*exp(-12.0*R/sigma) - 2.25(sigma/R)^6] if R > 0.355114 * sigma
+//   = epsilon*[5799.303156-12182.86986*R/sigma]             if R < 0.355114 * sigma
+  double sigma, epsilon, x, exponent, xmax;
+  int onlypauli;
+  sigma = (
+    (*(pair_data_mm3_type*)pair_data).sigma[center_index]+
+    (*(pair_data_mm3_type*)pair_data).sigma[other_index]
+  );
+  epsilon = sqrt(
+    (*(pair_data_mm3_type*)pair_data).epsilon[center_index]*
+    (*(pair_data_mm3_type*)pair_data).epsilon[other_index]
+  );
+  onlypauli = (
+    (*(pair_data_mm3_type*)pair_data).onlypauli[center_index]+
+    (*(pair_data_mm3_type*)pair_data).onlypauli[other_index]
+  );
+  x = d/sigma;
+  xmax = 0.355114;
+  if (onlypauli == 0){
+    if (x > xmax){
+      exponent = 1.84e5*exp(-12.0*x);
+      x *= x;
+      x *= 1/2.25*x*x;
+      if (g != NULL) {
+        *g =epsilon/d*(-12.0/sigma*exponent+6.0/d/x);
+      }
+      return epsilon*(exponent-1/x);
+    }
+    else {
+      exponent = 1.84e5*exp(-12.0*xmax);
+      xmax *= xmax;
+      xmax *= 1/2.25*xmax*xmax;       
+      if (g != NULL) { 
+        *g =epsilon/d*(-12.0/sigma*exponent+6.0/d/xmax);
+      }
+      return epsilon*(5799.303156-12182.86986*x);
+    }
+  }
+  else {
+    return pair_fn_mm3(pair_data, center_index, other_index, d, delta, g, g_cart);
+  }
+}
 
 
 void pair_data_grimme_init(pair_pot_type *pair_pot, double *r0, double *c6) {

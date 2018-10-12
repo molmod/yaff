@@ -78,6 +78,8 @@ typedef struct {
 void pair_data_mm3_init(pair_pot_type *pair_pot, double *sigma, double *epsilon, int *onlypauli);
 double pair_fn_mm3(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
 
+void pair_data_mm3cap_init(pair_pot_type *pair_pot, double *sigma, double *epsilon, int *onlypauli);
+double pair_fn_mm3cap(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
 
 typedef struct {
   double *r0;
