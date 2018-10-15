@@ -317,8 +317,8 @@ double pair_fn_mm3cap(void *pair_data, long center_index, long other_index, doub
     else {
       exponent = 1.84e5*exp(-12.0*xmax);
       xmax *= xmax;
-      xmax *= 1/2.25*xmax*xmax;       
-      if (g != NULL) { 
+      xmax *= 1/2.25*xmax*xmax;
+      if (g != NULL) {
         *g =epsilon/d*(-12.0/sigma*exponent+6.0/d/xmax);
       }
       return epsilon*(5799.303156-12182.86986*x);
