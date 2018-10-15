@@ -28,6 +28,8 @@
 #include <stdio.h>
 #endif
 
+#include <math.h>
+
 #include "grid.h"
 
 
