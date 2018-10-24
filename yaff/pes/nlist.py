@@ -54,7 +54,7 @@ __all__ = ['NeighborList']
 class NeighborList(object):
     '''Algorithms to keep track of all pair distances below a given rcut
     '''
-    def __init__(self, system, skin=0, mc=0, n_frame=None):
+    def __init__(self, system, skin=0, mc=False, n_frame=None):
         """
            **Arguments:**
 
@@ -146,15 +146,15 @@ class NeighborList(object):
                 # 2) a loop of consecutive update/allocate calls
                 last_start = 0
                 while True:
-                    if self.mc == 0:
-                        done = nlist_build(
-                            self.system.pos, self.rcut + self.skin, self.rmax,
-                            self.system.cell, status, self.neighs[last_start:]
-                        )
-                    else:
+                    if self.mc:
                         done = nlist_build_mc(
                             self.system.pos, self.rcut + self.skin, self.rmax,
                             self.system.cell, status, self.neighs[last_start:], self.n_frame
+                        )
+                    else:
+                        done = nlist_build(
+                            self.system.pos, self.rcut + self.skin, self.rmax,
+                            self.system.cell, status, self.neighs[last_start:]
                         )
                     if done:
                         break

@@ -86,7 +86,7 @@ class FFArgs(object):
     '''
     def __init__(self, rcut=18.89726133921252, tr=Switch3(7.558904535685008),
                  alpha_scale=3.5, gcut_scale=1.1, skin=0, smooth_ei=False,
-                 reci_ei='ewald',mc=0,n_frame=0):
+                 reci_ei='ewald',mc=False,n_frame=0):
         """
            **Optional arguments:**
 
@@ -149,10 +149,10 @@ class FFArgs(object):
 
     def get_nlist(self, system):
         if self.nlist is None:
-            if self.mc==0:
-                self.nlist = NeighborList(system, self.skin)
-            else:
+            if self.mc:
                 self.nlist = NeighborList(system, self.skin, self.mc, self.n_frame)
+            else:
+                self.nlist = NeighborList(system, self.skin)
         return self.nlist
 
     def get_part(self, ForcePartClass):
