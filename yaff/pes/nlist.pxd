@@ -36,6 +36,10 @@ cdef extern from "nlist.h":
                          cell.cell_type* cell, long *nlist_status,
                          neigh_row_type *neighs, long pos_size, long nneigh)
 
+    bint nlist_build_low_mc(double *pos, double rcut, long *rmax,
+                         cell.cell_type* cell, long *nlist_status,
+                         neigh_row_type *neighs, long pos_size, long pos_frame_size, long nneigh)
+
     void nlist_recompute_low(double *pos, double *pos_old, cell.cell_type*
                              unitcell, neigh_row_type *neighs, long nneigh)
 

@@ -45,7 +45,7 @@ import numpy as np
 
 from yaff.log import log, timer
 from yaff.pes.ext import neigh_dtype, nlist_status_init, nlist_status_finish, \
-    nlist_build, nlist_recompute
+    nlist_build, nlist_build_mc, nlist_recompute
 
 
 __all__ = ['NeighborList']
@@ -54,7 +54,7 @@ __all__ = ['NeighborList']
 class NeighborList(object):
     '''Algorithms to keep track of all pair distances below a given rcut
     '''
-    def __init__(self, system, skin=0):
+    def __init__(self, system, skin=0, mc=0, n_frame=None):
         """
            **Arguments:**
 
@@ -81,6 +81,8 @@ class NeighborList(object):
             raise ValueError('The skin parameter must be positive.')
         self.system = system
         self.skin = skin
+        self.mc = mc
+        self.n_frame = n_frame
         self.rcut = 0.0
         # the neighborlist:
         self.neighs = np.empty(10, dtype=neigh_dtype)
@@ -144,10 +146,16 @@ class NeighborList(object):
                 # 2) a loop of consecutive update/allocate calls
                 last_start = 0
                 while True:
-                    done = nlist_build(
-                        self.system.pos, self.rcut + self.skin, self.rmax,
-                        self.system.cell, status, self.neighs[last_start:]
-                    )
+                    if self.mc == 0:
+                        done = nlist_build(
+                            self.system.pos, self.rcut + self.skin, self.rmax,
+                            self.system.cell, status, self.neighs[last_start:]
+                        )
+                    else:
+                        done = nlist_build_mc(
+                            self.system.pos, self.rcut + self.skin, self.rmax,
+                            self.system.cell, status, self.neighs[last_start:], self.n_frame
+                        )
                     if done:
                         break
                     last_start = len(self.neighs)

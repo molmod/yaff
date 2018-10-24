@@ -86,7 +86,7 @@ class FFArgs(object):
     '''
     def __init__(self, rcut=18.89726133921252, tr=Switch3(7.558904535685008),
                  alpha_scale=3.5, gcut_scale=1.1, skin=0, smooth_ei=False,
-                 reci_ei='ewald'):
+                 reci_ei='ewald',mc=0,n_frame=0):
         """
            **Optional arguments:**
 
@@ -144,10 +144,15 @@ class FFArgs(object):
         # arguments for the ForceField constructor
         self.parts = []
         self.nlist = None
+        self.mc = mc
+        self.n_frame = n_frame
 
     def get_nlist(self, system):
         if self.nlist is None:
-            self.nlist = NeighborList(system, self.skin)
+            if self.mc==0:
+                self.nlist = NeighborList(system, self.skin)
+            else:
+                self.nlist = NeighborList(system, self.skin, self.mc, self.n_frame)
         return self.nlist
 
     def get_part(self, ForcePartClass):
