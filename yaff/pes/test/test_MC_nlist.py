@@ -1,6 +1,6 @@
 from yaff import System, ForceField, log
 import numpy as np
-
+import pkg_resources
 
 def test_MC_nlist():
 
@@ -28,9 +28,10 @@ def test_MC_nlist():
 		new_com = np.random.rand()*rvecs[0] + np.random.rand()*rvecs[1] + np.random.rand()*rvecs[2]
 		return pos + new_com
 
-	system = System.from_file('../../data/test/CAU_13.chk')
+	system = System.from_file(pkg_resources.resource_filename(__name__, '../../data/test/CAU_13.chk'))
+	
 	N_system = len(system.pos)
-	adsorbate = System.from_file('../../data/test/xylene.chk')
+	adsorbate = System.from_file(pkg_resources.resource_filename(__name__, '../../data/test/xylene.chk'))
 
 	# Add 4 adsorbates
 	pos = system.pos
@@ -51,9 +52,10 @@ def test_MC_nlist():
 
 	system = System(numbers, pos, ffatypes=ffatypes, ffatype_ids=ffatype_ids, bonds=bonds,\
 					rvecs = system.cell.rvecs, charges=charges, masses=masses)
-	ff_full_nlist = ForceField.generate(system, '../../data/test/parameters_CAU-13_xylene.txt')
+	ff_full_nlist = ForceField.generate(system, pkg_resources.resource_filename(__name__, '../../data/test/parameters_CAU-13_xylene.txt'))
 	E_full = ff_full_nlist.compute()
-	ff_no_frame_frame_nlist = ForceField.generate(system, '../../data/test/parameters_CAU-13_xylene.txt',mc=True,n_frame=N_system)
+	ff_no_frame_frame_nlist = ForceField.generate(system, \
+					pkg_resources.resource_filename(__name__, '../../data/test/parameters_CAU-13_xylene.txt'),mc=True,n_frame=N_system)
 	E_no_frame_frame = ff_no_frame_frame_nlist.compute()
 
 	# Test 100 random configurations
@@ -66,10 +68,6 @@ def test_MC_nlist():
 		ff_no_frame_frame_nlist.update_pos(new_pos)
 
 		assert (ff_full_nlist.compute() - E_full) - (ff_no_frame_frame_nlist.compute() - E_no_frame_frame) < 10e-8
-
-
-
-
 
 
 
