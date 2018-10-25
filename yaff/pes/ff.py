@@ -328,7 +328,7 @@ class ForcePartEwaldReciprocal(ForcePart):
     '''The long-range contribution to the electrostatic interaction in 3D
        periodic systems.
     '''
-    def __init__(self, system, alpha, gcut=0.35, dielectric=1.0):
+    def __init__(self, system, alpha, gcut=0.35, dielectric=1.0, exclude_frame=False, n_frame=0):
         '''
            **Arguments:**
 
@@ -345,6 +345,14 @@ class ForcePartEwaldReciprocal(ForcePart):
 
            dielectric
                 The scalar relative permittivity of the system.
+
+           exclude_frame
+				A boolean to exclude framework-framework interactions
+                (exclude_frame=True) for efficiency sake in MC simulations.
+
+           n_frame
+				Number of framework atoms. This parameter is used to exclude
+				framework-framework neighbors when exclude_frame=True.
         '''
         ForcePart.__init__(self, 'ewald_reci', system)
         if not system.cell.nvec == 3:
@@ -357,6 +365,11 @@ class ForcePartEwaldReciprocal(ForcePart):
         self.dielectric = dielectric
         self.update_gmax()
         self.work = np.empty(system.natom*2)
+        if exclude_frame == True and n_frame < 0:
+            raise ValueError('The number of framework atoms to exclude must be positive.')
+        elif exclude_frame == False:
+            n_frame = 0
+        self.n_frame = n_frame
         if log.do_medium:
             with log.section('FPINIT'):
                 log('Force part: %s' % self.name)
@@ -383,7 +396,7 @@ class ForcePartEwaldReciprocal(ForcePart):
         with timer.section('Ewald reci.'):
             return compute_ewald_reci(
                 self.system.pos, self.system.charges, self.system.cell, self.alpha,
-                self.gmax, self.gcut, self.dielectric, gpos, self.work, vtens
+                self.gmax, self.gcut, self.dielectric, gpos, self.work, vtens, self.n_frame
             )
 
 
@@ -391,7 +404,7 @@ class ForcePartEwaldReciprocalDD(ForcePart):
     '''The long-range contribution to the dipole-dipole
        electrostatic interaction in 3D periodic systems.
     '''
-    def __init__(self, system, alpha, gcut=0.35):
+    def __init__(self, system, alpha, gcut=0.35, exclude_frame=False, n_frame=0):
         '''
            **Arguments:**
 
@@ -403,6 +416,16 @@ class ForcePartEwaldReciprocalDD(ForcePart):
 
            gcut
                 The cutoff in reciprocal space.
+
+           exclude_frame
+                A boolean to exclude framework-framework neighbors in the 
+				construction of a NeighborList (exclude_frame=True) for
+				efficiency sake in MC simulations.
+
+           n_frame
+				Number of framework atoms. This parameter is used to exclude
+				framework-framework neighbors when exclude_frame=True.
+
         '''
         ForcePart.__init__(self, 'ewald_reci', system)
         if not system.cell.nvec == 3:
@@ -416,6 +439,11 @@ class ForcePartEwaldReciprocalDD(ForcePart):
         self.gcut = gcut
         self.update_gmax()
         self.work = np.empty(system.natom*2)
+        if exclude_frame == True and n_frame < 0:
+            raise ValueError('The number of framework atoms to exclude must be positive.')
+        elif exclude_frame == False:
+            n_frame = 0
+        self.n_frame = n_frame
         if log.do_medium:
             with log.section('FPINIT'):
                 log('Force part: %s' % self.name)
@@ -441,7 +469,7 @@ class ForcePartEwaldReciprocalDD(ForcePart):
         with timer.section('Ewald reci.'):
             return compute_ewald_reci_dd(
                 self.system.pos, self.system.charges, self.system.dipoles, self.system.cell, self.alpha,
-                self.gmax, self.gcut, gpos, self.work, vtens
+                self.gmax, self.gcut, gpos, self.work, vtens, self.n_frame
             )
 
 

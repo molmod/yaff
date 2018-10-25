@@ -1,8 +1,8 @@
-from yaff import System, ForceField, log
+from yaff import System, ForceField
 import numpy as np
 import pkg_resources
 
-def test_MC_nlist():
+def test_exclusion():
 
 	def random_rotation(pos):
 		com = np.average(pos, axis=0)
@@ -28,12 +28,22 @@ def test_MC_nlist():
 		new_com = np.random.rand()*rvecs[0] + np.random.rand()*rvecs[1] + np.random.rand()*rvecs[2]
 		return pos + new_com
 
+	# Empty framework
 	system = System.from_file(pkg_resources.resource_filename(__name__, '../../data/test/CAU_13.chk'))
-	
 	N_system = len(system.pos)
-	adsorbate = System.from_file(pkg_resources.resource_filename(__name__, '../../data/test/xylene.chk'))
+	ff_file = pkg_resources.resource_filename(__name__, '../../data/test/parameters_CAU-13_xylene.txt')
+
+	ff = ForceField.generate(system, ff_file)
+	ff.nlist.update()
+	E_parts = {part.name:part.compute() for part in ff.parts}
+
+	ff_new = ForceField.generate(system, ff_file, exclude_frame=True, n_frame=N_system)
+	ff_new.nlist.update()
+	E_parts_new = {part.name:part.compute() for part in ff_new.parts}
 
 	# Add 4 adsorbates
+	adsorbate = System.from_file(pkg_resources.resource_filename(__name__, '../../data/test/xylene.chk'))
+
 	pos = system.pos
 	ffatypes = np.append(system.ffatypes, adsorbate.ffatypes)
 	bonds = system.bonds
@@ -50,28 +60,28 @@ def test_MC_nlist():
 		charges = np.append(charges, adsorbate.charges, axis=0)
 		masses = np.append(masses, adsorbate.masses, axis=0)
 
+	# Framework with 4 adsorbates
 	system = System(numbers, pos, ffatypes=ffatypes, ffatype_ids=ffatype_ids, bonds=bonds,\
 					rvecs = system.cell.rvecs, charges=charges, masses=masses)
-	ff_full_nlist = ForceField.generate(system, pkg_resources.resource_filename(__name__, '../../data/test/parameters_CAU-13_xylene.txt'))
-	E_full = ff_full_nlist.compute()
-	ff_no_frame_frame_nlist = ForceField.generate(system, \
-					pkg_resources.resource_filename(__name__, '../../data/test/parameters_CAU-13_xylene.txt'),mc=True,n_frame=N_system)
-	E_no_frame_frame = ff_no_frame_frame_nlist.compute()
+	
+	ff = ForceField.generate(system, ff_file)
+	ff_new = ForceField.generate(system, ff_file, exclude_frame=True, n_frame=N_system)
 
 	# Test 100 random configurations
 	for i in range(100):
-		new_pos = ff_full_nlist.system.pos
+		new_pos = ff.system.pos
 		for i in range(4):
 			new_pos[N_system+i*len(adsorbate.pos):N_system+(i+1)*len(adsorbate.pos)] = get_adsorbate_pos(adsorbate,system.cell.rvecs)
 
-		ff_full_nlist.update_pos(new_pos)
-		ff_no_frame_frame_nlist.update_pos(new_pos)
+		ff.update_pos(new_pos)
+		ff_new.update_pos(new_pos)
+		ff.nlist.update()
+		ff_new.nlist.update()
 
-		assert (ff_full_nlist.compute() - E_full) - (ff_no_frame_frame_nlist.compute() - E_no_frame_frame) < 10e-8
-
-
-
-
+		E_parts_rand = {part.name:part.compute() for part in ff.parts}
+		E_parts_new_rand = {part.name:part.compute() for part in ff_new.parts}
+		for key, _ in E_parts.items():
+			assert (E_parts[key]-E_parts_rand[key]) - (E_parts_new[key]-E_parts_new_rand[key]) < 10e-12
 
 
 

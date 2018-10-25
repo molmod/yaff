@@ -50,7 +50,7 @@ from yaff.log import log
 
 __all__ = [
     'Cell',
-    'neigh_dtype', 'nlist_status_init', 'nlist_build', 'nlist_build_mc', 'nlist_status_finish',
+    'neigh_dtype', 'nlist_status_init', 'nlist_build', 'nlist_status_finish',
     'nlist_recompute', 'nlist_inc_r',
     'Hammer', 'Switch3',
     'scaling_dtype', 'PairPot', 'PairPotLJ', 'PairPotMM3', 'PairPotMM3CAP', 'PairPotGrimme',
@@ -377,56 +377,6 @@ def nlist_status_init(rmax):
 def nlist_build(np.ndarray[double, ndim=2] pos, double rcut,
                 np.ndarray[long, ndim=1] rmax,
                 Cell unitcell, np.ndarray[long, ndim=1] status,
-                np.ndarray[nlist.neigh_row_type, ndim=1] neighs):
-    '''Scan the system for all pairs that have a distance smaller than rcut until the neighs array is filled or all pairs are considered
-
-       **Arguments:**
-
-       pos
-            The numpy array with the atomic positions, shape (natom, 3)
-
-       rcut
-            The cutoff radius
-
-       rmax
-            The number of periodic images to visit along each cell vector, shape
-            (nrvec,)
-
-       unitcell
-            An instance of the UnitCell class, describing the periodic boundary
-            conditions.
-
-       status
-            The status array, either obtained from ``nlist_status_init``, or
-            as it was modified by the last call to this function
-
-       neighs
-            The neighbor list array. One element is of the datatype
-            nlist.neigh_row_type.
-
-       **Returns:**
-
-       ``True`` if the neighbor list is complete. ``False`` otherwise
-    '''
-    assert pos.shape[1] == 3
-    assert pos.flags['C_CONTIGUOUS']
-    assert rcut > 0
-    assert rmax.shape[0] <= 3
-    assert rmax.flags['C_CONTIGUOUS']
-    assert status.shape[0] == 7
-    assert status.flags['C_CONTIGUOUS']
-    assert neighs.flags['C_CONTIGUOUS']
-    assert rmax.shape[0] == unitcell.nvec
-    return nlist.nlist_build_low(
-        <double*>pos.data, rcut, <long*>rmax.data,
-        unitcell._c_cell, <long*>status.data,
-        <nlist.neigh_row_type*>neighs.data, len(pos), len(neighs)
-    )
-
-
-def nlist_build_mc(np.ndarray[double, ndim=2] pos, double rcut,
-                np.ndarray[long, ndim=1] rmax,
-                Cell unitcell, np.ndarray[long, ndim=1] status,
                 np.ndarray[nlist.neigh_row_type, ndim=1] neighs, int n_frame):
     '''Scan the system for all pairs that have a distance smaller than rcut until the neighs array is filled or all pairs are considered
 
@@ -454,6 +404,10 @@ def nlist_build_mc(np.ndarray[double, ndim=2] pos, double rcut,
             The neighbor list array. One element is of the datatype
             nlist.neigh_row_type.
 
+       n_frame
+            The number of framework atoms. This is used to exclude framework-framework atoms
+            in the construction of a NeighborList in case n_frame > 0.
+
        **Returns:**
 
        ``True`` if the neighbor list is complete. ``False`` otherwise
@@ -467,7 +421,7 @@ def nlist_build_mc(np.ndarray[double, ndim=2] pos, double rcut,
     assert status.flags['C_CONTIGUOUS']
     assert neighs.flags['C_CONTIGUOUS']
     assert rmax.shape[0] == unitcell.nvec
-    return nlist.nlist_build_low_mc(
+    return nlist.nlist_build_low(
         <double*>pos.data, rcut, <long*>rmax.data,
         unitcell._c_cell, <long*>status.data,
         <nlist.neigh_row_type*>neighs.data, len(pos), n_frame, len(neighs)
@@ -2366,7 +2320,8 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
                        double gcut, double dielectric,
                        np.ndarray[double, ndim=2] gpos,
                        np.ndarray[double, ndim=1] work,
-                       np.ndarray[double, ndim=2] vtens):
+                       np.ndarray[double, ndim=2] vtens,
+                       int n_frame):
     '''Compute the reciprocal interaction term in the Ewald summation scheme
 
        **Arguments:**
@@ -2409,6 +2364,11 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
        vtens
             If not set to None, the virial tensor is computed and stored in
             this array. numpy array with shape (3, 3).
+
+       n_frame
+            The number of framework atoms. This is used to exclude framework-framework 
+            interactions in case n_frame > 0.
+
     '''
     cdef double *my_gpos
     cdef double *my_work
@@ -2444,7 +2404,7 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
         assert vtens.shape[1] == 3
         my_vtens = <double*>vtens.data
 
-    return ewald.compute_ewald_reci(<double*>pos.data, len(pos),
+    return ewald.compute_ewald_reci(<double*>pos.data, len(pos), n_frame,
                                     <double*>charges.data,
                                     unitcell._c_cell, alpha, <long*>gmax.data,
                                     gcut, dielectric, my_gpos, my_work,
@@ -2458,7 +2418,8 @@ def compute_ewald_reci_dd(np.ndarray[double, ndim=2] pos,
                        np.ndarray[long, ndim=1] gmax, double gcut,
                        np.ndarray[double, ndim=2] gpos,
                        np.ndarray[double, ndim=1] work,
-                       np.ndarray[double, ndim=2] vtens):
+                       np.ndarray[double, ndim=2] vtens,
+                       int n_frame):
     '''Compute the reciprocal interaction term in the Ewald summation scheme
 
        **Arguments:**
@@ -2501,6 +2462,10 @@ def compute_ewald_reci_dd(np.ndarray[double, ndim=2] pos,
        vtens
             If not set to None, the virial tensor is computed and stored in
             this array. numpy array with shape (3, 3).
+
+       n_frame
+            The number of framework atoms. This is used to exclude framework-framework 
+            interactions in case n_frame > 0.
     '''
     cdef double *my_gpos
     cdef double *my_work
@@ -2537,7 +2502,7 @@ def compute_ewald_reci_dd(np.ndarray[double, ndim=2] pos,
         assert vtens.shape[1] == 3
         my_vtens = <double*>vtens.data
 
-    return ewald.compute_ewald_reci_dd(<double*>pos.data, len(pos),
+    return ewald.compute_ewald_reci_dd(<double*>pos.data, len(pos), n_frame,
                                     <double*>charges.data,
                                     <double*>dipoles.data,
                                     unitcell._c_cell, alpha,

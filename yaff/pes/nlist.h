@@ -36,10 +36,6 @@ typedef struct {
 
 int nlist_build_low(double *pos, double rcut, long *rmax, cell_type *unitcell,
                     long *nlist_status, neigh_row_type *neighs, long pos_size,
-                    long nneigh);
-
-int nlist_build_low_mc(double *pos, double rcut, long *rmax, cell_type *unitcell,
-                    long *nlist_status, neigh_row_type *neighs, long pos_size,
                     long pos_frame_size, long nneigh);
 
 void nlist_recompute_low(double *pos, double *pos_old, cell_type* unitcell,

@@ -86,7 +86,7 @@ class FFArgs(object):
     '''
     def __init__(self, rcut=18.89726133921252, tr=Switch3(7.558904535685008),
                  alpha_scale=3.5, gcut_scale=1.1, skin=0, smooth_ei=False,
-                 reci_ei='ewald',mc=False,n_frame=0):
+                 reci_ei='ewald', exclude_frame=False, n_frame=0):
         """
            **Optional arguments:**
 
@@ -124,6 +124,14 @@ class FFArgs(object):
                 must be one of 'ignore' or 'ewald'. The 'ewald' option is only
                 supported for 3D periodic systems.
 
+			exclude_frame
+				A boolean to exclude framework-framework interactions
+                (exclude_frame=True) for efficiency sake in MC simulations.
+
+			n_frame
+				Number of framework atoms. This parameter is used to exclude
+				framework-framework neighbors when exclude_frame=True.
+
            The actual value of gcut, which depends on both gcut_scale and
            alpha_scale, determines the computational cost of the reciprocal term
            in the Ewald summation. The default values are just examples. An
@@ -144,15 +152,12 @@ class FFArgs(object):
         # arguments for the ForceField constructor
         self.parts = []
         self.nlist = None
-        self.mc = mc
+        self.exclude_frame = exclude_frame
         self.n_frame = n_frame
 
     def get_nlist(self, system):
         if self.nlist is None:
-            if self.mc:
-                self.nlist = NeighborList(system, self.skin, self.mc, self.n_frame)
-            else:
-                self.nlist = NeighborList(system, self.skin)
+            self.nlist = NeighborList(system, self.skin, self.exclude_frame, self.n_frame)
         return self.nlist
 
     def get_part(self, ForcePartClass):
@@ -197,7 +202,7 @@ class FFArgs(object):
         elif self.reci_ei == 'ewald':
             if system.cell.nvec == 3:
                 # Reciprocal-space electrostatics
-                part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, self.gcut_scale*alpha, dielectric)
+                part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, self.gcut_scale*alpha, dielectric, self.exclude_frame, self.n_frame)
                 self.parts.append(part_ewald_reci)
                 # Ewald corrections
                 part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings, dielectric)
