@@ -2366,7 +2366,7 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
             this array. numpy array with shape (3, 3).
 
        n_frame
-            The number of framework atoms. This is used to exclude framework-framework 
+            The number of framework atoms. This is used to exclude framework-framework
             interactions in case n_frame > 0.
 
     '''
@@ -2464,7 +2464,7 @@ def compute_ewald_reci_dd(np.ndarray[double, ndim=2] pos,
             this array. numpy array with shape (3, 3).
 
        n_frame
-            The number of framework atoms. This is used to exclude framework-framework 
+            The number of framework atoms. This is used to exclude framework-framework
             interactions in case n_frame > 0.
     '''
     cdef double *my_gpos

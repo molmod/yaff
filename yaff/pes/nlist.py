@@ -77,14 +77,14 @@ class NeighborList(object):
                 become very inefficient. Some tuning of ``rcut`` and ``skin``
                 may be beneficial.
 
-			exclude_frame
-				A boolean to exclude framework-framework neighbors in the 
-				construction of a NeighborList (exclude_frame=True) for
-				efficiency sake in MC simulations.
+            exclude_frame
+                A boolean to exclude framework-framework neighbors in the
+                construction of a NeighborList (exclude_frame=True) for
+                efficiency sake in MC simulations.
 
-			n_frame
-				Number of framework atoms. This parameter is used to exclude
-				framework-framework neighbors when exclude_frame=True.
+            n_frame
+                Number of framework atoms. This parameter is used to exclude
+                framework-framework neighbors when exclude_frame=True.
 
         """
         if skin < 0:

@@ -347,12 +347,12 @@ class ForcePartEwaldReciprocal(ForcePart):
                 The scalar relative permittivity of the system.
 
            exclude_frame
-				A boolean to exclude framework-framework interactions
+                A boolean to exclude framework-framework interactions
                 (exclude_frame=True) for efficiency sake in MC simulations.
 
            n_frame
-				Number of framework atoms. This parameter is used to exclude
-				framework-framework neighbors when exclude_frame=True.
+                Number of framework atoms. This parameter is used to exclude
+                framework-framework neighbors when exclude_frame=True.
         '''
         ForcePart.__init__(self, 'ewald_reci', system)
         if not system.cell.nvec == 3:
@@ -418,13 +418,13 @@ class ForcePartEwaldReciprocalDD(ForcePart):
                 The cutoff in reciprocal space.
 
            exclude_frame
-                A boolean to exclude framework-framework neighbors in the 
-				construction of a NeighborList (exclude_frame=True) for
-				efficiency sake in MC simulations.
+                A boolean to exclude framework-framework neighbors in the
+                construction of a NeighborList (exclude_frame=True) for
+                efficiency sake in MC simulations.
 
            n_frame
-				Number of framework atoms. This parameter is used to exclude
-				framework-framework neighbors when exclude_frame=True.
+                Number of framework atoms. This parameter is used to exclude
+                framework-framework neighbors when exclude_frame=True.
 
         '''
         ForcePart.__init__(self, 'ewald_reci', system)

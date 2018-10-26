@@ -124,13 +124,13 @@ class FFArgs(object):
                 must be one of 'ignore' or 'ewald'. The 'ewald' option is only
                 supported for 3D periodic systems.
 
-			exclude_frame
-				A boolean to exclude framework-framework interactions
+            exclude_frame
+                A boolean to exclude framework-framework interactions
                 (exclude_frame=True) for efficiency sake in MC simulations.
 
-			n_frame
-				Number of framework atoms. This parameter is used to exclude
-				framework-framework neighbors when exclude_frame=True.
+            n_frame
+                Number of framework atoms. This parameter is used to exclude
+                framework-framework neighbors when exclude_frame=True.
 
            The actual value of gcut, which depends on both gcut_scale and
            alpha_scale, determines the computational cost of the reciprocal term
