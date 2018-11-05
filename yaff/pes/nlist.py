@@ -44,8 +44,8 @@ from __future__ import division
 import numpy as np
 
 from yaff.log import log, timer
-from yaff.pes.ext import neigh_dtype, nlist_status_init, nlist_status_finish, \
-    nlist_build, nlist_recompute
+from yaff.pes.ext import neigh_dtype, nlist_status_init,\
+        nlist_status_finish, nlist_build, nlist_recompute
 
 
 __all__ = ['NeighborList']
@@ -54,7 +54,7 @@ __all__ = ['NeighborList']
 class NeighborList(object):
     '''Algorithms to keep track of all pair distances below a given rcut
     '''
-    def __init__(self, system, skin=0):
+    def __init__(self, system, skin=0, exclude_frame=False, n_frame=0):
         """
            **Arguments:**
 
@@ -76,6 +76,16 @@ class NeighborList(object):
                 reasonable. If the skin is set too large, the updates will
                 become very inefficient. Some tuning of ``rcut`` and ``skin``
                 may be beneficial.
+
+            exclude_frame
+                A boolean to exclude framework-framework neighbors in the
+                construction of a NeighborList (exclude_frame=True) for
+                efficiency sake in MC simulations.
+
+            n_frame
+                Number of framework atoms. This parameter is used to exclude
+                framework-framework neighbors when exclude_frame=True.
+
         """
         if skin < 0:
             raise ValueError('The skin parameter must be positive.')
@@ -86,6 +96,11 @@ class NeighborList(object):
         self.neighs = np.empty(10, dtype=neigh_dtype)
         self.nneigh = 0
         self.rmax = None
+        if exclude_frame == True and n_frame < 0:
+            raise ValueError('The number of framework atoms to exclude must be positive.')
+        elif exclude_frame == False:
+            n_frame = 0
+        self.n_frame = n_frame
         # for skin algorithm:
         self._pos_old = None
         self.rebuild_next = False
@@ -146,7 +161,7 @@ class NeighborList(object):
                 while True:
                     done = nlist_build(
                         self.system.pos, self.rcut + self.skin, self.rmax,
-                        self.system.cell, status, self.neighs[last_start:]
+                        self.system.cell, status, self.neighs[last_start:], self.n_frame
                     )
                     if done:
                         break

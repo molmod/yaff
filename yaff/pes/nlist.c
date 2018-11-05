@@ -29,7 +29,7 @@
 
 int nlist_build_low(double *pos, double rcut, long *rmax,
                     cell_type *unitcell, long *status,
-                    neigh_row_type *neighs, long natom, long nneigh) {
+                    neigh_row_type *neighs, long natom, long natom_frame, long nneigh) {
 
   long a, b, row;
   long *r;
@@ -51,45 +51,47 @@ int nlist_build_low(double *pos, double rcut, long *rmax,
       status[6] += row;
       return 1;
     }
-    // Avoid adding pairs for which a > b and that match the minimum image
-    // convention.
-    if (update_delta0) {
-      // Compute the relative vector.
-      delta0[0] = pos[3*b  ] - pos[3*a  ];
-      delta0[1] = pos[3*b+1] - pos[3*a+1];
-      delta0[2] = pos[3*b+2] - pos[3*a+2];
-      // Subtract the cell vectors as to make the relative vector as short
-      // as possible. (This is the minimum image convention.)
-      cell_mic(delta0, unitcell);
-      // Done updating delta0.
-      update_delta0 = 0;
-    }
-    // Only add self-interactions with atoms in periodic images.
-    if ((b<a) || image) {
-      // Construct delta by adding the appropriate cell vector to delta0
-      delta[0] = sign*delta0[0];
-      delta[1] = sign*delta0[1];
-      delta[2] = sign*delta0[2];
-      cell_add_vec(delta, unitcell, r);
-      // Compute the distance and store the record if distance is below the rcut.
-      d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
-      if (d < rcut) {
-        if (sign > 0) {
-          (*neighs).a = a;
-          (*neighs).b = b;
-        } else {
-          (*neighs).a = b;
-          (*neighs).b = a;
+    if (a>=natom_frame || b>=natom_frame) {
+      // Avoid adding pairs for which a > b and that match the minimum image
+      // convention.
+      if (update_delta0) {
+        // Compute the relative vector.
+        delta0[0] = pos[3*b  ] - pos[3*a  ];
+        delta0[1] = pos[3*b+1] - pos[3*a+1];
+        delta0[2] = pos[3*b+2] - pos[3*a+2];
+        // Subtract the cell vectors as to make the relative vector as short
+        // as possible. (This is the minimum image convention.)
+        cell_mic(delta0, unitcell);
+        // Done updating delta0.
+        update_delta0 = 0;
+      }
+      // Only add self-interactions with atoms in periodic images.
+      if ((b<a) || image) {
+        // Construct delta by adding the appropriate cell vector to delta0
+        delta[0] = sign*delta0[0];
+        delta[1] = sign*delta0[1];
+        delta[2] = sign*delta0[2];
+        cell_add_vec(delta, unitcell, r);
+        // Compute the distance and store the record if distance is below the rcut.
+        d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
+        if (d < rcut) {
+          if (sign > 0) {
+            (*neighs).a = a;
+            (*neighs).b = b;
+          } else {
+            (*neighs).a = b;
+            (*neighs).b = a;
+          }
+          (*neighs).d = d;
+          (*neighs).dx = delta[0];
+          (*neighs).dy = delta[1];
+          (*neighs).dz = delta[2];
+          (*neighs).r0 = r[0];
+          (*neighs).r1 = r[1];
+          (*neighs).r2 = r[2];
+          neighs++;
+          row++;
         }
-        (*neighs).d = d;
-        (*neighs).dx = delta[0];
-        (*neighs).dy = delta[1];
-        (*neighs).dz = delta[2];
-        (*neighs).r0 = r[0];
-        (*neighs).r1 = r[1];
-        (*neighs).r2 = r[2];
-        neighs++;
-        row++;
       }
     }
     // Increase the appropriate counters in the sextuple loop.
@@ -122,6 +124,9 @@ int nlist_build_low(double *pos, double rcut, long *rmax,
   status[6] += row;
   return 0;
 }
+
+
+
 
 
 int nlist_inc_r(cell_type *unitcell, long *r, long *rmax) {

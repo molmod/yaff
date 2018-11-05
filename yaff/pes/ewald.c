@@ -29,12 +29,12 @@
 #include "cell.h"
 #include <stdio.h>
 
-double compute_ewald_reci(double *pos, long natom, double *charges,
+double compute_ewald_reci(double *pos, long natom, long natom_frame, double *charges,
                           cell_type* cell, double alpha, long *gmax, double
                           gcut, double dielectric, double *gpos, double *work,
                           double* vtens) {
   long g0, g1, g2, i;
-  double energy, k[3], ksq, cosfac, sinfac, x, c, s, fac1, fac2, dielectric_factor;
+  double energy, k[3], ksq, cosfac, sinfac, cosfac_frame, sinfac_frame, x, c, s, fac1, fac2, dielectric_factor;
   double kvecs[9];
   for (i=0; i<9; i++) {
     kvecs[i] = M_TWO_PI*(*cell).gvecs[i];
@@ -56,21 +56,25 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
         k[2] = (g0*kvecs[2] + g1*kvecs[5] + g2*kvecs[8]);
         ksq = k[0]*k[0] + k[1]*k[1] + k[2]*k[2];
         if (ksq > gcut) continue;
-        cosfac = 0.0;
-        sinfac = 0.0;
+        cosfac = 0.0; cosfac_frame = 0.0;
+        sinfac = 0.0; sinfac_frame = 0.0;
         for (i=0; i<natom; i++) {
           x = k[0]*pos[3*i] + k[1]*pos[3*i+1] + k[2]*pos[3*i+2];
           c = charges[i]*cos(x);
           s = charges[i]*sin(x);
           cosfac += c;
           sinfac += s;
+          if (i < natom_frame) {
+              cosfac_frame += c;
+              sinfac_frame += s;
+          }
           if (gpos != NULL) {
             work[2*i] = c;
             work[2*i+1] = -s;
           }
         }
         c = fac1*exp(-ksq*fac2)/ksq;
-        s = (cosfac*cosfac+sinfac*sinfac);
+        s = (cosfac*cosfac+sinfac*sinfac-cosfac_frame*cosfac_frame-sinfac_frame*sinfac_frame);
         energy += c*s;
         if (gpos != NULL) {
           x = 2.0*c;
@@ -126,13 +130,13 @@ double compute_ewald_reci(double *pos, long natom, double *charges,
 //At the moment the idea is to make separate code for systems with monopoles and dipoles.
 //If it turns out that adding zero dipoles does not increase computational cost, this separate
 //code should become the main.
-double compute_ewald_reci_dd(double *pos, long natom, double *charges, double *dipoles,
+double compute_ewald_reci_dd(double *pos, long natom, long natom_frame, double *charges, double *dipoles,
                           cell_type* cell, double alpha, long *gmax,
                           double gcut, double *gpos, double *work,
                           double* vtens) {
   long g0, g1, g2, i;
   double energy, k[3], ksq, cosfac_dd[3], sinfac_dd[3], x, c, s, fac1, fac2;
-  double cosfac, sinfac;
+  double cosfac, sinfac, cosfac_frame, sinfac_frame;
   double kvecs[9];
   for (i=0; i<9; i++) {
     kvecs[i] = M_TWO_PI*(*cell).gvecs[i];
@@ -160,14 +164,18 @@ double compute_ewald_reci_dd(double *pos, long natom, double *charges, double *d
         sinfac_dd[0] = 0.0;
         sinfac_dd[1] = 0.0;
         sinfac_dd[2] = 0.0;
-        cosfac = 0.0;
-        sinfac = 0.0;
+        cosfac = 0.0; cosfac_frame = 0.0;
+        sinfac = 0.0; sinfac_frame = 0.0;
         for (i=0; i<natom; i++) {
           x = k[0]*pos[3*i] + k[1]*pos[3*i+1] + k[2]*pos[3*i+2];
           c = charges[i]*cos(x) + (k[0]*dipoles[3*i+0] + k[1]*dipoles[3*i+1] + k[2]*dipoles[3*i+2])*sin(x);
           s = charges[i]*sin(x) - (k[0]*dipoles[3*i+0] + k[1]*dipoles[3*i+1] + k[2]*dipoles[3*i+2])*cos(x);
           cosfac += c;
           sinfac += s;
+          if (i < natom_frame) {
+              cosfac_frame += c;
+              sinfac_frame += s;
+          }
           if (gpos != NULL) {
             work[2*i+0] = charges[i]*cos(x) + (k[0]*dipoles[3*i+0] + k[1]*dipoles[3*i+1] + k[2]*dipoles[3*i+2])*sin(x);
             work[2*i+1] =-charges[i]*sin(x) + (k[0]*dipoles[3*i+0] + k[1]*dipoles[3*i+1] + k[2]*dipoles[3*i+2])*cos(x);
@@ -182,7 +190,7 @@ double compute_ewald_reci_dd(double *pos, long natom, double *charges, double *d
           }
         }
         c = fac1*exp(-ksq*fac2)/ksq;
-        s = (cosfac*cosfac+sinfac*sinfac);
+        s = (cosfac*cosfac+sinfac*sinfac-cosfac_frame*cosfac_frame-sinfac_frame*sinfac_frame);
         energy += c*s;
         if (gpos != NULL) {
           x = 2.0*c;

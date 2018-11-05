@@ -28,11 +28,11 @@
 #include "pair_pot.h"
 #include "cell.h"
 
-double compute_ewald_reci(double *pos, long natom, double *charges,
+double compute_ewald_reci(double *pos, long natom, long natom_frame, double *charges,
                           cell_type* unitcell, double alpha, long *gmax, double
                           gcut, double dielectric, double *gpos, double *work,
                           double* vtens);
-double compute_ewald_reci_dd(double *pos, long natom, double *charges, double *dipoles,
+double compute_ewald_reci_dd(double *pos, long natom, long natom_frame, double *charges, double *dipoles,
                           cell_type* unitcell, double alpha, long *gmax,
                           double gcut, double *gpos, double *work,
                           double* vtens);
