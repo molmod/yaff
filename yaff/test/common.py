@@ -38,7 +38,8 @@ __all__ = [
     'get_system_cyclopropene', 'get_system_caffeine', 'get_system_butanol',
     'get_system_2T', 'get_system_peroxide', 'get_system_mil53',
     'get_system_2atoms', 'get_2systems_2oxygens', 'get_system_formaldehyde',
-    'get_system_amoniak', 'get_system_4113_01WaterWater', 'get_nacl_cubic'
+    'get_system_amoniak', 'get_system_4113_01WaterWater', 'get_nacl_cubic',
+    'get_system_fluidum_grid',
 ]
 
 
@@ -529,3 +530,22 @@ def get_system_nacl_cubic():
         rvecs=np.identity(3)*(2*r0),
         bonds=[],
     )
+
+
+def get_system_fluidum_grid(natom, l0=3.0*angstrom, ffatypes=['X']):
+    '''
+    Return a system with natom particles placed on a cubic grid with spacing
+    l0. Only natom sites are occupied and the atoms are randomly displaced
+    '''
+    numbers = np.array([1]*natom, dtype=int)
+    ffatypes = ffatypes*natom
+    N = int(np.ceil(np.power(natom,1.0/3.0)))
+    rvecs = np.eye(3)*l0*N
+    pos = np.zeros((N**3,3))
+    pos[:,0] = np.repeat(np.repeat(np.arange(N),N),N)*l0
+    pos[:,1] = np.repeat(np.tile(np.arange(N),N),N)*l0
+    pos[:,2] = np.tile(np.tile(np.arange(N),N),N)*l0
+    pos = pos[:natom]
+    system = System(numbers, pos, rvecs=rvecs, bonds=[], ffatypes=ffatypes[:natom])
+    system.pos += np.random.normal(0.0,0.01*l0,system.natom*3).reshape((-1,3))
+    return system
