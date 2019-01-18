@@ -57,7 +57,7 @@ def check_tailcorr_convergence(system, pairpot_class, decay, *args, **kwargs):
     nlist = NeighborList(system)
     scalings = Scalings(system)
     rcuts = np.linspace(12.0,32.0,11)*angstrom
-    vtens = np.zeros((3,3))
+    vtens0, vtens1 = np.zeros((3,3)), np.zeros((3,3))
     data = np.zeros((rcuts.shape[0],4))
     # Loop over all values of rcut, collect energies, pressures and their
     # tailcorrections in the data array
@@ -65,16 +65,18 @@ def check_tailcorr_convergence(system, pairpot_class, decay, *args, **kwargs):
         newargs = args + (rcut,)
         pair_pot = pairpot_class(*(newargs), **kwargs)
         part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
-        nlist.update()
-        vtens[:] = 0.0
-        e = part_pair.compute(vtens=vtens)
-        p = np.trace(vtens)/system.cell.volume/3.0
-        ecorr, wcorr = pair_pot.prepare_tailcorrections(system.natom)
-        etail = ecorr*2.0*np.pi/system.cell.volume
-        ptail = wcorr*2.0*np.pi/system.cell.volume/system.cell.volume
-        row = [e,e+etail,p,p+ptail]
+        part_tailcorr = ForcePartTailCorrection(system, part_pair)
+        ff0 = ForceField(system, [part_pair], nlist=nlist)
+        ff1 = ForceField(system, [part_pair, part_tailcorr], nlist=nlist)
+        vtens0[:] = 0.0
+        e0 = ff0.compute(vtens=vtens0)
+        p0 = np.trace(vtens0)/3.0/ff0.system.cell.volume
+        vtens1[:] = 0.0
+        e1 = ff1.compute(vtens=vtens1)
+        p1 = np.trace(vtens1)/3.0/ff1.system.cell.volume
+        row = [e0,e1,p0,p1]
         data[ircut] = row
-        print("%20.12f | %20.12f %20.12f | %20.12f %20.12f"%(rcut/angstrom,e/kcalmol,(e+etail)/kcalmol,p/mpa,(p+ptail)/mpa))
+        print("%20.12f | %20.12f %20.12f | %20.12f %20.12f"%(rcut/angstrom,e0/kcalmol,(e1)/kcalmol,p0/mpa,(p1)/mpa))
     # Find the reference energy and pressure
     if decay=='exp':
         # If the potential decays exponentially, the energy and pressure will

@@ -386,6 +386,8 @@ def test_generator_water32_mm3():
     assert abs(part_pair_mm3.pair_pot.epsilons[1] - 0.04*kcalmol) < 1e-10
     assert part_pair_mm3.pair_pot.onlypaulis[0] == 1
     assert part_pair_mm3.pair_pot.onlypaulis[1] == 0
+    ff = ForceField.generate(system, fn_pars, tailcorrections=True)
+    assert len(ff.parts) == 2
 
 
 def test_generator_glycine_mm3():

@@ -38,10 +38,10 @@ from itertools import permutations
 
 from yaff.log import log
 from yaff.pes.ext import PairPotEI, PairPotLJ, PairPotMM3, PairPotMM3CAP, PairPotExpRep, \
-    PairPotQMDFFRep, PairPotDampDisp, PairPotDisp68BJDamp, Switch3
+    PairPotQMDFFRep, PairPotDampDisp, PairPotDisp68BJDamp, Switch3, PairPotEIDip
 from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
-    ForcePartEwaldNeutralizing
+    ForcePartEwaldNeutralizing, ForcePartTailCorrection
 from yaff.pes.iclist import Bond, BendAngle, BendCos, \
     UreyBradley, DihedAngle, DihedCos, OopAngle, OopMeanAngle, OopCos, \
     OopMeanCos, OopDist, SqOopDist, DihedCos2, DihedCos3, DihedCos4, DihedCos6
@@ -86,7 +86,8 @@ class FFArgs(object):
     '''
     def __init__(self, rcut=18.89726133921252, tr=Switch3(7.558904535685008),
                  alpha_scale=3.5, gcut_scale=1.1, skin=0, smooth_ei=False,
-                 reci_ei='ewald', exclude_frame=False, n_frame=0):
+                 reci_ei='ewald', exclude_frame=False, n_frame=0,
+                 tailcorrections=False):
         """
            **Optional arguments:**
 
@@ -132,6 +133,11 @@ class FFArgs(object):
                 Number of framework atoms. This parameter is used to exclude
                 framework-framework neighbors when exclude_frame=True.
 
+            tailcorrections
+                Boolean: if true, apply a correction for the truncation of the
+                pair potentials assuming the system is homogeneous in the
+                region where the truncation modifies the pair potential
+
            The actual value of gcut, which depends on both gcut_scale and
            alpha_scale, determines the computational cost of the reciprocal term
            in the Ewald summation. The default values are just examples. An
@@ -154,6 +160,7 @@ class FFArgs(object):
         self.nlist = None
         self.exclude_frame = exclude_frame
         self.n_frame = n_frame
+        self.tailcorrections = tailcorrections
 
     def get_nlist(self, system):
         if self.nlist is None:
@@ -2097,6 +2104,24 @@ def apply_generators(system, parameters, ff_args):
                 log.warn('There is no generator named %s. It will be ignored.' % prefix)
         else:
             generator(system, section, ff_args)
+
+    # If tail corrections are requested, go through all parts and add when necessary
+    if ff_args.tailcorrections:
+        if system.cell.nvec==0:
+            log.warn('Tail corrections were requested, but this makes no sense for non-periodic system. Not adding tail corrections...')
+        elif system.cell.nvec==3:
+            for part in ff_args.parts:
+                # Only add tail correction to pair potentials
+                if isinstance(part,ForcePartPair):
+                    # Don't add tail corrections to electrostatic parts whose
+                    # long-range interactions are treated using for instance Ewald
+                    if isinstance(part.pair_pot,PairPotEI) or isinstance(part.pair_pot,PairPotEIDip):
+                        continue
+                    else:
+                        part_tailcorrection = ForcePartTailCorrection(system, part)
+                        ff_args.parts.append(part_tailcorrection)
+        else:
+            raise ValueError('Tail corrections not available for 1-D and 2-D periodic systems')
 
     part_valence = ff_args.get_part(ForcePartValence)
     if part_valence is not None and log.do_warning:
