@@ -34,4 +34,3 @@ if __name__=='__main__':
             row.append(p)
             print(" | %15.6f %15.6f" % (e/kcalmol,p/1e6/pascal),end='')
         print("\n",end='')
-

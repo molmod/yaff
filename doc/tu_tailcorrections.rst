@@ -121,7 +121,7 @@ Liquid density of methane with TraPPE
 =====================================
 
 As an example, the influence of tail corrections on liquid methane are
-investigated. This system is expected to be appproximately homogeneous, 
+investigated. This system is expected to be appproximately homogeneous,
 so the tail corrections implemented here should give decent results. The TraPPE
 [Martin1998]_ model for methane is used, which is a united-atom model. Methane
 molecules are represented as single sites interacting through a Lennard-Jones
@@ -152,7 +152,7 @@ The resulting convergence as a function of the cutoff distance is shown below.
 .. image:: figures/methane_trappe_density.png
 
 By including more long-range interactions, which are generally attractive,
-smaller volumes are favoured and thus higher liquid densities are found. 
+smaller volumes are favoured and thus higher liquid densities are found.
 
 
 Free energy profile of MIL-53(Al) using thermodynamic integration
@@ -164,7 +164,7 @@ integration, the free energy as a function of the volume is obtained. [Rogge2015
 It is interesting to note that the tail corrections only depend on the volume
 and the number of particles. Because the correction to the virial tensor is
 always isotropic, the equations of motion are not modified in ensembles where
-the volume and number of particles are constant. This is the case for the 
+the volume and number of particles are constant. This is the case for the
 :math:`(N,V,\mathbf{\sigma}_a=0,T)` ensemble which is used in these simulations.
 This means that the tail corrections can in this case be applied *a posteriori*.
 
