@@ -88,28 +88,28 @@ MyC(ecorr,optimize);
     (*(pair_data_lj_type*)pair_data).epsilon[center_index]*
     (*(pair_data_lj_type*)pair_data).epsilon[other_index]
   );
-  double t1 = pow(sigma, 0.2e1);
-  double t2 = t1 * t1;
-  double t3 = t2 * t1;
-  double t5 = pow(rcut, 0.2e1);
-  double t6 = t5 * rcut;
-  double t7 = t5 * t5;
-  double t8 = t7 * t6;
-  double t9 = rcut - width;
-  double t10 = t9 * t9;
-  double t12 = t10 * t10;
-  double t13 = t12 * t10 * t9;
-  double t14 = t8 * t13;
-  double t15 = log(t9);
-  double t17 = log(rcut);
-  double t22 = t7 * t7;
-  double t27 = pow(width, 0.2e1);
-  double t31 = t27 * width;
-  double t35 = t27 * t27;
-  double t38 = t35 * width;
-  double t41 = t35 * t27;
-  double t58 = t22 * t7 - 0.6e1 * width * t22 * t6 + 0.15e2 * t27 * t22 * t5 - 0.20e2 * t31 * t22 * rcut + 0.15e2 * t35 * t22 - 0.6e1 * t8 * t38 + t41 * t7 * t5 - t3 * t27 * t7 / 0.18e2 + t3 * t31 * t6 / 0.9e1 - t3 * t35 * t5 / 0.9e1 + t3 * t38 * rcut / 0.18e2 - t3 * t41 / 0.84e2;
-  double t68 = 0.8e1 * epsilon * t3 * (-t14 * t15 + t14 * t17 - (-width / 0.2e1 + rcut) * width * t58) / t8 / t31 / t13;
+  double t1 = pow(rcut, 0.2e1);
+  double t2 = t1 * rcut;
+  double t3 = t1 * t1;
+  double t4 = t3 * t2;
+  double t5 = rcut - width;
+  double t6 = t5 * t5;
+  double t8 = t6 * t6;
+  double t9 = t8 * t6 * t5;
+  double t10 = t4 * t9;
+  double t11 = log(t5);
+  double t13 = log(rcut);
+  double t15 = t3 * t3;
+  double t20 = pow(width, 0.2e1);
+  double t24 = t20 * width;
+  double t28 = t20 * t20;
+  double t31 = t28 * width;
+  double t34 = t28 * t20;
+  double t37 = pow(sigma, 0.2e1);
+  double t38 = t37 * t37;
+  double t39 = t38 * t37;
+  double t54 = t15 * t3 - 0.6e1 * width * t15 * t2 + 0.15e2 * t20 * t15 * t1 - 0.20e2 * t24 * t15 * rcut + 0.15e2 * t28 * t15 - 0.6e1 * t4 * t31 + t34 * t3 * t1 - t39 * t20 * t3 / 0.18e2 + t39 * t24 * t2 / 0.9e1 - t39 * t28 * t1 / 0.9e1 + t39 * t31 * rcut / 0.18e2 - t39 * t34 / 0.84e2;
+  double t68 = 0.8e1 * (-t10 * t11 + t10 * t13 - width * t54 * (-width / 0.2e1 + rcut)) * t39 * epsilon / t4 / t24 / t9;
   return t68;
 }
 
@@ -193,36 +193,36 @@ MyC(ecorr,optimize);
   );
   if (onlypauli==0) r6scale = 1.0;
   else r6scale = 0.0;
-  double t1 = 0.6000000003e1 * width;
-  double t2 = 0.1000000000e1 * sigma;
-  double t4 = pow(rcut, 0.2e1);
-  double t5 = t4 * t4;
-  double t6 = t5 * t4;
-  double t8 = pow(width, 0.2e1);
-  double t10 = pow(sigma, 0.2e1);
-  double t11 = 0.6666666670e0 * t10;
-  double t12 = sigma * width;
-  double t15 = t5 * rcut;
-  double t17 = t10 * sigma;
-  double t18 = 0.1388888889e0 * t17;
-  double t19 = t8 * width;
-  double t21 = t10 * width;
-  double t23 = sigma * t8;
-  double t27 = t8 * t8;
-  double t29 = t17 * width;
-  double t30 = 0.1388888889e0 * t29;
-  double t31 = t10 * t8;
-  double t36 = t4 * rcut;
-  double t39 = 0.1e1 / sigma;
-  double t42 = exp(0.12e2 * t39 * width);
-  double t49 = 0.4226086958e-1 * r6scale * t36 * t29;
-  double t50 = 0.4226086958e-1 * r6scale * t5 * t17 - t49;
-  double t54 = log(0.1e1 * rcut - 0.1e1 * width);
-  double t56 = log(rcut);
-  double t71 = 0.12e2 * rcut * t39;
-  double t72 = exp(t71);
-  double t92 = exp(-t71);
-  double t102 = -0.1064814814e3 * (((-t1 + t2) * t6 + (0.1800000001e2 * t8 + t11 - 0.6000000003e1 * t12) * t15 + (t18 - 0.1800000001e2 * t19 - 0.1833333334e1 * t21 + 0.9000000004e1 * t23) * t5 + (0.6000000003e1 * t27 - t30 + 0.1166666667e1 * t31 - 0.4000000002e1 * sigma * t19) * t36) * t42 + (t50 * t54 - t50 * t56 + t49 - 0.2113043479e-1 * r6scale * t4 * t17 * t8 + 0.2817391306e-11 * r6scale * rcut * t17 * t19 - 0.2817391306e-11 * r6scale * t17 * t27) * t72 + (-t1 - t2) * t6 + (-0.2000000001e1 * t12 + 0.6000000003e1 * t8 - t11) * t15 + (0.1666666667e0 * t21 + 0.3000000001e1 * t23 - 0.9391304355e-9 * t19 - t18) * t5 + (0.5000000002e0 * t31 + t30 + 0.9391304355e-9 * t27) * t36) * epsilon * t17 * t92 / (rcut - width) / t19 / t36;
+  double t1 = 0.1e1 / sigma;
+  double t3 = 0.12e2 * rcut * t1;
+  double t4 = exp(-t3);
+  double t6 = pow(sigma, 0.2e1);
+  double t7 = t6 * sigma;
+  double t9 = 0.6000000003e1 * width;
+  double t10 = 0.1000000000e1 * sigma;
+  double t12 = pow(rcut, 0.2e1);
+  double t13 = t12 * t12;
+  double t14 = t13 * t12;
+  double t16 = pow(width, 0.2e1);
+  double t18 = 0.6666666670e0 * t6;
+  double t19 = sigma * width;
+  double t22 = t13 * rcut;
+  double t24 = t16 * width;
+  double t26 = 0.1388888889e0 * t7;
+  double t27 = t6 * width;
+  double t29 = sigma * t16;
+  double t33 = t16 * t16;
+  double t35 = t7 * width;
+  double t36 = 0.1388888889e0 * t35;
+  double t37 = t6 * t16;
+  double t42 = t12 * rcut;
+  double t47 = exp(0.12e2 * t1 * width);
+  double t54 = 0.4226086958e-1 * r6scale * t42 * t35;
+  double t55 = 0.4226086958e-1 * r6scale * t13 * t7 - t54;
+  double t59 = log(0.1e1 * rcut - 0.1e1 * width);
+  double t61 = log(rcut);
+  double t75 = exp(t3);
+  double t102 = -0.1064814814e3 * t4 * epsilon * t7 * (((-t9 + t10) * t14 + (0.1800000001e2 * t16 + t18 - 0.6000000003e1 * t19) * t22 + (-0.1800000001e2 * t24 + t26 - 0.1833333334e1 * t27 + 0.9000000004e1 * t29) * t13 + (0.6000000003e1 * t33 - t36 + 0.1166666667e1 * t37 - 0.4000000002e1 * sigma * t24) * t42) * t47 + (t55 * t59 - t55 * t61 - 0.2817391306e-11 * r6scale * t7 * t33 + t54 - 0.2113043479e-1 * r6scale * t12 * t7 * t16 + 0.2817391306e-11 * r6scale * rcut * t7 * t24) * t75 + (-t10 - t9) * t14 + (-0.2000000001e1 * t19 - t18 + 0.6000000003e1 * t16) * t22 + (0.1666666667e0 * t27 + 0.3000000001e1 * t29 - t26 - 0.9391304355e-9 * t24) * t13 + (t36 + 0.5000000002e0 * t37 + 0.9391304355e-9 * t33) * t42) / t42 / t24 / (rcut - width);
   return t102;
 }
 
@@ -426,10 +426,10 @@ MyC(ecorr,optimize);
   double t3 = pow(b, 0.2e1);
   double t5 = 2 * rcut;
   double t11 = exp(-t1 * b);
-  double t20 = exp(-b * (double) rcut);
+  double t14 = exp(-b * (double) rcut);
   double t24 = pow(width, 0.2e1);
   double t27 = t3 * t3;
-  double t32 = 0.6e1 / t27 / b / t24 / width * amp * (t11 * (-0.8e1 + t3 * t1 * width + b * (-(double) t5 + 0.5e1 * width)) + t20 * (0.8e1 + width * (double) rcut * t3 + b * ((double) t5 + 0.3e1 * width)));
+  double t32 = 0.6e1 / t27 / b / t24 / width * (t11 * (-0.8e1 + t3 * t1 * width + b * (-(double) t5 + 0.5e1 * width)) + (0.8e1 + width * (double) rcut * t3 + b * ((double) t5 + 0.3e1 * width)) * t14) * amp;
   return t32;
 }
 
@@ -495,28 +495,28 @@ MyC(ecorr,optimize);
   i = (*pd).ffatype_ids[center_index]*(*pd).nffatype + (*pd).ffatype_ids[other_index];
   epsilon = (*pd).eps_cross[i];
   sigma = (*pd).sig_cross[i];
-  double t1 = pow(rcut, 0.2e1);
-  double t2 = t1 * rcut;
-  double t3 = t1 * t1;
-  double t4 = t3 * t2;
-  double t5 = rcut - width;
-  double t6 = t5 * t5;
-  double t8 = t6 * t6;
-  double t9 = t8 * t6 * t5;
-  double t10 = t4 * t9;
-  double t11 = log(t5);
-  double t13 = log(rcut);
-  double t15 = t3 * t3;
-  double t20 = pow(width, 0.2e1);
-  double t24 = t20 * width;
-  double t28 = t20 * t20;
-  double t31 = t28 * width;
-  double t34 = t28 * t20;
-  double t37 = pow(sigma, 0.2e1);
-  double t38 = t37 * t37;
-  double t39 = t38 * t37;
-  double t54 = t15 * t3 - 0.6e1 * width * t15 * t2 + 0.15e2 * t20 * t15 * t1 - 0.20e2 * t24 * t15 * rcut + 0.15e2 * t28 * t15 - 0.6e1 * t4 * t31 + t34 * t3 * t1 - t39 * t20 * t3 / 0.18e2 + t39 * t24 * t2 / 0.9e1 - t39 * t28 * t1 / 0.9e1 + t39 * t31 * rcut / 0.18e2 - t39 * t34 / 0.84e2;
-  double t68 = 0.8e1 * (-t10 * t11 + t10 * t13 - t54 * (-width / 0.2e1 + rcut) * width) * epsilon * t39 / t4 / t24 / t9;
+  double t1 = pow(sigma, 0.2e1);
+  double t2 = t1 * t1;
+  double t3 = t2 * t1;
+  double t4 = pow(rcut, 0.2e1);
+  double t5 = t4 * rcut;
+  double t6 = t4 * t4;
+  double t7 = t6 * t5;
+  double t8 = rcut - width;
+  double t9 = t8 * t8;
+  double t11 = t9 * t9;
+  double t12 = t11 * t9 * t8;
+  double t13 = t7 * t12;
+  double t14 = log(t8);
+  double t16 = log(rcut);
+  double t18 = t6 * t6;
+  double t23 = pow(width, 0.2e1);
+  double t27 = t23 * width;
+  double t31 = t23 * t23;
+  double t34 = t31 * width;
+  double t37 = t31 * t23;
+  double t54 = t18 * t6 - 0.6e1 * width * t18 * t5 + 0.15e2 * t23 * t18 * t4 - 0.20e2 * t27 * t18 * rcut + 0.15e2 * t31 * t18 - 0.6e1 * t7 * t34 + t37 * t6 * t4 - t3 * t23 * t6 / 0.18e2 + t3 * t27 * t5 / 0.9e1 - t3 * t31 * t4 / 0.9e1 + t3 * t34 * rcut / 0.18e2 - t3 * t37 / 0.84e2;
+  double t68 = 0.8e1 * t3 * (-t13 * t14 + t13 * t16 - t54 * (-width / 0.2e1 + rcut) * width) * epsilon / t7 / t27 / t12;
   return t68;
 }
 
@@ -580,16 +580,16 @@ MyC(ecorr,optimize);
   i = (*pd).ffatype_ids[center_index]*(*pd).nffatype + (*pd).ffatype_ids[other_index];
   power = (*pd).power;
   cn = (*pd).cn_cross[i];
-  double t1 = rcut - width;
-  double t2 = t1 * t1;
-  double t3 = t2 * t2;
-  double t10 = pow(t1, -power);
+  double t5 = rcut - width;
+  double t6 = t5 * t5;
+  double t7 = t6 * t6;
+  double t10 = pow(t5, -power);
   double t12 = power - 0.6e1;
   double t14 = -power + 0.5e1;
   double t15 = pow(rcut, t14);
   double t18 = pow(rcut, -t12);
   double t21 = pow(width, 0.2e1);
-  double t35 = -0.12e2 / (power - 0.3e1) / (power - 0.4e1) / t12 / t14 / t21 / width * (t10 * ((-power / 0.2e1 + 0.2e1) * width + rcut) * t3 * t1 - t15 * t12 * width / 0.2e1 - t18) * cn;
+  double t35 = -0.12e2 / (power - 0.3e1) / (power - 0.4e1) / t12 / t14 / t21 / width * (t10 * t7 * t5 * ((-power / 0.2e1 + 0.2e1) * width + rcut) - t15 * t12 * width / 0.2e1 - t18) * cn;
   return t35;
 }
 
@@ -659,9 +659,9 @@ MyC(ecorr,optimize);
   double t6 = t5 * t4;
   double t7 = log(t4);
   double t11 = log(rcut);
-  double t15 = t1 * t1;
-  double t21 = pow(width, 0.2e1);
-  double t39 = (-0.20e2 * t3 * t6 * t7 + 0.20e2 * t3 * t6 * t11 - 0.2e1 * (0.10e2 * c6 * t1 * t21 + 0.10e2 * c6 * t15 + c8 * t21 - 0.20e2 * t3 * width) * width * (rcut - width / 0.2e1)) / t2 / t21 / width / t6 / 0.10e2;
+  double t18 = t1 * t1;
+  double t24 = pow(width, 0.2e1);
+  double t39 = (-0.20e2 * t3 * t6 * t7 + 0.20e2 * t3 * t6 * t11 - 0.2e1 * width * (rcut - width / 0.2e1) * (0.10e2 * c6 * t1 * t24 + 0.10e2 * c6 * t18 + c8 * t24 - 0.20e2 * t3 * width)) / t2 / t24 / width / t6 / 0.10e2;
   return t39;
 }
 
@@ -682,8 +682,8 @@ ecorr := simplify(integrate(r**2*V,r=rcut..infinity));
 MyC(ecorr,optimize);
 
   */
-//This will return nan (as it should). Never use tailcorrections for this potential, a trick like the Ewald summation is necessary in this case.
-  double t1 = 1.0/0.0;
+//Never use tailcorrections for this potential, a trick like the Ewald summation is necessary in this case.
+  double t1 = 0.0;
   return t1;
 }
 
@@ -706,8 +706,8 @@ ecorr := simplify(integrate(r**2*V,r=rcut..infinity) + integrate(r**2*V*(1-switc
 MyC(ecorr,optimize);
 
   */
-//This will return nan (as it should). Never use tailcorrections for this potential, a trick like the Ewald summation is necessary in this case.
-  double t1 = 1.0/0.0;
+//Never use tailcorrections for this potential, a trick like the Ewald summation is necessary in this case.
+  double t1 = 0.0;
   return t1;
 }
 
@@ -728,8 +728,8 @@ ecorr := simplify(integrate(r**2*V,r=rcut..infinity));
 MyC(ecorr,optimize);
 
   */
-//This will return nan (as it should). Never use tailcorrections for this potential, a trick like the Ewald summation is necessary in this case.
-  double t1 = 1.0/0.0;
+//Never use tailcorrections for this potential, a trick like the Ewald summation is necessary in this case.
+  double t1 = 0.0;
   return t1;
 }
 
@@ -752,8 +752,8 @@ ecorr := simplify(integrate(r**2*V,r=rcut..infinity) + integrate(r**2*V*(1-switc
 MyC(ecorr,optimize);
 
   */
-//This will return nan (as it should). Never use tailcorrections for this potential, a trick like the Ewald summation is necessary in this case.
-  double t1 = 1.0/0.0;
+//Never use tailcorrections for this potential, a trick like the Ewald summation is necessary in this case.
+  double t1 = 0.0;
   return t1;
 }
 

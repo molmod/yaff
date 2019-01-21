@@ -184,10 +184,10 @@ pair_potentials = [
 """,
     "V := -c6/r**6-c8/r**8;"),
     # EI
-    ('ei',"\n//This will return nan (as it should). Never use tailcorrections for this potential, a trick like the Ewald summation is necessary in this case.\n",
+    ('ei',"\n//Never use tailcorrections for this potential, a trick like the Ewald summation is necessary in this case.\n",
     'V := 1/r;'),
     # EIDip
-    ('eidip',"\n//This will return nan (as it should). Never use tailcorrections for this potential, a trick like the Ewald summation is necessary in this case.\n",
+    ('eidip',"\n//Never use tailcorrections for this potential, a trick like the Ewald summation is necessary in this case.\n",
     'V := 1/r;'),
     # eislater1s1scorr
     ('eislater1s1scorr','\n//Contribution to tailcorrections assumed to be zero\n','V := 0;'),
@@ -208,7 +208,7 @@ def main():
 #    if not name in ['grimme']: continue
         for tr in ['cut','switch3']:
             ccode, hcode = generate_function(name, prep, expr, tr=tr)
-            code_main += ccode.replace('= infinity','= 1.0/0.0')
+            code_main += ccode.replace('= infinity','= 0.0')
             code_header += hcode
     with open('tailcorr.c','w') as f:
         f.write(code_main)
