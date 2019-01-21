@@ -62,6 +62,7 @@ Tutorials
    :numbered:
 
    tu_silica.rst
+   tu_tailcorrections.rst
 
 
 Reference Guide

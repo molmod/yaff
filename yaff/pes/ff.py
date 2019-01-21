@@ -807,7 +807,20 @@ class ForcePartGrid(ForcePart):
 
 
 class ForcePartTailCorrection(ForcePart):
+    '''Corrections to energy and virial tensor to compensate for neglecting
+    pair potentials at long range'''
     def __init__(self, system, part_pair):
+        '''
+           **Arguments:**
+
+           system
+                An instance of the ``System`` class.
+
+           part_pair
+                An instance of the ``PairPot`` class.
+
+           This force part is only applicable to systems that are 3D periodic.
+        '''
         if system.cell.nvec != 3:
             raise ValueError('Tail corrections can only be applied to 3D periodic systems')
         if part_pair.name in ['pair_ei','pair_eidip']:
