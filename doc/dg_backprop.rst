@@ -253,7 +253,7 @@ derived class of the ``Bead`` class:
 
 The function ``e_flat`` can also be represented schematically:
 
-.. image:: backprop.png
+.. image:: figures/backprop.png
 
 The example above shows that the complexity of the partial derivatives is
 broken down into smaller pieces that are easier to handle. In fact, this

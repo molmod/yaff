@@ -27,6 +27,7 @@
 #include "constants.h"
 #include "pair_pot.h"
 #include "slater.h"
+#include "tailcorr.h"
 
 
 pair_pot_type* pair_pot_new(void) {
@@ -174,6 +175,76 @@ double pair_pot_compute(neigh_row_type *neighs,
   return energy;
 }
 
+void pair_pot_tailcorr_cut(double *corrs, long natom, pair_pot_type *pair_pot) {
+  /*
+  The first element of ``corrs'' will contain
+
+    C0 = \Sum_{(i,j)} \int_{r_c}^{\infty} U(r) r^2 dr
+
+  where (i,j) indicates all order pairs of atom (so N_{atom}^2 pairs)
+  The correction to the energy is 2*Pi/V*C0
+
+  The second element of ``corrs' will contain
+
+    C1 = 1/3 \Sum_{(i,j)} \int_{r_c}^{\infty} dU(r)/dr r^3 dr
+
+  where (i,j) indicates all order pairs of atom (so N_{atom}^2 pairs).
+  The correction to the diagonal elements of the virial tensor is 2*Pi/V*C1
+  Using integration by parts it can be shown that
+
+    C1 = -1/3 U(r_c)*r_c^3 - C0
+  */
+  double ecorr, rcut;
+  long center_index, other_index;
+  rcut = (*pair_pot).rcut;
+  for (center_index=0;center_index<natom;center_index++) {
+    for (other_index=0;other_index<natom;other_index++) {
+      ecorr = (*pair_pot).pair_tailcorr_cut((*pair_pot).pair_data, center_index, other_index, rcut);
+      corrs[0] += ecorr;
+      corrs[1] -= ecorr;
+      ecorr = (*pair_pot).pair_fn((*pair_pot).pair_data, center_index, other_index, rcut, NULL, NULL, NULL);
+      corrs[1] -= ecorr*rcut*rcut*rcut/3.0;
+    }
+  }
+  return;
+}
+
+
+void pair_pot_tailcorr_switch3(double *corrs, long natom, pair_pot_type *pair_pot) {
+  /*
+  The first element of ``corrs'' will contain
+
+    C0 = \Sum_{(i,j)} \int_{0}^{\infty} U(r)(1-S(r)) r^2 dr
+
+  where (i,j) indicates all order pairs of atom (so N_{atom}^2 pairs)
+  and S(r) is the truncation function Switch3
+  The correction to the energy is 2*Pi/V*C0
+
+  The second element of ``corrs' will contain
+
+    C1 = 1/3 \Sum_{(i,j)} \int_{0}^{\infty} dU(r)*(1-S(r))/dr r^3 dr
+
+  where (i,j) indicates all order pairs of atom (so N_{atom}^2 pairs)
+  The correction to the diagonal elements of the virial tensor is 2*Pi/V*C1
+  Using integration by parts it can be shown that
+
+    C1 = -C0
+
+  making use of the fact that S(r)=1 when r<r_c-w
+  */
+  double ecorr, rcut;
+  long center_index,other_index;
+  rcut = (*pair_pot).rcut;
+  for (center_index=0;center_index<natom;center_index++) {
+    for (other_index=0;other_index<natom;other_index++) {
+      ecorr = (*pair_pot).pair_tailcorr_switch3((*pair_pot).pair_data, center_index, other_index, rcut, (*(*pair_pot).trunc_scheme).par);
+      corrs[0] += ecorr;
+      corrs[1] -= ecorr;
+    }
+  }
+  return;
+}
+
 void pair_data_free(pair_pot_type *pair_pot) {
   free((*pair_pot).pair_data);
   (*pair_pot).pair_data = NULL;
@@ -188,6 +259,8 @@ void pair_data_lj_init(pair_pot_type *pair_pot, double *sigma, double *epsilon) 
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
     (*pair_pot).pair_fn = pair_fn_lj;
+    (*pair_pot).pair_tailcorr_cut = pair_tailcorr_cut_lj;
+    (*pair_pot).pair_tailcorr_switch3 = pair_tailcorr_switch3_lj;
     (*pair_data).sigma = sigma;
     (*pair_data).epsilon = epsilon;
   }
@@ -228,6 +301,8 @@ void pair_data_mm3_init(pair_pot_type *pair_pot, double *sigma, double *epsilon,
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
     (*pair_pot).pair_fn = pair_fn_mm3;
+    (*pair_pot).pair_tailcorr_cut = pair_tailcorr_cut_mm3;
+    (*pair_pot).pair_tailcorr_switch3 = pair_tailcorr_switch3_mm3;
     (*pair_data).sigma = sigma;
     (*pair_data).epsilon = epsilon;
     (*pair_data).onlypauli = onlypauli;
@@ -275,6 +350,11 @@ void pair_data_mm3cap_init(pair_pot_type *pair_pot, double *sigma, double *epsil
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
     (*pair_pot).pair_fn = pair_fn_mm3cap;
+    //We use the same tail corrections as for the regular MM3 potential.
+    //This is justified because only the very short-range part is affected, and
+    //this does not have an effect on the long-range tail corrections
+    (*pair_pot).pair_tailcorr_cut = pair_tailcorr_cut_mm3;
+    (*pair_pot).pair_tailcorr_switch3 = pair_tailcorr_switch3_mm3;
     (*pair_data).sigma = sigma;
     (*pair_data).epsilon = epsilon;
     (*pair_data).onlypauli = onlypauli;
@@ -336,6 +416,8 @@ void pair_data_grimme_init(pair_pot_type *pair_pot, double *r0, double *c6) {
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
     (*pair_pot).pair_fn = pair_fn_grimme;
+    (*pair_pot).pair_tailcorr_cut = pair_tailcorr_cut_grimme;
+    (*pair_pot).pair_tailcorr_switch3 = pair_tailcorr_switch3_grimme;
     (*pair_data).r0 = r0;
     (*pair_data).c6 = c6;
   }
@@ -371,6 +453,8 @@ void pair_data_exprep_init(pair_pot_type *pair_pot, long nffatype, long* ffatype
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
     (*pair_pot).pair_fn = pair_fn_exprep;
+    (*pair_pot).pair_tailcorr_cut = pair_tailcorr_cut_exprep;
+    (*pair_pot).pair_tailcorr_switch3 = pair_tailcorr_switch3_exprep;
     (*pair_data).nffatype = nffatype;
     (*pair_data).ffatype_ids = ffatype_ids;
     (*pair_data).amp_cross = amp_cross;
@@ -402,6 +486,8 @@ void pair_data_qmdffrep_init(pair_pot_type *pair_pot, long nffatype, long* ffaty
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
     (*pair_pot).pair_fn = pair_fn_qmdffrep;
+    (*pair_pot).pair_tailcorr_cut = pair_tailcorr_cut_qmdffrep;
+    (*pair_pot).pair_tailcorr_switch3 = pair_tailcorr_switch3_qmdffrep;
     (*pair_data).nffatype = nffatype;
     (*pair_data).ffatype_ids = ffatype_ids;
     (*pair_data).amp_cross = amp_cross;
@@ -433,6 +519,8 @@ void pair_data_ljcross_init(pair_pot_type *pair_pot, long nffatype, long* ffatyp
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
     (*pair_pot).pair_fn = pair_fn_ljcross;
+    (*pair_pot).pair_tailcorr_cut = pair_tailcorr_cut_ljcross;
+    (*pair_pot).pair_tailcorr_switch3 = pair_tailcorr_switch3_ljcross;
     (*pair_data).nffatype = nffatype;
     (*pair_data).ffatype_ids = ffatype_ids;
     (*pair_data).eps_cross = eps_cross;
@@ -467,6 +555,8 @@ void pair_data_dampdisp_init(pair_pot_type *pair_pot, long nffatype, long power,
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
     (*pair_pot).pair_fn = pair_fn_dampdisp;
+    (*pair_pot).pair_tailcorr_cut = pair_tailcorr_cut_dampdisp;
+    (*pair_pot).pair_tailcorr_switch3 = pair_tailcorr_switch3_dampdisp;
     (*pair_data).nffatype = nffatype;
     (*pair_data).power = power;
     (*pair_data).ffatype_ids = ffatype_ids;
@@ -536,6 +626,8 @@ void pair_data_disp68bjdamp_init(pair_pot_type *pair_pot, long nffatype, long* f
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
     (*pair_pot).pair_fn = pair_fn_disp68bjdamp;
+    (*pair_pot).pair_tailcorr_cut = pair_tailcorr_cut_disp68bjdamp;
+    (*pair_pot).pair_tailcorr_switch3 = pair_tailcorr_switch3_disp68bjdamp;
     (*pair_data).nffatype = nffatype;
     (*pair_data).ffatype_ids = ffatype_ids;
     (*pair_data).c6_cross = c6_cross;
@@ -599,6 +691,8 @@ void pair_data_ei_init(pair_pot_type *pair_pot, double *charges, double alpha, d
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
     (*pair_pot).pair_fn = pair_fn_ei;
+    (*pair_pot).pair_tailcorr_cut = pair_tailcorr_cut_ei;
+    (*pair_pot).pair_tailcorr_switch3 = pair_tailcorr_switch3_ei;
     (*pair_data).charges = charges;
     (*pair_data).alpha = alpha;
     (*pair_data).dielectric = dielectric;
@@ -663,6 +757,8 @@ void pair_data_eidip_init(pair_pot_type *pair_pot, double *charges, double *dipo
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
     (*pair_pot).pair_fn = pair_fn_eidip;
+    (*pair_pot).pair_tailcorr_cut = pair_tailcorr_cut_eidip;
+    (*pair_pot).pair_tailcorr_switch3 = pair_tailcorr_switch3_eidip;
     (*pair_data).charges = charges;
     (*pair_data).dipoles = dipoles;
     (*pair_data).alpha = alpha;
@@ -785,6 +881,8 @@ void pair_data_eislater1s1scorr_init(pair_pot_type *pair_pot, double *slater1s_w
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
       (*pair_pot).pair_fn = pair_fn_eislater1s1scorr;
+      (*pair_pot).pair_tailcorr_cut = pair_tailcorr_cut_eislater1s1scorr;
+      (*pair_pot).pair_tailcorr_switch3 = pair_tailcorr_switch3_eislater1s1scorr;
       (*pair_data).widths = slater1s_widths;
       (*pair_data).N = slater1s_N;
       (*pair_data).Z = slater1s_Z;
@@ -810,6 +908,8 @@ void pair_data_eislater1sp1spcorr_init(pair_pot_type *pair_pot, double *slater1s
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
       (*pair_pot).pair_fn = pair_fn_eislater1sp1spcorr;
+      (*pair_pot).pair_tailcorr_cut = pair_tailcorr_cut_eislater1sp1spcorr;
+      (*pair_pot).pair_tailcorr_switch3 = pair_tailcorr_switch3_eislater1sp1spcorr;
       (*pair_data).widthss = slater1s_widths;
       (*pair_data).Ns = slater1s_N;
       (*pair_data).Zs = slater1s_Z;
@@ -896,6 +996,8 @@ void pair_data_olpslater1s1s_init(pair_pot_type *pair_pot, double *slater1s_widt
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
     (*pair_pot).pair_fn = pair_fn_olpslater1s1s;
+    (*pair_pot).pair_tailcorr_cut = pair_tailcorr_cut_olpslater1s1s;
+    (*pair_pot).pair_tailcorr_switch3 = pair_tailcorr_switch3_olpslater1s1s;
     (*pair_data).widths = slater1s_widths;
     (*pair_data).N = slater1s_N;
     (*pair_data).ex_scale = ex_scale;
@@ -957,6 +1059,8 @@ void pair_data_chargetransferslater1s1s_init(pair_pot_type *pair_pot, double *sl
   (*pair_pot).pair_data = pair_data;
   if (pair_data != NULL) {
     (*pair_pot).pair_fn = pair_fn_chargetransferslater1s1s;
+    (*pair_pot).pair_tailcorr_cut = pair_tailcorr_cut_chargetransferslater1s1s;
+    (*pair_pot).pair_tailcorr_switch3 = pair_tailcorr_switch3_chargetransferslater1s1s;
     (*pair_data).widths = slater1s_widths;
     (*pair_data).N = slater1s_N;
     (*pair_data).ct_scale = ct_scale;

@@ -45,8 +45,8 @@ def discover():
     # find modules
     for package, modules in packages.items():
         stub = package.replace('.', '/')
-        for fn in glob('../%s/*.py' % stub) + glob('../%s/*.so' % stub):
-            module = fn.split('/')[-1][:-3]
+        for fn in glob('../%s/*.py' % stub) + glob('../%s/*.pyx' % stub):
+            module = os.path.splitext(fn.split('/')[-1])[0]
             if module == '__init__':
                 continue
             modules.append(module)

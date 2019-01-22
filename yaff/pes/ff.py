@@ -55,6 +55,7 @@ __all__ = [
     'ForcePartEwaldReciprocalDD', 'ForcePartEwaldCorrectionDD',
     'ForcePartEwaldCorrection', 'ForcePartEwaldNeutralizing',
     'ForcePartValence', 'ForcePartPressure', 'ForcePartGrid',
+    'ForcePartTailCorrection',
 ]
 
 
@@ -803,3 +804,39 @@ class ForcePartGrid(ForcePart):
                 grid = self.grids[self.system.get_ffatype(i)]
                 result += compute_grid3d(self.system.pos[i], cell, grid)
             return result
+
+
+class ForcePartTailCorrection(ForcePart):
+    '''Corrections to energy and virial tensor to compensate for neglecting
+    pair potentials at long range'''
+    def __init__(self, system, part_pair):
+        '''
+           **Arguments:**
+
+           system
+                An instance of the ``System`` class.
+
+           part_pair
+                An instance of the ``PairPot`` class.
+
+           This force part is only applicable to systems that are 3D periodic.
+        '''
+        if system.cell.nvec != 3:
+            raise ValueError('Tail corrections can only be applied to 3D periodic systems')
+        if part_pair.name in ['pair_ei','pair_eidip']:
+            raise ValueError('Tail corrections are divergent for %s'%part_pair.name)
+        super(ForcePartTailCorrection, self).__init__('tailcorr_%s'%(part_pair.name), system)
+        self.ecorr, self.wcorr = part_pair.pair_pot.prepare_tailcorrections(system.natom)
+        self.system = system
+        if log.do_medium:
+            with log.section('FPINIT'):
+                log('Force part: %s' % self.name)
+                log.hline()
+
+    def _internal_compute(self, gpos, vtens):
+        if vtens is not None:
+            w = 2.0*np.pi*self.wcorr/self.system.cell.volume
+            vtens[0,0] += w
+            vtens[1,1] += w
+            vtens[2,2] += w
+        return 2.0*np.pi*self.ecorr/self.system.cell.volume

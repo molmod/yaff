@@ -31,10 +31,14 @@
 
 
 typedef double (*pair_fn_type)(void*, long, long, double, double*, double*, double*);
+typedef double (*pair_tailcorr_cut_type)(void*, long, long, double);
+typedef double (*pair_tailcorr_switch3_type)(void*, long, long, double, double);
 
 typedef struct {
   void *pair_data;
   pair_fn_type pair_fn;
+  pair_tailcorr_cut_type pair_tailcorr_cut;
+  pair_tailcorr_switch3_type pair_tailcorr_switch3;
   double rcut;
   trunc_scheme_type *trunc_scheme;
 } pair_pot_type;
@@ -59,6 +63,9 @@ double pair_pot_compute(neigh_row_type *neighs,
                         long scaling_size, pair_pot_type *pair_pot,
                         double *gpos, double* vtens);
 
+void pair_pot_tailcorr_cut(double *corrs, long natom, pair_pot_type *pair_pot);
+void pair_pot_tailcorr_switch3(double *corrs, long natom, pair_pot_type *pair_pot);
+
 
 typedef struct {
   double *sigma;
@@ -67,7 +74,6 @@ typedef struct {
 
 void pair_data_lj_init(pair_pot_type *pair_pot, double *sigma, double *epsilon);
 double pair_fn_lj(void *pair_data, long center_index, long other_index, double d, double *delta, double *g, double *g_cart);
-
 
 typedef struct {
   double *sigma;

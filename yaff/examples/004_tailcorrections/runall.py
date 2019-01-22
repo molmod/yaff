@@ -25,8 +25,7 @@
 
 import subprocess
 
-subprocess.check_call(["python", "mksystem.py"], cwd='init')
-subprocess.check_call(["python", "simulation.py"], cwd='opt')
-subprocess.check_call(["python", "analysis.py"], cwd='opt')
-subprocess.check_call(["python", "simulation.py", "300", "310"], cwd='nvt')
-subprocess.check_call(["python", "analysis.py", "300", "310", "10"], cwd='nvt')
+subprocess.check_call(["python", "sp.py"], cwd='methane_trappe')
+# 20 and 10 are the total number of steps and number of equilibration steps
+# You should use a much higher number in order to get sensible results
+subprocess.check_call(["python", "md.py", "20", "10"], cwd='methane_trappe')
