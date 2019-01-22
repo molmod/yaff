@@ -26,6 +26,7 @@
 # Needed for python2 backward compatibility
 from __future__ import print_function
 
+import sys
 import numpy as np
 import h5py as h5
 
@@ -98,5 +99,7 @@ if __name__=='__main__':
     P = 1.0*atm      # Simulation pressure
     # number of steps for production, number of steps for equilibration
     # to get proper results, you need quite a lot of steps (several 100 000)
-    steps, steps_eq = 500000,100000
+    args = sys.argv[1:]
+    assert len(args) == 2
+    steps, steps_eq = int(args[0]), int(args[1])
     main(steps, steps_eq)

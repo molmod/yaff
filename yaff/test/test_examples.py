@@ -50,5 +50,10 @@ def test_example_003_water_thermostat():
     check_example(__name__, '003_water_thermostat', 'md.py', ['parameters.txt', 'system.chk'])
 
 
+def test_example_004_tailcorrections():
+    check_example(__name__, '004_tailcorrections', 'runall.py', ['methane_trappe/common.py',
+        'methane_trappe/sp.py','methane_trappe/md.py'])
+
+
 def test_example_999_back_propagation():
     check_example(__name__, '999_back_propagation', 'bp.py', [])
