@@ -58,6 +58,24 @@ Release notes
 -------------
 
 
+
+* **Version 1.5.0** March 7, 2019
+
+  - Tail corrections for non-bonding potentials.
+  - Exclusion of frame-frame interactions for GCMC simulations.
+
+* **Version 1.4.5** October 15, 2018
+
+  - Capped MM3 potentials.
+
+* **Version 1.4.4** October 12, 2018
+
+  - COM layer in valence force fields, for coarse graining.
+
+* **Version 1.4.3** February 5, 2018
+
+  - Additional cross terms.
+
 * **Version 1.4.2** August 30, 2017
 
   - Numerically more stable computation of error on the conserved quantity.
