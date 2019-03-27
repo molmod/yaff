@@ -36,6 +36,8 @@ int nlist_build_low(double *pos, double rcut, long *rmax,
   int update_delta0, image, sign;
   double delta0[3], delta[3], d;
 
+  // Compute square of the rcut distance
+  rcut *= rcut;
   r = status;
   a = status[3];
   b = status[4];
@@ -72,8 +74,10 @@ int nlist_build_low(double *pos, double rcut, long *rmax,
         delta[1] = sign*delta0[1];
         delta[2] = sign*delta0[2];
         cell_add_vec(delta, unitcell, r);
-        // Compute the distance and store the record if distance is below the rcut.
-        d = sqrt(delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2]);
+        // Compute square of the distance and store the record if distance is below the rcut.
+        // Square root is only computed if the record needs to be stored,
+        // this way we avoid expensive square root in a lot of cases.
+        d = delta[0]*delta[0] + delta[1]*delta[1] + delta[2]*delta[2];
         if (d < rcut) {
           if (sign > 0) {
             (*neighs).a = a;
@@ -82,7 +86,7 @@ int nlist_build_low(double *pos, double rcut, long *rmax,
             (*neighs).a = b;
             (*neighs).b = a;
           }
-          (*neighs).d = d;
+          (*neighs).d = sqrt(d);
           (*neighs).dx = delta[0];
           (*neighs).dy = delta[1];
           (*neighs).dz = delta[2];
