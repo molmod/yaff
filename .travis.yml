@@ -64,7 +64,7 @@ install:
   # Install more recent stuff with pip
   - pip install codecov coverage
   # Install LAMMPS
-  - conda install -c conda-forge lammps 
+  - conda install -c conda-forge lammps
   # Show conda info for debugging
   - conda info -a
 

@@ -254,7 +254,9 @@ def get_lammps_ffatypes(ff):
 def read_lammps_table(fn):
     tables = []
     with open(fn,'r') as f:
-        for line in f:
+        while True:
+            line = f.readline()
+            if not line: break
             if line.startswith('#'): continue
             ffas = line[:-1]
             w = f.readline().split()

@@ -212,10 +212,10 @@ class ForcePartLammps(ForcePart):
         self.rvecs[:], self.rot[:] = cell_lower(rvecs)
         self.cell.update_rvecs(self.rvecs)
         if self.triclinic:
-            self.lammps.command("change_box all x final %f %30.20f y final %f %30.20f z final %f %30.20f xy final %30.20f xz final %30.20f yz final %30.20f\n" % 
+            self.lammps.command("change_box all x final %f %30.20f y final %f %30.20f z final %f %30.20f xy final %30.20f xz final %30.20f yz final %30.20f\n" %
                 (0.0,self.rvecs[0,0],0.0,self.rvecs[1,1], 0.0, self.rvecs[2,2], self.rvecs[1,0],self.rvecs[2,0],self.rvecs[2,1]))
         else:
-            self.lammps.command("change_box all x final %f %30.20f y final %f %30.20f z final %f %30.20f\n" % 
+            self.lammps.command("change_box all x final %f %30.20f y final %f %30.20f z final %f %30.20f\n" %
                 (0.0,self.rvecs[0,0],0.0,self.rvecs[1,1], 0.0, self.rvecs[2,2]))
 
     def _internal_compute(self, gpos, vtens):

@@ -87,7 +87,7 @@ def compare_lammps_yaff_ff(ff, thresh=1.0, do_ei=True, do_vdw=True):
 
 def test_liblammps_water32():
     try:
-        from lammps import lammps5
+        from lammps import lammps
     except:
         from nose.plugins.skip import SkipTest
         raise SkipTest('Could not import lammps')
