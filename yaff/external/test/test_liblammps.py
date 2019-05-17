@@ -67,7 +67,6 @@ def compare_lammps_yaff_ff(ff, thresh=1.0, do_ei=True, do_vdw=True):
         fn_system = os.path.join(dirname,'system.dat')
         write_lammps_system_data(ff.system, ff=ff,fn=fn_system)
         # Write LAMMPS table file
-        log.set_level(log.high)
         fn_table = os.path.join(dirname,'table.dat')
         write_lammps_table(ff,fn=fn_table)
         # Construct the LAMMPS force-field contribution
