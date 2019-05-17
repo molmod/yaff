@@ -21,27 +21,27 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 # --
-'''YAFF - Yet another force field
-
-   The ``yaff`` package contains the subpackages that define the main
-   functionalities in yaff: force field models (:mod:`yaff.pes`), sampling
-   (:mod:`yaff.sampling`), trajectory analysis (:mod:`yaff.analysis`) and
-   parameter tuning (:mod:`yaff.tune`). These major subpackages are discusses in
-   the following sections.
-'''
 
 
-from .version import __version__
+from __future__ import division
+from __future__ import print_function
 
-from molmod.units import *
-from molmod.constants import *
+import tempfile
+import shutil
+import os
+import numpy as np
 
-from yaff.analysis import *
-from yaff.atselect import *
-from yaff.conversion import *
-from yaff.external import *
-from yaff.log import *
-from yaff.pes import *
-from yaff.sampling import *
-from yaff.system import *
-from yaff.tune import *
+from molmod.test.common import tmpdir
+from yaff.external.lammpsio import *
+
+from yaff.test.common import get_system_water32
+
+def test_lammps_system_data_water32():
+    system = get_system_water32()
+    with tmpdir(__name__, 'test_lammps_system_water32') as dirname:
+        fn = os.path.join(dirname,'lammps.system')
+        write_lammps_system_data(system,fn=fn)
+        with open(fn,'r') as f: lines = f.readlines()
+        natom = int(lines[2].split()[0])
+        assert natom==system.natom
+        assert (system.natom+system.bonds.shape[0]+23)==len(lines)

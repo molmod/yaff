@@ -30,10 +30,12 @@ import numpy as np
 from molmod import check_delta
 
 from yaff import *
+from yaff.test.common import get_system_water32
 
 
 __all__ = [
     'check_gpos_part', 'check_vtens_part', 'check_gpos_ff', 'check_vtens_ff',
+    'get_part_water32_9A_lj'
 ]
 
 
@@ -159,3 +161,31 @@ def check_vtens_ff(ff):
     x = rvecs.ravel()
     dxs = np.random.normal(0, 1e-4, (100, len(x)))
     check_delta(fn, x, dxs)
+
+
+def get_part_water32_9A_lj():
+    # Initialize system, nlist and scaling
+    system = get_system_water32()
+    nlist = NeighborList(system)
+    scalings = Scalings(system)
+    # Initialize parameters
+    rminhalf_table = {1: 0.2245*angstrom, 8: 1.7682*angstrom}
+    epsilon_table = {1: -0.0460*kcalmol, 8: -0.1521*kcalmol}
+    sigmas = np.zeros(96, float)
+    epsilons = np.zeros(96, float)
+    for i in range(system.natom):
+        sigmas[i] = rminhalf_table[system.numbers[i]]*(2.0)**(5.0/6.0)
+        epsilons[i] = epsilon_table[system.numbers[i]]
+    # Create the pair_pot and part_pair
+    rcut = 9*angstrom
+    pair_pot = PairPotLJ(sigmas, epsilons, rcut, Hammer(1.0))
+    assert abs(pair_pot.sigmas - sigmas).max() == 0.0
+    assert abs(pair_pot.epsilons - epsilons).max() == 0.0
+    part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
+    # Create a pair function:
+    def pair_fn(i, j, d, delta):
+        sigma = 0.5*(sigmas[i]+sigmas[j])
+        epsilon = np.sqrt(epsilons[i]*epsilons[j])
+        x = (sigma/d)**6
+        return 4*epsilon*(x*(x-1))*np.exp(1.0/(d-rcut))
+    return system, nlist, scalings, part_pair, pair_fn

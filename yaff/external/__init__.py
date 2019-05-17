@@ -21,27 +21,11 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 # --
-'''YAFF - Yet another force field
+"""External: connections of YAFF with other codes
 
-   The ``yaff`` package contains the subpackages that define the main
-   functionalities in yaff: force field models (:mod:`yaff.pes`), sampling
-   (:mod:`yaff.sampling`), trajectory analysis (:mod:`yaff.analysis`) and
-   parameter tuning (:mod:`yaff.tune`). These major subpackages are discusses in
-   the following sections.
-'''
+   This packages provides interfaces between YAFF and other codes
 
+"""
 
-from .version import __version__
-
-from molmod.units import *
-from molmod.constants import *
-
-from yaff.analysis import *
-from yaff.atselect import *
-from yaff.conversion import *
-from yaff.external import *
-from yaff.log import *
-from yaff.pes import *
-from yaff.sampling import *
-from yaff.system import *
-from yaff.tune import *
+from yaff.external.lammpsio import *
+from yaff.external.liblammps import *
