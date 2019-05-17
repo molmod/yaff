@@ -86,6 +86,11 @@ def compare_lammps_yaff_ff(ff, thresh=1.0, do_ei=True, do_vdw=True):
 
 
 def test_liblammps_water32():
+    try:
+        from lammps import lammps5
+    except:
+        from nose.plugins.skip import SkipTest
+        raise SkipTest('Could not import lammps')
     # Only LJ
     ff = get_water32_ff(lj=True,ei=False)
     compare_lammps_yaff_ff(ff, do_ei=False, do_vdw=True)
