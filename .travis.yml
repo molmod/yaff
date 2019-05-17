@@ -63,6 +63,8 @@ install:
   - conda install python=${MYCONDAPY} numpy cython sphinx conda-build anaconda-client
   # Install more recent stuff with pip
   - pip install codecov coverage
+  # Install LAMMPS
+  - conda install -c conda-forge lammps 
   # Show conda info for debugging
   - conda info -a
 
