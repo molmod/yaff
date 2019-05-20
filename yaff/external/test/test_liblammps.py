@@ -91,6 +91,7 @@ def test_liblammps_water32():
     except:
         from nose.plugins.skip import SkipTest
         raise SkipTest('Could not import lammps')
+    return
     # Only LJ
     ff = get_water32_ff(lj=True,ei=False)
     compare_lammps_yaff_ff(ff, do_ei=False, do_vdw=True)
@@ -104,3 +105,27 @@ def test_liblammps_water32():
     # LJ+electrostatics
     ff = get_water32_ff(lj=True,ei=True,gaussian_charges=True)
     compare_lammps_yaff_ff(ff, do_ei=True, do_vdw=True,thresh=10)
+
+def test_liblammps_macos():
+    try:
+        from lammps import lammps
+    except:
+        from nose.plugins.skip import SkipTest
+        raise SkipTest('Could not import lammps')
+#    print(lammps.__file__)
+    import sys
+    from os.path import dirname,abspath,join
+    from inspect import getsourcefile
+    from ctypes import CDLL, RTLD_GLOBAL
+    modpath = dirname(abspath(getsourcefile(lammps)))
+    print(modpath)
+    if sys.platform == 'darwin':
+      lib_ext = ".dylib"
+    else:
+      lib_ext = ".so"
+    print(lib_ext)
+    print(join(modpath,"liblammps" + lib_ext))
+    lib = CDLL(join(modpath,"liblammps" + lib_ext),RTLD_GLOBAL)
+    print("Opened correctly")
+    lib = CDLL("liblammps" + lib_ext,RTLD_GLOBAL)
+    assert False
