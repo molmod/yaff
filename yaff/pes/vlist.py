@@ -618,7 +618,7 @@ class BondDoubleWell(ValenceTerm):
     def get_log(self):
         c = self.ics[0].get_conversion()
         return '%s(K=%.5e,R1=%.5e,R2=%.5e)' % (
-            self.__class__.name__,
+            self.__class__.__name__,
             self.pars[0]/(log.energy.conversion/c**2),
             self.pars[1]/c,
             self.pars[2]/c
