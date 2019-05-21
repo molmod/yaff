@@ -48,7 +48,7 @@ from yaff.pes.ext import neigh_dtype, nlist_status_init,\
         nlist_status_finish, nlist_build, nlist_recompute
 
 
-__all__ = ['NeighborList']
+__all__ = ['NeighborList','BondedNeighborList']
 
 
 class NeighborList(object):
@@ -338,3 +338,63 @@ class NeighborList(object):
                 ))
                 wrong = True
         assert not wrong
+
+
+class BondedNeighborList(NeighborList):
+    '''A neighbor list that is intended for near-neighbor interactions. The
+       pairs in the list are never updated, only distances are recomputed.
+    '''
+    def __init__(self, system, selected=[], add12=True, add13=True, add14=True,
+                    add15=False):
+        '''
+           **Arguments:**
+
+           system
+                A System instance.
+
+           **Optional arguments:**
+
+           selected
+                A list containing all pairs of atoms that should be considered.
+                Default: All 1-2, 1-3 and 1-4 pairs included
+        '''
+        self.system = system
+        for i0 in range(system.natom):
+            for i1 in system.neighs1[i0]:
+                if i0 > i1 and add12: selected.append([i0,i1])
+            for i2 in system.neighs2[i0]:
+                if i0 > i2 and add13: selected.append([i0,i2])
+            for i3 in system.neighs3[i0]:
+                if i0 > i3 and add14: selected.append([i0,i3])
+            for i4 in system.neighs4[i0]:
+                if i0 > i4 and add15: selected.append([i0,i4])
+        # Only retain unique pairs
+        pairs = np.array([np.array(x) for x in set(tuple(x) for x in selected)])
+        self.nneigh = pairs.shape[0]
+        neighs = np.empty((self.nneigh),dtype=neigh_dtype)
+        for ibond, (a,b) in enumerate(pairs):
+            neighs[ibond]['a'] = a
+            neighs[ibond]['b'] = b
+            neighs[ibond]['r0'] = 0
+            neighs[ibond]['r1'] = 0
+            neighs[ibond]['r2'] = 0
+            neighs[ibond]['d'] = 0.0
+            neighs[ibond]['dx'] = 0.0
+            neighs[ibond]['dy'] = 0.0
+            neighs[ibond]['dz'] = 0.0
+        self.neighs = np.sort(neighs, order=['a','b']).copy()
+        del neighs, selected, pairs
+        self._pos_old = system.pos.copy()
+
+    def request_rcut(self, rcut):
+        # Nothing to do...
+        pass
+
+    def update_rmax(self):
+        # Nothing to do...
+        pass
+
+    def update(self):
+        # Simply recompute distances, no need to rebuild
+        nlist_recompute(self.system.pos, self._pos_old, self.system.cell, self.neighs[:self.nneigh])
+        self._pos_old[:] = self.system.pos
