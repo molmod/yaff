@@ -38,15 +38,14 @@ from molmod.constants import boltzmann
 
 from yaff.log import log, timer
 from yaff.external.lammpsio import *
-from yaff.pes.ff import ForcePart
-from yaff.pes.ext import Cell
+from yaff.pes import *
 from yaff.sampling.utils import cell_lower
 
-__all__ = ['ForcePartLammps']
+__all__ = ['ForcePartLammps','swap_noncovalent_lammps']
 
 class ForcePartLammps(ForcePart):
     '''Energies obtained from Lammps.'''
-    def __init__(self, ff, fn_system, fn_log=None, suffix='',
+    def __init__(self, ff, fn_system, fn_log="none", suffix='',
                     do_table=True, fn_table='lammps.table', scalings_table=[0.0,0.0,1.0],
                     do_ei=True, kspace='ewald', kspace_accuracy=1e-6, scalings_ei=[0.0,0.0,1.0],
                     triclinic=True, comm=None, move_central_cell=False):
@@ -121,6 +120,7 @@ class ForcePartLammps(ForcePart):
             if not os.path.isfile(fn_table):
                 raise ValueError('Could not read file %s' % fn_table)
             tables = read_lammps_table(fn_table)
+            table_names = [table[0] for table in tables]
             npoints,_,rcut = tables[0][1]
         elif do_ei:
             rcut = 0
@@ -145,6 +145,7 @@ class ForcePartLammps(ForcePart):
         self.lammps.command("units electron")
         self.lammps.command("atom_style full")
         self.lammps.command("atom_modify map array")
+#        self.lammps.command("box tilt large")
         self.lammps.command("read_data %s"%fn_system)
         self.lammps.command("mass * 1.0")
         self.lammps.command("bond_style none")
@@ -153,12 +154,12 @@ class ForcePartLammps(ForcePart):
         if do_ei and do_table:
             self.lammps.command("pair_style hybrid/overlay coul/long %f table spline %d"%(rcut,npoints))
             self.lammps.command("pair_coeff * * coul/long")
-            self.lammps.command("kspace_style %s %f" % (kspace,kspace_accuracy))
+            self.lammps.command("kspace_style %s %10.5e" % (kspace,kspace_accuracy))
         # Only electrostatics
         elif do_ei:
             self.lammps.command("pair_style coul/long %f"%rcut)
             self.lammps.command("pair_coeff * *")
-            self.lammps.command("kspace_style %s %f" % (kspace,kspace_accuracy))
+            self.lammps.command("kspace_style %s %10.5e" % (kspace,kspace_accuracy))
         # Only table
         elif do_table:
             self.lammps.command("pair_style table spline %d"%(npoints))
@@ -244,3 +245,92 @@ class ForcePartLammps(ForcePart):
                 # the virial tensor to get the values in Yaff coordinates
                 vtens[:] = np.dot(self.rot.transpose(),np.dot(vtens[:],self.rot))
         return energy
+
+
+def swap_noncovalent_lammps(ff,fn_system='system.dat',fn_table='table.dat',
+        fn_log="none", overwrite_table=False, nrows=5000,triclinic=True,
+        kspace_accuracy=1e-6,
+        keep_forceparts=[ForcePartTailCorrection,ForcePartGrid,ForcePartPressure,ForcePartValence]):
+    '''
+    Take a YAFF ForceField instance and replace noncovalent interactions with
+    a ForcePartLammps instance.
+
+    **Arguments**:
+        ff: a YAFF ForceField instance
+
+    **Optional arguments**:
+        fn_system: the filename where system information in LAMMPS format will
+            be written. Default is `system.dat'
+
+        fn_table: the filename where the tables of noncovalent interactions in
+            LAMMPS format will be written. Default is `table.dat'
+
+        overwrite_tables: whether or not fn_table should be updated if it
+            already exists. Default is `False'
+
+        keep_forceparts: classes of ForceParts present in this list will be
+            retained in the YAFF ForceField and will not be included in the
+            tabulated interactions. Typically this will be covalent interactions,
+            but also for instance analytical tail corrections. Default:
+            [ForcePartTailCorrection,ForcePartGrid,ForcePartPressure,ForcePartValence]
+    '''
+    # Find out which parts need to be retained, and which ones need to be tabulated
+    parts, parts_tabulated = [],[]
+    scaling_rules = [1.0,1.0,1.0]
+    correct_15_rule = False
+    do_table, do_ei = False, False
+    for part in ff.parts:
+        if part.__class__ in keep_forceparts:
+            parts.append(part)
+        else:
+            parts_tabulated.append(part)
+        # LAMMPS will use the ``strongest'' scaling rules, i.e. following the
+        # part that sets most nearest neighbors interactions to zero.
+        # Corrections for this are applied afterwards
+        if part.__class__==ForcePartPair:
+            if part.scalings.scale1!=1.0: scaling_rules[0]=0.0
+            if part.scalings.scale2!=1.0: scaling_rules[1]=0.0
+            if part.scalings.scale3!=1.0: scaling_rules[2]=0.0
+            if part.scalings.scale4!=1.0:
+                correct_15_rule = True
+#raise NotImplementedError("LAMMPS cannot handle scaling rule for 1-5 interactions")
+            # Check whether electrostatics and/or tables need to be included by LAMMPS
+            if part.name=='pair_ei':
+                do_ei = True
+                # Corrections to electrostatic interactions for Gaussian
+                # are included in the table
+                if np.any(part.pair_pot.radii!=0.0): do_table=True
+            else: do_table = True
+    # Generate tables (if necessary) for force field containing relevant parts
+    if not os.path.isfile(fn_table) or overwrite_table:
+        ff_tabulate = ForceField(ff.system, parts_tabulated, nlist=ff.nlist)
+        write_lammps_table(ff_tabulate,fn=fn_table, nrows=nrows)
+    # Write system data
+    write_lammps_system_data(ff.system, ff=ff, fn=fn_system, triclinic=triclinic)
+    # Get the ForcePartLammps, which will handle noncovalent interactions
+    part_lammps = ForcePartLammps(ff,fn_log=fn_log,scalings_table=np.array(scaling_rules),
+            scalings_ei=np.array(scaling_rules),fn_system=fn_system,
+            fn_table=fn_table,do_ei=do_ei, do_table=do_table,kspace_accuracy=kspace_accuracy)
+    parts.append(part_lammps)
+    # Potentially add additional parts which correct scaling rules
+    scaling_nlist = BondedNeighborList(ff.system,selected=[],add15=correct_15_rule)
+    nlist = None
+    for part in ff.parts:
+        if part.__class__==ForcePartPair:
+            part_scalings = np.array([part.scalings.scale1,part.scalings.scale2,part.scalings.scale3,part.scalings.scale4])
+            if np.any(part_scalings!=scaling_rules):
+                correction_scalings = Scalings(ff.system,scale1=part_scalings[0]-scaling_rules[0],
+                    scale2=part_scalings[1]-scaling_rules[1],scale3=part_scalings[2]-scaling_rules[2],scale4=part_scalings[3]-1.0)
+                # Electrostatics: special case, because now alpha should be zero
+                if part.name=='pair_ei':
+                    pair_correction = PairPotEI(ff.system.charges, 0.0, rcut=part.pair_pot.rcut,
+                        tr=part.pair_pot.get_truncation(), dielectric=part.pair_pot.dielectric,
+                        radii=part.pair_pot.radii.copy())
+                    part_correction = ForcePartPair(ff.system, scaling_nlist, correction_scalings, pair_correction)
+                else:
+                    part_correction = ForcePartPair(ff.system, scaling_nlist, correction_scalings, part.pair_pot)
+                parts.append(part_correction)
+                nlist = scaling_nlist
+    # Construct the new force field
+    ff_lammps = ForceField(ff.system, parts, nlist=nlist)
+    return ff_lammps
