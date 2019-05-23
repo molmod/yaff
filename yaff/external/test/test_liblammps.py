@@ -207,7 +207,7 @@ def test_liblammps_quartz_bks():
             fn_system = os.path.join(dirname,'system.dat')
             fn_table = os.path.join(dirname,'table.dat')
             ff_lammps = swap_noncovalent_lammps(ff, fn_system=fn_system,
-                fn_table=fn_table,overwrite_table=True,fn_log='temp/lammps.log')
+                fn_table=fn_table)
             gpos_lammps, vtens_lammps = np.zeros(ff.system.pos.shape), np.zeros((3,3))
             elammps = ff_lammps.compute(gpos=gpos_lammps, vtens=vtens_lammps)
             plammps = np.trace(vtens_lammps)/3.0/ff.system.cell.volume
