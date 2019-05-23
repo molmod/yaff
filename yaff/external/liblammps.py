@@ -293,7 +293,6 @@ def swap_noncovalent_lammps(ff,fn_system='system.dat',fn_table='table.dat',
             if part.scalings.scale3!=1.0: scaling_rules[2]=0.0
             if part.scalings.scale4!=1.0:
                 correct_15_rule = True
-#raise NotImplementedError("LAMMPS cannot handle scaling rule for 1-5 interactions")
             # Check whether electrostatics and/or tables need to be included by LAMMPS
             if part.name=='pair_ei':
                 do_ei = True
@@ -319,8 +318,9 @@ def swap_noncovalent_lammps(ff,fn_system='system.dat',fn_table='table.dat',
         if part.__class__==ForcePartPair:
             part_scalings = np.array([part.scalings.scale1,part.scalings.scale2,part.scalings.scale3,part.scalings.scale4])
             if np.any(part_scalings!=scaling_rules):
+                scale4 = part_scalings[3]-1.0 if correct_15_rule else 1.0
                 correction_scalings = Scalings(ff.system,scale1=part_scalings[0]-scaling_rules[0],
-                    scale2=part_scalings[1]-scaling_rules[1],scale3=part_scalings[2]-scaling_rules[2],scale4=part_scalings[3]-1.0)
+                    scale2=part_scalings[1]-scaling_rules[1],scale3=part_scalings[2]-scaling_rules[2],scale4=scale4)
                 # Electrostatics: special case, because now alpha should be zero
                 if part.name=='pair_ei':
                     pair_correction = PairPotEI(ff.system.charges, 0.0, rcut=part.pair_pot.rcut,
