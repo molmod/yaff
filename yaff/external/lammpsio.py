@@ -213,6 +213,8 @@ def write_lammps_table(ff, fn='lammps.table', rmin=0.50*angstrom, nrows=2500):
         ftab.write("%s\nN %d R %f %f\n\n" % (name, nrows, rmin, rmax))
         for irow, row in enumerate(energies):
             ftab.write("%05d %+13.8f %+21.12f %+21.12f\n" % (irow+1, row[0], row[1], row[2]))
+        if log.do_medium:
+            log("%s done"%name)
 #        if make_plots:
 #            if not os.path.isdir(os.path.join(workdir,'lammps_table_plots')): os.mkdir(os.path.join(workdir,'lammps_table_plots'))
 #            pt.clf()

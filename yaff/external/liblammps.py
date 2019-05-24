@@ -44,27 +44,28 @@ from yaff.sampling.utils import cell_lower
 __all__ = ['ForcePartLammps','swap_noncovalent_lammps']
 
 class ForcePartLammps(ForcePart):
-    '''Energies obtained from Lammps.'''
+    '''Covalent energies obtained from Lammps.'''
     def __init__(self, ff, fn_system, fn_log="none", suffix='',
                     do_table=True, fn_table='lammps.table', scalings_table=[0.0,0.0,1.0],
-                    do_ei=True, kspace='ewald', kspace_accuracy=1e-6, scalings_ei=[0.0,0.0,1.0],
+                    do_ei=True, kspace='pppm', kspace_accuracy=1e-6, scalings_ei=[0.0,0.0,1.0],
                     triclinic=True, comm=None, move_central_cell=False):
-        '''
+        r'''Initalize LAMMPS ForcePart
+
            **Arguments:**
 
            system
                 An instance of the ``System`` class.
 
            fn_system
-                The file containing the system data in LAMMPS format,
-                can be generated using external.lammpsio.write_lammps_system_data
+                The file containing the system data in LAMMPS format, can be
+                generated using external.lammpsio.write_lammps_system_data
 
            **Optional Arguments:**
 
            fn_log
                 Filename where LAMMPS output is stored. This is probably only
-                necessary for debugging.
-                Default: None, which means no output is stored
+                necessary for debugging. Default: None, which means no output
+                is stored
 
            suffix
                 The suffix of the liblammps_*.so library file
@@ -79,7 +80,8 @@ class ForcePartLammps(ForcePart):
                 Default: lammps.table
 
            scalings_vdw
-                List containing vdW scaling factors for 1-2, 1-3 and 1-4 neighbors
+                List containing vdW scaling factors for 1-2, 1-3 and 1-4
+                neighbors
 
            do_ei
                 Boolean, compute a point-charge electrostatic contribution
@@ -90,10 +92,11 @@ class ForcePartLammps(ForcePart):
 
            kspace_accuracy
                 Desired relative error in electrostatic forces
-                Default: 1e-5
+                Default: 1e-6
 
            scalings_ei
-                List containing electrostatic scaling factors for 1-2, 1-3 and 1-4 neighbors
+                List containing electrostatic scaling factors for 1-2, 1-3 and
+                1-4 neighbors
 
            triclinic
                 Boolean, specify whether a triclinic cell will be used during
@@ -145,7 +148,7 @@ class ForcePartLammps(ForcePart):
         self.lammps.command("units electron")
         self.lammps.command("atom_style full")
         self.lammps.command("atom_modify map array")
-#        self.lammps.command("box tilt large")
+        self.lammps.command("box tilt large")
         self.lammps.command("read_data %s"%fn_system)
         self.lammps.command("mass * 1.0")
         self.lammps.command("bond_style none")
@@ -247,32 +250,69 @@ class ForcePartLammps(ForcePart):
         return energy
 
 
-def swap_noncovalent_lammps(ff,fn_system='system.dat',fn_table='table.dat',
-        fn_log="none", overwrite_table=False, nrows=5000,triclinic=True,
-        kspace_accuracy=1e-6,
-        keep_forceparts=[ForcePartTailCorrection,ForcePartGrid,ForcePartPressure,ForcePartValence]):
-    '''
-    Take a YAFF ForceField instance and replace noncovalent interactions with
+def swap_noncovalent_lammps(ff, fn_system='system.dat', fn_log="none",
+        suffix='', fn_table='table.dat', kspace='pppm', kspace_accuracy=1e-6,
+        triclinic=True, comm=None, overwrite_table=False, nrows=5000,
+        keep_forceparts=[ForcePartTailCorrection,ForcePartGrid,
+        ForcePartPressure, ForcePartValence]):
+    r'''Take a YAFF ForceField instance and replace noncovalent interactions with
     a ForcePartLammps instance.
 
-    **Arguments**:
-        ff: a YAFF ForceField instance
+           **Arguments:**
 
-    **Optional arguments**:
-        fn_system: the filename where system information in LAMMPS format will
-            be written. Default is `system.dat'
+           ff
+                a YAFF ForceField instance
 
-        fn_table: the filename where the tables of noncovalent interactions in
-            LAMMPS format will be written. Default is `table.dat'
+           **Optional arguments:**
 
-        overwrite_tables: whether or not fn_table should be updated if it
-            already exists. Default is `False'
+           fn_system
+                the filename where system information in LAMMPS format will be
+                written. Default is ``system.dat``
 
-        keep_forceparts: classes of ForceParts present in this list will be
-            retained in the YAFF ForceField and will not be included in the
-            tabulated interactions. Typically this will be covalent interactions,
-            but also for instance analytical tail corrections. Default:
-            [ForcePartTailCorrection,ForcePartGrid,ForcePartPressure,ForcePartValence]
+           fn_log
+                Filename where LAMMPS output is stored. This is probably only
+                necessary for debugging. Default: None, which means no output
+                is stored
+
+           suffix
+                The suffix of the liblammps_*.so library file
+
+           fn_table
+                the filename where the tables of noncovalent interactions in
+                LAMMPS format will be written. Default is ``table.dat``
+
+           kspace
+                Method to treat long-range electrostatics, should be one of
+                ewald or pppm
+
+           kspace_accuracy
+                Desired relative error in electrostatic forces
+                Default: 1e-6
+
+           triclinic
+                Boolean, specify whether a triclinic cell will be used during
+                the simulation. If the cell is orthogonal, set it to False
+                as LAMMPS should run slightly faster.
+                Default: True
+
+           comm
+                MPI communicator, required if LAMMPS should run in parallel
+
+           overwrite_tables
+                whether or not fn_table should be updated if it already exists.
+                Default is ``False``
+
+           nrows
+                The number of rows to use for tabulating noncovalent
+                interactions. Default is 5000
+
+           keep_forceparts
+                classes of ForceParts present in this list will be retained
+                in the YAFF ForceField and will not be included in the
+                tabulated interactions. Typically this will be covalent
+                interactions, but also for instance analytical tail
+                corrections. Default:[ForcePartTailCorrection,ForcePartGrid,
+                ForcePartPressure,ForcePartValence]
     '''
     # Find out which parts need to be retained, and which ones need to be tabulated
     parts, parts_tabulated = [],[]
@@ -307,9 +347,10 @@ def swap_noncovalent_lammps(ff,fn_system='system.dat',fn_table='table.dat',
     # Write system data
     write_lammps_system_data(ff.system, ff=ff, fn=fn_system, triclinic=triclinic)
     # Get the ForcePartLammps, which will handle noncovalent interactions
-    part_lammps = ForcePartLammps(ff,fn_log=fn_log,scalings_table=np.array(scaling_rules),
-            scalings_ei=np.array(scaling_rules),fn_system=fn_system,
-            fn_table=fn_table,do_ei=do_ei, do_table=do_table,kspace_accuracy=kspace_accuracy)
+    part_lammps = ForcePartLammps(ff, fn_system, fn_log=fn_log, suffix='',
+        do_table=do_table, fn_table=fn_table, scalings_table=np.array(scaling_rules),
+        do_ei=do_ei, kspace=kspace, kspace_accuracy=kspace_accuracy,
+        scalings_ei=np.array(scaling_rules),triclinic=triclinic, comm=comm)
     parts.append(part_lammps)
     # Potentially add additional parts which correct scaling rules
     scaling_nlist = BondedNeighborList(ff.system,selected=[],add15=correct_15_rule)
