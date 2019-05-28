@@ -245,9 +245,14 @@ def get_lammps_ffatypes(ff):
                 newffas = [ff.system.get_ffatype(iatom) for iatom in range(ff.system.natom)]
                 # Loop over all atomtypes
                 for iffa, ffa in enumerate(ff.system.ffatypes):
+                    # Find all different charge distributions, ie unique
+                    # combinations of charge and Gaussian radius
                     ei_combs = []
                     for iatom in np.where(ff.system.ffatype_ids==iffa)[0]:
-                        comb = (part.pair_pot.charges[iatom],part.pair_pot.radii[iatom])
+                        # Round of to 8 decimals, to avoid false detection of
+                        # unique combinations due to numerical noise
+                        comb = (np.around(part.pair_pot.charges[iatom],8),
+                                np.around(part.pair_pot.radii[iatom],8))
                         if not comb in ei_combs: ei_combs.append(comb)
                         newffas[iatom] = "%s_%05d"%(newffas[iatom],ei_combs.index(comb))
                 ffatypes = list(set(newffas))

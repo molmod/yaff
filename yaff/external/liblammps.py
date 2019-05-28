@@ -316,7 +316,7 @@ def swap_noncovalent_lammps(ff, fn_system='system.dat', fn_log="none",
     '''
     # Find out which parts need to be retained, and which ones need to be tabulated
     parts, parts_tabulated = [],[]
-    scaling_rules = [1.0,1.0,1.0]
+    scaling_rules = [1.0,1.0,1.0,1.0]
     correct_15_rule = False
     do_table, do_ei = False, False
     for part in ff.parts:
