@@ -156,6 +156,10 @@ class NeighborList(object):
                         raise ValueError('Atom density too high')
                 # 1) make an initial status object for the neighbor list algorithm
                 status = nlist_status_init(self.rmax)
+                # The atom index of the first atom in pair is always at least
+                # n_frame. The following status initialization avoids searching
+                # for frame-frame atom pairs in the neighbourlist build
+                status[3] = self.n_frame
                 # 2) a loop of consecutive update/allocate calls
                 last_start = 0
                 while True:
