@@ -359,13 +359,13 @@ def cell_lower(rvecs):
     newrvecs[0,0] = np.linalg.norm(A)
     # b vector
     newrvecs[1,0] = np.dot(B,A)/newrvecs[0,0]
-    if newrvecs[1,0] > 0.5*newrvecs[0,0]: newrvecs[1,0] -= newrvecs[0,0]
+#    if newrvecs[1,0] > 0.5*newrvecs[0,0]: newrvecs[1,0] -= newrvecs[0,0]
     newrvecs[1,1] = np.linalg.norm(np.cross(A,B))/newrvecs[0,0]
     # c vector
     newrvecs[2,0] = np.dot(C,A)/newrvecs[0,0]
-    if newrvecs[2,0] > 0.5*newrvecs[0,0]: newrvecs[2,0] -= newrvecs[0,0]
+#    if newrvecs[2,0] > 0.5*newrvecs[0,0]: newrvecs[2,0] -= newrvecs[0,0]
     newrvecs[2,1] = (np.dot(B,C) - newrvecs[1,0]*newrvecs[2,0])/newrvecs[1,1]
-    if newrvecs[2,1] > 0.5*newrvecs[1,1]: newrvecs[2,1] -= newrvecs[1,1]
+#    if newrvecs[2,1] > 0.5*newrvecs[1,1]: newrvecs[2,1] -= newrvecs[1,1]
     newrvecs[2,2] = np.sqrt( np.dot(C,C) - newrvecs[2,0]**2 - newrvecs[2,1]**2 )
     # transformation matrix
     rot = np.zeros(rvecs.shape)
