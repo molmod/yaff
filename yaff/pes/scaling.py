@@ -70,14 +70,14 @@ class Scalings(object):
                 The scaling of the 1-2. 1-3 and 1-4 pairs, respectively.
         '''
         self.items = []
-        if scale1 < 0 or scale1 > 1:
-            raise ValueError('scale1 must be in the range [0,1].')
-        if scale2 < 0 or scale2 > 1:
-            raise ValueError('scale2 must be in the range [0,1].')
-        if scale3 < 0 or scale3 > 1:
-            raise ValueError('scale3 must be in the range [0,1].')
-        if scale4 < 0 or scale4 > 1:
-            raise ValueError('scale4 must be in the range [0,1].')
+        if scale1 < -1 or scale1 > 1:
+            raise ValueError('scale1 must be in the range [-1,1].')
+        if scale2 < -1 or scale2 > 1:
+            raise ValueError('scale2 must be in the range [-1,1].')
+        if scale3 < -1 or scale3 > 1:
+            raise ValueError('scale3 must be in the range [-1,1].')
+        if scale4 < -1 or scale4 > 1:
+            raise ValueError('scale4 must be in the range [-1,1].')
         self.scale1 = scale1
         self.scale2 = scale2
         self.scale3 = scale3

@@ -85,7 +85,7 @@ setup(
     packages=['yaff', 'yaff/test', 'yaff/pes', 'yaff/pes/test', 'yaff/sampling',
               'yaff/sampling/test', 'yaff/analysis', 'yaff/analysis/test',
               'yaff/tune', 'yaff/tune/test', 'yaff/conversion',
-              'yaff/conversion/test'],
+              'yaff/conversion/test', 'yaff/external', 'yaff/external/test'],
     cmdclass = {'build_ext': build_ext},
     include_package_data=True,
     zip_safe=False,

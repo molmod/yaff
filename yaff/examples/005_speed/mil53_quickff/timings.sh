@@ -21,27 +21,19 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 # --
-'''YAFF - Yet another force field
-
-   The ``yaff`` package contains the subpackages that define the main
-   functionalities in yaff: force field models (:mod:`yaff.pes`), sampling
-   (:mod:`yaff.sampling`), trajectory analysis (:mod:`yaff.analysis`) and
-   parameter tuning (:mod:`yaff.tune`). These major subpackages are discusses in
-   the following sections.
-'''
 
 
-from .version import __version__
+nsteps=100
 
-from molmod.units import *
-from molmod.constants import *
+for supercell in 1.1.1 1.2.1 2.2.1 2.2.2 2.3.2 3.3.2 3.3.3 3.4.3 4.4.3 4.4.4
+do
+    program=yaff
+    nproc=1
+    python md.py ${program} ${supercell} ${nsteps} > ${program}_${nproc}_${nsteps}_${supercell}.log
 
-from yaff.analysis import *
-from yaff.atselect import *
-from yaff.conversion import *
-from yaff.external import *
-from yaff.log import *
-from yaff.pes import *
-from yaff.sampling import *
-from yaff.system import *
-from yaff.tune import *
+    program=lammps
+    nproc=8
+    mpirun -np ${nproc} python md.py ${program} ${supercell} ${nsteps} > ${program}_${nproc}_${nsteps}_${supercell}.log
+    nproc=1
+    mpirun -np ${nproc} python md.py ${program} ${supercell} ${nsteps} > ${program}_${nproc}_${nsteps}_${supercell}.log
+done

@@ -23,7 +23,7 @@ language: generic
 os:
   - linux
   - osx
-osx_image: xcode6.4
+osx_image: xcode9.4
 dist: trusty
 sudo: false
 
@@ -63,6 +63,8 @@ install:
   - conda install python=${MYCONDAPY} numpy cython sphinx conda-build anaconda-client
   # Install more recent stuff with pip
   - pip install codecov coverage
+  # Install LAMMPS
+  - conda install -c conda-forge lammps
   # Show conda info for debugging
   - conda info -a
 

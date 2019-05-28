@@ -52,6 +52,7 @@ This guide is a gentle introduction to Yaff with many examples.
    ug_sampling.rst
    ug_analysis.rst
    ug_tune.rst
+   ug_speed.rst
 
 
 Tutorials
@@ -81,6 +82,7 @@ source code.
    rg_yaff_analysis.rst
    rg_yaff_conversion.rst
    rg_yaff_tune.rst
+   rg_yaff_external.rst
 
 
 Development information

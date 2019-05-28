@@ -103,7 +103,7 @@ double pair_pot_compute(neigh_row_type *neighs,
         s = 1.0;
       }
       // If the scale is non-zero, compute the contribution.
-      if (s > 0.0) {
+      if (s != 0.0) {
         //Construct vector of distances, needed for some pair potentials
         delta[0] = neighs[i].dx;
         delta[1] = neighs[i].dy;

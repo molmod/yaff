@@ -96,3 +96,18 @@ def test_clean_momenta_0d():
     assert abs(com_mom).max() < 1e-10
     ang_mom = angular_moment(sys.pos, vel, masses)
     assert abs(ang_mom).max() < 1e-10
+
+
+def test_cell_lower():
+    rvecs = np.array([
+     [ 35.805, -0.050, -11.055],
+     [ -0.050, 60.160,   8.195E-4],
+     [-11.055,  8.195,  23.464]])
+    lower, R = cell_lower(rvecs)
+    # Check that upper diagonal elements are zero
+    assert np.all(np.triu(lower,1)==0.0)
+    # Check that volume is conserved
+    assert np.abs(np.linalg.det(rvecs)-np.linalg.det(lower))<1e-10
+    # Check that rotation matrix transforms rvecs into lower
+    # Mind the YAFF convention that cell vectors are rows
+    assert np.all( np.abs( lower - np.dot(R,rvecs.T).T ) < 1e-10)

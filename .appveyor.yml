@@ -49,6 +49,8 @@ install:
   - conda install conda-build anaconda-client numpy cython
   # Install codecov tool for uploading coverage reports
   - pip install codecov coverage
+  # Can't install LAMMPS, no channel with LAMMPS library available for Windows
+  # - conda install -c pyiron lammps
   # Show conda info for debugging
   - conda info -a
 

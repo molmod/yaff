@@ -34,7 +34,7 @@ import numpy as np
 __all__ = [
     'get_random_vel', 'remove_com_moment', 'remove_angular_moment',
     'clean_momenta', 'angular_moment', 'get_ndof_internal_md',
-    'cell_symmetrize', 'get_random_vel_press', 'get_ndof_baro',
+    'cell_symmetrize', 'cell_lower','get_random_vel_press', 'get_ndof_baro',
     'stabilized_cholesky_decomp'
 ]
 
@@ -329,6 +329,51 @@ def cell_symmetrize(ff, vector_list = None, tensor_list = None):
         for i in range(len(tensor_list)):
             new_tensor_list.append(np.dot(np.dot(rot_mat.T, tensor_list[i]), rot_mat))
     return new_vector_list, new_tensor_list
+
+def cell_lower(rvecs):
+    '''Transform the cell tensor to its lower diagonal form. The transformation
+    is described here https://lammps.sandia.gov/doc/Howto_triclinic.html,
+    bearing in mind that YAFF stores cell vectors as rows, not columns.
+
+    **Arguments:**
+
+    rvecs
+        A [3x3] NumPy array representing a cell tensor
+
+    **Returns:**
+
+    newrvecs
+        A [3x3] NumPy array representing a lower-diagonal form of rvecs
+
+    rot
+        A [3x3] matrix representing the rotation matrix to go from rvecs
+        to newrvecs
+    '''
+    assert rvecs.shape==(3,3), "Only 3D periodic systems supported!"
+    newrvecs = np.zeros(rvecs.shape)
+    A = rvecs[0]
+    B = rvecs[1]
+    C = rvecs[2]
+    assert np.dot(np.cross(A,B),C)>0, "Cell vectors should form right-handed basis!"
+    # a vector
+    newrvecs[0,0] = np.linalg.norm(A)
+    # b vector
+    newrvecs[1,0] = np.dot(B,A)/newrvecs[0,0]
+#    if newrvecs[1,0] > 0.5*newrvecs[0,0]: newrvecs[1,0] -= newrvecs[0,0]
+    newrvecs[1,1] = np.linalg.norm(np.cross(A,B))/newrvecs[0,0]
+    # c vector
+    newrvecs[2,0] = np.dot(C,A)/newrvecs[0,0]
+#    if newrvecs[2,0] > 0.5*newrvecs[0,0]: newrvecs[2,0] -= newrvecs[0,0]
+    newrvecs[2,1] = (np.dot(B,C) - newrvecs[1,0]*newrvecs[2,0])/newrvecs[1,1]
+#    if newrvecs[2,1] > 0.5*newrvecs[1,1]: newrvecs[2,1] -= newrvecs[1,1]
+    newrvecs[2,2] = np.sqrt( np.dot(C,C) - newrvecs[2,0]**2 - newrvecs[2,1]**2 )
+    # transformation matrix
+    rot = np.zeros(rvecs.shape)
+    rot[0] = np.cross(B,C)
+    rot[1] = np.cross(C,A)
+    rot[2] = np.cross(A,B)
+    rot = np.dot(newrvecs.transpose(),rot)/np.abs(np.linalg.det(rvecs))
+    return newrvecs, rot
 
 def get_random_vel_press(mass, temp):
     '''Generates symmetric tensor of barostat velocities
