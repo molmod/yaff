@@ -188,9 +188,17 @@ class ForcePartLammps(ForcePart):
                  (scalings_table[0],scalings_table[1],scalings_table[2]))
         self.lammps.command("neighbor 0.0 bin")
         self.lammps.command("neigh_modify delay 0 every 1 check no")
-        self.lammps.command("variable eng equal pe")
-        self.lammps.command("thermo_style custom step time etotal evdwl ecoul elong etail press")
         self.lammps.command("compute virial all pressure NULL virial")
+        self.lammps.command("variable eng equal pe")
+        self.lammps.command("variable Wxx equal c_virial[1]")
+        self.lammps.command("variable Wyy equal c_virial[2]")
+        self.lammps.command("variable Wzz equal c_virial[3]")
+        self.lammps.command("variable Wxy equal c_virial[4]")
+        self.lammps.command("variable Wxz equal c_virial[5]")
+        self.lammps.command("variable Wyz equal c_virial[6]")
+        thermo_style = "step time etotal evdwl ecoul elong etail "
+        thermo_style += " ".join(["c_virial[%d]"%i for i in range(1,7)])
+        self.lammps.command("thermo_style custom %s"%thermo_style)
         self.lammps.command("fix 1 all nve")
         # LAMMPS needs cell vectors (ax,0,0), (bx,by,0) and (cx,cy,cz)
         # This means we need to perform a rotation to switch between Yaff and
@@ -199,6 +207,7 @@ class ForcePartLammps(ForcePart):
         self.rvecs = np.eye(3)
         self.cell = Cell(self.rvecs)
         self.rot = np.zeros((3,3))
+        self.vtens_lammps = np.zeros((6,))
 
     def update_pos(self, pos):
         '''
@@ -235,15 +244,19 @@ class ForcePartLammps(ForcePart):
                 gpos[:] = np.ctypeslib.as_array(f).reshape((-1,3))
                 gpos[:] = -np.einsum('ij,kj', gpos, self.rot.transpose())
             if vtens is not None:
-                w = self.lammps.extract_compute("virial",0,1)
-                vtens_lammps = np.ctypeslib.as_array(w,shape=(6,))
+                self.vtens_lammps[0] = self.lammps.extract_variable("Wxx",None,0)
+                self.vtens_lammps[1] = self.lammps.extract_variable("Wyy",None,0)
+                self.vtens_lammps[2] = self.lammps.extract_variable("Wzz",None,0)
+                self.vtens_lammps[3] = self.lammps.extract_variable("Wxy",None,0)
+                self.vtens_lammps[4] = self.lammps.extract_variable("Wxz",None,0)
+                self.vtens_lammps[5] = self.lammps.extract_variable("Wyz",None,0)
                 # Lammps gives the virial per volume in pascal, so we have to
                 # multiply with some prefactors
-                vtens_lammps[:] *= -pascal*self.system.cell.volume
+                self.vtens_lammps[:] *= -pascal*self.system.cell.volume
                 # The [6x1] vector has to be cast to a symmetric [3x3] tensor
                 # Lammps orders the values as [xx,yy,zz,xy,xz,yz]
-                vtens[np.triu_indices(3)] = vtens_lammps[[0,3,4,1,5,2]]
-                vtens[np.tril_indices(3)] = vtens_lammps[[0,3,1,4,5,2]]
+                vtens[np.triu_indices(3)] = self.vtens_lammps[[0,3,4,1,5,2]]
+                vtens[np.tril_indices(3)] = self.vtens_lammps[[0,3,1,4,5,2]]
                 # Finally we have to compute the effect of the rotation on the
                 # the virial tensor to get the values in Yaff coordinates
                 vtens[:] = np.dot(self.rot.transpose(),np.dot(vtens[:],self.rot))
