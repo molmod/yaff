@@ -37,7 +37,7 @@ from yaff.pes.test.common import check_gpos_cv_fd, check_vtens_cv_fd
 from yaff.test.common import get_system_quartz
 
 
-def test_cvvolume_quartz_bonds():
+def test_cvvolume_quartz():
     system = get_system_quartz()
     cv = CVVolume(system)
     value = cv.compute()
@@ -50,9 +50,6 @@ def test_cvcomprojection_mof5():
     # Load the system
     fn_system = pkg_resources.resource_filename(__name__, '../../data/test/system_mof5.chk')
     system = System.from_file(fn_system)
-    system.pos[:] += np.random.normal(0.0,0.2*angstrom,system.natom*3).reshape((-1,3))
-    rvecs = system.cell.rvecs.copy() +  np.random.normal(0.0,0.1*angstrom,9).reshape((3,3))
-    system.cell.update_rvecs(rvecs)
     # Groups that define the COM
     atypes = set(['C_B', 'C_B_BR_O', 'O_p', 'B_p','C_HTTP', 'C_O_BR_O', 'C_O'])
     graph = MolecularGraph(system.bonds, system.numbers)

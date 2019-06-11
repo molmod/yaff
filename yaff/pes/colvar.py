@@ -65,6 +65,18 @@ class CollectiveVariable(object):
         self.gpos = np.zeros((system.natom, 3), float)
         self.vtens = np.zeros((3, 3), float)
 
+    def get_conversion(self):
+        '''Auxiliary routine that allows base classes the specify the unit
+           conversion associated with the internal coordinate.
+        '''
+        raise NotImplementedError
+
+    def get_log(self):
+        '''Describe the internal coordinate in a format that is suitable for
+           screen logging.
+        '''
+        return '%s' % (self.__class__.__name__)
+
     def compute(self, gpos=None, vtens=None):
         """Compute the collective variable and optionally some derivatives
 
@@ -88,9 +100,10 @@ class CollectiveVariable(object):
                 for tensor.) This must be a writeable numpy array with shape (3,
                 3).
 
-           The energy is returned. The optional arguments are Fortran-style
-           output arguments. When they are present, the corresponding results
-           are computed and **stored** to the current contents of the array.
+           The collective variable value is returned. The optional arguments
+           are Fortran-style output arguments. When they are present, the
+           corresponding results are computed and **stored** to the current
+           contents of the array.
         """
         #Subclasses implement their compute code here.
         raise NotImplementedError
@@ -108,6 +121,9 @@ class CVVolume(CollectiveVariable):
         if system.cell.nvec == 0:
             raise TypeError('Can not compute volume of a non-periodic system.')
         CollectiveVariable.__init__(self, 'CVVolume', system)
+
+    def get_conversion(self):
+        return np.power(log.length.conversion, self.system.cell.nvec)
 
     def compute(self, gpos=None, vtens=None):
         value = self.system.cell.volume
@@ -172,6 +188,8 @@ class CVCOMProjection(CollectiveVariable):
         self.weights[groups[0]] = -self.system.masses[groups[0]]/np.sum(self.system.masses[groups[0]])
         self.weights[groups[1]] = self.system.masses[groups[1]]/np.sum(self.system.masses[groups[1]])
 
+    def get_conversion(self):
+        return log.length.conversion
 
     def compute(self, gpos=None, vtens=None):
         '''

@@ -47,14 +47,15 @@ from yaff.pes.ext import compute_ewald_reci, compute_ewald_reci_dd, compute_ewal
     compute_ewald_corr_dd, PairPotEI, PairPotLJ, PairPotMM3, PairPotMM3CAP, PairPotGrimme, compute_grid3d
 from yaff.pes.dlist import DeltaList
 from yaff.pes.iclist import InternalCoordinateList
-from yaff.pes.vlist import ValenceList
+from yaff.pes.vlist import ValenceList, ValenceTerm
+from yaff.pes.bias import BiasPotential
 
 
 __all__ = [
     'ForcePart', 'ForceField', 'ForcePartPair', 'ForcePartEwaldReciprocal',
     'ForcePartEwaldReciprocalDD', 'ForcePartEwaldCorrectionDD',
     'ForcePartEwaldCorrection', 'ForcePartEwaldNeutralizing',
-    'ForcePartValence', 'ForcePartPressure', 'ForcePartGrid',
+    'ForcePartValence', 'ForcePartBias', 'ForcePartPressure', 'ForcePartGrid',
     'ForcePartTailCorrection',
 ]
 
@@ -713,6 +714,135 @@ class ForcePartValence(ForcePart):
                     self.comlist.gpos[:] = 0.0
                     self.dlist.back(self.comlist.gpos, vtens)
                     self.comlist.back(gpos, vtens)
+            return energy
+
+
+class ForcePartBias(ForcePart):
+    '''Biasing potential that can be used in advanced molecular dynamics
+       methods such as umbrella sampling and metadynamics.
+
+       Terms can be added using the ``add_term`` method, where the argument is
+       either an instance of ``BiasPotential`` or ``ValenceTerm``.
+       In many cases, a bias term is very similar to a conventional force-field
+       term, such as a harmonic bond stretch. In such a case, it is advisable
+       to make use of the ``InternalCoordinate`` and ``ValenceTerm`` classes
+       to construct the contribution to the biasing potential.
+       If this is not possible, for instance a harmonic restraint of the cell
+       volume, an instance of ``CollectiveVariable`` can be used together with
+       an instance of the ``BiasPotential`` class.
+    '''
+    def __init__(self, system):
+        '''
+           Parameters
+           ----------
+
+           system
+                An instance of the ``System`` class.
+        '''
+        ForcePart.__init__(self, 'bias', system)
+        self.system = system
+        self.dlist = None
+        self.iclist = None
+        self.vlist = None
+        self.terms = []
+        self.vlist_indices = {}
+        if log.do_medium:
+            with log.section('FPINIT'):
+                log('Force part: %s' % self.name)
+                log.hline()
+
+    def add_term(self, term):
+        '''Add a new term to the bias potential.
+
+           **Arguments:**
+
+           term
+                An instance of the class :class:`yaff.pes.ff.vlist.ValenceTerm`
+                or an instance of the class
+                :class:`yaff.pes.ff.vias.BiasPotential`
+        '''
+        if isinstance(term, ValenceTerm):
+            # Construct the ValenceList and related stuff if this is the first
+            # ValenceTerm that is added
+            if self.vlist is None:
+                self.dlist = DeltaList(self.system)
+                self.iclist = InternalCoordinateList(self.dlist)
+                self.vlist = ValenceList(self.iclist)
+            # Keep track of the index this term gets in the ValenceList
+            self.vlist_indices[len(self.terms)] = self.vlist.nv
+            # Add to the ValenceList
+            self.vlist.add_term(term)
+            if log.do_high:
+                with log.section('BIAS'):
+                    log('%7i&%s %s' % (len(self.terms), term.get_log(), ' '.join(ic.get_log() for ic in term.ics)))
+        elif isinstance(term, BiasPotential):
+            if log.do_high:
+                with log.section('BIAS'):
+                    log('%7i&%s %s' % (len(self.terms), term.get_log(), ' '.join(cv.get_log() for cv in term.cvs)))
+        else:
+            raise NotImplementedError
+        self.terms.append(term)
+
+    def get_term_energy(self, index):
+        term = self.terms[index]
+        if isinstance(term, ValenceTerm):
+            return self.vlist.vtab[self.vlist_indices[index]]['energy']
+        else:
+            return term.compute()
+
+    def get_term_energies(self):
+        ''' 
+        Return a NumPy array with the energies associated with all terms
+        contributing to the bias potential.
+        '''
+        energies = np.array([self.get_term_energy(index) for index in range(len(self.terms))])
+        return energies
+
+    def get_term_cv_values(self, index):
+        '''
+        Return a NumPy array with values of collective variables associated
+        with a certain term.
+
+            **Arguments:**
+            index
+                The index of the term in question.
+        '''
+        term = self.terms[index]
+        if isinstance(term, ValenceTerm):
+            cv_values = []
+            # Loop over all internal coordinates for this term
+            for index in term.get_ic_indexes(self.iclist):
+                cv_values.append(self.iclist.ictab[index]['value'])
+            return np.asarray(cv_values)
+        else:
+            return np.array([cv.compute() for cv in term.cvs])
+
+    def _internal_compute(self, gpos, vtens):
+        with timer.section('Bias'):
+            energy = 0.0        
+            # ValenceTerms
+            if self.vlist is not None:
+                self.dlist.forward()
+                self.iclist.forward()
+                energy += self.vlist.forward()
+                if not ((gpos is None) and (vtens is None)):
+                    self.vlist.back()
+                    self.iclist.back()
+                    self.dlist.back(gpos, vtens)
+            # BiasPotentials
+            if gpos is None:
+                my_gpos = None
+            else:
+                my_gpos = np.zeros((self.system.natom,3))
+            if vtens is None:
+                my_vtens = None
+            else:
+                my_vtens = np.zeros((3,3))
+            for term in self.terms:
+                if isinstance(term, ValenceTerm): continue
+                energy += term.compute(gpos=my_gpos,vtens=my_vtens)
+                if gpos is not None: gpos[:] += my_gpos
+                if vtens is not None: vtens[:] += my_vtens
             return energy
 
 
