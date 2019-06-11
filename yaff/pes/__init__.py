@@ -86,3 +86,4 @@ from yaff.pes.ff import *
 from yaff.pes.nlist import *
 from yaff.pes.parameters import *
 from yaff.pes.scaling import *
+from yaff.pes.colvar import *
