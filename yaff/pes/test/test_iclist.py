@@ -476,3 +476,38 @@ def test_oop_meanangle_amoniak():
         assert abs(delta['gx'] - mean[0]) < 1e-8
         assert abs(delta['gy'] - mean[1]) < 1e-8
         assert abs(delta['gz'] - mean[2]) < 1e-8
+
+def test_iclist_point_line_squaredistance():
+    ntests = 5
+    numbers = np.ones((3,), dtype=int)
+    pos = np.zeros((numbers.shape[0],3))
+    system = System(numbers, pos)
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    ic = SqPointLineDistance(0,1,2)
+    iclist.add_ic(ic)
+    for itest in range(ntests):
+        system.pos = np.random.normal(0.1,0.3,system.natom*3).reshape((-1,3))
+        dlist.forward()
+        iclist.forward()
+        n = np.cross(system.pos[2]-system.pos[0],system.pos[2]-system.pos[1])
+        delta = system.pos[1]-system.pos[0]
+        reference = np.dot(n,n)/np.dot(delta,delta)
+        assert np.abs(iclist.ictab[0]['value']-reference)<1e-8
+
+def test_iclist_point_line_distance():
+    ntests = 5
+    numbers = np.ones((3,), dtype=int)
+    pos = np.zeros((numbers.shape[0],3))
+    system = System(numbers, pos)
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    ic = PointLineDistance(0,1,2)
+    iclist.add_ic(ic)
+    for itest in range(ntests):
+        system.pos = np.random.normal(0.1,0.3,system.natom*3).reshape((-1,3))
+        dlist.forward()
+        iclist.forward()
+        n = np.cross(system.pos[2]-system.pos[0],system.pos[2]-system.pos[1])
+        reference = np.linalg.norm(n)/np.linalg.norm(system.pos[1]-system.pos[0])
+        assert np.abs(iclist.ictab[0]['value']-reference)<1e-8

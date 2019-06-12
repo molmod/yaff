@@ -70,7 +70,7 @@ __all__ = [
     'InternalCoordinateList', 'InternalCoordinate', 'Bond', 'BendAngle',
     'BendCos', 'DihedAngle', 'DihedCos', 'UreyBradley', 'OopAngle',
     'OopMeanAngle', 'OopCos', 'OopMeanCos', 'OopDist', 'DihedCos2', 'DihedCos3',
-    'DihedCos4', 'DihedCos6'
+    'DihedCos4', 'DihedCos6', 'PointLineDistance', 'SqPointLineDistance',
 ]
 
 
@@ -470,3 +470,38 @@ class DihedCos6(InternalCoordinate):
 
     def get_conversion(self):
         return 1.0
+
+class PointLineDistance(InternalCoordinate):
+    '''Distance between point k and the line defined by i an j'''
+    kind = 16
+    def __init__(self, i, j, k):
+        '''
+           **Arguments:**
+
+           i, j, k
+                The indexes of the atoms involved in the point to line
+                distance. The point is given by the last index (k). The line is
+                formed by the other two atoms i and j.
+        '''
+        InternalCoordinate.__init__(self, [(i,k), (j,k), (i,j)])
+
+    def get_conversion(self):
+        return log.length.conversion
+
+
+class SqPointLineDistance(InternalCoordinate):
+    '''Squared distance between point k and the line defined by i an j'''
+    kind = 17
+    def __init__(self, i, j, k):
+        '''
+           **Arguments:**
+
+           i, j, k
+                The indexes of the atoms involved in the point to line
+                distance. The point is given by the last index (k). The line is
+                formed by the other two atoms i and j.
+        '''
+        InternalCoordinate.__init__(self, [(i,k), (j,k), (i,j)])
+
+    def get_conversion(self):
+        return log.length.conversion

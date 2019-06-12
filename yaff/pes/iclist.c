@@ -222,10 +222,39 @@ double forward_dihed_cos6(iclist_row_type* ic, dlist_row_type* deltas) {
   return c*(4.0*c*(c-3.0)+9.0)-1.0;
 }
 
-ic_forward_type ic_forward_fns[16] = {
+double forward_point_line_squaredistance(iclist_row_type* ic, dlist_row_type* deltas) {
+  double *delta0, *delta1, *delta2;
+  double n[3];
+  double n_norm_sq, d2_norm_sq;
+  delta0 = (double*)(deltas + (*ic).i0);
+  delta1 = (double*)(deltas + (*ic).i1);
+  delta2 = (double*)(deltas + (*ic).i2);
+  // The normal to the plane spanned by the first and second vector
+  n[0] = delta0[1]*delta1[2] - delta0[2]*delta1[1];
+  n[1] = delta0[2]*delta1[0] - delta0[0]*delta1[2];
+  n[2] = delta0[0]*delta1[1] - delta0[1]*delta1[0];
+  // The norm of this normal is twice the size of the triangle formed by the
+  // two vectors; here we already square it
+  n_norm_sq = n[0]*n[0] + n[1]*n[1] + n[2]*n[2];
+  // Length of one base of the triangle; again, already squared
+  d2_norm_sq = delta2[0]*delta2[0] + delta2[1]*delta2[1] + delta2[2]*delta2[2];
+  // Dividing twice the surface by the base length, gives the height of the
+  // triangle; this is the distance between the point and the line
+  return n_norm_sq/d2_norm_sq;
+}
+
+double forward_point_line_distance(iclist_row_type* ic, dlist_row_type* deltas) {
+  double c;
+  c = forward_point_line_squaredistance(ic, deltas);
+  if (c<0) { c = 0.0; }
+  return sqrt(c);
+}
+
+ic_forward_type ic_forward_fns[18] = {
   forward_bond, forward_bend_cos, forward_bend_angle, forward_dihed_cos, forward_dihed_angle, forward_bond,
   forward_oop_cos, forward_oop_meancos, forward_oop_angle, forward_oop_meanangle, forward_oop_distance,
-  forward_oop_squaredist, forward_dihed_cos2, forward_dihed_cos3, forward_dihed_cos4, forward_dihed_cos6
+  forward_oop_squaredist, forward_dihed_cos2, forward_dihed_cos3, forward_dihed_cos4, forward_dihed_cos6,
+  forward_point_line_distance, forward_point_line_squaredistance
 };
 
 void iclist_forward(dlist_row_type* deltas, iclist_row_type* ictab, long nic) {
@@ -618,11 +647,57 @@ void back_dihed_cos6(iclist_row_type* ic, dlist_row_type* deltas, double value, 
   back_dihed_cos(ic, deltas, c, tmp);
 }
 
+void back_point_line_squaredistance(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  dlist_row_type *d0, *d1, *d2;
+  double *delta0, *delta1, *delta2;
+  double n[3];
+  double n_norm_sq, d2_norm_sq, fac;
+  d0 = deltas + (*ic).i0;
+  d1 = deltas + (*ic).i1;
+  d2 = deltas + (*ic).i2;
+  delta0 = (double*)(d0);
+  delta1 = (double*)(d1);
+  delta2 = (double*)(d2);
+  // The normal to the plane spanned by the first and second vector
+  n[0] = delta0[1]*delta1[2] - delta0[2]*delta1[1];
+  n[1] = delta0[2]*delta1[0] - delta0[0]*delta1[2];
+  n[2] = delta0[0]*delta1[1] - delta0[1]*delta1[0];
+  // The norm of this normal is twice the size of the triangle formed by the
+  // two vectors
+  n_norm_sq = n[0]*n[0] + n[1]*n[1] + n[2]*n[2];
+  // Length of one base of the triangle
+  d2_norm_sq = delta2[0]*delta2[0] + delta2[1]*delta2[1] + delta2[2]*delta2[2];
+  // Derivatives to the first two deltas
+  fac = 2.0*grad/d2_norm_sq;
+  (*d0).gx += fac*(delta1[1]*n[2]-delta1[2]*n[1]);
+  (*d0).gy += fac*(delta1[2]*n[0]-delta1[0]*n[2]);
+  (*d0).gz += fac*(delta1[0]*n[1]-delta1[1]*n[0]);
+  (*d1).gx -= fac*(delta0[1]*n[2]-delta0[2]*n[1]);
+  (*d1).gy -= fac*(delta0[2]*n[0]-delta0[0]*n[2]);
+  (*d1).gz -= fac*(delta0[0]*n[1]-delta0[1]*n[0]);
+  // Derivative to the last delta
+  fac = 2.0*grad*n_norm_sq/(d2_norm_sq*d2_norm_sq);
+  (*d2).gx -= fac*delta2[0];
+  (*d2).gy -= fac*delta2[1];
+  (*d2).gz -= fac*delta2[2];
+}
 
-ic_back_type ic_back_fns[16] = {
+void back_point_line_distance(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  // If the distance is zero, the derivative is actually undefined.
+  // In this case we put it to 0, as a reasonable choice for the ValenceTerm in
+  // which this distance appears should deal with this.
+  // Apply the chain rule to get derivative using the square of the distance
+  double tmp=0.0;
+  if (value==0.0) tmp = 0.0;
+  else tmp = 0.5*grad/value;
+  back_point_line_squaredistance(ic, deltas, value*value, tmp);
+}
+
+ic_back_type ic_back_fns[18] = {
   back_bond, back_bend_cos, back_bend_angle, back_dihed_cos, back_dihed_angle, back_bond,
   back_oop_cos, back_oop_meancos, back_oop_angle, back_oop_meanangle, back_oop_distance,
-  back_oop_squaredist, back_dihed_cos2, back_dihed_cos3, back_dihed_cos4, back_dihed_cos6
+  back_oop_squaredist, back_dihed_cos2, back_dihed_cos3, back_dihed_cos4, back_dihed_cos6,
+  back_point_line_distance, back_point_line_squaredistance
 };
 
 void iclist_back(dlist_row_type* deltas, iclist_row_type* ictab, long nic) {

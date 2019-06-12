@@ -954,3 +954,23 @@ def test_gpos_vtens_oopdist_formaldehyde():
     part.add_term(Harmonic(0.0,0.0*angstrom,OopDist(2,3,1,0)))
     check_gpos_part(system, part)
     check_vtens_part(system, part)
+
+
+def test_gpos_vtens_sqpointlinedist_water32():
+    system = get_system_water32()
+    part = ForcePartValence(system)
+    for i, j, k in system.iter_angles():
+        # Add this term so no all signs of deltas are 1
+        part.add_term(Harmonic(0.4,1.0, Bond(j,i) ))
+        part.add_term(Harmonic(0.3, 1.7, SqPointLineDistance(i,j,k)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
+
+
+def test_gpos_vtens_pointlinedist_water32():
+    system = get_system_water32()
+    part = ForcePartValence(system)
+    for i, j, k in system.iter_angles():
+        part.add_term(Harmonic(0.3, 1.7, PointLineDistance(i,j,k)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
