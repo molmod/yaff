@@ -31,7 +31,7 @@ import pkg_resources
 
 from yaff import *
 from molmod.units import angstrom
-from molmod import MolecularGraph
+from molmod import MolecularGraph, bond_length
 
 from yaff.pes.test.common import check_gpos_cv_fd, check_vtens_cv_fd
 from yaff.test.common import get_system_quartz
@@ -79,3 +79,15 @@ def test_cvcomprojection_mof5():
         # Check derivatives
         check_gpos_cv_fd(cv)
         check_vtens_cv_fd(cv)
+
+def test_cvinternalcoordinate_quartz():
+    system = get_system_quartz()
+    ic = Bond(1,3)
+    cv = CVInternalCoordinate(system, ic)
+    value = cv.compute()
+    delta = system.pos[3]-system.pos[1]
+    system.cell.mic(delta)
+    reference = bond_length([np.zeros(3, float), delta])[0]
+    assert np.abs(value-reference)<1e-8
+    check_gpos_cv_fd(cv)
+    check_vtens_cv_fd(cv)

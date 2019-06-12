@@ -39,11 +39,13 @@ from __future__ import division
 import numpy as np
 
 from yaff.log import log
+from yaff.pes.dlist import DeltaList
+from yaff.pes.iclist import InternalCoordinateList
 from yaff.sampling.utils import cell_lower
 
 
 __all__ = [
-    'CVVolume', 'CVCOMProjection',
+    'CVVolume', 'CVCOMProjection','CVInternalCoordinate'
 ]
 
 
@@ -86,7 +88,7 @@ class CollectiveVariable(object):
            **Optional arguments:**
 
            gpos
-                The derivatives of the collective towards the Cartesian
+                The derivatives of the collective variable towards the Cartesian
                 coordinates of the atoms. ('g' stands for gradient and 'pos'
                 for positions.)
                 This must be a writeable numpy array with shape (N, 3) where N
@@ -107,6 +109,44 @@ class CollectiveVariable(object):
         """
         #Subclasses implement their compute code here.
         raise NotImplementedError
+
+
+class CVInternalCoordinate(CollectiveVariable):
+    '''
+       An InternalCoordinate disguised as a CollectiveVariable so that it can
+       be used together with a BiasPotential.
+       This is less efficient than using the InternalCoordinate with a
+       ValenceTerm, so the latter is preferred if it is possible.
+    '''
+    def __init__(self, system, ic, comlist=None):
+        self.system = system
+        self.ic = ic
+        self.comlist = comlist
+        self.dlist = DeltaList(system if comlist is None else comlist)
+        self.iclist = InternalCoordinateList(self.dlist)
+        self.iclist.add_ic(ic)
+
+    def get_conversion(self):
+        self.ic.get_conversion()
+
+    def compute(self, gpos=None, vtens=None):
+        if self.comlist is not None:
+            self.comlist.forward()
+        self.dlist.forward()
+        self.iclist.forward()
+        value = self.iclist.ictab[0]['value']
+        if gpos is not None: gpos[:] = 0.0
+        if vtens is not None: vtens[:] = 0.0
+        if not ((gpos is None) and (vtens is None)):
+            self.iclist.ictab[0]['grad'] = 1.0
+            self.iclist.back()
+            if self.comlist is None:
+                self.dlist.back(gpos, vtens)
+            else:
+                self.comlist.gpos[:] = 0.0
+                self.dlist.back(self.comlist.gpos, vtens)
+                self.comlist.back(gpos, vtens)
+        return value
 
 
 class CVVolume(CollectiveVariable):
@@ -136,24 +176,23 @@ class CVVolume(CollectiveVariable):
 
 
 class CVCOMProjection(CollectiveVariable):
-    '''
-    Compute the vector connecting two centers of masses and return the
+    '''Compute the vector connecting two centers of masses and return the
     projection along a selected vector.
 
-    cv=(r_{COM}^{B}-r_{COM}^{A})[index]
-    and r_{COM} is a vector with centers of mass of groups A and B:
-        first component: projected onto ``a`` vector of cell
-        second component: projected onto vector perpendicular to ``a`` and in
-            the plane spanned by ``a`` and ``b``
-        third component: projected onto vector perpendicular to ``a`` and ``b``
+    cv=(r_{COM}^{B}-r_{COM}^{A})[index] and r_{COM} is a vector with centers
+    of mass of groups A and B
+        * first component: projected onto ``a`` vector of cell
+        * second component: projected onto vector perpendicular to ``a`` and
+          in the plane spanned by ``a`` and ``b``
+        * third component: projected onto vector perpendicular to ``a`` and
+          ``b``
 
     Note that periodic boundary conditions are NOT taken into account
         * the centers of mass are computed using absolute positions; this is
           most likely the desired behavior
         * the center of mass difference can in principle be periodic, but
           the periodicity is not the same as the periodicity of the system,
-          because of the projection on a selected vector
-    '''
+          because of the projection on a selected vector'''
     def __init__(self, system, groups, index):
         '''
            **Arguments:**
@@ -166,12 +205,12 @@ class CVCOMProjection(CollectiveVariable):
                 used to compute one of the centers of mass
 
            index
-                Selected projection vector,
-                if index==0, projection onto ``a`` vector of cell
-                if index==1, projection onto vector perpendicular to ``a`` and
-                    in the plane spanned by ``a`` and ``b``
-                if index==2, projection onto vector perpendicular to ``a`` and
-                    ``b``
+                Selected projection vector:
+                    * if index==0, projection onto ``a`` vector of cell
+                    * if index==1, projection onto vector perpendicular to ``a``
+                      and in the plane spanned by ``a`` and ``b``
+                    * if index==2, projection onto vector perpendicular to ``a``
+                      and ``b``
         '''
         CollectiveVariable.__init__(self, 'CVCOMProjection', system)
         self.index = index
