@@ -731,27 +731,42 @@ class ForcePartBias(ForcePart):
        volume, an instance of ``CollectiveVariable`` can be used together with
        an instance of the ``BiasPotential`` class.
     '''
-    def __init__(self, system):
+    def __init__(self, system, comlist=None):
         '''
-           Parameters
-           ----------
+           **Arguments:**
 
            system
                 An instance of the ``System`` class.
+
+           **Optional arguments:**
+
+           comlist
+                An optional layer to derive centers of mass from the atomic positions.
+                These centers of mass are used as input for the first layer, the relative
+                vectors.
         '''
         ForcePart.__init__(self, 'bias', system)
         self.system = system
-        self.dlist = None
-        self.iclist = None
-        self.vlist = None
+        self.valence = ForcePartValence(system)
+        if comlist is not None:
+            self.valence_com = ForcePartValence(system, comlist=comlist)
+        else:
+            self.valence_com = None
         self.terms = []
-        self.vlist_indices = {}
+        # The terms contributing to the bias potential are divided into three
+        # categories:
+        #   0) instances of BiasPotential
+        #   1) instances of ValenceTerm with a regular DeltaList
+        #   2) instances of ValenceTerm with a COMList
+        # The following list facilitates looking up the terms after they have
+        # been added
+        self.term_lookup = []
         if log.do_medium:
             with log.section('FPINIT'):
                 log('Force part: %s' % self.name)
                 log.hline()
 
-    def add_term(self, term):
+    def add_term(self, term, use_comlist=False):
         '''Add a new term to the bias potential.
 
            **Arguments:**
@@ -760,22 +775,29 @@ class ForcePartBias(ForcePart):
                 An instance of the class :class:`yaff.pes.ff.vlist.ValenceTerm`
                 or an instance of the class
                 :class:`yaff.pes.ff.vias.BiasPotential`
+
+            **Optional arguments:**
+
+            use_comlist
+                Boolean indicating whether the comlist should be used for
+                adding this ValenceTerm
         '''
         if isinstance(term, ValenceTerm):
-            # Construct the ValenceList and related stuff if this is the first
-            # ValenceTerm that is added
-            if self.vlist is None:
-                self.dlist = DeltaList(self.system)
-                self.iclist = InternalCoordinateList(self.dlist)
-                self.vlist = ValenceList(self.iclist)
-            # Keep track of the index this term gets in the ValenceList
-            self.vlist_indices[len(self.terms)] = self.vlist.nv
-            # Add to the ValenceList
-            self.vlist.add_term(term)
+            if use_comlist:
+                if self.valence_com is None:
+                    raise TypeError("No COMList was provided when setting up the ForcePartBias")
+                self.term_lookup.append( (2,self.valence_com.vlist.nv) )
+                # Keep track of the index this term gets in the ValenceList
+                self.valence_com.vlist.add_term(term)
+            else:
+                self.term_lookup.append( (1,self.valence.vlist.nv) )
+                # Add to the ValenceList
+                self.valence.vlist.add_term(term)
             if log.do_high:
                 with log.section('BIAS'):
                     log('%7i&%s %s' % (len(self.terms), term.get_log(), ' '.join(ic.get_log() for ic in term.ics)))
         elif isinstance(term, BiasPotential):
+            self.term_lookup.append( (0,len(self.terms)))
             if log.do_high:
                 with log.section('BIAS'):
                     log('%7i&%s %s' % (len(self.terms), term.get_log(), ' '.join(cv.get_log() for cv in term.cvs)))
@@ -784,14 +806,16 @@ class ForcePartBias(ForcePart):
         self.terms.append(term)
 
     def get_term_energy(self, index):
-        term = self.terms[index]
-        if isinstance(term, ValenceTerm):
-            return self.vlist.vtab[self.vlist_indices[index]]['energy']
-        else:
-            return term.compute()
+        kind, iterm = self.term_lookup[index]
+        if kind==0:
+            return self.terms[index].compute()
+        elif kind==1:
+            return self.valence.vlist.vtab[iterm]['energy']
+        elif kind==2:
+            return self.valence_com.vlist.vtab[iterm]['energy']
 
     def get_term_energies(self):
-        ''' 
+        '''
         Return a NumPy array with the energies associated with all terms
         contributing to the bias potential.
         '''
@@ -803,32 +827,33 @@ class ForcePartBias(ForcePart):
         Return a NumPy array with values of collective variables associated
         with a certain term.
 
-            **Arguments:**
-            index
+           **Arguments:**
+
+           index
                 The index of the term in question.
         '''
+        kind, iterm = self.term_lookup[index]
         term = self.terms[index]
-        if isinstance(term, ValenceTerm):
+        if kind==0:
+            return np.array([cv.compute() for cv in term.cvs])
+        else:
+            if kind==1:
+                iclist = self.valence.iclist
+            elif kind==2:
+                iclist = self.valence_com.iclist
             cv_values = []
             # Loop over all internal coordinates for this term
-            for index in term.get_ic_indexes(self.iclist):
-                cv_values.append(self.iclist.ictab[index]['value'])
+            for index in term.get_ic_indexes(iclist):
+                cv_values.append(iclist.ictab[index]['value'])
             return np.asarray(cv_values)
-        else:
-            return np.array([cv.compute() for cv in term.cvs])
 
     def _internal_compute(self, gpos, vtens):
         with timer.section('Bias'):
-            energy = 0.0        
+            energy = 0.0
             # ValenceTerms
-            if self.vlist is not None:
-                self.dlist.forward()
-                self.iclist.forward()
-                energy += self.vlist.forward()
-                if not ((gpos is None) and (vtens is None)):
-                    self.vlist.back()
-                    self.iclist.back()
-                    self.dlist.back(gpos, vtens)
+            energy += self.valence._internal_compute(gpos, vtens)
+            if self.valence_com is not None:
+                energy += self.valence_com._internal_compute(gpos, vtens)
             # BiasPotentials
             if gpos is None:
                 my_gpos = None
