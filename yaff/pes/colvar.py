@@ -45,7 +45,7 @@ from yaff.sampling.utils import cell_lower
 
 
 __all__ = [
-    'CVVolume', 'CVCOMProjection','CVInternalCoordinate'
+    'CollectiveVariable', 'CVVolume', 'CVCOMProjection','CVInternalCoordinate'
 ]
 
 

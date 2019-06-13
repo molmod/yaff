@@ -313,7 +313,7 @@ class PathDeviationBias(BiasPotential):
                 the vectors connecting x with the left, central, and right
                 points on the path. Central point is the nearest point.
         '''
-        assert x.ndim==1        
+        assert x.ndim==1
         assert x.shape[0]==self.ncv
         deltas = x-self.path_coordinates
         # Apply minimum image convention for periodic collective variables
