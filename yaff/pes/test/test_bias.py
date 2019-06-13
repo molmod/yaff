@@ -31,7 +31,8 @@ import pkg_resources
 
 from yaff import *
 
-from yaff.pes.test.common import check_gpos_part, check_vtens_part
+from yaff.pes.test.common import check_gpos_part, check_vtens_part,\
+    check_gpos_cv_fd, check_vtens_cv_fd
 from yaff.test.common import get_system_quartz
 
 from molmod import bend_angle
@@ -50,6 +51,47 @@ def test_bias_harmonicvolume_quartz():
     assert np.abs(e-echeck)<1e-8
     check_gpos_part(system, part)
     check_vtens_part(system, part)
+
+
+def test_bias_upperwallvolume_quartz():
+    system = get_system_quartz()
+    cv = CVVolume(system)
+    K, q0 = 0.4, system.cell.volume
+    bias = UpperWallBias(K, q0, cv)
+    rvecs_orig = system.cell.rvecs.copy()
+    part = ForcePartBias(system)
+    part.add_term(bias)
+    for scale in [0.5,2.0]:
+        rvecs = rvecs_orig*scale
+        system.cell.update_rvecs(rvecs)
+        e = bias.compute()
+        if system.cell.volume>q0:
+            eref = 0.5*K*(system.cell.volume-q0)**2
+        else: eref = 0.0
+        assert np.abs(e-eref)<1e-8
+        check_gpos_part(system, part)
+        check_vtens_part(system, part)
+
+
+def test_bias_lowerwallvolume_quartz():
+    system = get_system_quartz()
+    cv = CVVolume(system)
+    K, q0 = 0.4, system.cell.volume
+    bias = LowerWallBias(K, q0, cv)
+    rvecs_orig = system.cell.rvecs.copy()
+    part = ForcePartBias(system)
+    part.add_term(bias)
+    for scale in [0.5,2.0]:
+        rvecs = rvecs_orig*scale
+        system.cell.update_rvecs(rvecs)
+        e = bias.compute()
+        if system.cell.volume<q0:
+            eref = 0.5*K*(system.cell.volume-q0)**2
+        else: eref = 0.0
+        assert np.abs(e-eref)<1e-8
+        check_gpos_part(system, part)
+        check_vtens_part(system, part)
+
 
 def test_bias_multiple_terms():
     system = get_system_quartz()

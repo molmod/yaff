@@ -32,7 +32,8 @@ from yaff.log import log, timer
 
 
 __all__ = [
-    'BiasPotential', 'HarmonicBias', 'PathDeviationBias'
+    'BiasPotential', 'HarmonicBias', 'PathDeviationBias', 'LowerWallBias',
+    'UpperWallBias',
 ]
 
 
@@ -117,6 +118,80 @@ class HarmonicBias(BiasPotential):
     def compute(self, gpos=None, vtens=None):
         q = self.cvs[0].compute(gpos=gpos,vtens=vtens)
         x = q-self.pars[1]
+        e = 0.5*self.pars[0]*x**2
+        if gpos is not None:
+            gpos[:] *= self.pars[0]*x
+        if vtens is not None:
+            vtens[:] *= self.pars[0]*x
+        return e
+
+
+class LowerWallBias(BiasPotential):
+    '''Harmonic energy term, but zero if q>q0: 0.5*K*(q-q0)^2*H(q0-q)'''
+    def __init__(self, fc, rv, cv):
+        '''
+           **Arguments:**
+
+           fc
+                The force constant (in atomic units).
+
+           rv
+                The rest value (in atomic units).
+
+           cv
+                A ``CollectiveVariable`` object.
+        '''
+        BiasPotential.__init__(self, [fc, rv], [cv])
+
+    def get_log(self):
+        c = self.cvs[0].get_conversion()
+        return '%s(FC=%.5e,RV=%.5e)' % (
+            self.__class__.__name__,
+            self.pars[0]/(log.energy.conversion/c**2),
+            self.pars[1]/c
+        )
+
+    def compute(self, gpos=None, vtens=None):
+        q = self.cvs[0].compute(gpos=gpos,vtens=vtens)
+        x = q-self.pars[1]
+        x*= q<self.pars[1]
+        e = 0.5*self.pars[0]*x**2
+        if gpos is not None:
+            gpos[:] *= self.pars[0]*x
+        if vtens is not None:
+            vtens[:] *= self.pars[0]*x
+        return e
+
+
+class UpperWallBias(BiasPotential):
+    '''Harmonic energy term, but zero if q<q0: 0.5*K*(q-q0)^2*H(q-q0)'''
+    def __init__(self, fc, rv, cv):
+        '''
+           **Arguments:**
+
+           fc
+                The force constant (in atomic units).
+
+           rv
+                The rest value (in atomic units).
+
+           cv
+                A ``CollectiveVariable`` object.
+        '''
+        BiasPotential.__init__(self, [fc, rv], [cv])
+
+    def get_log(self):
+        c = self.cvs[0].get_conversion()
+        return '%s(FC=%.5e,RV=%.5e)' % (
+            self.__class__.__name__,
+            self.pars[0]/(log.energy.conversion/c**2),
+            self.pars[1]/c
+        )
+
+    def compute(self, gpos=None, vtens=None):
+        q = self.cvs[0].compute(gpos=gpos,vtens=vtens)
+        x = q-self.pars[1]
+        x*= q>self.pars[1]
         e = 0.5*self.pars[0]*x**2
         if gpos is not None:
             gpos[:] *= self.pars[0]*x
