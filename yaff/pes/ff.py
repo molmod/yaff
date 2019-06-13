@@ -776,9 +776,9 @@ class ForcePartBias(ForcePart):
                 or an instance of the class
                 :class:`yaff.pes.ff.vias.BiasPotential`
 
-            **Optional arguments:**
+           **Optional arguments:**
 
-            use_comlist
+           use_comlist
                 Boolean indicating whether the comlist should be used for
                 adding this ValenceTerm
         '''

@@ -102,7 +102,7 @@ class HarmonicBias(BiasPotential):
                 The rest value (in atomic units).
 
            cv
-                An ``CollectiveVariable`` object.
+                A ``CollectiveVariable`` object.
         '''
         BiasPotential.__init__(self, [fc, rv], [cv])
 
@@ -126,30 +126,31 @@ class HarmonicBias(BiasPotential):
 
 
 class PathDeviationBias(BiasPotential):
-    '''
-    Given a discrete path in the multidimensional collective variable space,
-    this potential consists of the energy of the nearest point on the path plus
-    a harmonic potential for the distance to the nearest point.
+    '''Given a discrete path in the multidimensional collective variable space,
+       this potential consists of the energy of the nearest point on the path plus
+       a harmonic potential for the distance to the nearest point.
 
-    Suppose the vectors of collective variables on the path are given by
-    sigma_i for i=1..n. Suppose the current state of the system is sigma. First
-    the index i is sought for which |sigma-sigma_i| is minimal. This expression
-    for this bias potential is then U=U_path + 0.5*K*|sigma-sigma_i|**2
+       Suppose the vectors of collective variables on the path are given by
+       sigma_i for i=1..n. Suppose the current state of the system is sigma. First
+       the index i is sought for which \|sigma-sigma_i\| is minimal. This expression
+       for this bias potential is then U=U_path + 0.5*K*|sigma-sigma_i|**2
 
-    U_path is computed as a three point interpolation:
-    U_path = c_{i-1}*U_{i-1}+c_{i}*U_{i}+c_{i+1}*U_{i+1} with the coefficients:
-        *c_{i} =   0.5*( d_{i-1}/(d_{i-1}+d_{i}) + d_{i+1}/(d_{i}+d_{i+1} )
-        *c_{i-1} = 0.5*( d_{i}/(d_{i-1}+d_{i}) )
-        *c_{i+1} = 0.5*( d_{i}/(d_{i}+d_{i+1}) )
-    where d_{i} = |sigma-sigma_i|**2
+       U_path is computed as a three point interpolation:
 
-    Note that this potential is **not** continuous when the nearest point on
-    the path changes from one to the other.
+       U_path = c_{i-1}*U_{i-1}+c_{i}*U_{i}+c_{i+1}*U_{i+1} with the coefficients:
+            * c_{i} =   0.5*( d_{i-1}/(d_{i-1}+d_{i}) + d_{i+1}/(d_{i}+d_{i+1} )
+            * c_{i-1} = 0.5*( d_{i}/(d_{i-1}+d_{i}) )
+            * c_{i+1} = 0.5*( d_{i}/(d_{i}+d_{i+1}) )
 
-    Defining a distance in collective variable space is problematic: different
-    collective variables can even have different units. We use the following
-    expression: |sigma| = \sqrt{ Sum_a (w_a sigma_a)**2 } where a runs over all
-    collective variables and w_a are weights provided by the user.
+       where d_{i} = \|sigma-sigma_i\|**2
+
+       Note that this potential is **not** continuous when the nearest point on
+       the path changes from one to the other.
+
+       Defining a distance in collective variable space is problematic: different
+       collective variables can even have different units. We use the following
+       expression: \|sigma\| = \sqrt{ Sum_a (w_a sigma_a)**2 } where a runs over all
+       collective variables and w_a are weights provided by the user.
     '''
     def __init__(self, cvs, path, fc, weights=None, periodicities=None):
         '''
@@ -180,9 +181,10 @@ class PathDeviationBias(BiasPotential):
                 Specify ``None`` if the collective variable is not periodic.
                 Default is ``None`` for all collective variables.
 
-        TODO
-            Testing periodic boundary conditions
-            Testing the search for closest point on the path
+           **TODO:**
+
+                * Testing periodic boundary conditions
+                * Testing the search for closest point on the path
         '''
         self.cvs = cvs
         self.fc = fc

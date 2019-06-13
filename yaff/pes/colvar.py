@@ -177,22 +177,23 @@ class CVVolume(CollectiveVariable):
 
 class CVCOMProjection(CollectiveVariable):
     '''Compute the vector connecting two centers of masses and return the
-    projection along a selected vector.
+       projection along a selected vector. cv=(r_{COM}^{B}-r_{COM}^{A})[index]
+       and r_{COM} is a vector with centers of mass of groups A and B:
 
-    cv=(r_{COM}^{B}-r_{COM}^{A})[index] and r_{COM} is a vector with centers
-    of mass of groups A and B
-        * first component: projected onto ``a`` vector of cell
-        * second component: projected onto vector perpendicular to ``a`` and
-          in the plane spanned by ``a`` and ``b``
-        * third component: projected onto vector perpendicular to ``a`` and
-          ``b``
+            * first component: projected onto ``a`` vector of cell
+            * second component: projected onto vector perpendicular to ``a``
+              and in the plane spanned by ``a`` and ``b``
+            * third component: projected onto vector perpendicular to ``a`` and
+              ``b``
 
-    Note that periodic boundary conditions are NOT taken into account
-        * the centers of mass are computed using absolute positions; this is
-          most likely the desired behavior
-        * the center of mass difference can in principle be periodic, but
-          the periodicity is not the same as the periodicity of the system,
-          because of the projection on a selected vector'''
+       Note that periodic boundary conditions are NOT taken into account
+
+            * the centers of mass are computed using absolute positions; this is
+              most likely the desired behavior
+            * the center of mass difference can in principle be periodic, but
+              the periodicity is not the same as the periodicity of the system,
+              because of the projection on a selected vector
+    '''
     def __init__(self, system, groups, index):
         '''
            **Arguments:**
@@ -232,15 +233,15 @@ class CVCOMProjection(CollectiveVariable):
 
     def compute(self, gpos=None, vtens=None):
         '''
-        Consider a rotation of the entire system such that the ``a`` vector
-        is aligned with the X-axis, the ``b`` vector is in the XY-plane, and
-        the ``c`` vector chosen such that a right-handed basis is formed.
-        The rotated cell is lower-diagonal in the Yaff notation.
+           Consider a rotation of the entire system such that the ``a`` vector
+           is aligned with the X-axis, the ``b`` vector is in the XY-plane, and
+           the ``c`` vector chosen such that a right-handed basis is formed.
+           The rotated cell is lower-diagonal in the Yaff notation.
 
-        In this rotated system, it is fairly simple to compute the required
-        projections and derivatives, because the projections are simply the
-        Cartesian components. Values obtained in the rotated system are then
-        transformed back to the original system.
+           In this rotated system, it is fairly simple to compute the required
+           projections and derivatives, because the projections are simply the
+           Cartesian components. Values obtained in the rotated system are then
+           transformed back to the original system.
         '''
         # Compute rotation that makes cell lower diagonal
         _, R = cell_lower(self.system.cell.rvecs)
