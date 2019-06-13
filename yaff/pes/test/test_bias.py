@@ -182,7 +182,12 @@ def test_bias_pathdeviation_mof5():
     cv0 = CVCOMProjection(system, groups, 0)
     cv1 = CVCOMProjection(system, groups, 1)
     # The path, rather random nonsense
-    npoints = 100
+    # This potential has a discontinuous derivative when there is a jump from
+    # one nearest point on the path to the next. This can lead to failure of
+    # the check_gpos_part and check_vtens_part tests when such a jump occurs
+    # in the finite difference approximation. We avoid this by taking a rather
+    # coarse path, so we are always close to the same point of the path.
+    npoints = 20
     path = np.zeros((npoints,3))
     path[:,0] = np.cos(np.linspace(0,np.pi,npoints))*0.1
     path[:,1] = np.sin(np.linspace(0,np.pi,npoints))*-0.1
@@ -195,7 +200,7 @@ def test_bias_pathdeviation_mof5():
     check_vtens_part(system, part)
     # Test without the harmonic restraint, closest point on path is starting
     # point of the path
-    bias = PathDeviationBias([cv0,cv1], path[27:], 0.0)
+    bias = PathDeviationBias([cv0,cv1], path[5:], 0.0)
     index, _, _ = bias.find_nearest_point(np.array([cv.compute() for cv in bias.cvs]))
     assert index==0
     part = ForcePartBias(system)
@@ -208,3 +213,4 @@ def test_bias_pathdeviation_mof5():
     part.add_term(bias)
     check_gpos_part(system, part)
     check_vtens_part(system, part)
+#    assert False
