@@ -85,6 +85,7 @@ def test_cvinternalcoordinate_quartz():
     ic = Bond(1,3)
     cv = CVInternalCoordinate(system, ic)
     value = cv.compute()
+    assert value==cv.get_last_computed_value()
     delta = system.pos[3]-system.pos[1]
     system.cell.mic(delta)
     reference = bond_length([np.zeros(3, float), delta])[0]

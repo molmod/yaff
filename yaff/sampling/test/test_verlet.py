@@ -123,6 +123,48 @@ def test_hdf5_simple():
         assert f['trajectory/counter'][15] == 15
 
 
+def test_hdf5_cvs():
+    # This test checks that CVStateItem and BiasStateItem writes output
+    ff = get_ff_water32()
+    part_bias = ForcePartBias(ff.system)
+    ff.add_part(part_bias)
+    cv0 = CVVolume(ff.system)
+    K0, V0 = 0.1, 0.8*ff.system.cell.volume
+    bias0 = HarmonicBias(K0,V0,cv0)
+    part_bias.add_term(bias0)
+    cv1 = Bond(ff.system.bonds[0,0], ff.system.bonds[0,1])
+    K1, r1 = 0.2, 0.8
+    bias1 = Harmonic(K1, r1,cv1)
+    part_bias.add_term(bias1)
+    cv_tracker = CVStateItem([cv0,cv1])
+    bias_tracker = BiasStateItem(part_bias)
+    with h5.File('yaff.sampling.test.test_verlet.test_hdf5_cvs.h5', driver='core', backing_store=False) as f:
+        hdf5 = HDF5Writer(f)
+        nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=hdf5, state=[cv_tracker, bias_tracker])
+        nve.run(5)
+        assert nve.counter == 5
+        check_hdf5_common(hdf5.f, isolated=False)
+        assert get_last_trajectory_row(f['trajectory']) == 6
+        assert f['trajectory/counter'][5] == 5
+        cv_values = f['trajectory/cv_values'][:]
+        assert cv_values.shape[0]==6
+        assert cv_values.shape[1]==2
+        assert np.all(cv_values[:,0]==f['trajectory/volume'][:])
+        ref_bond_lengths = []
+        for pos in f['trajectory/pos'][:]:
+            delta = pos[ff.system.bonds[0,0]] - pos[ff.system.bonds[0,1]]
+            ff.system.cell.mic(delta)
+            ref_bond_lengths.append(np.linalg.norm(delta))
+        ref_bond_lengths = np.asarray(ref_bond_lengths)
+        assert np.all(np.abs(cv_values[:,1]-ref_bond_lengths)<1e-5)
+        bias_values = f['trajectory/bias_values'][:]
+        assert bias_values.shape[0]==6
+        assert bias_values.shape[1]==2
+        assert np.all(np.abs(0.5*K0*(cv_values[:,0]-V0)**2 - bias_values[:,0])<1e-5)
+        assert np.all(np.abs(0.5*K1*(cv_values[:,1]-r1)**2 - bias_values[:,1])<1e-5)
+        assert 'cv_names' in f['trajectory'].attrs
+
+
 def test_xyz():
     with tmpdir(__name__, 'test_xyz') as dn:
         fn_xyz = os.path.join(dn, 'foobar.xyz')

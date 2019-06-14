@@ -121,6 +121,7 @@ class InternalCoordinateList(object):
                 self.ictab[row]['sign%i'%i] = rows_signs[i][1]
             self.lookup[key] = row
             self.nic += 1
+        ic.iclist = self
         return row
 
     def forward(self):
@@ -181,6 +182,8 @@ class InternalCoordinate(object):
                 coordinate.
         '''
         self.index_pairs = index_pairs
+        # An InternalCoordinateList that will handle this InternalCoordinate
+        self.iclist = None
 
     def get_rows_signs(self, dlist):
         '''Request row indexes and sign flips from a delta list
@@ -206,6 +209,23 @@ class InternalCoordinate(object):
             self.__class__.__name__,
             ','.join('%i-%i' % pair for pair in self.index_pairs)
         )
+
+    def get_last_computed_value(self):
+        """Return the last value that was computed. It is not assured that this
+           value reflects the value for the current state of the system. The
+           actual computation is performed by advancing an
+           InternalCoordinateList to which this InternalCoordinate is
+           associated. This is merely a convenience method to obtain the value
+           without performing an actual computation.
+        """
+        # InternalCoordinate not yet in InternalCoordinateList, no way to get
+        # value.
+        if self.iclist is None:
+            return np.nan
+        #  Lookup value
+        else:
+            row = self.iclist.add_ic(self)
+            return self.iclist.ictab[row]['value']
 
 
 class Bond(InternalCoordinate):

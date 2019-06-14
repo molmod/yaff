@@ -51,6 +51,25 @@ def test_iclist_quartz_bonds():
         assert abs(iclist.ictab[row]['value'] - bond_length([np.zeros(3, float), delta])[0]) < 1e-5
 
 
+def test_iclist_lastcomputed_quartz_bonds():
+    system = get_system_quartz()
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    ics = []
+    for i, j in system.bonds:
+        ic = Bond(i,j)
+        ics.append(ic)
+        iclist.add_ic(ic)
+    dlist.forward()
+    iclist.forward()
+    for row, (i, j) in enumerate(system.bonds):
+        delta = system.pos[j] - system.pos[i]
+        system.cell.mic(delta)
+        ref = bond_length([np.zeros(3, float), delta])[0]
+        value = ics[row].get_last_computed_value()
+        assert np.abs(value-ref)<1e-5
+
+
 def test_iclist_quartz_bend_cos():
     system = get_system_quartz()
     dlist = DeltaList(system)

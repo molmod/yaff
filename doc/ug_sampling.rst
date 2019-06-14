@@ -391,3 +391,17 @@ a harmonic restraint on the volume can be constructed as follows::
     K, V0 = 0.3, 12000.0
     bias = HarmonicBias(K, V0, cv) # Instance of BiasPotential
     part_bias.add_term(bias)
+
+It can be necessary to keep track of the values of collective variables or the
+bias potentials for postprocessing. This can be accomplished by making use of
+the :class:`yaff.sampling.iterative.CVStateItem` and
+:class:`yaff.sampling.iterative.BiasStateItem` classes as follows::
+
+    cv_tracker = CVStateItem([cv0, cv1, ...])
+    bias_tracker = BiasStateItem(part_bias)
+    verlet = VerletIntegrator(..., state=[cv_tracker, bias_tracker])
+
+Such a construction will write the values of the requested collective variables
+and the contributions to the bias potential during a simulation to a HDF5 file.
+Note that the ``bias_tracker`` will not work if terms are added during the
+simulation.

@@ -63,7 +63,7 @@ class CollectiveVariable(object):
         """
         self.name = name
         self.system = system
-        self.value = 0.0
+        self.value = np.nan
         self.gpos = np.zeros((system.natom, 3), float)
         self.vtens = np.zeros((3, 3), float)
 
@@ -110,6 +110,14 @@ class CollectiveVariable(object):
         #Subclasses implement their compute code here.
         raise NotImplementedError
 
+    def get_last_computed_value(self):
+        """Return the last value that was computed. It is not assured that this
+           value reflects the value for the current state of the system. This
+           is merely a convenience method to obtain the value without
+           performing an actual computation.
+        """
+        return self.value
+
 
 class CVInternalCoordinate(CollectiveVariable):
     '''
@@ -134,7 +142,7 @@ class CVInternalCoordinate(CollectiveVariable):
             self.comlist.forward()
         self.dlist.forward()
         self.iclist.forward()
-        value = self.iclist.ictab[0]['value']
+        self.value = self.iclist.ictab[0]['value']
         if gpos is not None: gpos[:] = 0.0
         if vtens is not None: vtens[:] = 0.0
         if not ((gpos is None) and (vtens is None)):
@@ -146,7 +154,7 @@ class CVInternalCoordinate(CollectiveVariable):
                 self.comlist.gpos[:] = 0.0
                 self.dlist.back(self.comlist.gpos, vtens)
                 self.comlist.back(gpos, vtens)
-        return value
+        return self.value
 
 
 class CVVolume(CollectiveVariable):
@@ -166,13 +174,13 @@ class CVVolume(CollectiveVariable):
         return np.power(log.length.conversion, self.system.cell.nvec)
 
     def compute(self, gpos=None, vtens=None):
-        value = self.system.cell.volume
+        self.value = self.system.cell.volume
         if gpos is not None:
             # No dependence on atomic positions
             gpos[:] = 0.0
         if vtens is not None:
-            vtens[:] = np.identity(3)*value
-        return value
+            vtens[:] = np.identity(3)*self.value
+        return self.value
 
 
 class CVCOMProjection(CollectiveVariable):
@@ -250,6 +258,7 @@ class CVCOMProjection(CollectiveVariable):
         cv_orig = np.sum(self.weights.reshape((-1,1))*self.system.pos, axis=0)
         # Transform back to the original system
         cv = np.dot(R, cv_orig)
+        self.value = cv[self.index]
         if gpos is not None:
             gpos[:] = 0.0
             gpos[:,self.index] = self.weights
@@ -261,4 +270,4 @@ class CVCOMProjection(CollectiveVariable):
             vtens[self.index:,self.index] = cv[self.index:]
             # Virial (tensor) needs to be rotated back to original system
             vtens[:] = np.dot(R.T,np.dot(vtens[:],R))
-        return cv[self.index]
+        return self.value
