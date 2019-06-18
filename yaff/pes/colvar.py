@@ -45,7 +45,8 @@ from yaff.sampling.utils import cell_lower
 
 
 __all__ = [
-    'CollectiveVariable', 'CVVolume', 'CVCOMProjection','CVInternalCoordinate'
+    'CollectiveVariable', 'CVVolume', 'CVCOMProjection','CVInternalCoordinate',
+    'CVLinCombIC',
 ]
 
 
@@ -135,7 +136,7 @@ class CVInternalCoordinate(CollectiveVariable):
         self.iclist.add_ic(ic)
 
     def get_conversion(self):
-        self.ic.get_conversion()
+        return self.ic.get_conversion()
 
     def compute(self, gpos=None, vtens=None):
         if self.comlist is not None:
@@ -270,4 +271,70 @@ class CVCOMProjection(CollectiveVariable):
             vtens[self.index:,self.index] = cv[self.index:]
             # Virial (tensor) needs to be rotated back to original system
             vtens[:] = np.dot(R.T,np.dot(vtens[:],R))
+        return self.value
+
+
+class CVLinCombIC(CollectiveVariable):
+    '''
+       A linear combination of InternalCoordinates
+    '''
+    def __init__(self, system, ics, weights, comlist=None):
+        '''
+           **Arguments:**
+
+           system
+                An instance of the ``System`` class.
+
+           ics
+                A list of InternalCoordinate instances.
+
+           weights
+                A list defining the weight of each InternalCoordinate that is
+                used when computing the linear combination.
+
+           **Optional arguments:**
+
+           comlist
+
+                An instance COMList; if provided, this is used instead of the
+                normal DeltaList to compute the InternalCoordinates
+
+        '''
+        assert len(weights)==len(ics)
+        self.system = system
+        self.ics = ics
+        self.comlist = comlist
+        self.dlist = DeltaList(system if comlist is None else comlist)
+        self.iclist = InternalCoordinateList(self.dlist)
+        for ic in self.ics:
+            self.iclist.add_ic(ic)
+        self.weights = weights
+
+    def get_conversion(self):
+        # Units depend on the particular linear combination of internal
+        # coordinates
+        return 1.0
+
+    def compute(self, gpos=None, vtens=None):
+        if self.comlist is not None:
+            self.comlist.forward()
+        self.dlist.forward()
+        self.iclist.forward()
+        self.value = 0.0
+        for iic in range(len(self.ics)):
+            self.value += self.weights[iic]*self.iclist.ictab[iic]['value']
+        if gpos is not None: gpos[:] = 0.0
+        if vtens is not None: vtens[:] = 0.0
+        if not ((gpos is None) and (vtens is None)):
+            for iic in range(len(self.ics)):
+                # Derivative of the linear combination to this particular
+                # internal coordinate
+                self.iclist.ictab[iic]['grad'] = self.weights[iic]
+            self.iclist.back()
+            if self.comlist is None:
+                self.dlist.back(gpos, vtens)
+            else:
+                self.comlist.gpos[:] = 0.0
+                self.dlist.back(self.comlist.gpos, vtens)
+                self.comlist.back(gpos, vtens)
         return self.value

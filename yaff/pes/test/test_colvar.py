@@ -92,3 +92,23 @@ def test_cvinternalcoordinate_quartz():
     assert np.abs(value-reference)<1e-8
     check_gpos_cv_fd(cv)
     check_vtens_cv_fd(cv)
+
+
+def test_cvlincombic_quartz():
+    system = get_system_quartz()
+    ic0 = Bond(1,3)
+    ic1 = Bond(2,5)
+    weights = [0.13,0.29]
+    cv = CVLinCombIC(system, [ic0,ic1], weights)
+    value = cv.compute()
+    assert value==cv.get_last_computed_value()
+    delta0 = system.pos[3]-system.pos[1]
+    system.cell.mic(delta0)
+    ref0 = bond_length([np.zeros(3, float), delta0])[0]
+    delta1 = system.pos[5]-system.pos[2]
+    system.cell.mic(delta1)
+    ref1 = bond_length([np.zeros(3, float), delta1])[0]
+    reference = weights[0]*ref0+weights[1]*ref1
+    assert np.abs(value-reference)<1e-8
+    check_gpos_cv_fd(cv)
+    check_vtens_cv_fd(cv)
