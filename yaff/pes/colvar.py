@@ -276,7 +276,8 @@ class CVCOMProjection(CollectiveVariable):
 
 class CVLinCombIC(CollectiveVariable):
     '''
-       A linear combination of InternalCoordinates
+       A linear combination of InternalCoordinates:
+        cv = w0*ic0 + w1*ic1 + ...
     '''
     def __init__(self, system, ics, weights, comlist=None):
         '''

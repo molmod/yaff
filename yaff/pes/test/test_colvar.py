@@ -80,6 +80,7 @@ def test_cvcomprojection_mof5():
         check_gpos_cv_fd(cv)
         check_vtens_cv_fd(cv)
 
+
 def test_cvinternalcoordinate_quartz():
     system = get_system_quartz()
     ic = Bond(1,3)
