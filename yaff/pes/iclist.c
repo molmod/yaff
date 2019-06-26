@@ -23,6 +23,7 @@
 
 #include <math.h>
 #include "iclist.h"
+#include "constants.h"
 #include <stdio.h>
 
 typedef double (*ic_forward_type)(iclist_row_type*, dlist_row_type*);
@@ -74,16 +75,69 @@ double forward_dihed_cos(iclist_row_type* ic, dlist_row_type* deltas) {
   return (*ic).sign0*(*ic).sign2*tmp1/tmp0/tmp2;
 }
 
+double forward_dihed_sin(iclist_row_type* ic, dlist_row_type* deltas) {
+  /* This function is not listed in the ic_forward_fns array, we only need it
+     to compute the dihed angle in some cases.
+     Expression that needs to be compute:
+     sin(phi) = (r1xr0).r2 |r1|/|r1xr0|/|r2xr1|
+  */
+  double *delta0, *delta1, *delta2;
+  double a[3], b[3];
+  double r1, ra, rb, adotd2;
+  delta0 = (double*)(deltas + (*ic).i0);
+  delta1 = (double*)(deltas + (*ic).i1);
+  delta2 = (double*)(deltas + (*ic).i2);
+  // a = r1xr0
+  a[0] = delta1[1]*delta0[2] - delta1[2]*delta0[1];
+  a[1] = delta1[2]*delta0[0] - delta1[0]*delta0[2];
+  a[2] = delta1[0]*delta0[1] - delta1[1]*delta0[0];
+  // b = r2xr1
+  b[0] = delta2[1]*delta1[2] - delta2[2]*delta1[1];
+  b[1] = delta2[2]*delta1[0] - delta2[0]*delta1[2];
+  b[2] = delta2[0]*delta1[1] - delta2[1]*delta1[0];
+  // |r1|
+  r1 = sqrt(delta1[0]*delta1[0] + delta1[1]*delta1[1] + delta1[2]*delta1[2]);
+  // |r1xr0|
+  ra = sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]);
+  // |r2xr1|
+  rb = sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
+  // (r1xr0).r1
+  adotd2 = a[0]*delta2[0] + a[1]*delta2[1] + a[2]*delta2[2];
+  // End result is odd in delta0, delta1, and delta2, so we need to take all
+  // these signs into account
+  return (*ic).sign0*(*ic).sign1*(*ic).sign2*adotd2*r1/ra/rb;
+}
+
 double forward_dihed_angle(iclist_row_type* ic, dlist_row_type* deltas) {
-  double c;
+  double c, s, phi, det;
+  double *delta0, *delta1, *delta2;
+  delta0 = (double*)(deltas + (*ic).i0);
+  delta1 = (double*)(deltas + (*ic).i1);
+  delta2 = (double*)(deltas + (*ic).i2);
   c = forward_dihed_cos(ic, deltas);
-  // Guard against round-off errors before taking the dot product.
-  if (c > 1) {
-    c = 1;
-  } else if (c < -1) {
-    c = -1;
+  if (fabs(c)<0.5) {
+    // Cosine is far from -1 and +1, take arccos
+    phi = acos(c);
+    // Fix the sign
+    det = delta0[0]*(delta1[1]*delta2[2]-delta1[2]*delta2[1])+
+          delta0[1]*(delta1[2]*delta2[0]-delta1[0]*delta2[2])+
+          delta0[2]*(delta1[0]*delta2[1]-delta1[1]*delta2[0]);
+    // Take signs of delta vectors themselves into account
+    det *= (*ic).sign0*(*ic).sign1*(*ic).sign2;
+    if (det>0) phi *= -1;
   }
-  return acos(c);
+  else {
+    // Cosine might be close to -1 or +1, use arcsin
+    s = forward_dihed_sin(ic, deltas);
+    phi = asin(s);
+    // Fix the sign
+    if (c<0) {
+      phi *= -1;
+      if (phi>0) phi -= 0.5*M_TWO_PI;
+      else phi += 0.5*M_TWO_PI;
+    }
+  }
+  return phi;
 }
 
 double forward_oop_cos_low(double *delta0, double *delta1, double *delta2) {
@@ -384,10 +438,106 @@ void back_dihed_cos(iclist_row_type* ic, dlist_row_type* deltas, double value, d
   (*delta2).gz += grad*(  dcos_db[0]*da_ddel0[2] + dcos_db[1]*da_ddel0[5] + dcos_db[2]*da_ddel0[8]);
 }
 
+void back_dihed_sin(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
+  double a[3], b[3], c[3];
+  double r1, ra, rb, fac;
+  double *delta0, *delta1, *delta2;
+  dlist_row_type *d0, *d1, *d2;
+  // Pointers to dlist_rows
+  d0 = deltas + (*ic).i0;
+  d1 = deltas + (*ic).i1;
+  d2 = deltas + (*ic).i2;
+  // Easy acces to cartesian components of dlist_rows
+  delta0 = (double*)(d0);
+  delta1 = (double*)(d1);
+  delta2 = (double*)(d2);
+  // Cross products a = r1xr0, b=r2xr1, c=r0xr2
+  a[0] = (delta1[1]*delta0[2] - delta1[2]*delta0[1]);
+  a[1] = (delta1[2]*delta0[0] - delta1[0]*delta0[2]);
+  a[2] = (delta1[0]*delta0[1] - delta1[1]*delta0[0]);
+  b[0] = (delta2[1]*delta1[2] - delta2[2]*delta1[1]);
+  b[1] = (delta2[2]*delta1[0] - delta2[0]*delta1[2]);
+  b[2] = (delta2[0]*delta1[1] - delta2[1]*delta1[0]);
+  c[0] = (delta0[1]*delta2[2] - delta0[2]*delta2[1]);
+  c[1] = (delta0[2]*delta2[0] - delta0[0]*delta2[2]);
+  c[2] = (delta0[0]*delta2[1] - delta0[1]*delta2[0]);
+  // Vector Norms
+  r1 = sqrt(delta1[0]*delta1[0] + delta1[1]*delta1[1] + delta1[2]*delta1[2]);
+  ra = sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]);
+  rb = sqrt(b[0]*b[0] + b[1]*b[1] + b[2]*b[2]);
+  // Take signs of delta vectors into account
+  value *= (*ic).sign0*(*ic).sign1*(*ic).sign2;
+  grad *= (*ic).sign0*(*ic).sign1*(*ic).sign2;
+  /* Expression that needs to be derived:
+     sin(phi) = f1*f2*f3*f4 with
+     f1 = (r1xr0).r2
+     f2 = |r1|
+     f3 = 1/|r1xr0|
+     f1 = 1/|r2xr1| */
+  // f1, make use of the circular shift property of scalar triple product:
+  // (r1xr0).r2 = (r0xr2).r1 = (r2xr1).r0
+  fac = grad*r1/ra/rb;
+  (*d0).gx += fac*b[0];
+  (*d0).gy += fac*b[1];
+  (*d0).gz += fac*b[2];
+  (*d1).gx += fac*c[0];
+  (*d1).gy += fac*c[1];
+  (*d1).gz += fac*c[2];
+  (*d2).gx += fac*a[0];
+  (*d2).gy += fac*a[1];
+  (*d2).gz += fac*a[2];
+  // f2
+  fac = grad*value/r1/r1;
+  (*d1).gx += fac*delta1[0];
+  (*d1).gy += fac*delta1[1];
+  (*d1).gz += fac*delta1[2];
+  // f3
+  fac = grad*value/ra/ra;
+  (*d0).gx -= fac*(delta1[2]*a[1]-delta1[1]*a[2]);
+  (*d0).gy -= fac*(delta1[0]*a[2]-delta1[2]*a[0]);
+  (*d0).gz -= fac*(delta1[1]*a[0]-delta1[0]*a[1]);
+  (*d1).gx += fac*(delta0[2]*a[1]-delta0[1]*a[2]);
+  (*d1).gy += fac*(delta0[0]*a[2]-delta0[2]*a[0]);
+  (*d1).gz += fac*(delta0[1]*a[0]-delta0[0]*a[1]);
+  // f4
+  fac = grad*value/rb/rb;
+  (*d1).gx -= fac*(delta2[2]*b[1]-delta2[1]*b[2]);
+  (*d1).gy -= fac*(delta2[0]*b[2]-delta2[2]*b[0]);
+  (*d1).gz -= fac*(delta2[1]*b[0]-delta2[0]*b[1]);
+  (*d2).gx += fac*(delta1[2]*b[1]-delta1[1]*b[2]);
+  (*d2).gy += fac*(delta1[0]*b[2]-delta1[2]*b[0]);
+  (*d2).gz += fac*(delta1[1]*b[0]-delta1[0]*b[1]);
+}
+
 void back_dihed_angle(iclist_row_type* ic, dlist_row_type* deltas, double value, double grad) {
-  double tmp = sin(value);
-  if (tmp!=0.0) tmp = -grad/tmp;
-  back_dihed_cos(ic, deltas, cos(value), tmp);
+  double c, s, det, tmp;
+  double *delta0, *delta1, *delta2;
+  delta0 = (double*)(deltas + (*ic).i0);
+  delta1 = (double*)(deltas + (*ic).i1);
+  delta2 = (double*)(deltas + (*ic).i2);
+  c = forward_dihed_cos(ic, deltas);
+  tmp = grad;
+  if (fabs(c)<0.5) {
+    // Cosine is far from -1 and +1, take arccos
+    // Chain rule, derivative of cosine is -sine
+    s = sqrt(1-c*c);
+    tmp /= -s;
+    // Fix the sign
+    det = delta0[0]*(delta1[1]*delta2[2]-delta1[2]*delta2[1])+
+          delta0[1]*(delta1[2]*delta2[0]-delta1[0]*delta2[2])+
+          delta0[2]*(delta1[0]*delta2[1]-delta1[1]*delta2[0]);
+    // Take signs of delta vectors themselves into account
+    det *= (*ic).sign0*(*ic).sign1*(*ic).sign2;
+    if (det>0) tmp *= -1;
+    back_dihed_cos(ic, deltas, c, tmp);
+  }
+  else {
+    // Cosine might be close to -1 or +1, use arcsin
+    // Chain rule, derivative of sine is cosine
+    s = forward_dihed_sin(ic, deltas);
+    tmp /= c;
+    back_dihed_sin(ic, deltas, s, tmp);
+  }
 }
 
 void back_oop_cos_low(dlist_row_type *delta0, dlist_row_type *delta1, dlist_row_type *delta2, double value, double grad) {

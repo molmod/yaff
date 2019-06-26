@@ -293,7 +293,11 @@ class DihedCos(InternalCoordinate):
 
 
 class DihedAngle(InternalCoordinate):
-    '''A dihedral (or torsion) angle.'''
+    '''A dihedral (or torsion) angle.
+
+       The sign convention corresponds to the IUPAC definition of the torsion
+       angle: http://dx.doi.org/10.1351/goldbook.T06406
+    '''
     kind = 4
     def __init__(self, i, j, k, l):
         '''

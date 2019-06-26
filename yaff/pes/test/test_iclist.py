@@ -170,6 +170,64 @@ def test_iclist_peroxide_dihedral_angle():
         assert iclist.ictab[3]['kind']==4 #assert the third ic is DihedralAngle
         assert abs(iclist.ictab[3]['value'] - dihed_angle(system.pos)[0]) < 1e-5
 
+
+def test_iclist_mil53_dihedral_angles():
+    system = get_system_mil53()
+    dlist = DeltaList(system)
+    iclist = InternalCoordinateList(dlist)
+    ic_values = []
+    gpos = np.zeros(system.pos.shape)
+    forbidden_dihedrals = [
+        ["O_HY","AL","O_HY","AL"],
+        ["O_HY","AL","O_HY","H_HY"],
+        ["O_CA","AL","O_CA","C_CA"],
+    ]
+    for i1, i2 in system.bonds:
+        # Add bonds here to avoid that all ic signs are +1
+        iclist.add_ic(Bond(i2,i1))
+        for i0 in system.neighs1[i1]:
+            if i0==i2: continue
+            for i3 in system.neighs1[i2]:
+                if i3==i1: continue
+                # Compute using molmod
+                delta0 = system.pos[i0] - system.pos[i1]
+                delta1 = system.pos[i2] - system.pos[i1]
+                delta2 = system.pos[i3] - system.pos[i2]
+                system.cell.mic(delta0)
+                system.cell.mic(delta1)
+                system.cell.mic(delta2)
+                pos = np.zeros((4,3))
+                pos[0] = system.pos[i1] + delta0
+                pos[1] = system.pos[i1]
+                pos[2] = system.pos[i1] + delta1
+                pos[3] = pos[2] + delta2
+                phi0, dphi0 = dihed_angle(pos, deriv=1)
+                # Compute value using yaff
+                iic = iclist.add_ic(DihedAngle(i0,i1,i2,i3))
+                ic = iclist.ictab[iic]
+                dlist.forward()
+                iclist.forward()
+                phi1 = ic['value']
+                if np.abs(phi1-phi0)>1e-8:
+                    raise AssertionError("DihedralAngle(%d,%d,%d,%d): molmod "
+                         "value = %12.8f yaff value = %12.8f diff = %12.2e" %
+                         (i0,i1,i2,i3,phi0,phi1,phi0-phi1))
+                # Compute derivative using yaff
+                gpos[:] = 0.0
+                ic['grad'] = 1.0
+                iclist.back()
+                dlist.back(gpos, None)
+                # Derivative of DihedCos fails in these cases, and DihedAngle
+                # derivatives are base on this
+                types = [system.get_ffatype(i0), system.get_ffatype(i1), system.get_ffatype(i2), system.get_ffatype(i3)]
+                if types in forbidden_dihedrals or types[::-1] in forbidden_dihedrals: continue
+                ddiff = gpos[[i0,i1,i2,i3]]-dphi0
+                if np.any(np.abs(ddiff) > 1e-6):
+                    raise AssertionError("DihedralAngle(%d,%d,%d,%d): largest "
+                         "absolute derivative deviation =  %12.2e" %
+                         (i0,i1,i2,i3,np.amax(np.abs(ddiff))))
+
+
 def test_iclist_peroxide_dihedral_cos2():
     number_of_tests=50
     for i in range(number_of_tests):
