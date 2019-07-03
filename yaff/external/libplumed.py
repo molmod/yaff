@@ -55,7 +55,7 @@ class ForcePartPlumed(ForcePart, Hook):
             the necessary information from the integrator.
             When the hook is not attached to anything, PLUMED can still be used
             as a regular ForcePart contribution to the PES.
-            
+
             **Arguments:**
 
             system
@@ -103,6 +103,17 @@ class ForcePartPlumed(ForcePart, Hook):
         self.hooked = False # Not yet attached as a hook
 
     def setup_plumed(self, timestep=0.0, restart=0):
+        r'''Send commands to PLUMED to make it computation-ready.
+
+            **Optional Arguments:**
+
+            timestep
+                The timestep (in au) of the integrator
+
+            restart
+                Set to a value different from 0 to let PLUMED know that this
+                is a restarted run
+        '''
         # Try to load the plumed Python wrapper, quit if not possible
         try:
             from plumed import Plumed

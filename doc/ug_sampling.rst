@@ -405,3 +405,29 @@ Such a construction will write the values of the requested collective variables
 and the contributions to the bias potential during a simulation to a HDF5 file.
 Note that the ``bias_tracker`` will not work if terms are added during the
 simulation.
+
+
+Interface with PLUMED
+---------------------
+
+PLUMED is an open-source, community-developed library that provides a wide
+range of different methods, including  enhanced-sampling algorithms and
+free-energy methods. Just as many popular MD engines, Yaff works together with
+PLUMED using the :class:`yaff.external.libplumed.ForcePartPlumed` class. This
+class acts as a :class:`yaff.pes.ff.ForcePart` in the sense that it computes
+energies, forces, and virials by making use of PLUMED. At the same time, it
+also acts as a :class:`yaff.sampling.iterative.Hook` and should be attached to
+the MD integrator. The latter is required because PLUMED has to be aware of the
+dynamics of the simulation: for instance in metadynamics, a distinction has to
+made between energy calculations in the middle of a timestep and at the very
+end of it.
+
+A typical setup could look as follows::
+
+    # Construct the unbiased PES
+    ff = ForceField(...)
+    # Construct the PLUMED contribution to the PES
+    plumed = ForcePartPlumed(ff.system, fn='plumed.dat')
+    ff.add_part(plumed)
+    # Construct an integrator, supply PLUMED as a hook
+    verlet = VerletIntegrator(ff, timestep, hooks=[plumed,...])
