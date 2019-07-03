@@ -29,3 +29,4 @@
 
 from yaff.external.lammpsio import *
 from yaff.external.liblammps import *
+from yaff.external.libplumed import *

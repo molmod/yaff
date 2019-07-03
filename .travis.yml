@@ -65,9 +65,11 @@ install:
   - pip install codecov coverage
   # Install LAMMPS
   - conda install -c conda-forge lammps=2018.12.12
+  # Install PLUMED
+  - conda install -c conda-forge plumed
+  - conda install -c conda-forge py-plumed
   # Show conda info for debugging
   - conda info -a
-
   # No visual backend for matplotlib.
   - export MATPLOTLIBRC=$PWD; echo backend:agg > ${MATPLOTLIBRC}/matplotlibrc
 
