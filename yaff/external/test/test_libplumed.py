@@ -129,11 +129,11 @@ def test_plumed_md():
         with open(fn,'w') as f:
             f.write(commands)
         # Setup Plumed
-        plumed = ForcePartPlumed(ff.system, fn=fn)
+        timestep = 1.0*femtosecond
+        plumed = ForcePartPlumed(ff.system, timestep=timestep, fn=fn)
         # Setup integrator with a barostat, so plumed has to compute forces
         # more than once per timestep
         tbc = TBCombination(MTKBarostat(ff, 300, 1*bar), NHCThermostat(300))
-        timestep = 1.0*femtosecond
         verlet = VerletIntegrator(ff, timestep, hooks=[tbc, plumed])
         # Run a short MD simulation, keeping track of the CV (volume in this case)
         cvref = [ff.system.cell.volume]

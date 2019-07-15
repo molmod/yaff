@@ -40,7 +40,8 @@ __all__ = ['ForcePartPlumed']
 
 class ForcePartPlumed(ForcePart, Hook):
     '''Biasing energies computed by PLUMED'''
-    def __init__(self, system, fn='plumed.dat', kernel=None, fn_log='plumed.log'):
+    def __init__(self, system, timestep=0.0, restart=0,
+                       fn='plumed.dat', kernel=None, fn_log='plumed.log'):
         r'''Initialize a PLUMED ForcePart. More information on the interface
             between PLUMED and MD codes can be found on
             http://tcb.ucas.ac.cn/plumed2/developer-doc/html/_how_to_plumed_your_m_d.html
@@ -63,6 +64,13 @@ class ForcePartPlumed(ForcePart, Hook):
 
             **Optional Arguments:**
 
+            timestep
+                The timestep (in au) of the integrator
+
+            restart
+                Set to a value different from 0 to let PLUMED know that this
+                is a restarted run
+
             fn
                 A filename from which the PLUMED instructions are read, default
                 is plumed.dat
@@ -84,14 +92,12 @@ class ForcePartPlumed(ForcePart, Hook):
         self.plumedstep = 0
         # TODO In the LAMMPS-PLUMED interface (src/USER-PLUMED/fix_plumed.cpp)
         # it is mentioned that biasing is not possible when tailcorrections are
-        # Included. Maybe this should need to be checked...
+        # included. Maybe this should need to be checked...
         # Check cell dimensions, only 0D and 3D systems supported
         if not self.system.cell.nvec in [0,3]:
             raise NotImplementedError
-        # Setup PLUMED for the first time; at this point, we have no idea about
-        # the timestep of the integrator, nor whether the integrator was
-        # restarted
-        self.setup_plumed()
+        # Setup PLUMED by sending commands to the PLUMED API
+        self.setup_plumed(timestep, restart)
         # PLUMED requires masses to be set...
         if self.system.masses is None:
             self.system.set_standard_masses()
@@ -100,12 +106,17 @@ class ForcePartPlumed(ForcePart, Hook):
         # Initialize the Hook, can't see a reason why start and step could
         # differ from default values
         Hook.__init__(self, start=0, step=1)
-        self.hooked = False # Not yet attached as a hook
+        if log.do_warning:
+            log.warn("When using PLUMED as a hook for your integrator. "
+                     "and PLUMED adds time-dependent forces (for instance "
+                     "when performing metadynamics), there is no energy "
+                     "conservation. The conserved quantity reported by "
+                     "YAFF is irrelevant in this case.")
 
-    def setup_plumed(self, timestep=0.0, restart=0):
+    def setup_plumed(self, timestep, restart):
         r'''Send commands to PLUMED to make it computation-ready.
 
-            **Optional Arguments:**
+            **Arguments:**
 
             timestep
                 The timestep (in au) of the integrator
@@ -122,6 +133,8 @@ class ForcePartPlumed(ForcePart, Hook):
             raise ImportError
         self.plumed = Plumed(kernel=self.kernel)
         # Conversion between PLUMED internal units and YAFF internal units
+        # Note that PLUMED output will follow the PLUMED conventions
+        # concerning units 
         self.plumed.cmd("setMDEnergyUnits", 1.0/kjmol)
         self.plumed.cmd("setMDLengthUnits", 1.0/nanometer)
         self.plumed.cmd("setMDTimeUnits", 1.0/picosecond)
@@ -138,20 +151,6 @@ class ForcePartPlumed(ForcePart, Hook):
         r'''When this point is reached, a complete time integration step was
            finished and PLUMED should be notified about this.
         '''
-        if not self.hooked:
-            if log.do_high:
-                log.hline()
-                log("Reinitializing PLUMED")
-                log.hline()
-            if log.do_warning:
-                log.warn("You are using PLUMED as a hook for your integrator. "
-                         "If PLUMED adds time-dependent forces (for instance "
-                         "when performing metadynamics) there is no energy "
-                         "conservation. The conserved quantity reported by "
-                         "YAFF is irrelevant in this case.")
-            self.setup_plumed(timestep=iterative.timestep,
-                restart=iterative.counter>0)
-            self.hooked = True
         # PLUMED provides a setEnergy command, which should pass the
         # current potential energy. It seems that this is never used, so we
         # don't pass anything for the moment.
