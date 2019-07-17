@@ -112,7 +112,11 @@ class ForcePartPlumed(ForcePart):
             log.warn("The PLUMED time step is incremented every time the bias "
                      "is computed, irrespective of whether the integrator "
                      "actually completed an entire time step. For instance "
-                     "when using the MTKBarostat, ")
+                     "when performing metadynamics or VES with the MTKBarostat,"
+                     " this can be unwanted. In such cases, the easiest "
+                     "solution is to adapt the PACE and STRIDE keywords in the "
+                     "PLUMED input file, to take into that forces are "
+                     "calculated three times during each time step.")
 
     def setup_plumed(self, timestep, restart):
         r'''Send commands to PLUMED to make it computation-ready.
