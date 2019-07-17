@@ -41,7 +41,7 @@ from yaff.sampling.test.common import get_ff_water32
 
 # The following is included, because otherwise Travis complains about
 # incompatible OpenMP libraries, even though tests are not run with OpenMP
-# parallelization. 
+# parallelization.
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 try:
