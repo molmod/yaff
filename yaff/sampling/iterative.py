@@ -41,7 +41,7 @@ __all__ = [
     'Iterative', 'StateItem', 'AttributeStateItem', 'PosStateItem',
     'DipoleStateItem', 'DipoleVelStateItem', 'VolumeStateItem', 'CellStateItem',
     'EPotContribStateItem', 'EpotBondsStateItem', 'EpotBendsStateItem',
-    'EpotDihedsStateItem', 'Hook',
+    'EpotDihedsStateItem', 'CVStateItem', 'BiasStateItem', 'Hook',
 ]
 
 
@@ -374,6 +374,46 @@ class EpotDihedsStateItem(StateItem):
             yield 'epot_diheds_names', tuple('val', 'val+ei')
         else:
             yield []
+
+
+class CVStateItem(StateItem):
+    """Keeps track of the current value of CollectiveVariables,
+       InternalCoordinates, or anything else that has a
+       get_last_computed_value method returning a scalar.
+    """
+    def __init__(self, cvs):
+        """
+           **Arguments:**
+
+           cvs
+                A list containing objects that feature a
+                get_last_computed_value returning a scalar, such as instances
+                of the CollectiveVariable or InternalCoordinate classes
+        """
+        self.cvs = cvs
+        StateItem.__init__(self, 'cv_values')
+
+    def get_value(self, iterative):
+        return np.array([cv.get_last_computed_value() for cv in self.cvs])
+
+    def iter_attrs(self, iterative):
+        yield 'cv_names', np.array([cv.get_log() for cv in self.cvs], dtype='S')
+
+
+class BiasStateItem(StateItem):
+    """Keeps track of the contributions to a ForcePartBias"""
+    def __init__(self, part_bias):
+        """
+           **Arguments:**
+
+           part_bias
+                An instance of ForcePartBias
+        """
+        self.part_bias = part_bias
+        StateItem.__init__(self, 'bias_values')
+
+    def get_value(self, iterative):
+        return self.part_bias.get_term_energies()
 
 
 class Hook(object):

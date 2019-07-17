@@ -325,3 +325,104 @@ coordinates when the cell is deformed, one may use a faster approach:
 
 A detailed description of this routine can be found here:
 :func:`yaff.sampling.harmonic.estimate_elastic`.
+
+
+Advanced sampling methods
+=========================
+
+Yaff can be used for some advanced sampling methods such as umbrella sampling,
+metadynamics, or variationally enhanced sampling. Such methods require the use
+of a bias potential, which can be achieved with the
+:class:`yaff.pes.ff.ForcePartBias` class, contributing to the total force-field
+energy. This class supports two kinds of contributions, either from the
+:class:`yaff.pes.vlist.ValenceTerm` class, or from the
+:class:`yaff.pes.bias.BiasPotential` class.
+
+In many cases, the bias potentials are very similar to expressions appearing
+in the covalent part of the force field, because the collective variable is
+simply a function of interatomic vectors. A bias can therefore be constructed
+by combining an instance of :class:`yaff.pes.vlist.ValenceTerm` with an
+instance of :class:`yaff.pes.iclist.InternalCoordinate`. Consider for example a
+bias potential which is the cosine of a dihedral angle of atoms 0, 1, 2 and 3::
+
+    ff = ForceField(...)
+    part_bias = ForcePartBias(ff.system)
+    ff.add_part(part_bias)
+    cv = DihedralAngle(0,1,2,3) # Instance of InternalCoordinate
+    m, a, phi0 = 1, 2.0, np.pi/4.0
+    bias = Cosine(m, a, phi0, cv) # Instance of ValenceTerm
+    part_bias.add_term(bias)
+
+By making use of the :class:`yaff.pes.comlist.COMList` class, it is possible
+to construct more complicated collective variables and use them for the bias
+potential. Suppose that a plane is defined by atom 0, atom 1, and the average
+position of atoms 2 and 3. The collective variable is the distance from this
+plane to the average position of atoms 4, 5 and 6. A harmonic bias of this
+collective variable can be achieved as follows::
+
+    ff = ForceField(...)
+    # Construct COMList; each group is a collection of atoms from which a
+    # position is calculated as a weighted average of atomic positions
+    groups = [ (np.array([0]), np.array([1.0])),
+               (np.array([1]), np.array([1.0])),
+               (np.array([2,3]), np.array([1.0/2.0,1.0/2.0])),
+               (np.array([4,5,6]), np.array([1.0/3.0,1.0/3.0,1.0/3.0])) ]
+    comlist = COMList(system, groups)
+    part_bias = ForcePartBias(system, comlist=comlist)
+    ff.add_part(part_bias)
+    # Define a bias potential, harmonic in the out-of plane distance
+    # from group 3 to the plane spanned by groups 0, 1 and 2
+    cv = OopDist(0,1,2,3)
+    K, cv0 = 1.0, 0.3
+    bias = Harmonic(K, cv0, cv)
+    # use_comlist=True makes that the positions of the groups are used
+    part_bias.add_term(bias, use_comlist=True)
+
+In some occasions, the collective variable cannot be expressed as a function
+of interatomic vectors, for instance the volume of the simulation cell. In such
+a case, an instance of :class:`yaff.pes.bias.BiasPotential` can be combined
+with an instance of :class:`yaff.pes.colvar.CollectiveVariable`. For instance
+a harmonic restraint on the volume can be constructed as follows::
+
+    ff = ForceField(...)
+    part_bias = ForcePartBias(ff.system)
+    ff.add_part(part_bias)
+    cv = CVVolume(ff.system) # Instance of CollectiveVariable
+    K, V0 = 0.3, 12000.0
+    bias = HarmonicBias(K, V0, cv) # Instance of BiasPotential
+    part_bias.add_term(bias)
+
+It can be necessary to keep track of the values of collective variables or the
+bias potentials for postprocessing. This can be accomplished by making use of
+the :class:`yaff.sampling.iterative.CVStateItem` and
+:class:`yaff.sampling.iterative.BiasStateItem` classes as follows::
+
+    cv_tracker = CVStateItem([cv0, cv1, ...])
+    bias_tracker = BiasStateItem(part_bias)
+    verlet = VerletIntegrator(..., state=[cv_tracker, bias_tracker])
+
+Such a construction will write the values of the requested collective variables
+and the contributions to the bias potential during a simulation to a HDF5 file.
+Note that the ``bias_tracker`` will not work if terms are added during the
+simulation.
+
+
+Interface with PLUMED
+---------------------
+
+PLUMED is an open-source, community-developed library that provides a wide
+range of different methods, including  enhanced-sampling algorithms and
+free-energy methods. Just as many popular MD engines, Yaff works together with
+PLUMED using the :class:`yaff.external.libplumed.ForcePartPlumed` class. This
+class acts as a :class:`yaff.pes.ff.ForcePart` in the sense that it computes
+energies, forces, and virials by making use of PLUMED.
+
+A typical setup could look as follows::
+
+    # Construct the unbiased PES
+    ff = ForceField(...)
+    # Construct the PLUMED contribution to the PES
+    plumed = ForcePartPlumed(ff.system, fn='plumed.dat')
+    ff.add_part(plumed)
+    # Construct an integrator
+    verlet = VerletIntegrator(ff, timestep)

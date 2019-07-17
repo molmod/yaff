@@ -625,6 +625,7 @@ def test_gpos_vtens_dihed_angle_cosine_peroxide():
     system = get_system_peroxide()
     part = ForcePartValence(system)
     part.add_term(Cosine(3, 1.5, 2*np.pi/3, DihedAngle(0,1,2,3)))
+    print(dihed_angle(system.pos)[0]/np.pi)
     check_gpos_part(system, part)
     check_vtens_part(system, part)
 
@@ -830,8 +831,9 @@ def test_zero_dihed_steven():
     fp.add_term(Cosine(3, 0.001, 0.0, DihedAngle(0, 1, 2, 3)))
     gpos = np.zeros(pos.shape)
     fp.compute(gpos)
-    assert fp.iclist.ictab[0]['value'] == 0.0
-    assert fp.iclist.ictab[0]['grad'] == 0.0
+    # Dihedral is very nearly zero, but not exactly
+    assert np.abs(fp.iclist.ictab[0]['value'] - dihed_angle(system.pos)[0]) < 1e-8
+    assert np.abs(fp.iclist.ictab[0]['grad']) < 1e-8
     assert not np.isnan(gpos).any()
 
 
@@ -952,5 +954,25 @@ def test_gpos_vtens_oopdist_formaldehyde():
     system.pos[0,0] += 0.0*angstrom
     part = ForcePartValence(system)
     part.add_term(Harmonic(0.0,0.0*angstrom,OopDist(2,3,1,0)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
+
+
+def test_gpos_vtens_sqpointlinedist_water32():
+    system = get_system_water32()
+    part = ForcePartValence(system)
+    for i, j, k in system.iter_angles():
+        # Add this term so no all signs of deltas are 1
+        part.add_term(Harmonic(0.4,1.0, Bond(j,i) ))
+        part.add_term(Harmonic(0.3, 1.7, SqPointLineDistance(i,j,k)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
+
+
+def test_gpos_vtens_pointlinedist_water32():
+    system = get_system_water32()
+    part = ForcePartValence(system)
+    for i, j, k in system.iter_angles():
+        part.add_term(Harmonic(0.3, 1.7, PointLineDistance(i,j,k)))
     check_gpos_part(system, part)
     check_vtens_part(system, part)

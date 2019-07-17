@@ -35,7 +35,7 @@ from yaff.test.common import get_system_water32
 
 __all__ = [
     'check_gpos_part', 'check_vtens_part', 'check_gpos_ff', 'check_vtens_ff',
-    'get_part_water32_9A_lj'
+    'check_gpos_cv_fd', 'check_vtens_cv_fd', 'get_part_water32_9A_lj'
 ]
 
 
@@ -161,6 +161,101 @@ def check_vtens_ff(ff):
     x = rvecs.ravel()
     dxs = np.random.normal(0, 1e-4, (100, len(x)))
     check_delta(fn, x, dxs)
+
+
+def check_gpos_cv_fd(cv, delta=1e-4, threshold=1e-7):
+    '''
+    Check gpos of CollectiveVariable using finite differences
+
+        **Arguments:**
+
+        cv
+            A CollectiveVariable instance
+
+        **Optional arguments:**
+
+        delta
+            Deviation used in the finite difference scheme
+
+        threshold
+            Measure for the allowed error
+    '''
+    # Reference state
+    gpos = np.zeros((cv.system.natom, 3), float)
+    pos_orig = cv.system.pos.copy()
+    cv0 = cv.compute(gpos=gpos)
+    # Finite difference deviations and weights
+    stencil = [(-3,-1.0/60.),(-2,3.0/20.0),(-1,-3.0/4.0),(1,3.0/4.0),(2,-3.0/20.0),(3,1.0/60.0)]
+    gpos_fd = np.zeros((cv.system.natom,3))
+    for iatom in range(cv.system.natom):
+        for alpha in range(3):
+            deriv = 0.0
+            for dev, weight in stencil:
+                cv.system.pos[:] = pos_orig.copy()
+                cv.system.pos[iatom,alpha] += dev*delta
+                cv_value = cv.compute()
+                deriv += weight*cv_value/delta
+            gpos_fd[iatom,alpha] = deriv
+    # Compare analytical and numerical derivative
+    maxdev = np.amax(np.abs(gpos_fd-gpos))
+    rmsd = np.std(gpos_fd-gpos)
+    ref = np.std(gpos)
+    # If all forces are zero, we use the threshold itself;
+    # Else, we use the threshold times the RMSD of the forces
+    if ref==0.0: ref = 1.0
+#    print("Max deviation: %8.1e (%8.1e) | RMSD deviation: %8.1e (%8.1e)"%
+#        (maxdev,ref*threshold,rmsd,ref*threshold))
+    assert maxdev<ref*threshold
+    assert rmsd<ref*threshold
+
+
+def check_vtens_cv_fd(cv, delta=1e-4, threshold=1e-7):
+    '''
+    Check vtens of CollectiveVariable using finite differences
+
+        **Arguments:**
+
+        cv
+            A CollectiveVariable instance
+
+        **Optional arguments:**
+
+        delta
+            Deviation used in the finite difference scheme
+
+        threshold
+            Measure for the allowed error
+    '''
+    # Reference state
+    rvecs_orig = cv.system.cell.rvecs.copy()
+    pos_orig = cv.system.pos.copy()
+    vtens = np.zeros((3, 3), float)
+    cv0 = cv.compute(vtens=vtens)
+    gvecs = np.linalg.inv(rvecs_orig).transpose()
+    reduced = np.dot(cv.system.pos, cv.system.cell.gvecs.transpose()).copy()
+    # Finite difference deviations and weights
+    stencil = [(-3,-1.0/60.),(-2,3.0/20.0),(-1,-3.0/4.0),(1,3.0/4.0),(2,-3.0/20.0),(3,1.0/60.0)]
+    vtens_fd = np.zeros((3,3))
+    for alpha in range(3):
+        for beta in range(3):
+            deriv = 0.0
+            for dev, weight in stencil:
+                rvecs = rvecs_orig.copy()
+                rvecs[alpha,beta] += dev*delta
+                cv.system.cell.update_rvecs(rvecs)
+                cv.system.pos[:] = np.dot(reduced, rvecs)
+                cv_value = cv.compute()
+                deriv += weight*cv_value/delta
+            vtens_fd[alpha,beta] = deriv
+    vtens_fd = np.dot(rvecs_orig.T,vtens_fd)
+    # Compare analytical and numerical derivative
+    maxdev = np.amax(np.abs(vtens_fd-vtens))
+    rmsd = np.std(vtens_fd-vtens)
+    ref = np.std(vtens)
+#    print("Max deviation: %8.1e (%8.1e) | RMSD deviation: %8.1e (%8.1e)"%
+#        (maxdev,ref*threshold,rmsd,ref*threshold))
+    assert maxdev<ref*threshold
+    assert rmsd<ref*threshold
 
 
 def get_part_water32_9A_lj():

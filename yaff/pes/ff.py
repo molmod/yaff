@@ -47,14 +47,15 @@ from yaff.pes.ext import compute_ewald_reci, compute_ewald_reci_dd, compute_ewal
     compute_ewald_corr_dd, PairPotEI, PairPotLJ, PairPotMM3, PairPotMM3CAP, PairPotGrimme, compute_grid3d
 from yaff.pes.dlist import DeltaList
 from yaff.pes.iclist import InternalCoordinateList
-from yaff.pes.vlist import ValenceList
+from yaff.pes.vlist import ValenceList, ValenceTerm
+from yaff.pes.bias import BiasPotential
 
 
 __all__ = [
     'ForcePart', 'ForceField', 'ForcePartPair', 'ForcePartEwaldReciprocal',
     'ForcePartEwaldReciprocalDD', 'ForcePartEwaldCorrectionDD',
     'ForcePartEwaldCorrection', 'ForcePartEwaldNeutralizing',
-    'ForcePartValence', 'ForcePartPressure', 'ForcePartGrid',
+    'ForcePartValence', 'ForcePartBias', 'ForcePartPressure', 'ForcePartGrid',
     'ForcePartTailCorrection',
 ]
 
@@ -713,6 +714,160 @@ class ForcePartValence(ForcePart):
                     self.comlist.gpos[:] = 0.0
                     self.dlist.back(self.comlist.gpos, vtens)
                     self.comlist.back(gpos, vtens)
+            return energy
+
+
+class ForcePartBias(ForcePart):
+    '''Biasing potential that can be used in advanced molecular dynamics
+       methods such as umbrella sampling and metadynamics.
+
+       Terms can be added using the ``add_term`` method, where the argument is
+       either an instance of ``BiasPotential`` or ``ValenceTerm``.
+       In many cases, a bias term is very similar to a conventional force-field
+       term, such as a harmonic bond stretch. In such a case, it is advisable
+       to make use of the ``InternalCoordinate`` and ``ValenceTerm`` classes
+       to construct the contribution to the biasing potential.
+       If this is not possible, for instance a harmonic restraint of the cell
+       volume, an instance of ``CollectiveVariable`` can be used together with
+       an instance of the ``BiasPotential`` class.
+    '''
+    def __init__(self, system, comlist=None):
+        '''
+           **Arguments:**
+
+           system
+                An instance of the ``System`` class.
+
+           **Optional arguments:**
+
+           comlist
+                An optional layer to derive centers of mass from the atomic positions.
+                These centers of mass are used as input for the first layer, the relative
+                vectors.
+        '''
+        ForcePart.__init__(self, 'bias', system)
+        self.system = system
+        self.valence = ForcePartValence(system)
+        if comlist is not None:
+            self.valence_com = ForcePartValence(system, comlist=comlist)
+        else:
+            self.valence_com = None
+        self.terms = []
+        # The terms contributing to the bias potential are divided into three
+        # categories:
+        #   0) instances of BiasPotential
+        #   1) instances of ValenceTerm with a regular DeltaList
+        #   2) instances of ValenceTerm with a COMList
+        # The following list facilitates looking up the terms after they have
+        # been added
+        self.term_lookup = []
+        if log.do_medium:
+            with log.section('FPINIT'):
+                log('Force part: %s' % self.name)
+                log.hline()
+
+    def add_term(self, term, use_comlist=False):
+        '''Add a new term to the bias potential.
+
+           **Arguments:**
+
+           term
+                An instance of the class :class:`yaff.pes.ff.vlist.ValenceTerm`
+                or an instance of the class
+                :class:`yaff.pes.ff.vias.BiasPotential`
+
+           **Optional arguments:**
+
+           use_comlist
+                Boolean indicating whether the comlist should be used for
+                adding this ValenceTerm
+        '''
+        if isinstance(term, ValenceTerm):
+            if use_comlist:
+                if self.valence_com is None:
+                    raise TypeError("No COMList was provided when setting up the ForcePartBias")
+                self.term_lookup.append( (2,self.valence_com.vlist.nv) )
+                # Keep track of the index this term gets in the ValenceList
+                self.valence_com.vlist.add_term(term)
+            else:
+                self.term_lookup.append( (1,self.valence.vlist.nv) )
+                # Add to the ValenceList
+                self.valence.vlist.add_term(term)
+            if log.do_high:
+                with log.section('BIAS'):
+                    log('%7i&%s %s' % (len(self.terms), term.get_log(), ' '.join(ic.get_log() for ic in term.ics)))
+        elif isinstance(term, BiasPotential):
+            self.term_lookup.append( (0,len(self.terms)))
+            if log.do_high:
+                with log.section('BIAS'):
+                    log('%7i&%s %s' % (len(self.terms), term.get_log(), ' '.join(cv.get_log() for cv in term.cvs)))
+        else:
+            raise NotImplementedError
+        self.terms.append(term)
+
+    def get_term_energy(self, index):
+        kind, iterm = self.term_lookup[index]
+        if kind==0:
+            return self.terms[index].compute()
+        elif kind==1:
+            return self.valence.vlist.vtab[iterm]['energy']
+        elif kind==2:
+            return self.valence_com.vlist.vtab[iterm]['energy']
+
+    def get_term_energies(self):
+        '''
+        Return a NumPy array with the energies associated with all terms
+        contributing to the bias potential.
+        '''
+        energies = np.array([self.get_term_energy(index) for index in range(len(self.terms))])
+        return energies
+
+    def get_term_cv_values(self, index):
+        '''
+        Return a NumPy array with values of collective variables associated
+        with a certain term.
+
+           **Arguments:**
+
+           index
+                The index of the term in question.
+        '''
+        kind, iterm = self.term_lookup[index]
+        term = self.terms[index]
+        if kind==0:
+            return np.array([cv.compute() for cv in term.cvs])
+        else:
+            if kind==1:
+                iclist = self.valence.iclist
+            elif kind==2:
+                iclist = self.valence_com.iclist
+            cv_values = []
+            # Loop over all internal coordinates for this term
+            for index in term.get_ic_indexes(iclist):
+                cv_values.append(iclist.ictab[index]['value'])
+            return np.asarray(cv_values)
+
+    def _internal_compute(self, gpos, vtens):
+        with timer.section('Bias'):
+            energy = 0.0
+            # ValenceTerms
+            energy += self.valence._internal_compute(gpos, vtens)
+            if self.valence_com is not None:
+                energy += self.valence_com._internal_compute(gpos, vtens)
+            # BiasPotentials
+            if gpos is None:
+                my_gpos = None
+            else:
+                my_gpos = np.zeros((self.system.natom,3))
+            if vtens is None:
+                my_vtens = None
+            else:
+                my_vtens = np.zeros((3,3))
+            for term in self.terms:
+                if isinstance(term, ValenceTerm): continue
+                energy += term.compute(gpos=my_gpos,vtens=my_vtens)
+                if gpos is not None: gpos[:] += my_gpos
+                if vtens is not None: vtens[:] += my_vtens
             return energy
 
 

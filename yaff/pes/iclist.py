@@ -70,7 +70,7 @@ __all__ = [
     'InternalCoordinateList', 'InternalCoordinate', 'Bond', 'BendAngle',
     'BendCos', 'DihedAngle', 'DihedCos', 'UreyBradley', 'OopAngle',
     'OopMeanAngle', 'OopCos', 'OopMeanCos', 'OopDist', 'DihedCos2', 'DihedCos3',
-    'DihedCos4', 'DihedCos6'
+    'DihedCos4', 'DihedCos6', 'PointLineDistance', 'SqPointLineDistance',
 ]
 
 
@@ -121,6 +121,7 @@ class InternalCoordinateList(object):
                 self.ictab[row]['sign%i'%i] = rows_signs[i][1]
             self.lookup[key] = row
             self.nic += 1
+        ic.iclist = self
         return row
 
     def forward(self):
@@ -181,6 +182,8 @@ class InternalCoordinate(object):
                 coordinate.
         '''
         self.index_pairs = index_pairs
+        # An InternalCoordinateList that will handle this InternalCoordinate
+        self.iclist = None
 
     def get_rows_signs(self, dlist):
         '''Request row indexes and sign flips from a delta list
@@ -206,6 +209,23 @@ class InternalCoordinate(object):
             self.__class__.__name__,
             ','.join('%i-%i' % pair for pair in self.index_pairs)
         )
+
+    def get_last_computed_value(self):
+        """Return the last value that was computed. It is not assured that this
+           value reflects the value for the current state of the system. The
+           actual computation is performed by advancing an
+           InternalCoordinateList to which this InternalCoordinate is
+           associated. This is merely a convenience method to obtain the value
+           without performing an actual computation.
+        """
+        # InternalCoordinate not yet in InternalCoordinateList, no way to get
+        # value.
+        if self.iclist is None:
+            return np.nan
+        #  Lookup value
+        else:
+            row = self.iclist.add_ic(self)
+            return self.iclist.ictab[row]['value']
 
 
 class Bond(InternalCoordinate):
@@ -273,7 +293,11 @@ class DihedCos(InternalCoordinate):
 
 
 class DihedAngle(InternalCoordinate):
-    '''A dihedral (or torsion) angle.'''
+    '''A dihedral (or torsion) angle.
+
+       The sign convention corresponds to the IUPAC definition of the torsion
+       angle: http://dx.doi.org/10.1351/goldbook.T06406
+    '''
     kind = 4
     def __init__(self, i, j, k, l):
         '''
@@ -470,3 +494,38 @@ class DihedCos6(InternalCoordinate):
 
     def get_conversion(self):
         return 1.0
+
+class PointLineDistance(InternalCoordinate):
+    '''Distance between point k and the line defined by i an j'''
+    kind = 16
+    def __init__(self, i, j, k):
+        '''
+           **Arguments:**
+
+           i, j, k
+                The indexes of the atoms involved in the point to line
+                distance. The point is given by the last index (k). The line is
+                formed by the other two atoms i and j.
+        '''
+        InternalCoordinate.__init__(self, [(i,k), (j,k), (i,j)])
+
+    def get_conversion(self):
+        return log.length.conversion
+
+
+class SqPointLineDistance(InternalCoordinate):
+    '''Squared distance between point k and the line defined by i an j'''
+    kind = 17
+    def __init__(self, i, j, k):
+        '''
+           **Arguments:**
+
+           i, j, k
+                The indexes of the atoms involved in the point to line
+                distance. The point is given by the last index (k). The line is
+                formed by the other two atoms i and j.
+        '''
+        InternalCoordinate.__init__(self, [(i,k), (j,k), (i,j)])
+
+    def get_conversion(self):
+        return log.length.conversion
