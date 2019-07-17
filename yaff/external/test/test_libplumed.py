@@ -39,11 +39,17 @@ from yaff.test.common import get_system_quartz, get_system_peroxide
 from yaff.sampling.test.common import get_ff_water32
 
 
+# The following is included, because otherwise Travis complains about
+# incompatible OpenMP libraries, even though tests are not run with OpenMP
+# parallelization. 
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
+
 try:
     from plumed import Plumed
 except:
     from nose.plugins.skip import SkipTest
     raise SkipTest('Could not import PLUMED, skipping all PLUMED related tests')
+
 
 
 def check_plumed(system, commands, reference):

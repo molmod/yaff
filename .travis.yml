@@ -68,8 +68,6 @@ install:
   # Install PLUMED
   - conda install -c conda-forge plumed
   - conda install -c conda-forge py-plumed
-  # Using MKL on MacOSX gives problems with OpenMP versions
-  - conda install nomkl
   # Show conda info for debugging
   - conda info -a
   # No visual backend for matplotlib.
