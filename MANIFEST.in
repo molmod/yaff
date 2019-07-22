@@ -1,5 +1,5 @@
-include README
-include LICENSE.txt
+include README.rst
+include COPYING
 recursive-include doc *.rst *.png
 include doc/conf.py
 include doc/Makefile
