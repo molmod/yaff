@@ -651,7 +651,7 @@ cdef class PairPot:
         '''Returns the current truncation scheme'''
         return self.tr
 
-    def prepare_tailcorrections(self, natom):
+    def prepare_tailcorrections(self, natom, n_frame=0):
         '''
         Compute tail corrections for this pair potential, assuming that the
         system is homogeneous at long range.
@@ -663,10 +663,10 @@ cdef class PairPot:
         # we decide which C function to call based on which truncation scheme
         # is used
         if self.tr is None:
-            pair_pot.pair_pot_tailcorr_cut(<double*>corrections.data, natom, self._c_pair_pot)
+            pair_pot.pair_pot_tailcorr_cut(<double*>corrections.data, natom, n_frame, self._c_pair_pot)
         else:
             if isinstance(self.tr, Switch3):
-                pair_pot.pair_pot_tailcorr_switch3(<double*>corrections.data, natom, self._c_pair_pot)
+                pair_pot.pair_pot_tailcorr_switch3(<double*>corrections.data, natom, n_frame, self._c_pair_pot)
             else:
                 raise NotImplementedError, "Tail corrections not supported for %s" % self.tr
         return corrections[0], corrections[1]

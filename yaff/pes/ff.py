@@ -964,7 +964,7 @@ class ForcePartGrid(ForcePart):
 class ForcePartTailCorrection(ForcePart):
     '''Corrections to energy and virial tensor to compensate for neglecting
     pair potentials at long range'''
-    def __init__(self, system, part_pair):
+    def __init__(self, system, part_pair, exclude_frame=False, n_frame=0):
         '''
            **Arguments:**
 
@@ -981,7 +981,8 @@ class ForcePartTailCorrection(ForcePart):
         if part_pair.name in ['pair_ei','pair_eidip']:
             raise ValueError('Tail corrections are divergent for %s'%part_pair.name)
         super(ForcePartTailCorrection, self).__init__('tailcorr_%s'%(part_pair.name), system)
-        self.ecorr, self.wcorr = part_pair.pair_pot.prepare_tailcorrections(system.natom)
+        if not exclude_frame: assert n_frame==0
+        self.ecorr, self.wcorr = part_pair.pair_pot.prepare_tailcorrections(system.natom, n_frame)
         self.system = system
         if log.do_medium:
             with log.section('FPINIT'):

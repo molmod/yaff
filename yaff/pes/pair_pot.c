@@ -175,29 +175,30 @@ double pair_pot_compute(neigh_row_type *neighs,
   return energy;
 }
 
-void pair_pot_tailcorr_cut(double *corrs, long natom, pair_pot_type *pair_pot) {
+void pair_pot_tailcorr_cut(double *corrs, long natom, long n_frame, pair_pot_type *pair_pot) {
   /*
   The first element of ``corrs'' will contain
 
     C0 = \Sum_{(i,j)} \int_{r_c}^{\infty} U(r) r^2 dr
 
-  where (i,j) indicates all order pairs of atom (so N_{atom}^2 pairs)
-  The correction to the energy is 2*Pi/V*C0
+  where (i,j) indicates all relevant pairs of atom. The correction to the energy is
+  2*Pi/V*C0. Pairs for which the index i is smaller than n_frame are excluded.
+  This is typically used to exclude host-host interactions, where a guest
+  molecule interacts with the n_frame host atoms.
 
   The second element of ``corrs' will contain
 
     C1 = 1/3 \Sum_{(i,j)} \int_{r_c}^{\infty} dU(r)/dr r^3 dr
 
-  where (i,j) indicates all order pairs of atom (so N_{atom}^2 pairs).
-  The correction to the diagonal elements of the virial tensor is 2*Pi/V*C1
-  Using integration by parts it can be shown that
+  where (i,j) indicates all relevant pairs of atom. The correction to the diagonal
+  elements of the virial tensor is 2*Pi/V*C1.
 
     C1 = -1/3 U(r_c)*r_c^3 - C0
   */
   double ecorr, rcut;
   long center_index, other_index;
   rcut = (*pair_pot).rcut;
-  for (center_index=0;center_index<natom;center_index++) {
+  for (center_index=n_frame;center_index<natom;center_index++) {
     for (other_index=0;other_index<natom;other_index++) {
       ecorr = (*pair_pot).pair_tailcorr_cut((*pair_pot).pair_data, center_index, other_index, rcut);
       corrs[0] += ecorr;
@@ -210,21 +211,24 @@ void pair_pot_tailcorr_cut(double *corrs, long natom, pair_pot_type *pair_pot) {
 }
 
 
-void pair_pot_tailcorr_switch3(double *corrs, long natom, pair_pot_type *pair_pot) {
+void pair_pot_tailcorr_switch3(double *corrs, long natom, long n_frame, pair_pot_type *pair_pot) {
   /*
   The first element of ``corrs'' will contain
 
     C0 = \Sum_{(i,j)} \int_{0}^{\infty} U(r)(1-S(r)) r^2 dr
 
-  where (i,j) indicates all order pairs of atom (so N_{atom}^2 pairs)
+  where (i,j) indicates all relevant pairs of atom
   and S(r) is the truncation function Switch3
   The correction to the energy is 2*Pi/V*C0
+  Pairs for which the index i is smaller than n_frame are excluded.
+  This is typically used to exclude host-host interactions, where a guest
+  molecule interacts with the n_frame host atoms.
 
   The second element of ``corrs' will contain
 
     C1 = 1/3 \Sum_{(i,j)} \int_{0}^{\infty} dU(r)*(1-S(r))/dr r^3 dr
 
-  where (i,j) indicates all order pairs of atom (so N_{atom}^2 pairs)
+  where (i,j) indicates all relevant pairs of atom
   The correction to the diagonal elements of the virial tensor is 2*Pi/V*C1
   Using integration by parts it can be shown that
 
@@ -235,7 +239,7 @@ void pair_pot_tailcorr_switch3(double *corrs, long natom, pair_pot_type *pair_po
   double ecorr, rcut;
   long center_index,other_index;
   rcut = (*pair_pot).rcut;
-  for (center_index=0;center_index<natom;center_index++) {
+  for (center_index=n_frame;center_index<natom;center_index++) {
     for (other_index=0;other_index<natom;other_index++) {
       ecorr = (*pair_pot).pair_tailcorr_switch3((*pair_pot).pair_data, center_index, other_index, rcut, (*(*pair_pot).trunc_scheme).par);
       corrs[0] += ecorr;

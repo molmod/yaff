@@ -2158,7 +2158,7 @@ def apply_generators(system, parameters, ff_args):
                     if isinstance(part.pair_pot,PairPotEI) or isinstance(part.pair_pot,PairPotEIDip):
                         continue
                     else:
-                        part_tailcorrection = ForcePartTailCorrection(system, part)
+                        part_tailcorrection = ForcePartTailCorrection(system, part, exclude_frame=self.exclude_frame, n_frame=self.n_frame)
                         ff_args.parts.append(part_tailcorrection)
         else:
             raise ValueError('Tail corrections not available for 1-D and 2-D periodic systems')
