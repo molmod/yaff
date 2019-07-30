@@ -330,7 +330,7 @@ class ForcePartEwaldReciprocal(ForcePart):
     '''The long-range contribution to the electrostatic interaction in 3D
        periodic systems.
     '''
-    def __init__(self, system, alpha, gcut=0.35, dielectric=1.0, exclude_frame=False, n_frame=0):
+    def __init__(self, system, alpha, gcut=0.35, dielectric=1.0, n_frame=0):
         '''
            **Arguments:**
 
@@ -348,13 +348,9 @@ class ForcePartEwaldReciprocal(ForcePart):
            dielectric
                 The scalar relative permittivity of the system.
 
-           exclude_frame
-                A boolean to exclude framework-framework interactions
-                (exclude_frame=True) for efficiency sake in MC simulations.
-
            n_frame
                 Number of framework atoms. This parameter is used to exclude
-                framework-framework neighbors when exclude_frame=True.
+                framework-framework neighbors.
         '''
         ForcePart.__init__(self, 'ewald_reci', system)
         if not system.cell.nvec == 3:
@@ -367,10 +363,8 @@ class ForcePartEwaldReciprocal(ForcePart):
         self.dielectric = dielectric
         self.update_gmax()
         self.work = np.empty(system.natom*2)
-        if exclude_frame == True and n_frame < 0:
+        if n_frame < 0:
             raise ValueError('The number of framework atoms to exclude must be positive.')
-        elif exclude_frame == False:
-            n_frame = 0
         self.n_frame = n_frame
         if log.do_medium:
             with log.section('FPINIT'):
@@ -406,7 +400,7 @@ class ForcePartEwaldReciprocalDD(ForcePart):
     '''The long-range contribution to the dipole-dipole
        electrostatic interaction in 3D periodic systems.
     '''
-    def __init__(self, system, alpha, gcut=0.35, exclude_frame=False, n_frame=0):
+    def __init__(self, system, alpha, gcut=0.35, n_frame=0):
         '''
            **Arguments:**
 
@@ -419,14 +413,9 @@ class ForcePartEwaldReciprocalDD(ForcePart):
            gcut
                 The cutoff in reciprocal space.
 
-           exclude_frame
-                A boolean to exclude framework-framework neighbors in the
-                construction of a NeighborList (exclude_frame=True) for
-                efficiency sake in MC simulations.
-
            n_frame
                 Number of framework atoms. This parameter is used to exclude
-                framework-framework neighbors when exclude_frame=True.
+                framework-framework neighbors.
 
         '''
         ForcePart.__init__(self, 'ewald_reci', system)
@@ -441,10 +430,8 @@ class ForcePartEwaldReciprocalDD(ForcePart):
         self.gcut = gcut
         self.update_gmax()
         self.work = np.empty(system.natom*2)
-        if exclude_frame == True and n_frame < 0:
+        if n_frame < 0:
             raise ValueError('The number of framework atoms to exclude must be positive.')
-        elif exclude_frame == False:
-            n_frame = 0
         self.n_frame = n_frame
         if log.do_medium:
             with log.section('FPINIT'):
@@ -964,7 +951,7 @@ class ForcePartGrid(ForcePart):
 class ForcePartTailCorrection(ForcePart):
     '''Corrections to energy and virial tensor to compensate for neglecting
     pair potentials at long range'''
-    def __init__(self, system, part_pair, exclude_frame=False, n_frame=0):
+    def __init__(self, system, part_pair, n_frame=0):
         '''
            **Arguments:**
 
@@ -981,7 +968,6 @@ class ForcePartTailCorrection(ForcePart):
         if part_pair.name in ['pair_ei','pair_eidip']:
             raise ValueError('Tail corrections are divergent for %s'%part_pair.name)
         super(ForcePartTailCorrection, self).__init__('tailcorr_%s'%(part_pair.name), system)
-        if not exclude_frame: assert n_frame==0
         self.ecorr, self.wcorr = part_pair.pair_pot.prepare_tailcorrections(system.natom, n_frame)
         self.system = system
         if log.do_medium:

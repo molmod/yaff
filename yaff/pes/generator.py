@@ -87,8 +87,7 @@ class FFArgs(object):
     '''
     def __init__(self, rcut=18.89726133921252, tr=Switch3(7.558904535685008),
                  alpha_scale=3.5, gcut_scale=1.1, skin=0, smooth_ei=False,
-                 reci_ei='ewald', exclude_frame=False, n_frame=0,
-                 tailcorrections=False):
+                 reci_ei='ewald', n_frame=0, tailcorrections=False):
         """
            **Optional arguments:**
 
@@ -126,13 +125,11 @@ class FFArgs(object):
                 must be one of 'ignore' or 'ewald'. The 'ewald' option is only
                 supported for 3D periodic systems.
 
-            exclude_frame
-                A boolean to exclude framework-framework interactions
-                (exclude_frame=True) for efficiency sake in MC simulations.
-
             n_frame
                 Number of framework atoms. This parameter is used to exclude
-                framework-framework neighbors when exclude_frame=True.
+                framework-framework interactions, ie pair interactions between
+                atoms where both indexes are smaller than n_frame are not
+                computed. This increases the efficiency of MC calculations.
 
             tailcorrections
                 Boolean: if true, apply a correction for the truncation of the
@@ -159,13 +156,12 @@ class FFArgs(object):
         # arguments for the ForceField constructor
         self.parts = []
         self.nlist = None
-        self.exclude_frame = exclude_frame
         self.n_frame = n_frame
         self.tailcorrections = tailcorrections
 
     def get_nlist(self, system):
         if self.nlist is None:
-            self.nlist = NeighborList(system, self.skin, self.exclude_frame, self.n_frame)
+            self.nlist = NeighborList(system, self.skin, self.n_frame)
         return self.nlist
 
     def get_part(self, ForcePartClass):
@@ -210,7 +206,7 @@ class FFArgs(object):
         elif self.reci_ei == 'ewald':
             if system.cell.nvec == 3:
                 # Reciprocal-space electrostatics
-                part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, self.gcut_scale*alpha, dielectric, self.exclude_frame, self.n_frame)
+                part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, self.gcut_scale*alpha, dielectric, self.n_frame)
                 self.parts.append(part_ewald_reci)
                 # Ewald corrections
                 part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings, dielectric)
@@ -2158,7 +2154,7 @@ def apply_generators(system, parameters, ff_args):
                     if isinstance(part.pair_pot,PairPotEI) or isinstance(part.pair_pot,PairPotEIDip):
                         continue
                     else:
-                        part_tailcorrection = ForcePartTailCorrection(system, part, exclude_frame=self.exclude_frame, n_frame=self.n_frame)
+                        part_tailcorrection = ForcePartTailCorrection(system, part, n_frame=ff_args.n_frame)
                         ff_args.parts.append(part_tailcorrection)
         else:
             raise ValueError('Tail corrections not available for 1-D and 2-D periodic systems')

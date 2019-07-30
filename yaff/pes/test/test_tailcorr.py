@@ -54,7 +54,7 @@ def check_tailcorr_convergence(system, pairpot_class, decay, n_frame, *args, **k
         * **kwargs: all keyword arguments that need to be passed to initialize
           the pairpot_class
     """
-    nlist = NeighborList(system, exclude_frame=n_frame!=0, n_frame=n_frame)
+    nlist = NeighborList(system, n_frame=n_frame)
     scalings = Scalings(system)
     rcuts = np.linspace(12.0,32.0,11)*angstrom
     vtens0, vtens1 = np.zeros((3,3)), np.zeros((3,3))
@@ -65,7 +65,7 @@ def check_tailcorr_convergence(system, pairpot_class, decay, n_frame, *args, **k
         newargs = args + (rcut,)
         pair_pot = pairpot_class(*(newargs), **kwargs)
         part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
-        part_tailcorr = ForcePartTailCorrection(system, part_pair, exclude_frame=n_frame!=0, n_frame=n_frame)
+        part_tailcorr = ForcePartTailCorrection(system, part_pair, n_frame=n_frame)
         ff0 = ForceField(system, [part_pair], nlist=nlist)
         ff1 = ForceField(system, [part_pair, part_tailcorr], nlist=nlist)
         vtens0[:] = 0.0
@@ -186,7 +186,7 @@ def test_tailcorr_fluidum_lj():
 def test_tailcorr_fluidum_lj_exclude_frame():
     natom = 64
     system = get_system_fluidum_grid(natom)
-    nlist = NeighborList(system, exclude_frame=True, n_frame=61)
+    nlist = NeighborList(system, n_frame=59)
     scalings = Scalings(system)
     sigmas = np.ones((natom,))*2.1*angstrom
     sigmas += np.random.normal(0.0,0.01*angstrom,sigmas.shape[0])

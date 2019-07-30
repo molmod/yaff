@@ -60,7 +60,7 @@ def test_exclusion():
     ff.nlist.update()
     E_parts = {part.name:part.compute() for part in ff.parts}
 
-    ff_new = ForceField.generate(system, ff_file, exclude_frame=True, n_frame=N_system)
+    ff_new = ForceField.generate(system, ff_file, n_frame=N_system)
     ff_new.nlist.update()
     E_parts_new = {part.name:part.compute() for part in ff_new.parts}
 
@@ -88,7 +88,7 @@ def test_exclusion():
                     rvecs = system.cell.rvecs, charges=charges, masses=masses)
 
     ff = ForceField.generate(system, ff_file)
-    ff_new = ForceField.generate(system, ff_file, exclude_frame=True, n_frame=N_system)
+    ff_new = ForceField.generate(system, ff_file, n_frame=N_system)
 
     # Test 100 random configurations
     for i in range(100):

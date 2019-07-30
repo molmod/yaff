@@ -54,7 +54,7 @@ __all__ = ['NeighborList','BondedNeighborList']
 class NeighborList(object):
     '''Algorithms to keep track of all pair distances below a given rcut
     '''
-    def __init__(self, system, skin=0, exclude_frame=False, n_frame=0):
+    def __init__(self, system, skin=0, n_frame=0):
         """
            **Arguments:**
 
@@ -77,14 +77,9 @@ class NeighborList(object):
                 become very inefficient. Some tuning of ``rcut`` and ``skin``
                 may be beneficial.
 
-            exclude_frame
-                A boolean to exclude framework-framework neighbors in the
-                construction of a NeighborList (exclude_frame=True) for
-                efficiency sake in MC simulations.
-
             n_frame
                 Number of framework atoms. This parameter is used to exclude
-                framework-framework neighbors when exclude_frame=True.
+                framework-framework neighbors.
 
         """
         if skin < 0:
@@ -96,10 +91,8 @@ class NeighborList(object):
         self.neighs = np.empty(10, dtype=neigh_dtype)
         self.nneigh = 0
         self.rmax = None
-        if exclude_frame == True and n_frame < 0:
+        if n_frame < 0:
             raise ValueError('The number of framework atoms to exclude must be positive.')
-        elif exclude_frame == False:
-            n_frame = 0
         self.n_frame = n_frame
         # for skin algorithm:
         self._pos_old = None
