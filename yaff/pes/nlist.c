@@ -29,7 +29,7 @@
 
 int nlist_build_low(double *pos, double rcut, long *rmax,
                     cell_type *unitcell, long *status,
-                    neigh_row_type *neighs, long natom, long natom_frame, long nneigh) {
+                    neigh_row_type *neighs, long natom, long n_frame, long nneigh) {
 
   long a, b, row;
   long *r;
@@ -53,7 +53,7 @@ int nlist_build_low(double *pos, double rcut, long *rmax,
       status[6] += row;
       return 1;
     }
-    if (a>=natom_frame || b>=natom_frame) {
+    if (a>=n_frame || b>=n_frame) {
       // Avoid adding pairs for which a > b and that match the minimum image
       // convention.
       if (update_delta0) {

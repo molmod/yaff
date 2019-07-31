@@ -1085,6 +1085,52 @@ class System(object):
             masses=reduce_array(self.masses),
         )
 
+    def merge(self, system):
+        '''Return a System instance where atoms of system are appended to the
+           current system instance. Cell vectors of the original system are
+           retained. If a certain attribute (such as atom types) is missing for
+           one of both systems, it will not be present in the final system.
+        '''
+        def merge_arrays(array0, array1):
+            '''Concatenate arrays along first dimension'''
+            if array0 is None or array1 is None:
+                return None
+            else:
+                assert array0.ndim==array1.ndim
+                return np.concatenate( (array0, array1), axis=0)
+
+        def merge_ffatypes(system0, system1):
+            '''Concatenate atom types'''
+            if system0.ffatypes is None or system1.ffatypes is None:
+                return None
+            else:
+                ffatypes  = [system0.get_ffatype(iatom) for iatom in range(system0.natom)]
+                ffatypes += [system1.get_ffatype(iatom) for iatom in range(system1.natom)]
+                return ffatypes
+
+        def merge_scopes(system0, system1):
+            '''Concatenate scopes'''
+            if system0.scopes is None or system1.scopes is None:
+                return None
+            else:
+                scopes  = [system0.get_scope(iatom) for iatom in range(system0.natom)]
+                scopes += [system1.get_scope(iatom) for iatom in range(system1.natom)]
+
+        return System(
+            numbers = merge_arrays(self.numbers, system.numbers),
+            pos = merge_arrays(self.pos, system.pos),
+            scopes=merge_scopes(self, system),
+            ffatypes=merge_ffatypes(self, system),
+            bonds=np.array(merge_arrays(self.bonds, system.bonds+self.natom), dtype=int),
+            rvecs=self.cell.rvecs,
+            charges=merge_arrays(self.charges, system.charges),
+            radii=merge_arrays(self.radii, system.radii),
+            valence_charges=merge_arrays(self.valence_charges, system.valence_charges),
+            dipoles=merge_arrays(self.dipoles, system.dipoles),
+            radii2=merge_arrays(self.radii2, system.radii2),
+            masses=merge_arrays(self.masses, system.masses),
+        )
+
     def cut_bonds(self, indexes):
         '''Remove all bonds of a fragment with the remainder of the system;
 

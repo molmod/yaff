@@ -209,10 +209,10 @@ class FFArgs(object):
                 part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, self.gcut_scale*alpha, dielectric, self.n_frame)
                 self.parts.append(part_ewald_reci)
                 # Ewald corrections
-                part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings, dielectric)
+                part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings, dielectric, self.n_frame)
                 self.parts.append(part_ewald_corr)
                 # Neutralizing background
-                part_ewald_neut = ForcePartEwaldNeutralizing(system, alpha, dielectric)
+                part_ewald_neut = ForcePartEwaldNeutralizing(system, alpha, dielectric, self.n_frame)
                 self.parts.append(part_ewald_neut)
             elif system.cell.nvec != 0:
                 raise NotImplementedError('The ewald summation is only available for 3D periodic systems.')
@@ -450,6 +450,12 @@ class ValenceGenerator(Generator):
             raise ValueError('The system must have bonds in order to define valence terms.')
         part_valence = ff_args.get_part_valence(system)
         for indexes in self.iter_indexes(system):
+            # We do not want terms where at least one atom index is smaller than
+            # n_frame, as this is (should be) a framework-framework interaction
+            if min(indexes)<ff_args.n_frame:
+                # Check that this term indeed features only framework atoms
+                assert max(indexes)<ff_args.n_frame
+                continue
             key = tuple(system.get_ffatype(i) for i in indexes)
             par_list = par_table.get(key, [])
             for pars in par_list:
@@ -1073,6 +1079,12 @@ class ValenceCrossGenerator(Generator):
             3: self.get_indexes3, 4: self.get_indexes4, 5: self.get_indexes5,
         }
         for indexes in self.iter_indexes(system):
+            # We do not want terms where at least one atom index is smaller than
+            # n_frame, as this is (should be) a framework-framework interaction
+            if min(indexes)<ff_args.n_frame:
+                # Check that this term indeed features only framework atoms
+                assert max(indexes)<ff_args.n_frame
+                continue
             key = tuple(system.get_ffatype(i) for i in indexes)
             par_list = par_table.get(key, [])
             for pars in par_list:

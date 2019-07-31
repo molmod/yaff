@@ -468,7 +468,7 @@ class ForcePartEwaldCorrection(ForcePart):
        This correction is only needed if scaling rules apply to the short-range
        electrostatics.
     '''
-    def __init__(self, system, alpha, scalings, dielectric=1.0):
+    def __init__(self, system, alpha, scalings, dielectric=1.0, n_frame=0):
         '''
            **Arguments:**
 
@@ -488,6 +488,10 @@ class ForcePartEwaldCorrection(ForcePart):
 
            dielectric
                 The scalar relative permittivity of the system.
+
+           n_frame
+                Number of framework atoms. This parameter is used to exclude
+                framework-framework interactions.
         '''
         ForcePart.__init__(self, 'ewald_cor', system)
         if not system.cell.nvec == 3:
@@ -497,6 +501,9 @@ class ForcePartEwaldCorrection(ForcePart):
         self.system = system
         self.alpha = alpha
         self.dielectric = dielectric
+        if n_frame < 0:
+            raise ValueError('The number of framework atoms to exclude must be positive.')
+        self.n_frame = n_frame
         self.scalings = scalings
         if log.do_medium:
             with log.section('FPINIT'):
@@ -511,7 +518,7 @@ class ForcePartEwaldCorrection(ForcePart):
         with timer.section('Ewald corr.'):
             return compute_ewald_corr(
                 self.system.pos, self.system.charges, self.system.cell,
-                self.alpha, self.scalings.stab, self.dielectric, gpos, vtens
+                self.alpha, self.scalings.stab, self.dielectric, gpos, vtens, self.n_frame
             )
 
 
@@ -521,7 +528,7 @@ class ForcePartEwaldCorrectionDD(ForcePart):
        This correction is only needed if scaling rules apply to the short-range
        electrostatics.
     '''
-    def __init__(self, system, alpha, scalings):
+    def __init__(self, system, alpha, scalings, n_frame=0):
         '''
            **Arguments:**
 
@@ -545,6 +552,9 @@ class ForcePartEwaldCorrectionDD(ForcePart):
         self.system = system
         self.alpha = alpha
         self.scalings = scalings
+        if n_frame < 0:
+            raise ValueError('The number of framework atoms to exclude must be positive.')
+        self.n_frame = n_frame
         if log.do_medium:
             with log.section('FPINIT'):
                 log('Force part: %s' % self.name)
@@ -557,7 +567,7 @@ class ForcePartEwaldCorrectionDD(ForcePart):
         with timer.section('Ewald corr.'):
             return compute_ewald_corr_dd(
                 self.system.pos, self.system.charges, self.system.dipoles, self.system.cell,
-                self.alpha, self.scalings.stab, gpos, vtens
+                self.alpha, self.scalings.stab, gpos, vtens, self.n_frame
             )
 
 class ForcePartEwaldNeutralizing(ForcePart):
@@ -566,7 +576,7 @@ class ForcePartEwaldNeutralizing(ForcePart):
 
        This term is only required of the system is not neutral.
     '''
-    def __init__(self, system, alpha, dielectric=1.0):
+    def __init__(self, system, alpha, dielectric=1.0, n_frame=0):
         '''
            **Arguments:**
 
@@ -580,6 +590,10 @@ class ForcePartEwaldNeutralizing(ForcePart):
 
            dielectric
                 The scalar relative permittivity of the system.
+
+           n_frame
+                Number of framework atoms. This parameter is used to exclude
+                framework-framework interactions.
         '''
         ForcePart.__init__(self, 'ewald_neut', system)
         if not system.cell.nvec == 3:
@@ -589,6 +603,9 @@ class ForcePartEwaldNeutralizing(ForcePart):
         self.system = system
         self.alpha = alpha
         self.dielectric = dielectric
+        if n_frame < 0:
+            raise ValueError('The number of framework atoms to exclude must be positive.')
+        self.n_frame = n_frame
         if log.do_medium:
             with log.section('FPINIT'):
                 log('Force part: %s' % self.name)
@@ -600,9 +617,10 @@ class ForcePartEwaldNeutralizing(ForcePart):
     def _internal_compute(self, gpos, vtens):
         with timer.section('Ewald neut.'):
             #TODO: interaction of dipoles with background? I think this is zero, need proof...
-            fac = self.system.charges.sum()**2*np.pi/(2.0*self.system.cell.volume*self.alpha**2)/self.dielectric
+            fac = self.system.charges[self.n_frame:].sum()**2*np.pi/(2.0*self.system.cell.volume*self.alpha**2)/self.dielectric
             if self.system.radii is not None:
                 fac -= self.system.charges.sum()*np.pi/(2.0*self.system.cell.volume)*np.sum( self.system.charges*self.system.radii**2 )/self.dielectric
+                fac += self.system.charges[:self.n_frame].sum()*np.pi/(2.0*self.system.cell.volume)*np.sum( self.system.charges[:self.n_frame]*self.system.radii[:self.n_frame]**2 )/self.dielectric
             if vtens is not None:
                 vtens.ravel()[::4] -= fac
             return fac

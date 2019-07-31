@@ -29,7 +29,7 @@
 #include "cell.h"
 #include <stdio.h>
 
-double compute_ewald_reci(double *pos, long natom, long natom_frame, double *charges,
+double compute_ewald_reci(double *pos, long natom, long n_frame, double *charges,
                           cell_type* cell, double alpha, long *gmax, double
                           gcut, double dielectric, double *gpos, double *work,
                           double* vtens) {
@@ -64,7 +64,7 @@ double compute_ewald_reci(double *pos, long natom, long natom_frame, double *cha
           s = charges[i]*sin(x);
           cosfac += c;
           sinfac += s;
-          if (i < natom_frame) {
+          if (i < n_frame) {
               cosfac_frame += c;
               sinfac_frame += s;
           }
@@ -130,7 +130,7 @@ double compute_ewald_reci(double *pos, long natom, long natom_frame, double *cha
 //At the moment the idea is to make separate code for systems with monopoles and dipoles.
 //If it turns out that adding zero dipoles does not increase computational cost, this separate
 //code should become the main.
-double compute_ewald_reci_dd(double *pos, long natom, long natom_frame, double *charges, double *dipoles,
+double compute_ewald_reci_dd(double *pos, long natom, long n_frame, double *charges, double *dipoles,
                           cell_type* cell, double alpha, long *gmax,
                           double gcut, double *gpos, double *work,
                           double* vtens) {
@@ -172,7 +172,7 @@ double compute_ewald_reci_dd(double *pos, long natom, long natom_frame, double *
           s = charges[i]*sin(x) - (k[0]*dipoles[3*i+0] + k[1]*dipoles[3*i+1] + k[2]*dipoles[3*i+2])*cos(x);
           cosfac += c;
           sinfac += s;
-          if (i < natom_frame) {
+          if (i < n_frame) {
               cosfac_frame += c;
               sinfac_frame += s;
           }
@@ -232,20 +232,21 @@ double compute_ewald_reci_dd(double *pos, long natom, long natom_frame, double *
 double compute_ewald_corr(double *pos, double *charges,
                           cell_type *unitcell, double alpha,
                           scaling_row_type *stab, long nstab, double dielectric,
-                          double *gpos, double *vtens, long natom) {
+                          double *gpos, double *vtens, long natom, long n_frame) {
   long i, center_index, other_index;
   double energy, delta[3], d, x, g, pot, fac, dielectric_factor;
   energy = 0.0;
   g = 0.0;
   // Self-interaction correction (no gpos or vtens contribution)
   x = alpha/M_SQRT_PI;
-  for (i = 0; i < natom; i++) {
+  for (i = n_frame; i < natom; i++) {
     energy -= x*charges[i]*charges[i];
   }
   // Scaling corrections
   for (i = 0; i < nstab; i++) {
     center_index = stab[i].a;
     other_index = stab[i].b;
+    if ((center_index<n_frame)&&(other_index<n_frame)) continue;
     delta[0] = pos[3*other_index    ] - pos[3*center_index    ];
     delta[1] = pos[3*other_index + 1] - pos[3*center_index + 1];
     delta[2] = pos[3*other_index + 2] - pos[3*center_index + 2];
@@ -303,7 +304,7 @@ double compute_ewald_corr(double *pos, double *charges,
 double compute_ewald_corr_dd(double *pos, double *charges, double *dipoles,
                           cell_type *unitcell, double alpha,
                           scaling_row_type *stab, long nstab,
-                          double *gpos, double *vtens, long natom) {
+                          double *gpos, double *vtens, long natom, long n_frame) {
   long i, j, k;
   double energy, delta[3], d, x, g, g_cart[3];
   double fac, fac0, fac1, fac2, fac3, d_2;
@@ -314,7 +315,7 @@ double compute_ewald_corr_dd(double *pos, double *charges, double *dipoles,
   fac1 = alpha/M_SQRT_PI;
   fac2 = fac1*alpha*alpha*2.0/3.0;
   // Self-interaction correction (no gpos or vtens contribution)
-  for (i = 0; i < natom; i++) {
+  for (i = n_frame; i < natom; i++) {
     //charges
     energy -= fac1*charges[i]*charges[i];
     //dipoles
@@ -324,6 +325,7 @@ double compute_ewald_corr_dd(double *pos, double *charges, double *dipoles,
   for (k = 0; k < nstab; k++) { // Loop over all pairs that need scaling
     i = stab[k].a;
     j = stab[k].b;
+    if ((i<n_frame)&&(j<n_frame)) continue;
     delta[0] = pos[3*j+0] - pos[3*i+0];
     delta[1] = pos[3*j+1] - pos[3*i+1];
     delta[2] = pos[3*j+2] - pos[3*i+2];

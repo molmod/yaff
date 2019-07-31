@@ -105,3 +105,34 @@ def test_exclusion():
         E_parts_new_rand = {part.name:part.compute() for part in ff_new.parts}
         for key, _ in E_parts.items():
             assert (E_parts[key]-E_parts_rand[key]) - (E_parts_new[key]-E_parts_new_rand[key]) < 10e-12
+
+
+def test_CAU13_xylene():
+    host = System.from_file(pkg_resources.resource_filename(__name__, '../../data/test/CAU_13.chk'))
+    guest = System.from_file(pkg_resources.resource_filename(__name__, '../../data/test/xylene.chk'))
+    pars_fn = pkg_resources.resource_filename(__name__, '../../data/test/parameters_CAU-13_xylene.txt')
+    complex = host.merge(guest)
+    for tailcorrections in False, True:
+        # Construct force fields
+        ff_complex = ForceField.generate(complex, pars_fn, tailcorrections=tailcorrections)
+        ff_host    = ForceField.generate(host, pars_fn, tailcorrections=tailcorrections)
+        ff_exclude = ForceField.generate(complex, pars_fn, n_frame=host.natom, tailcorrections=tailcorrections)
+        # The n_frame keyword is meant to exclude all framework-framework interactions
+        # The energy of this force field should be exactly equal to the energy of
+        # the entire complex (featuring framework-framework, framework-guest, and
+        # guest-guest interactions) minus the energy of the framework (featuring
+        # only framework-framework interactions). Note that this is not what is
+        # usually considered an interaction energy, because for instance guest-guest
+        # valence interactions are still included.
+        e_complex = ff_complex.compute()
+        e_host    = ff_host.compute()
+        e_exclude = ff_exclude.compute()
+        # Compare energies part by part
+        nparts = len(ff_complex.parts)
+        assert len(ff_host.parts)==nparts
+        assert len(ff_exclude.parts)==nparts
+        for ipart in range(nparts):
+            eref = ff_complex.parts[ipart].energy - ff_host.parts[ipart].energy
+            ecomp = ff_exclude.parts[ipart].energy
+            print("%20s %15.9f %15.9f"%  (ff_exclude.parts[ipart].name, eref, ecomp))
+            assert np.abs(eref-ecomp)<1e-10

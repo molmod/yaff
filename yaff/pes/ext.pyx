@@ -2536,7 +2536,8 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
                        np.ndarray[pair_pot.scaling_row_type, ndim=1] stab,
                        double dielectric,
                        np.ndarray[double, ndim=2] gpos,
-                       np.ndarray[double, ndim=2] vtens):
+                       np.ndarray[double, ndim=2] vtens,
+                       int n_frame):
     '''Compute the corrections to the reciprocal Ewald term due to scaled
        short-range non-bonding interactions.
 
@@ -2602,7 +2603,7 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
     return ewald.compute_ewald_corr(
         <double*>pos.data, <double*>charges.data, unitcell._c_cell, alpha,
         <pair_pot.scaling_row_type*>stab.data, len(stab), dielectric,
-        my_gpos, my_vtens, len(pos)
+        my_gpos, my_vtens, len(pos), n_frame
     )
 
 def compute_ewald_corr_dd(np.ndarray[double, ndim=2] pos,
@@ -2611,7 +2612,8 @@ def compute_ewald_corr_dd(np.ndarray[double, ndim=2] pos,
                        Cell unitcell, double alpha,
                        np.ndarray[pair_pot.scaling_row_type, ndim=1] stab,
                        np.ndarray[double, ndim=2] gpos,
-                       np.ndarray[double, ndim=2] vtens):
+                       np.ndarray[double, ndim=2] vtens,
+                       int n_frame):
     '''Compute the corrections to the reciprocal Ewald term due to scaled
        short-range non-bonding interactions.
 
@@ -2675,7 +2677,7 @@ def compute_ewald_corr_dd(np.ndarray[double, ndim=2] pos,
     return ewald.compute_ewald_corr_dd(
         <double*>pos.data, <double*>charges.data, <double*>dipoles.data, unitcell._c_cell, alpha,
         <pair_pot.scaling_row_type*>stab.data, len(stab), my_gpos,
-        my_vtens, len(pos)
+        my_vtens, len(pos), n_frame
     )
 
 
