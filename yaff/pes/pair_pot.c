@@ -200,7 +200,7 @@ void pair_pot_tailcorr_cut(double *corrs, long natom, long n_frame, pair_pot_typ
   rcut = (*pair_pot).rcut;
   for (center_index=0;center_index<natom;center_index++) {
     for (other_index=0;other_index<natom;other_index++) {
-      if ((center_index<n_frame)&&(other_index<n_frame)) continue;        
+      if ((center_index<n_frame)&&(other_index<n_frame)) continue;
       ecorr = (*pair_pot).pair_tailcorr_cut((*pair_pot).pair_data, center_index, other_index, rcut);
       corrs[0] += ecorr;
       corrs[1] -= ecorr;
@@ -242,7 +242,7 @@ void pair_pot_tailcorr_switch3(double *corrs, long natom, long n_frame, pair_pot
   rcut = (*pair_pot).rcut;
   for (center_index=0;center_index<natom;center_index++) {
     for (other_index=0;other_index<natom;other_index++) {
-      if ((center_index<n_frame)&&(other_index<n_frame)) continue;        
+      if ((center_index<n_frame)&&(other_index<n_frame)) continue;
       ecorr = (*pair_pot).pair_tailcorr_switch3((*pair_pot).pair_data, center_index, other_index, rcut, (*(*pair_pot).trunc_scheme).par);
       corrs[0] += ecorr;
       corrs[1] -= ecorr;

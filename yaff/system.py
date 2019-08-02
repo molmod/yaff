@@ -324,8 +324,9 @@ class System(object):
         for ffatype in self.ffatypes:
             check_name(ffatype)
         # check the range of the ids
-        if self.ffatype_ids.min() != 0 or self.ffatype_ids.max() != len(self.ffatypes)-1:
-            raise ValueError('The ffatype_ids have incorrect bounds.')
+        if self.natom>0:
+            if self.ffatype_ids.min() != 0 or self.ffatype_ids.max() != len(self.ffatypes)-1:
+                raise ValueError('The ffatype_ids have incorrect bounds.')
         # differentiate ffatype_ids if the same ffatype_id is used in different
         # scopes
         if self.scopes is not None:
@@ -360,8 +361,9 @@ class System(object):
         if self.scopes is not None:
             self.scopes = np.array(self.scopes, copy=False)
         # check the range of the ids
-        if self.ffatype_ids.min() != 0 or self.ffatype_ids.max() != len(self.ffatypes)-1:
-            raise ValueError('The ffatype_ids have incorrect bounds.')
+        if self.natom>0:
+            if self.ffatype_ids.min() != 0 or self.ffatype_ids.max() != len(self.ffatypes)-1:
+                raise ValueError('The ffatype_ids have incorrect bounds.')
         if log.do_medium:
             log('The following atom types are present in the system:')
             log.hline()
@@ -490,6 +492,14 @@ class System(object):
         if log.do_high:
             log('Read system parameters from %s.' % f.filename)
         return cls(**kwargs)
+
+    @classmethod
+    def create_empty(cls):
+        """
+        Create a System without any atoms.
+        """
+        return cls(np.zeros((0,),dtype=int), np.zeros((0,3)),
+                  bonds=np.zeros((0,2)), ffatypes=[])
 
     def to_file(self, fn):
         """Write the system to a file
