@@ -37,11 +37,126 @@ from yaff.log import log
 
 
 __all__ = [
-    'PREOS',
+    'IdealGas', 'vdWEOS', 'PREOS',
 ]
 
 
-class PREOS(object):
+class EOS(object):
+    def __init__(self, mass=0.0):
+        self.mass = mass
+
+    def calculate_fugacity(self, T, P):
+        """
+           Evaluate the excess chemical potential at given external conditions
+
+           **Arguments:**
+
+           T
+                Temperature
+
+           P
+                Pressure
+
+           **Returns:**
+
+           f
+                The fugacity
+        """
+        mu, Pref = self.calculate_mu_ex(T, P)
+        fugacity = np.exp( mu/(boltzmann*T) )*Pref
+        return fugacity
+
+    def calculate_mu(self, T, P):
+        """
+           Evaluate the chemical potential at given external conditions
+
+           **Arguments:**
+
+           T
+                Temperature
+
+           P
+                Pressure
+
+           **Returns:**
+
+           mu
+                The chemical potential
+        """
+        # Excess part
+        mu, Pref = self.calculate_mu_ex(T,P)
+        # Ideal gas contribution to chemical potential
+        assert self.mass!=0.0
+        lambd = 2.0*np.pi*self.mass*boltzmann*T/planck**2
+        mu0 = -boltzmann*T*np.log( boltzmann*T/Pref*lambd**1.5)
+        return mu0+mu
+
+
+class IdealGas(EOS):
+    """The ideal gas equation of state"""
+    def calculate_mu_ex(self, T, P):
+        mu = 0.0
+        Pref = P
+        return mu, Pref
+
+
+class vdWEOS(EOS):
+    """The van der Waals equation of state"""
+    def __init__(self, a, b, mass=0.0):
+        self.a = a
+        self.b = b
+        self.mass = mass
+
+    def polynomial(self, rho, T, P):
+        poly = -self.a*self.b*rho**3
+        poly += self.a*rho**2
+        poly -= self.b*P*rho
+        poly -= boltzmann*T*rho
+        poly += P
+        return poly
+
+    def calculate_mu_ex(self, T, P):
+        """
+           Evaluate the excess chemical potential at given external conditions
+
+           **Arguments:**
+
+           T
+                Temperature
+
+           P
+                Pressure
+
+           **Returns:**
+
+           mu
+                The excess chemical potential
+
+           Pref
+
+                The pressure at which the reference chemical potential was calculated
+        """
+        # Find a reference pressure at the given temperature for which the fluidum
+        # is nearly ideal
+        Pref = P
+        for i in range(100):
+            rhoref = newton_opt(self.polynomial, Pref/boltzmann/T, args=(T,P))
+            # rhoref close to Pref/boltzmann/T means ideal gas behavior
+            if np.abs(rhoref-Pref/boltzmann/T)>1e-3:
+                Pref /= 2.0
+            else: break
+        if np.abs(rhoref-Pref/boltzmann/T)>1e-3:
+            raise ValueError("Failed to find pressure where the fluidum is ideal-gas like, check input parameters")
+        # Find zero of polynomial expression to get the density
+        rho = newton_opt(self.polynomial, P/boltzmann/T, args=(T,P))
+        # Add contributions to chemical potential at requested pressure
+        mu = boltzmann*T*( np.log(self.b*rho/(1.0-self.b*rho)) + self.b*rho/(1.0-self.b*rho))
+        mu -= 2.0*self.a*rho
+        mu -= boltzmann*T*np.log(Pref*self.b/boltzmann/T)
+        return mu, Pref
+
+
+class PREOS(EOS):
     """The Peng-Robinson equation of state"""
     def __init__(self, Tc, Pc, omega, mass=0.0):
         """
@@ -155,10 +270,10 @@ class PREOS(object):
             self.set_conditions(T, Pref)
             Zref = newton_opt(self.polynomial, 1.0)
             # Z close to 1.0 means ideal gas behavior
-            if np.abs(Zref-1.0)>1e-5:
+            if np.abs(Zref-1.0)>1e-3:
                 Pref /= 2.0
             else: break
-        if np.abs(Zref-1.0)>1e-5:
+        if np.abs(Zref-1.0)>1e-3:
             raise ValueError("Failed to find pressure where the fluidum is ideal-gas like, check input parameters")
         # Find zero of polynomial expression to get the compressibility factor
         self.set_conditions(T, P)
@@ -169,49 +284,3 @@ class PREOS(object):
         mu += np.log(P/Pref)
         mu *= T*boltzmann
         return mu, Pref
-
-    def calculate_fugacity(self, T, P):
-        """
-           Evaluate the excess chemical potential at given external conditions
-
-           **Arguments:**
-
-           T
-                Temperature
-
-           P
-                Pressure
-
-           **Returns:**
-
-           f
-                The fugacity
-        """
-        mu, Pref = self.calculate_mu_ex(T, P)
-        fugacity = np.exp( mu/(boltzmann*T) )*Pref
-        return fugacity
-
-    def calculate_mu(self, T, P):
-        """
-           Evaluate the chemical potential at given external conditions
-
-           **Arguments:**
-
-           T
-                Temperature
-
-           P
-                Pressure
-
-           **Returns:**
-
-           mu
-                The chemical potential
-        """
-        # Excess part
-        mu, Pref = self.calculate_mu_ex(T,P)
-        # Ideal gas contribution to chemical potential
-        assert self.mass!=0.0
-        lambd = 2.0*np.pi*self.mass*boltzmann*T/planck**2
-        mu0 = -boltzmann*T*np.log( boltzmann*T/Pref*lambd**1.5)
-        return mu0+mu
