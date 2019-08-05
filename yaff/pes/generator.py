@@ -56,12 +56,12 @@ __all__ = [
     'FFArgs', 'Generator',
 
     'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator', 'BondDoubleWellGenerator',
-    'BondDoubleWell2Generator', 'BondFuesGenerator', 'MM3QuarticGenerator',
+    'BondDoubleWell2Generator', 'BondFuesGenerator', 'BondMorseGenerator', 'BondPolySixGenerator', 'MM3QuarticGenerator',
     'BendGenerator', 'BendAngleHarmGenerator', 'BendCosHarmGenerator', 'BendCosGenerator', 'MM3BendGenerator',
-    'TorsionGenerator', 'TorsionCosHarmGenerator', 'TorsionCos2HarmGenerator',
+    'TorsionGenerator', 'TorsionCosHarmGenerator', 'TorsionCos2HarmGenerator', 'TorsionPolySixCosGenerator',
     'UreyBradleyHarmGenerator', 'OopAngleGenerator', 'OopMeanAngleGenerator',
-    'OopCosGenerator', 'OopMeanCosGenerator', 'OopDistGenerator', 'BondMorseGenerator', 'PolySixGenerator',
-    'PolySixCosGenerator',
+    'OopCosGenerator', 'OopMeanCosGenerator', 'OopDistGenerator', 
+    
 
     'ValenceCrossGenerator', 'CrossGenerator', 'CrossCosBendGenerator',
     'CrossBondDihedralGenerator', 'CrossBondDihedral2Generator',
@@ -578,9 +578,9 @@ class BondDoubleWell2Generator(ValenceGenerator):
         return par_table
 
 
-class PolySixGenerator(ValenceGenerator):
+class BondPolySixGenerator(ValenceGenerator):
     nffatype = 2
-    prefix = 'POLYSIX'
+    prefix = 'BONDPOLYSIX'
     ICClass = Bond
     VClass = PolySix
     par_info = [('C1', float), ('C2', float), ('C3', float), ('C4', float), ('C5', float), ('C6', float)]
@@ -604,31 +604,6 @@ class PolySixGenerator(ValenceGenerator):
             par_table[key] = [(oldpars[0],)]
         return par_table
 
-class PolySixCosGenerator(ValenceGenerator):
-    nffatype = 4
-    prefix = 'POLYSIXCOS'
-    ICClass = DihedCos
-    VClass = PolySix
-    par_info = [('C1', float), ('C2', float), ('C3', float), ('C4', float), ('C5', float), ('C6', float)]
-
-    def iter_equiv_keys_and_pars(self, key, pars):
-        yield key, pars
-        yield key[::-1], pars
-
-    def iter_indexes(self, system):
-        return system.iter_dihedrals()
-
-    def process_pars(self, pardef, conversions, nffatype, par_info=None):
-        '''
-            The parameters of PolySix are given as a single argument (a list)
-            containing all 6 parameters, not 6 arguments with each a parameter.
-        '''
-        tmp = Generator.process_pars(self, pardef, conversions, nffatype, par_info=par_info)
-        par_table = {}
-
-        for key, oldpars in tmp.items():
-            par_table[key] = [(oldpars[0],)]
-        return par_table
 
 class BendGenerator(ValenceGenerator):
     nffatype = 3
@@ -796,6 +771,33 @@ class TorsionCos2HarmGenerator(ValenceGenerator):
         for key, oldpars in tmp.items():
             pars = [0.0, -4*oldpars[0][0]*oldpars[0][1]**2, 0.0, 2.0*oldpars[0][0]]
             par_table[key] = [(pars,)]
+        return par_table
+
+
+class TorsionPolySixCosGenerator(ValenceGenerator):
+    nffatype = 4
+    prefix = 'TORSCPOLYSIX'
+    ICClass = DihedCos
+    VClass = PolySix
+    par_info = [('C1', float), ('C2', float), ('C3', float), ('C4', float), ('C5', float), ('C6', float)]
+
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
+
+    def iter_indexes(self, system):
+        return system.iter_dihedrals()
+
+    def process_pars(self, pardef, conversions, nffatype, par_info=None):
+        '''
+            The parameters of PolySix are given as a single argument (a list)
+            containing all 6 parameters, not 6 arguments with each a parameter.
+        '''
+        tmp = Generator.process_pars(self, pardef, conversions, nffatype, par_info=par_info)
+        par_table = {}
+
+        for key, oldpars in tmp.items():
+            par_table[key] = [(oldpars[0],)]
         return par_table
 
 

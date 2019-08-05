@@ -320,6 +320,25 @@ def test_generator_fake_torsion2():
     assert m_counts[6] == 4
 
 
+def test_generator_glycine_torsioncospolysix():
+    system = get_system_glycine()
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_torscpolysix.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert len(ff.parts) == 1
+    part_valence = ff.part_valence
+    assert part_valence.vlist.nv == 12
+    assert part_valence.dlist.ndelta == 9
+    assert (part_valence.iclist.ictab['kind'][:] == 3).all()
+    assert part_valence.iclist.nic == 12
+    assert (part_valence.vlist.vtab['kind'][:] == 10).all()
+    assert abs(part_valence.vlist.vtab['par0'] - 1.0*kjmol).all() < 1e-10
+    assert abs(part_valence.vlist.vtab['par1'] - 1.0*kjmol).all() < 1e-10
+    assert abs(part_valence.vlist.vtab['par2'] - 1.0*kjmol).all() < 1e-10
+    assert abs(part_valence.vlist.vtab['par3'] - 1.0*kjmol).all() < 1e-10
+    assert abs(part_valence.vlist.vtab['par4'] - 1.0*kjmol).all() < 1e-10
+    assert abs(part_valence.vlist.vtab['par5'] - 1.0*kjmol).all() < 1e-10
+
+
 #def test_generator_water32_bondcross():
 #    system = get_system_water32()
 #    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_bondcross.txt')
