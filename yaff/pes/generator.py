@@ -591,7 +591,7 @@ class PolySixGenerator(ValenceGenerator):
 
     def iter_indexes(self, system):
         return system.iter_bonds()
-    
+
     def process_pars(self, pardef, conversions, nffatype, par_info=None):
         '''
             The parameters of PolySix are given as a single argument (a list)
@@ -617,7 +617,7 @@ class PolySixCosGenerator(ValenceGenerator):
 
     def iter_indexes(self, system):
         return system.iter_dihedrals()
-        
+
     def process_pars(self, pardef, conversions, nffatype, par_info=None):
         '''
             The parameters of PolySix are given as a single argument (a list)
