@@ -101,5 +101,7 @@ class COMList(object):
 
            The actual computation is carried out by a low-level C routine.
         """
-        comlist_back(self.deltas, gpos, self.gpos, self.comsizes, self.comtab)
-        dlist_back(gpos, np.zeros((3, 3)), self.deltas, len(self.deltas))
+        if gpos is not None:
+            comlist_back(self.deltas, gpos, self.gpos, self.comsizes, self.comtab)
+            dlist_back(gpos, np.zeros((3, 3)), self.deltas, len(self.deltas))
+

@@ -85,6 +85,7 @@ def test_quartz_vtens():
     part = ForcePartValence(system, comlist)
     part.add_term(Harmonic(2.1, 0.5, Bond(0, 1)))
     check_gpos_part(system, part)
+    check_vtens_part(system, part)
 
 
 def test_quartz():
