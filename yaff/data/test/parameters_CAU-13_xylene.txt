@@ -243,7 +243,7 @@ FIXQ:ATOM    C_PCg  0.0000000000  1.1646000000
 
 # Bond parameters
 # ----------------------------------------------------
-# KEY         label0   label1           P_AB          
+# KEY         label0   label1           P_AB
 # ----------------------------------------------------
 FIXQ:BOND     C_PHg     C_PCg  -0.0502707859
 FIXQ:BOND     C_PHg     C_PHg   0.0000000000
@@ -287,5 +287,3 @@ MM3CAP:PARS   C_MEg     2.040   0.027      0
 MM3CAP:PARS   C_PCg     1.960   0.056      0
 MM3CAP:PARS   C_PHg     1.960   0.056      0
 MM3CAP:PARS   H_PHg     1.620   0.020      0
-
-

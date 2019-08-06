@@ -60,8 +60,8 @@ __all__ = [
     'BendGenerator', 'BendAngleHarmGenerator', 'BendCosHarmGenerator', 'BendCosGenerator', 'MM3BendGenerator',
     'TorsionGenerator', 'TorsionCosHarmGenerator', 'TorsionCos2HarmGenerator', 'TorsionPolySixCosGenerator',
     'UreyBradleyHarmGenerator', 'OopAngleGenerator', 'OopMeanAngleGenerator',
-    'OopCosGenerator', 'OopMeanCosGenerator', 'OopDistGenerator', 
-    
+    'OopCosGenerator', 'OopMeanCosGenerator', 'OopDistGenerator',
+
 
     'ValenceCrossGenerator', 'CrossGenerator', 'CrossCosBendGenerator',
     'CrossBondDihedralGenerator', 'CrossBondDihedral2Generator',

@@ -328,15 +328,17 @@ def test_generator_glycine_torsioncospolysix():
     part_valence = ff.part_valence
     assert part_valence.vlist.nv == 12
     assert part_valence.dlist.ndelta == 9
-    assert (part_valence.iclist.ictab['kind'][:] == 3).all()
     assert part_valence.iclist.nic == 12
-    assert (part_valence.vlist.vtab['kind'][:] == 10).all()
-    assert abs(part_valence.vlist.vtab['par0'] - 1.0*kjmol).all() < 1e-10
-    assert abs(part_valence.vlist.vtab['par1'] - 1.0*kjmol).all() < 1e-10
-    assert abs(part_valence.vlist.vtab['par2'] - 1.0*kjmol).all() < 1e-10
-    assert abs(part_valence.vlist.vtab['par3'] - 1.0*kjmol).all() < 1e-10
-    assert abs(part_valence.vlist.vtab['par4'] - 1.0*kjmol).all() < 1e-10
-    assert abs(part_valence.vlist.vtab['par5'] - 1.0*kjmol).all() < 1e-10
+    nv = part_valence.vlist.nv
+    nic = part_valence.iclist.nic
+    assert (part_valence.vlist.vtab['kind'][:nv] == 10).all()
+    assert (part_valence.iclist.ictab['kind'][:nic] == 3).all()
+    assert abs(part_valence.vlist.vtab['par0'][:nv] - 1.0*kjmol).all() < 1e-10
+    assert abs(part_valence.vlist.vtab['par1'][:nv] - 4.3*kjmol).all() < 1e-10
+    assert abs(part_valence.vlist.vtab['par2'][:nv] - 2.1*kjmol).all() < 1e-10
+    assert abs(part_valence.vlist.vtab['par3'][:nv] + 0.9*kjmol).all() < 1e-10
+    assert abs(part_valence.vlist.vtab['par4'][:nv] - 12.*kjmol).all() < 1e-10
+    assert abs(part_valence.vlist.vtab['par5'][:nv] - 4.9*kjmol).all() < 1e-10
 
 
 #def test_generator_water32_bondcross():
