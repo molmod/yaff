@@ -154,7 +154,7 @@ class CVInternalCoordinate(CollectiveVariable):
             else:
                 self.comlist.gpos[:] = 0.0
                 self.dlist.back(self.comlist.gpos, vtens)
-                self.comlist.back(gpos, vtens)
+                self.comlist.back(gpos)
         return self.value
 
 
@@ -337,5 +337,5 @@ class CVLinCombIC(CollectiveVariable):
             else:
                 self.comlist.gpos[:] = 0.0
                 self.dlist.back(self.comlist.gpos, vtens)
-                self.comlist.back(gpos, vtens)
+                self.comlist.back(gpos)
         return self.value
