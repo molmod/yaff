@@ -120,7 +120,7 @@ FIXQ:DIELECTRIC 1.0
 
 # Atom parameters
 # -------------------------------------------
-# KEY        label        Q0             R   
+# KEY        label        Q0             R
 # -------------------------------------------
 FIXQ:ATOM     H_HY   0.000000000  0.730800000
 FIXQ:ATOM     O_HY   0.000000000  1.132500000
@@ -133,7 +133,7 @@ FIXQ:ATOM     C_CA   0.000000000  1.170300000
 
 # Bond parameters
 # -------------------------------------------
-# KEY       label0   label1          P_AB    
+# KEY       label0   label1          P_AB
 # -------------------------------------------
 FIXQ:BOND     H_HY     O_HY   0.518526380
 FIXQ:BOND       AL     O_HY   0.345674657

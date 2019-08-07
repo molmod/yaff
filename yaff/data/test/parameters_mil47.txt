@@ -15,12 +15,12 @@ DOUBWELL:UNIT R2 angstrom
 # -----------------------------------------------------------------
 # KEY         ffatype0 ffatype1  K                 R0
 # -----------------------------------------------------------------
-BONDHARM:PARS     C_CA     C_PC          2076.669             1.4975   
-BONDHARM:PARS     C_CA       O1          4201.698             1.285         
+BONDHARM:PARS     C_CA     C_PC          2076.669             1.4975
+BONDHARM:PARS     C_CA       O1          4201.698             1.285
 BONDHARM:PARS     C_CA       O2          4815.177             1.267
-BONDHARM:PARS     C_PC     C_PH          3138.911             1.400                       
-BONDHARM:PARS     C_PH     C_PH          3365.667             1.387               
-BONDHARM:PARS     C_PH     H_PH          3371.192             1.083              
+BONDHARM:PARS     C_PC     C_PH          3138.911             1.400
+BONDHARM:PARS     C_PH     C_PH          3365.667             1.387
+BONDHARM:PARS     C_PH     H_PH          3371.192             1.083
 BONDHARM:PARS       O1        V           832.038             1.940
 BONDHARM:PARS       O2        V           649.282             1.990
 
@@ -46,16 +46,16 @@ BENDAHARM:UNIT THETA0 deg
 # ---------------------------------------------------------------------------
 # KEY          ffatype0 ffatype1 ffatype2  K                 THETA0/COS0/R0
 # ---------------------------------------------------------------------------
-BENDAHARM:PARS     C_CA     C_PC     C_PH           600.772           120.1495     
+BENDAHARM:PARS     C_CA     C_PC     C_PH           600.772           120.1495
 BENDAHARM:PARS     C_CA       O1        V           229.377           131.134
 BENDAHARM:PARS     C_CA       O2        V           149.402           142.769
-BENDAHARM:PARS     C_PC     C_PH     C_PH           461.821           120.065                
-BENDAHARM:PARS     C_PC     C_PH     H_PH           282.354           119.290          
-BENDAHARM:PARS     C_PH     C_PC     C_PH           450.545           119.902       
-BENDAHARM:PARS     C_PH     C_PH     H_PH           344.777           120.420          
+BENDAHARM:PARS     C_PC     C_PH     C_PH           461.821           120.065
+BENDAHARM:PARS     C_PC     C_PH     H_PH           282.354           119.290
+BENDAHARM:PARS     C_PH     C_PC     C_PH           450.545           119.902
+BENDAHARM:PARS     C_PH     C_PH     H_PH           344.777           120.420
 BENDAHARM:PARS       O1     C_CA       O2           704.204           123.488
 BENDAHARM:PARS       O1        V       O1           102.177            91.575
-BENDAHARM:PARS       O2        V       O2           125.746            88.342          
+BENDAHARM:PARS       O2        V       O2           125.746            88.342
 BENDAHARM:PARS       O1        V     O_HY           298.411            90.000
 BENDAHARM:PARS       O2        V     O_HY           171.441            90.000
 BENDAHARM:PARS     O_HY        V     O_HY             0.000           176.000
@@ -89,17 +89,17 @@ TORSCHARM:UNIT COS0 au
 # -------------------------------------------------------------------------------------
 # KEY          ffatype0 ffatype1 ffatype2 ffatype4  M  A                 PHI0/COS0
 # -------------------------------------------------------------------------------------
-TORSION:PARS       C_CA     C_PC     C_PH     C_PH  2            40.079             0.000           
-TORSION:PARS       C_CA     C_PC     C_PH     H_PH  2            18.464             0.000          
-TORSION:PARS       C_PC     C_PH     C_PH     C_PC  2            32.751             0.000        
-TORSION:PARS       C_PC     C_PH     C_PH     H_PH  2            35.641             0.000         
-TORSION:PARS       C_PH     C_PC     C_PH     C_PH  2            31.846             0.000         
-TORSION:PARS       C_PH     C_PC     C_PH     H_PH  2            28.645             0.000        
-TORSION:PARS       H_PH     C_PH     C_PH     H_PH  2            16.758             0.000         
+TORSION:PARS       C_CA     C_PC     C_PH     C_PH  2            40.079             0.000
+TORSION:PARS       C_CA     C_PC     C_PH     H_PH  2            18.464             0.000
+TORSION:PARS       C_PC     C_PH     C_PH     C_PC  2            32.751             0.000
+TORSION:PARS       C_PC     C_PH     C_PH     H_PH  2            35.641             0.000
+TORSION:PARS       C_PH     C_PC     C_PH     C_PH  2            31.846             0.000
+TORSION:PARS       C_PH     C_PC     C_PH     H_PH  2            28.645             0.000
+TORSION:PARS       H_PH     C_PH     C_PH     H_PH  2            16.758             0.000
 TORSION:PARS         O1     C_CA       O2        V  2             0.000             0.000
 TORSION:PARS         O2     C_CA       O1        V  2             3.590             0.000
-TORSION:PARS       C_PH     C_PC     C_CA       O1  2             9.276             0.000        
-TORSION:PARS       C_PH     C_PC     C_CA       O2  2             5.304             0.000        
+TORSION:PARS       C_PH     C_PC     C_CA       O1  2             9.276             0.000
+TORSION:PARS       C_PH     C_PC     C_CA       O2  2             5.304             0.000
 TORSION:PARS       C_PC     C_CA       O1        V  2            49.793             0.000
 TORSION:PARS       C_PC     C_CA       O2        V  2            27.979             0.000
 
@@ -116,8 +116,8 @@ OOPDIST:UNIT D0 angstrom
 # -------------------------------------------------------------------------------------
 # KEY        ffatype0 ffatype1 ffatype2 ffatype4  K                 D0
 # -------------------------------------------------------------------------------------
-OOPDIST:PARS     C_CA     C_PH     C_PH     C_PC           171.179             0.000           
-OOPDIST:PARS     C_PC     C_PH     H_PH     C_PH           220.209             0.000           
+OOPDIST:PARS     C_CA     C_PH     C_PH     C_PC           171.179             0.000
+OOPDIST:PARS     C_PC     C_PH     H_PH     C_PH           220.209             0.000
 OOPDIST:PARS     C_PC       O1       O2     C_CA          1587.748             0.000
 
 # Fixed charges
@@ -142,7 +142,7 @@ FIXQ:DIELECTRIC 1.0
 
 # Atom parameters
 # -------------------------------------------
-# KEY        label        Q0             R   
+# KEY        label        Q0             R
 # -------------------------------------------
 FIXQ:ATOM     C_PH   0.000000000  1.170300000
 FIXQ:ATOM     C_CA   0.000000000  1.170300000
@@ -155,7 +155,7 @@ FIXQ:ATOM     O_HY   0.000000000  1.132500000
 
 # Bond parameters
 # -------------------------------------------
-# KEY       label0   label1          P_AB    
+# KEY       label0   label1          P_AB
 # -------------------------------------------
 FIXQ:BOND     C_PH     C_PH   0.000000000
 FIXQ:BOND     C_CA     C_PC  -0.046901026
@@ -195,5 +195,3 @@ MM3:PARS    H_PH     1.620   0.020      0
 MM3:PARS    C_PC     1.940   0.056      0
 MM3:PARS    O_HY     1.820   0.059      0
 MM3:PARS       V     2.290   0.276      0
-
-
