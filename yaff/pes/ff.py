@@ -713,7 +713,7 @@ class ForcePartValence(ForcePart):
                 else:
                     self.comlist.gpos[:] = 0.0
                     self.dlist.back(self.comlist.gpos, vtens)
-                    self.comlist.back(gpos, vtens)
+                    self.comlist.back(gpos)
             return energy
 
 

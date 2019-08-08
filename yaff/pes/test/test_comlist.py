@@ -73,6 +73,21 @@ def test_glycine_bond():
     check_gpos_part(system, part)
 
 
+def test_quartz_vtens():
+    system = get_system_quartz()
+    groups = [
+        (np.array([0, 2, 8, 1]),
+         np.array([0.3, 0.2, 0.4, 0.3])),
+        (np.array([1, 3, 4, 5]),
+         np.array([0.3, 0.4, 0.1, 0.2])),
+    ]
+    comlist = COMList(system, groups)
+    part = ForcePartValence(system, comlist)
+    part.add_term(Harmonic(2.1, 0.5, Bond(0, 1)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
+
+
 def test_quartz():
     system = get_system_quartz()
     groups = [
