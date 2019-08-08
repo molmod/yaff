@@ -43,8 +43,10 @@ from __future__ import division
 import numpy as np
 
 from yaff.log import log, timer
-from yaff.pes.ext import compute_ewald_reci, compute_ewald_reci_dd, compute_ewald_corr, \
-    compute_ewald_corr_dd, PairPotEI, PairPotLJ, PairPotMM3, PairPotMM3CAP, PairPotGrimme, compute_grid3d
+from yaff.pes.ext import compute_ewald_reci, compute_ewald_reci_dd, \
+    compute_ewald_corr, compute_ewald_corr_dd, compute_ewald_prefactors, \
+    compute_ewald_structurefactors, compute_ewald_deltae, PairPotEI, \
+    PairPotLJ, PairPotMM3, PairPotMM3CAP, PairPotGrimme, compute_grid3d
 from yaff.pes.dlist import DeltaList
 from yaff.pes.iclist import InternalCoordinateList
 from yaff.pes.vlist import ValenceList, ValenceTerm
@@ -56,7 +58,7 @@ __all__ = [
     'ForcePartEwaldReciprocalDD', 'ForcePartEwaldCorrectionDD',
     'ForcePartEwaldCorrection', 'ForcePartEwaldNeutralizing',
     'ForcePartValence', 'ForcePartBias', 'ForcePartPressure', 'ForcePartGrid',
-    'ForcePartTailCorrection',
+    'ForcePartTailCorrection', 'ForcePartEwaldReciprocalInteraction',
 ]
 
 
@@ -330,7 +332,7 @@ class ForcePartEwaldReciprocal(ForcePart):
     '''The long-range contribution to the electrostatic interaction in 3D
        periodic systems.
     '''
-    def __init__(self, system, alpha, gcut=0.35, dielectric=1.0, n_frame=0):
+    def __init__(self, system, alpha, gcut=0.35, dielectric=1.0, nlow=0, nhigh=-1):
         '''
            **Arguments:**
 
@@ -348,9 +350,14 @@ class ForcePartEwaldReciprocal(ForcePart):
            dielectric
                 The scalar relative permittivity of the system.
 
-           n_frame
-                Number of framework atoms. This parameter is used to exclude
-                framework-framework neighbors.
+           nlow
+                Atom pairs are only included if at least one atom index is
+                higher than or equal to nlow. The default nlow=0 means no
+                exclusion.
+
+           nhigh
+                Atom pairs are only included if at least one atom index is
+                smaller than nhigh. The default nhigh=-1 means no exclusion..
         '''
         ForcePart.__init__(self, 'ewald_reci', system)
         if not system.cell.nvec == 3:
@@ -363,9 +370,7 @@ class ForcePartEwaldReciprocal(ForcePart):
         self.dielectric = dielectric
         self.update_gmax()
         self.work = np.empty(system.natom*2)
-        if n_frame < 0:
-            raise ValueError('The number of framework atoms to exclude must be positive.')
-        self.n_frame = n_frame
+        self.nlow, self.nhigh = check_nlow_nhigh(system, nlow, nhigh)
         if log.do_medium:
             with log.section('FPINIT'):
                 log('Force part: %s' % self.name)
@@ -392,7 +397,7 @@ class ForcePartEwaldReciprocal(ForcePart):
         with timer.section('Ewald reci.'):
             return compute_ewald_reci(
                 self.system.pos, self.system.charges, self.system.cell, self.alpha,
-                self.gmax, self.gcut, self.dielectric, gpos, self.work, vtens, self.n_frame
+                self.gmax, self.gcut, self.dielectric, gpos, self.work, vtens, self.nlow, self.nhigh
             )
 
 
@@ -400,7 +405,7 @@ class ForcePartEwaldReciprocalDD(ForcePart):
     '''The long-range contribution to the dipole-dipole
        electrostatic interaction in 3D periodic systems.
     '''
-    def __init__(self, system, alpha, gcut=0.35, n_frame=0):
+    def __init__(self, system, alpha, gcut=0.35, nlow=0, nhigh=-1):
         '''
            **Arguments:**
 
@@ -413,10 +418,14 @@ class ForcePartEwaldReciprocalDD(ForcePart):
            gcut
                 The cutoff in reciprocal space.
 
-           n_frame
-                Number of framework atoms. This parameter is used to exclude
-                framework-framework neighbors.
+           nlow
+                Atom pairs are only included if at least one atom index is
+                higher than or equal to nlow. The default nlow=0 means no
+                exclusion.
 
+           nhigh
+                Atom pairs are only included if at least one atom index is
+                smaller than nhigh. The default nhigh=-1 means no exclusion.
         '''
         ForcePart.__init__(self, 'ewald_reci', system)
         if not system.cell.nvec == 3:
@@ -430,9 +439,7 @@ class ForcePartEwaldReciprocalDD(ForcePart):
         self.gcut = gcut
         self.update_gmax()
         self.work = np.empty(system.natom*2)
-        if n_frame < 0:
-            raise ValueError('The number of framework atoms to exclude must be positive.')
-        self.n_frame = n_frame
+        self.nlow, self.nhigh = check_nlow_nhigh(system, nlow, nhigh)
         if log.do_medium:
             with log.section('FPINIT'):
                 log('Force part: %s' % self.name)
@@ -458,7 +465,7 @@ class ForcePartEwaldReciprocalDD(ForcePart):
         with timer.section('Ewald reci.'):
             return compute_ewald_reci_dd(
                 self.system.pos, self.system.charges, self.system.dipoles, self.system.cell, self.alpha,
-                self.gmax, self.gcut, gpos, self.work, vtens, self.n_frame
+                self.gmax, self.gcut, gpos, self.work, vtens, self.nlow, self.nhigh
             )
 
 
@@ -468,7 +475,7 @@ class ForcePartEwaldCorrection(ForcePart):
        This correction is only needed if scaling rules apply to the short-range
        electrostatics.
     '''
-    def __init__(self, system, alpha, scalings, dielectric=1.0, n_frame=0):
+    def __init__(self, system, alpha, scalings, dielectric=1.0, nlow=0, nhigh=-1):
         '''
            **Arguments:**
 
@@ -489,9 +496,14 @@ class ForcePartEwaldCorrection(ForcePart):
            dielectric
                 The scalar relative permittivity of the system.
 
-           n_frame
-                Number of framework atoms. This parameter is used to exclude
-                framework-framework interactions.
+           nlow
+                Atom pairs are only included if at least one atom index is
+                higher than or equal to nlow. The default nlow=0 means no
+                exclusion.
+
+           nhigh
+                Atom pairs are only included if at least one atom index is
+                smaller than nhigh. The default nhigh=-1 means no exclusion.
         '''
         ForcePart.__init__(self, 'ewald_cor', system)
         if not system.cell.nvec == 3:
@@ -501,9 +513,7 @@ class ForcePartEwaldCorrection(ForcePart):
         self.system = system
         self.alpha = alpha
         self.dielectric = dielectric
-        if n_frame < 0:
-            raise ValueError('The number of framework atoms to exclude must be positive.')
-        self.n_frame = n_frame
+        self.nlow, self.nhigh = check_nlow_nhigh(system, nlow, nhigh)
         self.scalings = scalings
         if log.do_medium:
             with log.section('FPINIT'):
@@ -518,7 +528,7 @@ class ForcePartEwaldCorrection(ForcePart):
         with timer.section('Ewald corr.'):
             return compute_ewald_corr(
                 self.system.pos, self.system.charges, self.system.cell,
-                self.alpha, self.scalings.stab, self.dielectric, gpos, vtens, self.n_frame
+                self.alpha, self.scalings.stab, self.dielectric, gpos, vtens, self.nlow, self.nhigh
             )
 
 
@@ -528,7 +538,7 @@ class ForcePartEwaldCorrectionDD(ForcePart):
        This correction is only needed if scaling rules apply to the short-range
        electrostatics.
     '''
-    def __init__(self, system, alpha, scalings, n_frame=0):
+    def __init__(self, system, alpha, scalings, nlow=0, nhigh=-1):
         '''
            **Arguments:**
 
@@ -543,6 +553,15 @@ class ForcePartEwaldCorrectionDD(ForcePart):
                 about the energy scaling of pairwise contributions that are
                 involved in covalent interactions. See
                 :class:`yaff.pes.scalings.Scalings` for more details.
+
+           nlow
+                Atom pairs are only included if at least one atom index is
+                higher than or equal to nlow. The default nlow=0 means no
+                exclusion.
+
+           nhigh
+                Atom pairs are only included if at least one atom index is
+                smaller than nhigh. The default nhigh=-1 means no exclusion.
         '''
         ForcePart.__init__(self, 'ewald_cor', system)
         if not system.cell.nvec == 3:
@@ -551,10 +570,8 @@ class ForcePartEwaldCorrectionDD(ForcePart):
             raise ValueError('The system does not have charges.')
         self.system = system
         self.alpha = alpha
+        self.nlow, self.nhigh = check_nlow_nhigh(system, nlow, nhigh)
         self.scalings = scalings
-        if n_frame < 0:
-            raise ValueError('The number of framework atoms to exclude must be positive.')
-        self.n_frame = n_frame
         if log.do_medium:
             with log.section('FPINIT'):
                 log('Force part: %s' % self.name)
@@ -567,7 +584,7 @@ class ForcePartEwaldCorrectionDD(ForcePart):
         with timer.section('Ewald corr.'):
             return compute_ewald_corr_dd(
                 self.system.pos, self.system.charges, self.system.dipoles, self.system.cell,
-                self.alpha, self.scalings.stab, gpos, vtens, self.n_frame
+                self.alpha, self.scalings.stab, gpos, vtens, self.nlow, self.nhigh
             )
 
 class ForcePartEwaldNeutralizing(ForcePart):
@@ -576,7 +593,7 @@ class ForcePartEwaldNeutralizing(ForcePart):
 
        This term is only required of the system is not neutral.
     '''
-    def __init__(self, system, alpha, dielectric=1.0, n_frame=0):
+    def __init__(self, system, alpha, dielectric=1.0, nlow=0, nhigh=-1):
         '''
            **Arguments:**
 
@@ -591,9 +608,14 @@ class ForcePartEwaldNeutralizing(ForcePart):
            dielectric
                 The scalar relative permittivity of the system.
 
-           n_frame
-                Number of framework atoms. This parameter is used to exclude
-                framework-framework interactions.
+           nlow
+                Atom pairs are only included if at least one atom index is
+                higher than or equal to nlow. The default nlow=0 means no
+                exclusion.
+
+           nhigh
+                Atom pairs are only included if at least one atom index is
+                smaller than nhigh. The default nhigh=-1 means no exclusion.
         '''
         ForcePart.__init__(self, 'ewald_neut', system)
         if not system.cell.nvec == 3:
@@ -603,9 +625,7 @@ class ForcePartEwaldNeutralizing(ForcePart):
         self.system = system
         self.alpha = alpha
         self.dielectric = dielectric
-        if n_frame < 0:
-            raise ValueError('The number of framework atoms to exclude must be positive.')
-        self.n_frame = n_frame
+        self.nlow, self.nhigh = check_nlow_nhigh(system, nlow, nhigh)
         if log.do_medium:
             with log.section('FPINIT'):
                 log('Force part: %s' % self.name)
@@ -617,12 +637,16 @@ class ForcePartEwaldNeutralizing(ForcePart):
     def _internal_compute(self, gpos, vtens):
         with timer.section('Ewald neut.'):
             #TODO: interaction of dipoles with background? I think this is zero, need proof...
-            fac = self.system.charges[self.n_frame:].sum()**2*np.pi/(2.0*self.system.cell.volume*self.alpha**2)/self.dielectric
+            fac = self.system.charges[:].sum()**2/self.alpha**2
+            fac -= self.system.charges[:self.nlow].sum()**2/self.alpha**2
+            fac -= self.system.charges[self.nhigh:].sum()**2/self.alpha**2
             if self.system.radii is not None:
-                fac -= self.system.charges.sum()*np.pi/(2.0*self.system.cell.volume)*np.sum( self.system.charges*self.system.radii**2 )/self.dielectric
-                fac += self.system.charges[:self.n_frame].sum()*np.pi/(2.0*self.system.cell.volume)*np.sum( self.system.charges[:self.n_frame]*self.system.radii[:self.n_frame]**2 )/self.dielectric
+                fac -= self.system.charges.sum()*np.sum( self.system.charges*self.system.radii**2 )
+                fac += self.system.charges[:self.nlow].sum()*np.sum( self.system.charges[:self.nlow]*self.system.radii[:self.nlow]**2)
+                fac += self.system.charges[self.nhigh:].sum()*np.sum( self.system.charges[self.nhigh:]*self.system.radii[self.nhigh:]**2)
             if vtens is not None:
                 vtens.ravel()[::4] -= fac
+            fac *= np.pi/(2.0*self.system.cell.volume*self.dielectric)
             return fac
 
 
@@ -969,7 +993,7 @@ class ForcePartGrid(ForcePart):
 class ForcePartTailCorrection(ForcePart):
     '''Corrections to energy and virial tensor to compensate for neglecting
     pair potentials at long range'''
-    def __init__(self, system, part_pair, n_frame=0):
+    def __init__(self, system, part_pair, nlow=0, nhigh=-1):
         '''
            **Arguments:**
 
@@ -980,13 +1004,25 @@ class ForcePartTailCorrection(ForcePart):
                 An instance of the ``PairPot`` class.
 
            This force part is only applicable to systems that are 3D periodic.
+
+           **Optional arguments:**
+
+           nlow
+                Atom pairs are only included if at least one atom index is
+                higher than or equal to nlow. The default nlow=0 means no
+                exclusion.
+
+           nhigh
+                Atom pairs are only included if at least one atom index is
+                smaller than nhigh. The default nhigh=-1 means no exclusion.
         '''
         if system.cell.nvec != 3:
             raise ValueError('Tail corrections can only be applied to 3D periodic systems')
         if part_pair.name in ['pair_ei','pair_eidip']:
             raise ValueError('Tail corrections are divergent for %s'%part_pair.name)
         super(ForcePartTailCorrection, self).__init__('tailcorr_%s'%(part_pair.name), system)
-        self.ecorr, self.wcorr = part_pair.pair_pot.prepare_tailcorrections(system.natom, n_frame)
+        self.nlow, self.nhigh = check_nlow_nhigh(system, nlow, nhigh)
+        self.ecorr, self.wcorr = part_pair.pair_pot.prepare_tailcorrections(system.natom, self.nlow, self.nhigh)
         self.system = system
         if log.do_medium:
             with log.section('FPINIT'):
@@ -1000,3 +1036,147 @@ class ForcePartTailCorrection(ForcePart):
             vtens[1,1] += w
             vtens[2,2] += w
         return 2.0*np.pi*self.ecorr/self.system.cell.volume
+
+
+class ForcePartEwaldReciprocalInteraction(ForcePart):
+    r'''The reciprocal part of the Ewald summation, not the entire energy but
+       only interactions between parts of the system. This allows a
+       computationally very efficient evaluation of the energy difference when
+       a limited number of atoms are moved, and is thus mostly useful in MC
+       simulations. Although it is technically a subclass of ForcePart, it will
+       not actually contribute to a ForceField. Because this class has to
+       flexibility to handle varying numbers of atoms, it is only useful through
+       direct calls of `compute_deltae`
+
+       The reciprocal part of the Ewald summation for a set of N atoms is given
+       by:
+
+       .. math:: E = \frac{4\pi}{V} \sum_{\mathbf{k}} |S(\mathbf{k})|^2 \
+                 \frac{e^{-\frac{k^2}{4\alpha^2}}}{k^2} \\
+
+       where the so-called structure factors are given:
+
+       .. math:: S(\mathbf{k}) = \sum_{i=1}^{N} q_i \
+                 e^{j\mathbf{k}\cdot\mathbf{r}_i}
+
+       Suppose that we want to compute the interaction energy with a set of
+       M other atoms. This can be done as follows:
+
+       .. math:: \Delta S(\mathbf{k}) = \sum_{i=1}^{M} q_i \
+                 e^{j\mathbf{k}\cdot\mathbf{r}_i}
+
+       Using the change in structure factors, the corresponding energy change
+       is given by:
+
+       .. math:: E = \frac{4\pi}{V} \sum_{\mathbf{k}} \left[ \bar{S}\Delta S \
+                 + S\bar{\Delta S} \right] \
+                 \frac{e^{-\frac{k^2}{4\alpha^2}}}{k^2} \\
+
+       The structure factors are stored as an attribute of this Class. This
+       makes it easy to add the contribution from new atoms to the existing
+       structure factors, and in this way allowing tho handle a varying number
+       of atoms.
+       Only insertions are supported here, but deletions can be achieved by
+       taking the negative of the change in structure factors. Translations and
+       rotations can be achieved by combining a deletion and an insertion.
+    '''
+    def __init__(self, cell, alpha, gcut, pos=None, charges=None, dielectric=1.0):
+        '''
+            **Arguments:**
+
+            cell
+                An instance of the ``Cell`` class.
+
+            alpha
+                The alpha parameter in the Ewald summation method.
+
+            gcut
+                The cutoff in reciprocal space.
+
+            **Optional arguments:**
+
+            pos
+                A [Nx3] Numpy array, providing the coordinates of the atoms
+                that are originally present.
+
+            charges
+                A [N] Numpy array, providing the charges of the atoms that are
+                originally present.
+
+           dielectric
+                The scalar relative permittivity of the system.
+        '''
+        # Dummy attributes to keep things consistent with ForcePart,
+        # these are not actually used.
+        self.name = 'ewald_reciprocal_interaction'
+        self.energy = 0.0
+        self.gpos = np.zeros((0, 3), float)
+        self.vtens = np.zeros((3, 3), float)
+        if not cell.nvec == 3:
+            raise TypeError('The system must have a 3D periodic cell.')
+        self.cell = cell
+        self.alpha = alpha
+        self.gcut = gcut
+        self.dielectric = dielectric
+        # Prepare the prefactors \frac{e^{-\frac{k^2}{4\alpha^2}}}{k^2}
+        self.update_gmax()
+        self.prefactors = np.zeros((2*self.gmax[0]+1,2*self.gmax[1]+1,self.gmax[2]+1))
+        compute_ewald_prefactors(self.cell, self.alpha, self.gmax, self.gcut,
+                self.prefactors)
+        # Prepare the structure factors
+        self.cosfacs = np.zeros(self.prefactors.shape)
+        self.sinfacs = np.zeros(self.prefactors.shape)
+        if pos is not None:
+            assert charges is not None
+            self.compute_structurefactors(pos, charges, self.cosfacs, self.sinfacs)
+        if log.do_medium:
+            with log.section('EWIINIT'):
+                log('Ewald Reciprocal interactions')
+                log.hline()
+                log('  alpha:             %s' % log.invlength(self.alpha))
+                log('  gcut:              %s' % log.invlength(self.gcut))
+                log.hline()
+
+    def update_gmax(self):
+        '''This routine must be called after the attribute self.gmax is modified.'''
+        self.gmax = np.ceil(self.gcut/self.cell.gspacings-0.5).astype(int)
+        if log.do_debug:
+            with log.section('EWALDI'):
+                log('gmax a,b,c   = %i,%i,%i' % tuple(self.gmax))
+
+    def compute_structurefactors(self, pos, charges, cosfacs, sinfacs):
+        '''Compute the structure factors
+
+           .. math:: \Delta S(\mathbf{k}) = \sum_{i=1}^{M} q_i \
+                 e^{j\mathbf{k}\cdot\mathbf{r}_i}
+
+           for the given coordinates and charges. The resulting real part is
+           ADDED to cosfacs, the resulting imaginary part is ADDED to sinfacs.
+        '''
+        with timer.section('Ewald reci. struc.'):
+            compute_ewald_structurefactors(pos, charges, self.cell, self.alpha,
+                self.gmax, self.gcut, cosfacs, sinfacs)
+
+    def compute_deltae(self, cosfacs, sinfacs):
+        '''Compute the energy difference arising if the provided structure
+           factors would be added to the current structure factors
+        '''
+        with timer.section('Ewald reci. int.'):
+            e = compute_ewald_deltae(self.prefactors, cosfacs, self.cosfacs,
+                 sinfacs, self.sinfacs)
+        return e/self.dielectric
+
+    def _internal_compute(self, gpos, vtens):
+        return 0.0
+
+def check_nlow_nhigh(system, nlow, nhigh):
+    if nlow < 0:
+        raise ValueError('nlow must be positive.')
+    if nlow > system.natom:
+        raise ValueError('nlow must not be larger than system.natom')
+    if nhigh == -1: nhigh = system.natom
+    if nhigh < nlow:
+        raise ValueError('nhigh must not be smaller than nlow')
+    if nhigh > system.natom:
+        raise ValueError('nhigh must not be larger than system.natom')
+    return nlow, nhigh

@@ -56,7 +56,6 @@ def test_vdw_methane():
         f = eos.calculate_fugacity(T, P)
 #        print("Fugacity: ref = %8.5f bar computed = %8.5f bar" % (phi*P/bar, f/bar))
         assert np.abs(phi*P-f)<1e-2*bar
-    assert False
 
 
 def test_preos_co2():

@@ -54,7 +54,7 @@ __all__ = ['NeighborList','BondedNeighborList']
 class NeighborList(object):
     '''Algorithms to keep track of all pair distances below a given rcut
     '''
-    def __init__(self, system, skin=0, n_frame=0):
+    def __init__(self, system, skin=0, nlow=0, nhigh=-1):
         """
            **Arguments:**
 
@@ -77,13 +77,23 @@ class NeighborList(object):
                 become very inefficient. Some tuning of ``rcut`` and ``skin``
                 may be beneficial.
 
-            n_frame
-                Number of framework atoms. This parameter is used to exclude
-                framework-framework neighbors.
+            nlow
+                Atom pairs are only included if at least one atom index is
+                higher than or equal to nlow. The default nlow=0 means no
+                exclusion.
 
+            nhigh
+                Atom pairs are only included if at least one atom index is
+                smaller than nhigh. The default nhigh=-1 means no exclusion.
+                If nlow=nhigh, the system is divided into two parts and only
+                pairs involving one atom of each part will be included. This is
+                useful to calculate interaction energies in Monte Carlo
+                simulations
         """
         if skin < 0:
             raise ValueError('The skin parameter must be positive.')
+        if nhigh == -1:
+            nhigh = system.natom
         self.system = system
         self.skin = skin
         self.rcut = 0.0
@@ -91,9 +101,12 @@ class NeighborList(object):
         self.neighs = np.empty(10, dtype=neigh_dtype)
         self.nneigh = 0
         self.rmax = None
-        if n_frame < 0:
-            raise ValueError('The number of framework atoms to exclude must be positive.')
-        self.n_frame = n_frame
+        if nlow < 0:
+            raise ValueError('nlow must be a positive number, received %d.'%nlow)
+        self.nlow = nlow
+        if nhigh < self.nlow:
+            raise ValueError('nhigh must not be smaller than nlow, received %d.'%nhigh)
+        self.nhigh = nhigh
         # for skin algorithm:
         self._pos_old = None
         self.rebuild_next = False
@@ -150,15 +163,15 @@ class NeighborList(object):
                 # 1) make an initial status object for the neighbor list algorithm
                 status = nlist_status_init(self.rmax)
                 # The atom index of the first atom in pair is always at least
-                # n_frame. The following status initialization avoids searching
-                # for frame-frame atom pairs in the neighbourlist build
-                status[3] = self.n_frame
+                # nlow. The following status initialization avoids searching
+                # for excluded atom pairs in the neighbourlist build
+                status[3] = self.nlow
                 # 2) a loop of consecutive update/allocate calls
                 last_start = 0
                 while True:
                     done = nlist_build(
                         self.system.pos, self.rcut + self.skin, self.rmax,
-                        self.system.cell, status, self.neighs[last_start:], self.n_frame
+                        self.system.cell, status, self.neighs[last_start:], self.nlow, self.nhigh
                     )
                     if done:
                         break
