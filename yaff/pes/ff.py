@@ -593,7 +593,8 @@ class ForcePartEwaldNeutralizing(ForcePart):
 
        This term is only required of the system is not neutral.
     '''
-    def __init__(self, system, alpha, dielectric=1.0, nlow=0, nhigh=-1):
+    def __init__(self, system, alpha, dielectric=1.0, nlow=0, nhigh=-1,
+                fluctuating_charges=False):
         '''
            **Arguments:**
 
@@ -616,6 +617,11 @@ class ForcePartEwaldNeutralizing(ForcePart):
            nhigh
                 Atom pairs are only included if at least one atom index is
                 smaller than nhigh. The default nhigh=-1 means no exclusion.
+
+           fluctuating_charges
+                Boolean indicating whether charges (and radii) are allowed to
+                change during a simulation. If set to False, some factors can
+                be precomputed at the start of the simulation.
         '''
         ForcePart.__init__(self, 'ewald_neut', system)
         if not system.cell.nvec == 3:
@@ -626,6 +632,16 @@ class ForcePartEwaldNeutralizing(ForcePart):
         self.alpha = alpha
         self.dielectric = dielectric
         self.nlow, self.nhigh = check_nlow_nhigh(system, nlow, nhigh)
+        self.fluctuating_charges = fluctuating_charges
+        if not self.fluctuating_charges:
+            fac = self.system.charges[:].sum()**2/self.alpha**2
+            fac -= self.system.charges[:self.nlow].sum()**2/self.alpha**2
+            fac -= self.system.charges[self.nhigh:].sum()**2/self.alpha**2
+            if self.system.radii is not None:
+                fac -= self.system.charges.sum()*np.sum( self.system.charges*self.system.radii**2 )
+                fac += self.system.charges[:self.nlow].sum()*np.sum( self.system.charges[:self.nlow]*self.system.radii[:self.nlow]**2)
+                fac += self.system.charges[self.nhigh:].sum()*np.sum( self.system.charges[self.nhigh:]*self.system.radii[self.nhigh:]**2)
+            self.prefactor = fac*np.pi/(2.0*self.dielectric)
         if log.do_medium:
             with log.section('FPINIT'):
                 log('Force part: %s' % self.name)
@@ -636,18 +652,21 @@ class ForcePartEwaldNeutralizing(ForcePart):
 
     def _internal_compute(self, gpos, vtens):
         with timer.section('Ewald neut.'):
-            #TODO: interaction of dipoles with background? I think this is zero, need proof...
-            fac = self.system.charges[:].sum()**2/self.alpha**2
-            fac -= self.system.charges[:self.nlow].sum()**2/self.alpha**2
-            fac -= self.system.charges[self.nhigh:].sum()**2/self.alpha**2
-            if self.system.radii is not None:
-                fac -= self.system.charges.sum()*np.sum( self.system.charges*self.system.radii**2 )
-                fac += self.system.charges[:self.nlow].sum()*np.sum( self.system.charges[:self.nlow]*self.system.radii[:self.nlow]**2)
-                fac += self.system.charges[self.nhigh:].sum()*np.sum( self.system.charges[self.nhigh:]*self.system.radii[self.nhigh:]**2)
+            if not self.fluctuating_charges:
+                fac = self.prefactor/self.system.cell.volume
+            else:
+                #TODO: interaction of dipoles with background? I think this is zero, need proof...
+                fac = self.system.charges[:].sum()**2/self.alpha**2
+                fac -= self.system.charges[:self.nlow].sum()**2/self.alpha**2
+                fac -= self.system.charges[self.nhigh:].sum()**2/self.alpha**2
+                if self.system.radii is not None:
+                    fac -= self.system.charges.sum()*np.sum( self.system.charges*self.system.radii**2 )
+                    fac += self.system.charges[:self.nlow].sum()*np.sum( self.system.charges[:self.nlow]*self.system.radii[:self.nlow]**2)
+                    fac += self.system.charges[self.nhigh:].sum()*np.sum( self.system.charges[self.nhigh:]*self.system.radii[self.nhigh:]**2)
+                fac *= np.pi/(2.0*self.system.cell.volume*self.dielectric)
             if vtens is not None:
                 vtens.ravel()[::4] -= fac
-            fac *= np.pi/(2.0*self.system.cell.volume*self.dielectric)
-            return fac
+        return fac
 
 
 class ForcePartValence(ForcePart):
@@ -1079,6 +1098,7 @@ class ForcePartEwaldReciprocalInteraction(ForcePart):
        Only insertions are supported here, but deletions can be achieved by
        taking the negative of the change in structure factors. Translations and
        rotations can be achieved by combining a deletion and an insertion.
+       Note that flexible cells are NOT supported => TODO check this
     '''
     def __init__(self, cell, alpha, gcut, pos=None, charges=None, dielectric=1.0):
         '''
@@ -1115,17 +1135,15 @@ class ForcePartEwaldReciprocalInteraction(ForcePart):
         if not cell.nvec == 3:
             raise TypeError('The system must have a 3D periodic cell.')
         self.cell = cell
+        # Store the original rvecs. If these would change, we need to
+        # reinitialize
+        self.rvecs0 = self.cell.rvecs.copy()
         self.alpha = alpha
         self.gcut = gcut
         self.dielectric = dielectric
-        # Prepare the prefactors \frac{e^{-\frac{k^2}{4\alpha^2}}}{k^2}
-        self.update_gmax()
-        self.prefactors = np.zeros((2*self.gmax[0]+1,2*self.gmax[1]+1,self.gmax[2]+1))
-        compute_ewald_prefactors(self.cell, self.alpha, self.gmax, self.gcut,
-                self.prefactors)
-        # Prepare the structure factors
-        self.cosfacs = np.zeros(self.prefactors.shape)
-        self.sinfacs = np.zeros(self.prefactors.shape)
+        self.initialize()
+        # Compute the structure factors if an initial configuration is
+        # provided.
         if pos is not None:
             assert charges is not None
             self.compute_structurefactors(pos, charges, self.cosfacs, self.sinfacs)
@@ -1144,6 +1162,17 @@ class ForcePartEwaldReciprocalInteraction(ForcePart):
             with log.section('EWALDI'):
                 log('gmax a,b,c   = %i,%i,%i' % tuple(self.gmax))
 
+    def initialize(self):
+        # Prepare the prefactors \frac{e^{-\frac{k^2}{4\alpha^2}}}{k^2}
+        self.update_gmax()
+        self.prefactors = np.zeros((2*self.gmax[0]+1,2*self.gmax[1]+1,self.gmax[2]+1))
+        compute_ewald_prefactors(self.cell, self.alpha, self.gmax, self.gcut,
+                self.prefactors)
+        # Prepare the structure factors
+        self.cosfacs = np.zeros(self.prefactors.shape)
+        self.sinfacs = np.zeros(self.prefactors.shape)
+        self.rvecs0 = self.cell.rvecs.copy()
+
     def compute_structurefactors(self, pos, charges, cosfacs, sinfacs):
         '''Compute the structure factors
 
@@ -1153,7 +1182,12 @@ class ForcePartEwaldReciprocalInteraction(ForcePart):
            for the given coordinates and charges. The resulting real part is
            ADDED to cosfacs, the resulting imaginary part is ADDED to sinfacs.
         '''
-        with timer.section('Ewald reci. struc.'):
+        with timer.section('Ew.reci.SF'):
+            if not np.all(self.cell.rvecs==self.rvecs0):
+                if log.do_medium:
+                    with log.section('EWALDI'):
+                        log('Cell change detected, reinitializing')
+                self.initialize()
             compute_ewald_structurefactors(pos, charges, self.cell, self.alpha,
                 self.gmax, self.gcut, cosfacs, sinfacs)
 
@@ -1161,13 +1195,64 @@ class ForcePartEwaldReciprocalInteraction(ForcePart):
         '''Compute the energy difference arising if the provided structure
            factors would be added to the current structure factors
         '''
-        with timer.section('Ewald reci. int.'):
+        with timer.section('Ew.reci.int.'):
             e = compute_ewald_deltae(self.prefactors, cosfacs, self.cosfacs,
                  sinfacs, self.sinfacs)
         return e/self.dielectric
 
+    def insertion_energy(self, pos, charges, cosfacs=None, sinfacs=None, sign=1):
+        '''
+        Compute the energy difference if atoms with given coordinates and
+        charges are added to the systems. By setting sign to -1, the energy
+        difference for removal of those atoms is returned.
+
+            **Arguments:**
+
+            pos
+                [Nx3] NumPy array specifying the coordinates
+
+            charges
+                [N] NumPy array speficying the charges
+
+            **Optional arguments:**
+
+            cosfacs
+                NumPy array with the same shape as the prefactors.
+                If not provided, a new array will be created.
+                If provided, existing entries will be zerod at the start,
+                and contain cosine structure factors of the atoms at the end.
+
+            sinfacs
+                NumPy array with the same shape as the prefactors.
+                If not provided, a new array will be created.
+                If provided, existing entries will be zerod at the start.         
+                and contain sine structure factors of the atoms at the end.
+
+            sign
+                When set to 1, insertion is considered.
+                When set to -1, deletion is considered.
+        '''
+        assert sign in [-1,1]
+        if cosfacs is None: 
+            assert sinfacs is None
+            cosfacs = np.zeros(self.prefactors.shape)
+            sinfacs = np.zeros(self.prefactors.shape)
+        else:
+            cosfacs[:] = 0.0
+            sinfacs[:] = 0.0
+        self.compute_structurefactors(
+                pos, charges, cosfacs, sinfacs)
+        # We consider a deletion; this means that the structure factors
+        # of the considered atoms need to be subtracted from the
+        # current system structure factors
+        if sign==-1:
+            self.cosfacs[:] -= cosfacs
+            self.sinfacs[:] -= sinfacs
+        return sign*self.compute_deltae(cosfacs, sinfacs)
+
     def _internal_compute(self, gpos, vtens):
         return 0.0
+
 
 def check_nlow_nhigh(system, nlow, nhigh):
     if nlow < 0:

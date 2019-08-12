@@ -474,7 +474,7 @@ void compute_ewald_structurefactors(double *pos, long natom, double *charges,
                           cell_type* cell, double alpha, long *gmax, double
                           gcut, double *cosfacs, double* sinfacs) {
   long g0, g1, g2, i, index;
-  double k[3], ksq, cosfac, sinfac, x, c, s, fac1, fac2, dielectric_factor;
+  double k[3], ksq, x;
   double kvecs[9];
   for (i=0; i<9; i++) {
     kvecs[i] = M_TWO_PI*(*cell).gvecs[i];
@@ -495,8 +495,6 @@ void compute_ewald_structurefactors(double *pos, long natom, double *charges,
         k[2] = (g0*kvecs[2] + g1*kvecs[5] + g2*kvecs[8]);
         ksq = k[0]*k[0] + k[1]*k[1] + k[2]*k[2];
         if (ksq > gcut) continue;
-        cosfac = 0.0;
-        sinfac = 0.0;
         for (i=0; i<natom; i++) {
           x = k[0]*pos[3*i] + k[1]*pos[3*i+1] + k[2]*pos[3*i+2];
           cosfacs[index] += charges[i]*cos(x);

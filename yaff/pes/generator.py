@@ -478,7 +478,7 @@ class ValenceGenerator(Generator):
                 continue
             # We do not want terms where at least one atom index is higher than
             # or equal to nhigh, as this is (should be) an excluded interaction
-            if max(indexes)>=ff_args.nhigh:
+            if ff_args.nhigh!=-1 and max(indexes)>=ff_args.nhigh:
                 # Check that this term indeed features only atoms with index<nlow
                 assert min(indexes)>=ff_args.nhigh
                 continue
@@ -1111,7 +1111,7 @@ class ValenceCrossGenerator(Generator):
                 continue
             # We do not want terms where at least one atom index is higher than
             # or equal to nhigh, as this is (should be) an excluded interaction
-            if max(indexes)>=ff_args.nhigh:
+            if ff_args.nhigh!=-1 and max(indexes)>=ff_args.nhigh:
                 # Check that this term indeed features only atoms with index<nlow
                 assert min(indexes)>=ff_args.nhigh
                 continue
@@ -2186,7 +2186,8 @@ def apply_generators(system, parameters, ff_args):
     # If tail corrections are requested, go through all parts and add when necessary
     if ff_args.tailcorrections:
         if system.cell.nvec==0:
-            log.warn('Tail corrections were requested, but this makes no sense for non-periodic system. Not adding tail corrections...')
+            if log.do_warning:
+                log.warn('Tail corrections were requested, but this makes no sense for non-periodic system. Not adding tail corrections...')
         elif system.cell.nvec==3:
             for part in ff_args.parts:
                 # Only add tail correction to pair potentials
