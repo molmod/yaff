@@ -31,7 +31,7 @@ import time
 
 from yaff.sampling.iterative import Hook
 from yaff.system import System
-from yaff.log import log
+from yaff.log import log, timer
 
 
 __all__ = ['get_random_rotation_matrix', 'random_insertion',
@@ -48,7 +48,6 @@ def get_random_rotation_matrix(deflection=1.0, randnums=None):
     randnums: 3 random numbers in the range [0, 1]. If `None`, they will be auto-generated.
     """
     # from http://www.realtimerendering.com/resources/GraphicsGems/gemsiii/rand_rotation.c
-
     if randnums is None:
         randnums = np.random.uniform(size=(3,))
 
@@ -116,11 +115,13 @@ class GCMCScreenLog(Hook):
                 self.time0 = time.time()
                 if log.do_medium:
                     log.hline()
-                    log('     counter          N          <N>   Walltime')
+                    log('     counter          N          <N>          E        <E>   Walltime')
                     log.hline()
-            log('%12i %10d %12.6f %10.1f' % (
+            log('%12i %10d %12.6f %s %s %10.1f' % (
                 mc.counter,
                 mc.N,
                 mc.Nmean,
+                log.energy(mc.energy),
+                log.energy(mc.emean),
                 time.time() - self.time0,
             ))

@@ -31,7 +31,7 @@ from yaff import *
 from molmod.units import angstrom, bar, kelvin, kcalmol
 from molmod.constants import boltzmann
 
-def setup_gcmc_lj(L,T,fugacity):
+def setup_gcmc_lj(L):
     '''GCMC for a cubic box of length L, with single-site Lennard-Jones particles'''
     numbers = np.ones((1,), dtype=int)*18
     pos = np.zeros((1,3))
@@ -46,38 +46,59 @@ def setup_gcmc_lj(L,T,fugacity):
         pair_pot = PairPotLJ(sigmas, epsilons, rcut, None)
         n_frame = system.natom-guest.natom
         if system.natom==0: n_frame = 0
-        nlist = NeighborList(system, n_frame=n_frame)
+        nlist = NeighborList(system, nlow=n_frame, nhigh=n_frame)
         scalings = Scalings(system)
         part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
         ff = ForceField(system, [part_pair], nlist=nlist)
         return ff
-    gcmc = GCMC(system, ff_generator, T, fugacity)
+    gcmc = GCMC(system, ff_generator)
     return gcmc
 
 
 def test_gcmc_ff_generation():
-    gcmc = setup_gcmc_lj(20.0*angstrom,100,0.1)
+    gcmc = setup_gcmc_lj(20.0*angstrom)
     assert len(gcmc._ffs)==10
     for iff in range(len(gcmc._ffs)):
         assert gcmc._ffs[iff].system.natom==iff
 
 
 def test_gcmc_lj():
-    np.random.seed(5)
     L = 20.0*angstrom
-
     eos = PREOS(1.326*120.0, 0.1279*120.0*boltzmann/(3.4*angstrom)**3, 0.0)
-#    eos = PREOS.from_name('argon')
-    print(eos.Tc, eos.Pc/bar)
-#    print(eos.Tc,1.326*120.0)
-#    assert False
+    eos = PREOS.from_name('argon')
+    # These are simulation data taken from
+    # https://www.nist.gov/mml/csd/informatics/lammps-md-equation-state-pressure-vs-density-linear-force-shifted-potential-25s
     sims = [(1.5*120.0,1.498*1e-3*120.0*boltzmann/(3.4*angstrom)**3,0.001*L**3/(3.4*angstrom)**3),
             (1.5*120.0,1.482*1e-2*120.0*boltzmann/(3.4*angstrom)**3,0.01*L**3/(3.4*angstrom)**3),
             (1.5*120.0,1.349*1e-1*120.0*boltzmann/(3.4*angstrom)**3,0.1*L**3/(3.4*angstrom)**3),
             ]
-    for T,P,N in sims[2:]:
+    gcmc = setup_gcmc_lj(20.0*angstrom)
+    for T,P,N in sims[:]:
         fugacity = eos.calculate_fugacity(T,P)
-        print("T = %8.2f P = %12.6f bar f = %12.6f bar N = %5.6f" % (T,P/bar,fugacity/bar,N))
-        gcmc = setup_gcmc_lj(20.0*angstrom, T, fugacity)
-        gcmc.run(50000)
-        assert False
+        gcmc.set_external_conditions(T, fugacity)
+        gcmc.run(10000)
+        relerr = gcmc.Nmean/N - 1.0
+        # Don't expect well converged results for such short simulations
+        # This only serves to show that the results are not ridiculous, rather
+        # than demonstrating that the phase space is correctly sampled
+        print("N(ref) = %8.4f N(sim) = %8.4f Relative error = %8.2f %%" %
+            (N, gcmc.Nmean, relerr*100.0) )
+        assert np.abs(relerr)<0.2
+
+
+def test_gcmc_probabilities():
+    gcmc = setup_gcmc_lj(20.0*angstrom)
+    # We're not interested in the simulation results, so we choose a low
+    # pressure to get a low number of guests and faster simulation.
+    gcmc.set_external_conditions(200.0,0.01*bar)
+    mc_moves = {'insertion':0.35, 'deletion':0.15,
+                      'translation': 0.55, 'rotation':0.2}
+    nsteps = 9800
+    acceptance = gcmc.run(nsteps, mc_moves = mc_moves)
+    # Normalize the provided probabilities
+    ptotal = sum([p for t,p in mc_moves.items()])
+    for i, t in enumerate(sorted(mc_moves.keys())):
+        p = mc_moves[t]
+#        print("Move: %20s P(ref) = %8.2f %% P(sim) = %8.2f %%" %
+#         (t, p/ptotal*100, float(acceptance[i,1])/nsteps*100) )
+        assert np.abs(p/ptotal-float(acceptance[i,1])/nsteps)<5e-2

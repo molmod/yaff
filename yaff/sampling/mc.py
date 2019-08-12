@@ -35,11 +35,12 @@
    fields, which ensures that interactions between the first 'n_frame' atoms
    are not calculated.
 
-   TODO:
+   TODO::
         * Extension to mixtures of guest molecules
         * Complete NPT MC simulator
         * Variable cell shape simulations?
         * Hybrid MD/MC
+        * Tabulating the external potential
 '''
 
 
@@ -50,7 +51,8 @@ import numpy as np
 from molmod import boltzmann, femtosecond, angstrom, kelvin, bar
 
 from yaff.log import log, timer
-from yaff.pes.ff import ForceField
+from yaff.pes.ff import ForceField, \
+    ForcePartEwaldReciprocalInteraction
 from yaff.pes.ext import Cell
 from yaff.sampling.mcutils import *
 from yaff.sampling import mctrials
@@ -58,7 +60,7 @@ from yaff.system import System
 
 
 __all__ = [
-    'CanonicalMC', 'NPTMC', 'GCMC'
+    'MC', 'CanonicalMC', 'NPTMC', 'GCMC'
 ]
 
 
@@ -101,21 +103,34 @@ class MC(object):
            volumechange_stepsize
                 The maximal magnitude of a TrialVolumechange
         """
+        if log.do_warning:
+            log.warn("Currently, Yaff does not consider interactions of a guest molecule "
+                     "with its periodic images in MC simulations. Make sure that you choose a system size "
+                     "that is large compared to the guest dimensions, so is indeed "
+                     "acceptable to neglect these interactions.")
         with log.section(self.log_name), timer.section(self.log_name):
             # Initialization
             self.translation_stepsize = translation_stepsize
             self.volumechange_stepsize = volumechange_stepsize
             if initial is not None:
-                self.N = initial.natom/self.guest.natom
+                self.N = initial.natom//self.guest.natom
                 assert self.guest.natom*self.N==initial.natom, ("Initial configuration does not contain correct number of atoms")
                 self.state = initial
+                self.get_ff(self.N).system.pos[:] = initial.pos
+                if self.ewald_reci is not None:
+                    self.ewald_reci.compute_structurefactors(
+                        initial.pos,
+                        initial.charges,
+                        self.ewald_reci.cosfacs, self.ewald_reci.sinfacs)
             self.energy = einit
+            self.emean = 0.0
             if not self.conditions_set:
                 raise ValueError("External conditions have not been set!")
             # Normalized probabilities and accompanying methods specifying the trial MC moves
+            # Trial moves are sorted alphabetically
             if mc_moves is None: mc_moves = self.default_trials
             trials, probabilities = [], []
-            for t, p in mc_moves.items():
+            for t in sorted(mc_moves.keys()):
                 if not t in self.allowed_trials:
                     raise ValueError("Trial move %s not allowed!"%t)
                 trial = getattr(mctrials,"Trial"+t.capitalize(),None)
@@ -123,7 +138,7 @@ class MC(object):
                     raise NotImplementedError("The requested trial move %s is not implemented"%(t))
                 # Trials is a list containing instances of Trial classes from the mctrials module
                 trials.append(trial(self))
-                probabilities.append(p)
+                probabilities.append(mc_moves[t])
             probabilities = np.asarray(probabilities)
             probabilities /= np.sum(probabilities)
             assert np.all(probabilities>=0.0), "Negative probabilities are not allowed!"
@@ -149,6 +164,7 @@ class MC(object):
                 if accepted: acceptance[imove,0] += 1
                 self.counter += 1
                 self.Nmean += (self.N-self.Nmean)/self.counter
+                self.emean += (self.energy-self.emean)/self.counter
                 for hook in self.hooks:
                     if hook.expects_call(self.counter):
                         hook(self)
@@ -237,7 +253,7 @@ class CanonicalMC(FixedNMC):
         self.conditions_set = True
 
 
-class NPTMC(MC):
+class NPTMC(FixedNMC):
     """Monte-Carlo simulations for rigid molecules (referred to
        as guests) in the isobaric-isothermal ensemble. For now, cell shapes
        are fixed
@@ -269,7 +285,7 @@ class NPTMC(MC):
         """
         self.ff_full = ff_full
         super(NPTMC, self).__init__(guest, ff,
-            external_potential=external_potential, eguest=eguest)
+            external_potential=None, eguest=eguest)
 
     def set_external_conditions(self, T, P):
         """
@@ -298,7 +314,8 @@ class GCMC(MC):
                       'translation': 0.25, 'rotation':0.25}
     log_name = 'GCMC'
 
-    def __init__(self, guest, ff_generator, external_potential=None, eguest=0.0, hooks=[]):
+    def __init__(self, guest, ff_generator, external_potential=None, eguest=0.0,
+                 hooks=[], nguests=10):
         """
            **Arguments:**
 
@@ -328,6 +345,15 @@ class GCMC(MC):
                 The intramolecular energy of one guest in the gas phase;
                 currently, guest molecules are assumed to be rigid so this
                 will be constant throughout the simulation
+
+            hooks
+                A list of GCMCHooks
+
+            nguests
+                An initial estimate for the number of adsorbed guests. This is
+                only used to initialize the force fields before the start of
+                the simulation. If more than nguests are adsorbed, additional
+                force fields will be generated on the fly.
         """
         # Initialization
         if guest.cell.nvec==0:
@@ -337,16 +363,32 @@ class GCMC(MC):
         self.conditions_set = False
         self.eguest = eguest
         self.hooks = hooks
-        # Generate some guest-guest force fields; for now limited to maximally
-        # 10 guests, more force fields are generated on the fly during the GCMC
-        # run as required
+        # Generate some guest-guest force fields;
         self._ffs = []
-        self._generate_ffs(10)
+        self._generate_ffs(nguests)
         self.external_potential = external_potential
+        # Efficient treatment of reciprocal Ewald summation
+        self.ewald_reci = None
+        self.cosfacs_ins, self.sinfacs_ins, self.cosfacs_del, self.cosfacs_ins = None, None, None, None
+        for part in self.get_ff(1).parts:
+            if isinstance(part, ForcePartEwaldReciprocalInteraction):
+                self.ewald_reci = part
+                self.cosfacs_ins = np.zeros(self.ewald_reci.cosfacs.shape)
+                self.sinfacs_ins = np.zeros(self.ewald_reci.cosfacs.shape)
+                self.cosfacs_del = np.zeros(self.ewald_reci.cosfacs.shape)
+                self.sinfacs_del = np.zeros(self.ewald_reci.cosfacs.shape)
+        if self.ewald_reci is not None and external_potential is not None:
+            nfw = external_potential.system.natom-self.guest.natom
+            self.ewald_reci.compute_structurefactors(
+                    external_potential.system.pos[:nfw],
+                    external_potential.system.charges[:nfw],
+                    self.ewald_reci.cosfacs, self.ewald_reci.sinfacs)
         # The System describing the current configuration of guest molecules
         self.state = None
         self.N = 0
         self.Nmean = 0.0
+        self.energy = 0.0
+        self.emean = 0.0
 
     def set_external_conditions(self, T, fugacity):
         """
@@ -368,11 +410,11 @@ class GCMC(MC):
         assert fugacity>=0.0
         self.fugacity = fugacity
         self.conditions_set = True
-        if log.medium:
+        if log.do_medium:
             with log.section(self.log_name):
                 # log.pressure does not exist yet, what a pity...
                 log("GCMC simulation with T = %s and fugacity = %12.6f bar"%(
-                    log.temperature(self.T), self.fugacity/bar ))
+                    log.temperature(self.T), self.fugacity/bar))
 
     def _generate_ffs(self, nguests):
         for iguest in range(len(self._ffs),nguests):
@@ -430,13 +472,19 @@ class GCMC(MC):
         if isinstance(guest, str):
             guest = System.from_file(guest)
         assert isinstance(guest, System)
-        # We want to control n_frame here ourselves, so remove it from the
+        # We want to control nlow and nhigh here ourselves, so remove it from the
         # optional arguments if the user provided it.
-        kwargs.pop('n_frame', None)
+        kwargs.pop('nlow', None)
+        kwargs.pop('nhigh', None)
+        # Rough guess for number of adsorbed guests
+        nguests = kwargs.pop('nguests', 10)
         # Load the host if it is present as a keyword
         host = kwargs.pop('host', None)
         # Extract the hooks
-        hooks = kwargs.pop('hooks', None)
+        hooks = kwargs.pop('hooks', [])
+        # Efficient treatment of reciprocal ewald contribution
+        if not 'reci_ei' in kwargs.keys():
+            kwargs['reci_ei'] = 'ewald_interaction'
         if host is not None:
             if isinstance(host, str):
                 host = System.from_file(host)
@@ -448,17 +496,34 @@ class GCMC(MC):
             # Construct a complex of host and one guest and the corresponding
             # force field excluding host-host interactions
             hostguest = host.merge(guest)
-            external_potential = ForceField.generate(hostguest, parameters, n_frame=host.natom, **kwargs)
+            external_potential = ForceField.generate(hostguest, parameters,
+                 nlow=host.natom, nhigh=host.natom, **kwargs)
         else:
             external_potential = None
-        # Compute the intramolecular energy of the guest; for this, we need
-        # to avoid possible periodic repetitions
-        guest_isolated = guest.subsystem(np.arange(guest.natom))
-        guest_isolated.cell = Cell(np.zeros((0,3)))
-        ff_guest_isolated = ForceField.generate(guest_isolated, parameters, **kwargs)
-        eguest = ff_guest_isolated.compute()
+#        # Compare the energy of the guest, once isolated, once in a periodic box
+#        guest_isolated = guest.subsystem(np.arange(guest.natom))
+#        guest_isolated.cell = Cell(np.zeros((0,3)))
+#        optional_arguments = {}
+#        for key in kwargs.keys():
+#            if key=='reci_ei': continue
+#            optional_arguments[key] = kwargs[key]
+#        ff_guest_isolated = ForceField.generate(guest_isolated, parameters, **optional_arguments)
+#        e_isolated = ff_guest_isolated.compute()
+#        guest_periodic = guest.subsystem(np.arange(guest.natom))
+#        ff_guest_periodic = ForceField.generate(guest_periodic, parameters, **optional_arguments)
+#        e_periodic = ff_guest_periodic.compute()
+#        if np.abs(e_isolated-e_periodic)>1e-4:
+#            if log.do_warning:
+#                log.warn("An interaction energy of %s of the guest with its periodic "
+#                         "images was detected. The interaction of a guest with its periodic "
+#                         "images will however NOT be taken into account in this simulation. "
+#                         "If the energy difference is large compared to k_bT, you should "
+#                         "consider using a supercell." % (log.energy(e_isolated-e_periodic)))
+        # By making use of nlow=nhigh, we automatically discard intramolecular energies
+        eguest = 0.0
         # Generator of guest-guest force fields, excluding interactions
         # between the first N-1 guests
         def ff_generator(system, guest):
-            return ForceField.generate(system, parameters, n_frame=max(0,system.natom-guest.natom), **kwargs)
-        return cls(guest, ff_generator, external_potential=external_potential, eguest=eguest, hooks=hooks)
+            return ForceField.generate(system, parameters, nlow=max(0,system.natom-guest.natom), nhigh=max(0,system.natom-guest.natom), **kwargs)
+        return cls(guest, ff_generator, external_potential=external_potential,
+             eguest=eguest, hooks=hooks, nguests=nguests)
