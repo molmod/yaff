@@ -312,7 +312,9 @@ def check_nlow_nhigh_part(system, part_generator, nlow, nhigh, **kwargs):
     vtens2 = np.zeros((3,3))
     e2 = part2.compute(gpos2, vtens2)
     # 3) Direct computation excluding the requested pairs
-    part3 = part_generator(system, **kwargs, nlow=nlow, nhigh=nhigh)
+    kwargs['nlow'] = nlow
+    kwargs['nhigh'] = nhigh
+    part3 = part_generator(system, **kwargs)
     gpos3 = np.zeros((system.natom,3))
     vtens3 = np.zeros((3,3))
     e3 = part3.compute(gpos3, vtens3)
