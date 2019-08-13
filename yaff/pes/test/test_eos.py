@@ -92,7 +92,7 @@ def test_vdw_chemical_potential():
 def test_pr_chemical_potential():
     Tc, Pc, omega = 304.2*kelvin, 73.82*bar, 0.228
     eos = PREOS(Tc, Pc, omega)
-    check_chempot_numerical(eos, 150*kelvin, 5*bar)    
+    check_chempot_numerical(eos, 150*kelvin, 5*bar)
 
 
 def test_preos_co2():

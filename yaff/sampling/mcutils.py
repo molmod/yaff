@@ -35,7 +35,7 @@ from yaff.log import log, timer
 
 
 __all__ = ['get_random_rotation_matrix', 'random_insertion',
-           'GCMCScreenLog',
+           'MCScreenLog',
           ]
 
 
@@ -103,8 +103,8 @@ def random_insertion(guest):
     return pos+translation
 
 
-class GCMCScreenLog(Hook):
-    '''A screen logger for GCMC simulations'''
+class MCScreenLog(Hook):
+    '''A screen logger for MC simulations'''
     def __init__(self, start=0, step=1):
         Hook.__init__(self, start, step)
         self.time0 = None
@@ -115,13 +115,10 @@ class GCMCScreenLog(Hook):
                 self.time0 = time.time()
                 if log.do_medium:
                     log.hline()
-                    log('     counter          N          <N>          E        <E>   Walltime')
+                    log('     counter %s   Walltime'%(mc.log_header()))
                     log.hline()
-            log('%12i %10d %12.6f %s %s %10.1f' % (
+            log('%12i %s %10.1f' % (
                 mc.counter,
-                mc.N,
-                mc.Nmean,
-                log.energy(mc.energy),
-                log.energy(mc.emean),
+                mc.log(),
                 time.time() - self.time0,
             ))

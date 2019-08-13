@@ -189,21 +189,45 @@ class TrialTranslation(TrialCartesian):
 
 class TrialVolumechange(Trial):
     log_name = 'vol.'
-    def calculate_energy(self):
+    """Uniform rescaling of the cell vectors, keeping fractional coordinates"""
+    def compute(self):
+        assert self.mc.ewald_reci is None
+        # Here there are no shortcuts; we need to compute the energy of the
+        # entire system before and after the rescaling
         ff = self.mc.ff_full
         ff.system.pos[:] = self.mc.state.pos
         ff.update_pos(ff.system.pos)
-        e -= ff.compute()
+        e = -ff.compute()
         self.oldrvecs = ff.system.cell.rvecs.copy()
+        self.oldV = ff.system.cell.volume
         self.oldpos = ff.system.pos.copy()
-        # New cell vectors
-        # TODO
-#        scale = 1.0 + 0.1*(np.random.rand()-0.5)
-#        ff.system.cell.rvecs[:] *= scale
-        raise NotImplementedError
+        # Compute fractional coordinates
+        frac = np.einsum('ab,ib->ia',ff.system.cell.gvecs,ff.system.pos)
+        # Scaling factor based on requested largest volume change
+        scale = np.power(1.0 + self.mc.volumechange_stepsize/ff.system.cell.volume,\
+                 1.0/3.0) - 1.0
+        assert scale>0.0
+        assert scale<1.0
+        self.newrvecs = self.oldrvecs*(1.0 + 2.0*scale*(np.random.rand()-0.5))
+        ff.update_rvecs(self.newrvecs)
+        self.newV = ff.system.cell.volume
+        # Compute cartesian coordinates from fractional coordinates
+        self.newpos = np.einsum('ab,ib->ia',ff.system.cell.rvecs,frac)
+        ff.update_pos(self.newpos)
+        e += ff.compute()
+        return e
 
-    def decide(self, e):
-        raise NotImplementedError
+    def probability(self, e):
+        p = np.exp(-self.mc.beta*(e+self.mc.P*(self.newV-self.oldV))+self.mc.N*np.log(self.newV/self.oldV))
+        return min(1.0, p)
+
+    def accept(self):
+        self.mc.state.pos[:] = self.newpos
+        self.mc.state.cell.update_rvecs(self.newrvecs)
+
+    def reject(self):
+        self.mc.state.pos[:] = self.oldpos
+        self.mc.state.cell.update_rvecs(self.oldrvecs)
 
 
 class TrialInsertion(Trial):

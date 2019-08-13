@@ -1225,7 +1225,7 @@ class ForcePartEwaldReciprocalInteraction(ForcePart):
             sinfacs
                 NumPy array with the same shape as the prefactors.
                 If not provided, a new array will be created.
-                If provided, existing entries will be zerod at the start.         
+                If provided, existing entries will be zerod at the start.
                 and contain sine structure factors of the atoms at the end.
 
             sign
@@ -1233,7 +1233,7 @@ class ForcePartEwaldReciprocalInteraction(ForcePart):
                 When set to -1, deletion is considered.
         '''
         assert sign in [-1,1]
-        if cosfacs is None: 
+        if cosfacs is None:
             assert sinfacs is None
             cosfacs = np.zeros(self.prefactors.shape)
             sinfacs = np.zeros(self.prefactors.shape)

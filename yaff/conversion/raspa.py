@@ -81,7 +81,7 @@ def write_raspa_input(guests, parameters, host=None, workdir='.',
             input file.
     """
     # Load the guest Systems
-    guests = [System.from_file(guest) if isinstance(guest, str) else guest 
+    guests = [System.from_file(guest) if isinstance(guest, str) else guest
                         for guest in guests]
     for guest in guests:
         assert isinstance(guest, System)
@@ -383,7 +383,7 @@ def read_raspa_loading(fn):
     T = convert(fn, "External temperature:", 2, kelvin)
     # Try to read the final average loading and the error bar
     line = grep(fn, "Average loading absolute \[molecules/unit cell\]")
-    # Simulation not entirely completed, revert to reading the last averaged 
+    # Simulation not entirely completed, revert to reading the last averaged
     # value for the uptake
     if len(line)==0:
         lines = grep(fn, 'absolute adsorption')

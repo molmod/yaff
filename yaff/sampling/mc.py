@@ -106,7 +106,7 @@ class MC(object):
         if log.do_warning:
             log.warn("Currently, Yaff does not consider interactions of a guest molecule "
                      "with its periodic images in MC simulations. Make sure that you choose a system size "
-                     "that is large compared to the guest dimensions, so is indeed "
+                     "that is large compared to the guest dimensions, so it is indeed "
                      "acceptable to neglect these interactions.")
         with log.section(self.log_name), timer.section(self.log_name):
             # Initialization
@@ -122,8 +122,9 @@ class MC(object):
                         initial.pos,
                         initial.charges,
                         self.ewald_reci.cosfacs, self.ewald_reci.sinfacs)
+            else:
+                self.state = self.get_ff(self.N).system
             self.energy = einit
-            self.emean = 0.0
             if not self.conditions_set:
                 raise ValueError("External conditions have not been set!")
             # Normalized probabilities and accompanying methods specifying the trial MC moves
@@ -148,7 +149,9 @@ class MC(object):
             # moves, with rows corresponding to different possible moves
             acceptance = np.zeros((len(trials),2), dtype=int)
             # Start performing MC moves
-            self.Nmean = 0.0
+            self.Nmean = self.N
+            self.emean = self.energy
+            self.Vmean = self.state.cell.volume
             self.counter = 0
             for hook in self.hooks:
                 if hook.expects_call(self.counter):
@@ -165,6 +168,7 @@ class MC(object):
                 self.counter += 1
                 self.Nmean += (self.N-self.Nmean)/self.counter
                 self.emean += (self.energy-self.emean)/self.counter
+                self.Vmean += (self.state.cell.volume-self.Vmean)/self.counter
                 for hook in self.hooks:
                     if hook.expects_call(self.counter):
                         hook(self)
@@ -177,6 +181,24 @@ class MC(object):
         idx1 = np.concatenate((np.arange((self.N-1)*self.guest.natom,self.N*self.guest.natom),
                                np.arange(iguest*self.guest.natom,(iguest+1)*self.guest.natom)))
         system.pos[idx1] = system.pos[idx0]
+
+    def initialize_structure_factors(self, ff):
+        """Efficient treatment of reciprocal Ewald summation"""
+        self.ewald_reci = None
+        self.cosfacs_ins, self.sinfacs_ins, self.cosfacs_del, self.cosfacs_ins = None, None, None, None
+        for part in ff.parts:
+            if isinstance(part, ForcePartEwaldReciprocalInteraction):
+                self.ewald_reci = part
+                self.cosfacs_ins = np.zeros(self.ewald_reci.cosfacs.shape)
+                self.sinfacs_ins = np.zeros(self.ewald_reci.cosfacs.shape)
+                self.cosfacs_del = np.zeros(self.ewald_reci.cosfacs.shape)
+                self.sinfacs_del = np.zeros(self.ewald_reci.cosfacs.shape)
+        if self.ewald_reci is not None and self.external_potential is not None:
+            nfw = self.external_potential.system.natom-self.guest.natom
+            self.ewald_reci.compute_structurefactors(
+                    self.external_potential.system.pos[:nfw],
+                    self.external_potential.system.charges[:nfw],
+                    self.ewald_reci.cosfacs, self.ewald_reci.sinfacs)
 
 
 class FixedNMC(MC):
@@ -194,9 +216,10 @@ class FixedNMC(MC):
         self.external_potential = external_potential
         self.eguest = eguest
         self.hooks = hooks
+        self.initialize_structure_factors(self.ff)
         # The System describing the current configuration of guest molecules
         self.state = self.ff.system
-        self.N = self.ff.system.natom/self.guest.natom
+        self.N = self.ff.system.natom//self.guest.natom
         assert self.N*self.guest.natom==self.ff.system.natom
 
     def get_ff(self, nguests):
@@ -213,7 +236,7 @@ class CanonicalMC(FixedNMC):
     default_trials = {'translation': 0.5, 'rotation':0.5}
     log_name = 'NVTMC'
 
-    def __init__(self, guest, ff, external_potential=None, eguest=0.0):
+    def __init__(self, guest, ff, external_potential=None, eguest=0.0, hooks=[]):
         """
            **Arguments:**
 
@@ -243,7 +266,7 @@ class CanonicalMC(FixedNMC):
         """
         self.set_conditions(T)
         super(CanonicalMC, self).__init__(guest, ff,
-            external_potential=external_potential, eguest=0.0)
+            external_potential=external_potential, eguest=0.0, hooks=hooks)
 
     def set_external_conditions(self, T):
         # External conditions
@@ -251,6 +274,12 @@ class CanonicalMC(FixedNMC):
         self.T = T
         self.beta = 1.0/boltzmann/self.T
         self.conditions_set = True
+
+    def log_header(self):
+        return "%10s %10s" % ("E","<E>")
+
+    def log(self):
+        return '%s %s' % (log.energy(self.energy), log.energy(self.emean))
 
 
 class NPTMC(FixedNMC):
@@ -262,7 +291,7 @@ class NPTMC(FixedNMC):
     default_trials = {'translation': 0.4, 'rotation':0.4, 'volumechange':0.2}
     log_name = 'NPTMC'
 
-    def __init__(self, guest, ff, ff_full, eguest=0.0):
+    def __init__(self, guest, ff, ff_full, eguest=0.0, hooks=[]):
         """
            **Arguments:**
 
@@ -285,7 +314,10 @@ class NPTMC(FixedNMC):
         """
         self.ff_full = ff_full
         super(NPTMC, self).__init__(guest, ff,
-            external_potential=None, eguest=eguest)
+            external_potential=None, eguest=eguest, hooks=hooks)
+        if self.ewald_reci is not None:
+            raise ValueError("NPTMC simulations can not be performed when "
+                             "ForcePartEwaldReciprocalInteraction is present")
 
     def set_external_conditions(self, T, P):
         """
@@ -302,6 +334,14 @@ class NPTMC(FixedNMC):
         self.beta = 1.0/boltzmann/self.T
         self.P = P
         self.conditions_set = True
+
+    def log_header(self):
+        return "%10s %10s %10s %10s" % ("V","<V>","E","<E>")
+
+
+    def log(self):
+        return '%s %s %s %s' % ( log.volume(self.state.cell.volume),
+                log.volume(self.Vmean), log.energy(self.energy), log.energy(self.emean))
 
 
 class GCMC(MC):
@@ -367,22 +407,7 @@ class GCMC(MC):
         self._ffs = []
         self._generate_ffs(nguests)
         self.external_potential = external_potential
-        # Efficient treatment of reciprocal Ewald summation
-        self.ewald_reci = None
-        self.cosfacs_ins, self.sinfacs_ins, self.cosfacs_del, self.cosfacs_ins = None, None, None, None
-        for part in self.get_ff(1).parts:
-            if isinstance(part, ForcePartEwaldReciprocalInteraction):
-                self.ewald_reci = part
-                self.cosfacs_ins = np.zeros(self.ewald_reci.cosfacs.shape)
-                self.sinfacs_ins = np.zeros(self.ewald_reci.cosfacs.shape)
-                self.cosfacs_del = np.zeros(self.ewald_reci.cosfacs.shape)
-                self.sinfacs_del = np.zeros(self.ewald_reci.cosfacs.shape)
-        if self.ewald_reci is not None and external_potential is not None:
-            nfw = external_potential.system.natom-self.guest.natom
-            self.ewald_reci.compute_structurefactors(
-                    external_potential.system.pos[:nfw],
-                    external_potential.system.charges[:nfw],
-                    self.ewald_reci.cosfacs, self.ewald_reci.sinfacs)
+        self.initialize_structure_factors(self.get_ff(1))
         # The System describing the current configuration of guest molecules
         self.state = None
         self.N = 0
@@ -416,11 +441,19 @@ class GCMC(MC):
                 log("GCMC simulation with T = %s and fugacity = %12.6f bar"%(
                     log.temperature(self.T), self.fugacity/bar))
 
+    def log_header(self):
+        return "%10s %10s %10s %10s" % ("N","<N>","E","<E>")
+
+    def log(self):
+        return '%10d %10.6f %s %s' % ( self.N, self.Nmean,
+                log.energy(self.energy), log.energy(self.emean))
+
     def _generate_ffs(self, nguests):
         for iguest in range(len(self._ffs),nguests):
             if len(self._ffs)==0:
                 # The very first force field, no guests
                 system = System.create_empty()
+                system.cell = Cell(self.guest.cell.rvecs)
             elif len(self._ffs)==1:
                 # The first real force field, a single guest
                 system = self.guest
