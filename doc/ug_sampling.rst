@@ -426,3 +426,140 @@ A typical setup could look as follows::
     ff.add_part(plumed)
     # Construct an integrator
     verlet = VerletIntegrator(ff, timestep)
+
+
+Monte Carlo simulations
+=======================
+
+Yaff offers support for some basic Monte Carlo (MC) simulations. To quickly get
+started, it is advisable to take a look at the examples discussed in
+:ref:`tu_sec_montecarlo`. Below, a slightly more detailed discussion of the
+inner workings of the MC code is provided.
+
+Currently all MC routines assume pairwise-additive force fields and rigid
+molecules/frameworks.
+
+
+Changes compared to the standard ForceField
+-------------------------------------------
+
+An important distinction between molecular dynamics and MC simulations, is that
+for MC simulations only the energy difference resulting from moving a few atoms
+(for instance a single molecule) is required. This makes the standard
+:class:`yaff.pes.ff.ForceField` class inadequate for computationally efficient
+MC simulations, as its default behavior is to compute interactions between all
+atoms. For pairwise-additive force fields (which is assumed to be the case
+here), only interactions involving the moved atoms need to be calculated during
+MC simulations.
+
+This can be achieved using the `nlow` and `nhigh` keywords when constructing a
+force field. When `nlow` is equal to M, interactions within the first M atoms
+of the system are not computed. When `nhigh` is equal to M, interactions within
+the other atoms of the system are not computed. By setting both `nlow` and
+`nhigh` equal to M, only interactions between atoms with index smaller than
+M and atoms with index higher than or equal to M are considered.
+
+Suppose that you would like to perform an MC simulation of N molecules, each
+consisting of n atoms. During the MC simulation, we need to compute for
+instance the energy difference of translating a single molecule. A force field
+that allows to do this can be constructed as follows::
+
+    ff_guestguest = ForceField.generate(..., nlow=(N-1)*n, nhigh=(N-1)*n)
+
+This ensures that interactions between the first N-1 molecules are not
+computed. Of course, this only works if the translated molecule is the last
+one, but luckily the trial moves (such as
+:class:`yaff.sampling.mctrials.TrialTranslation`) are
+implemented this way.
+
+When MC simulations of guest molecules inside a framework are considered, an
+additional force field describing interactions between a single guest and the
+host need to be constructed. Similarly as before::
+
+    ff_hostguest = ForceField.generate(..., nlow=framework.natom, nhigh=framework.natom)
+
+where it is crucial that the guest molecule appears last in the System.
+
+Because molecules/frameworks are assumed to be rigid, the covalent interactions
+are irrelevant for these types of simulations. If covalent terms are present in
+the force field, this should not influence simulation results as they do not
+induce energy differences.
+
+
+Ensembles
+---------
+
+The first supported ensemble is the canonical or NVT ensemble, implemented in
+:class:`yaff.sampling.mc.CanonicalMC`. It is required that you provide a System
+containing N guest molecules (inside the periodic cell that you want to
+consider) and a ForceField describing the interactions of the last guest
+molecule with all previous guests. Optionally, you can provide an external
+potential such as interactions with a host framework. The `eguest` keyword
+should contain the intramolecular energy of a single guest, but is actually
+not necessary to provide here (the intramolecular energy automatically cancels
+when considering only translations and rotations of a single molecule). Setting
+up the simulation can be done as follows::
+
+    guests = System.from_file(...)
+    ff_guestguest = ForceField.generate(guests, nlow=(N-1)*n, nhigh=(N-1)*n)
+    ff_hostguest = ForceField.generate(..., nlow=framework.natom, nhigh=framework.natom)
+    mc = CanonicalMC(guests, ff_guestguest, external_potential=ff_hostguest)
+
+Now it is time to set the external conditions (the temperature in this case)
+and optionally specify trial moves and their relative probability before we
+can run the MC simulation::
+
+    mc.set_external_conditions(300*kelvin)
+    mc.run(nsteps, mc_moves={'translation':1.0, 'rotation':1.0})
+
+Simulations in other ensembles are performed in a very similar fashion, as the
+main difference is just the nature of allowed MC moves. For instance the
+extension to the ensemble commonly referred to as NPT, can be done by including
+a :class:`yaff.sampling.mctrials.TrialVolumechange` move::
+
+    mc = NPTMC(guests, ff_guestguest)
+    mc.set_external_conditions(300*kelvin, 1*bar)
+    mc.run(nsteps, mc_moves={'translation':1.0, 'rotation':1.0, volumechange=0.1},
+        volumechange_stepsize=...)
+
+An external potential can not be included in this case, because normally the
+effect of a volume change on the external potential is not very useful. The
+`volumechange_stepsize` keyword sets the maximal change in volume that is
+attempted. Together with the `volumechange` probability this can be an
+important parameter for these kind of simulations.
+
+Finally, simulations in the grand-canonical (muVT) ensemble are supported by
+:class:`yaff.sampling.mc.GCMC`. Compared to the canonical ensemble it is now
+necessary to also include insertion and deletion moves. This poses some
+technical problems, as Yaff ForceFields can not simply change their number
+of atoms. Therefore, a separate force field for each number of adsorbed
+molecules has to be constructed. Setting up such a simulation therefore
+requires a method to generate ForceFields for arbitray number of guest
+molecules::
+
+    # A single guest molecule
+    guest = System.from_file(...)
+    # The single guest molecule is placed in the periodic box
+    guest.cell = Cell(rvecs)
+    # Return a ForceField for N guests (in system)
+    def ff_generator(system, guest):
+        return ForceField.generate(system, 'pars.txt', nlow=max(0,system.natom-guest.natom),
+                nlow=max(0,system.natom-guest.natom), rcut=..., ...)
+    # Keep track of average number of molecules
+    screenlog = MCScreenLog(step=500)
+    # Actual GCMC class
+    gcmc = GCMC(guest, ff_generator, external_potential=ff_hostguest,
+                hooks=[screenlog])
+
+Instead of controlling the chemical potential of the external gas reservoir, it
+is more intuitive to think about controlling the pressure. If the gas reservoir
+is far from ideal-gas behavior, the fugacity should be used instead of the
+pressure. This can be obtained using an equation of state, such as the van der
+Waals description (:class:`yaff.pes.eos.vdWEOS`). The adsorbed number of guest
+molecules can be simulated as follows::
+
+    gcmc.set_external_conditions(300*kelvin, 1.0*bar)
+    gcmc.run(500000, mc_moves={'insertion':1.0, 'deletion':1.0,
+                 'translation':1.0, 'rotation':1.0})
+
+Note that a large number of steps might be required to reach converged results.
