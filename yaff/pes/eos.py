@@ -91,6 +91,38 @@ class EOS(object):
         mu0 = -boltzmann*T*np.log( boltzmann*T/Pref*lambd**1.5)
         return mu0+mu
 
+    def get_Pref(self, T, P0, deviation=1e-3):
+        """
+           Find a reference pressure at the given temperature for which the
+           fluidum is nearly ideal.
+
+
+           **Arguments:**
+
+           T
+                Temperature
+
+           P
+                Pressure
+
+           **Optional arguments:**
+
+           deviation
+                When the compressibility factor Z deviates less than this from
+                1, ideal gas behavior is assumed.
+        """
+        Pref = P0
+        for i in range(100):
+            rhoref = self.calculate_rho(T, Pref)
+            Zref = Pref/rhoref/boltzmann/T
+            # Z close to 1.0 means ideal gas behavior
+            if np.abs(Zref-1.0)>deviation:
+                Pref /= 2.0
+            else: break
+        if np.abs(Zref-1.0)>deviation:
+            raise ValueError("Failed to find pressure where the fluidum is ideal-gas like, check input parameters")
+        return Pref
+
 
 class IdealGas(EOS):
     """The ideal gas equation of state"""
@@ -98,6 +130,30 @@ class IdealGas(EOS):
         mu = 0.0
         Pref = P
         return mu, Pref
+
+    def calculate_rho(self, T, P, rho0=None):
+        """
+           Calculate the particle density at given external conditions
+
+           **Arguments:**
+
+           T
+                Temperature
+
+           P
+                Pressure
+
+           **Optional arguments:**
+
+           rho0
+                Initial guess for the density, not used for this specific EOS.
+
+           **Returns:**
+
+           rho
+                The particle density
+        """
+        return P/boltzmann/T
 
 
 class vdWEOS(EOS):
@@ -114,6 +170,33 @@ class vdWEOS(EOS):
         poly -= boltzmann*T*rho
         poly += P
         return poly
+
+    def calculate_rho(self, T, P, rho0=None):
+        """
+           Calculate the particle density at given external conditions
+
+           **Arguments:**
+
+           T
+                Temperature
+
+           P
+                Pressure
+
+           **Optional arguments:**
+
+           rho0
+                Initial guess for the density. If not provided, an initial
+                guess based on the ideal gas law is used.
+
+           **Returns:**
+
+           rho
+                The particle density
+        """
+        if rho0 is None:
+            rho0 = P/boltzmann/T
+        return newton_opt(self.polynomial, rho0, args=(T,P), tol=1e-10)
 
     def calculate_mu_ex(self, T, P):
         """
@@ -138,17 +221,9 @@ class vdWEOS(EOS):
         """
         # Find a reference pressure at the given temperature for which the fluidum
         # is nearly ideal
-        Pref = P
-        for i in range(100):
-            rhoref = newton_opt(self.polynomial, Pref/boltzmann/T, args=(T,P))
-            # rhoref close to Pref/boltzmann/T means ideal gas behavior
-            if np.abs(rhoref-Pref/boltzmann/T)>1e-3:
-                Pref /= 2.0
-            else: break
-        if np.abs(rhoref-Pref/boltzmann/T)>1e-3:
-            raise ValueError("Failed to find pressure where the fluidum is ideal-gas like, check input parameters")
+        Pref = self.get_Pref(T, P)
         # Find zero of polynomial expression to get the density
-        rho = newton_opt(self.polynomial, P/boltzmann/T, args=(T,P))
+        rho = self.calculate_rho(T, P)
         # Add contributions to chemical potential at requested pressure
         mu = boltzmann*T*( np.log(self.b*rho/(1.0-self.b*rho)) + self.b*rho/(1.0-self.b*rho))
         mu -= 2.0*self.a*rho
@@ -242,6 +317,35 @@ class PREOS(EOS):
         return Z**3 - (1 - self.B) * Z**2 + (self.A - 2*self.B - 3*self.B**2) * Z - (
                 self.A * self.B - self.B**2 - self.B**3)
 
+    def calculate_rho(self, T, P, rho0=None):
+        """
+           Calculate the particle density at given external conditions
+
+           **Arguments:**
+
+           T
+                Temperature
+
+           P
+                Pressure
+
+           **Optional arguments:**
+
+           rho0
+                Initial guess for the density. If not provided, an initial
+                guess based on the ideal gas law is used.
+
+           **Returns:**
+
+           rho
+                The particle density
+        """
+        self.set_conditions(T, P)
+        if rho0 is None:
+            rho0 = P/boltzmann/T
+        Z = newton_opt(self.polynomial, P/rho0/boltzmann/T, tol=1e-10)
+        return P/Z/boltzmann/T
+
     def calculate_mu_ex(self, T, P):
         """
            Evaluate the excess chemical potential at given external conditions
@@ -265,19 +369,10 @@ class PREOS(EOS):
         """
         # Find a reference pressure at the given temperature for which the fluidum
         # is nearly ideal
-        Pref = P
-        for i in range(100):
-            self.set_conditions(T, Pref)
-            Zref = newton_opt(self.polynomial, 1.0)
-            # Z close to 1.0 means ideal gas behavior
-            if np.abs(Zref-1.0)>1e-3:
-                Pref /= 2.0
-            else: break
-        if np.abs(Zref-1.0)>1e-3:
-            raise ValueError("Failed to find pressure where the fluidum is ideal-gas like, check input parameters")
-        # Find zero of polynomial expression to get the compressibility factor
-        self.set_conditions(T, P)
-        Z = newton_opt(self.polynomial, 1.0)
+        Pref = self.get_Pref(T, P)
+        # Find compressibility factor using rho
+        rho = self.calculate_rho(T, P)
+        Z = P/rho/boltzmann/T
         # Add contributions to chemical potential at requested pressure
         mu = Z - 1 - np.log(Z - self.B) - self.A / np.sqrt(8) / self.B * np.log(
                     (Z + (1 + np.sqrt(2)) * self.B) / (Z + (1 - np.sqrt(2)) * self.B))

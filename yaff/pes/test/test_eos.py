@@ -29,9 +29,31 @@ from __future__ import print_function
 import numpy as np
 import pkg_resources
 
-from molmod.units import kelvin, bar
+from molmod.units import kelvin, bar, kjmol
+from molmod.constants import boltzmann
 
 from yaff import *
+
+
+def check_chempot_numerical(eos, T, P):
+    # Analytical result
+    mu_ex_analytical, Pref = eos.calculate_mu_ex(T,P)
+    # Numerical integration of 1/rho over dP from Pref to P
+    Pgrid = np.linspace(Pref,P,num=10000)
+    integrand = np.zeros(Pgrid.shape)
+    # Initial guess density for first pressure
+    rho = Pgrid[0]/boltzmann/T
+    for ip, p in enumerate(Pgrid):
+        # Find rho, use rho from previous pressure as initial guess
+        rho = eos.calculate_rho(T, p, rho0=rho)
+        integrand[ip] = 1.0/rho
+    mu_ex_numerical = np.trapz(integrand, Pgrid)
+    print("mu(ana) = %12.4f mu(num) = %12.4f delta = %12.4f kJ/mol" %
+        (mu_ex_analytical/kjmol, mu_ex_numerical/kjmol,
+        (mu_ex_analytical-mu_ex_numerical)/kjmol))
+    assert np.abs(mu_ex_analytical-mu_ex_numerical)<1e-2*kjmol
+    assert np.abs(mu_ex_analytical/mu_ex_numerical-1.0)<1e-3
+
 
 def test_idealgas():
     ig = IdealGas()
@@ -56,6 +78,21 @@ def test_vdw_methane():
         f = eos.calculate_fugacity(T, P)
 #        print("Fugacity: ref = %8.5f bar computed = %8.5f bar" % (phi*P/bar, f/bar))
         assert np.abs(phi*P-f)<1e-2*bar
+
+
+def test_vdw_chemical_potential():
+    Tc = 190.6*kelvin
+    Pc = 46.04*bar
+    a = 27.0*(boltzmann*Tc)**2/64.0/Pc
+    b = boltzmann*Tc/8.0/Pc
+    eos = vdWEOS(a, b)
+    check_chempot_numerical(eos, 200*kelvin, 50*bar)
+
+
+def test_pr_chemical_potential():
+    Tc, Pc, omega = 304.2*kelvin, 73.82*bar, 0.228
+    eos = PREOS(Tc, Pc, omega)
+    check_chempot_numerical(eos, 150*kelvin, 5*bar)    
 
 
 def test_preos_co2():
