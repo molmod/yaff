@@ -114,7 +114,7 @@ Generally, the number of GCMC steps should be increased with increasing pressure
 and decreasing temperature.
 
 By running the ``gcmc.py`` script, the uptake will be computed for a number
-of pressures sequentially and store the results in `results.npy`. 
+of pressures sequentially and store the results in `results.npy`.
 
 Simulating an adsorption isotherm using RASPA
 ---------------------------------------------
@@ -126,7 +126,7 @@ some support for reading/writing RASPA output/input files by means of the
 files for the current system and will place these in the directory
 ``yaff/examples/007_monte_carlo/co2_in_mil53/raspa``. By adjusting some
 settings in the generated ``simulation.template``, an isotherm can be simulated
-with RASPA. Note that in this case, RASPA requires the usage of a 
+with RASPA. Note that in this case, RASPA requires the usage of a
 :math:`2\times2\times2` supercell. For more detailed guidelines on how to
 proceed with these simulations, consult the RASPA manual. Afterwards, the RASPA
 output files (``*.data`` files) should be placed in
