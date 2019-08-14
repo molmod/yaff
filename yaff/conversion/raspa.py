@@ -28,7 +28,6 @@
 
 import numpy as np
 import os
-import subprocess
 
 from yaff.system import System
 from yaff.pes.ff import ForceField
@@ -365,45 +364,31 @@ def write_raspa_forcefield(ff, workdir):
 
 
 def read_raspa_loading(fn):
-    def grep(fn, pattern, A=0):
-        if A==0: command = '''grep "%s" %s'''%(pattern,fn)
-        else: command = '''grep -A %d "%s" %s'''%(A,pattern,fn)
-        (out,err) = subprocess.Popen([command], stdout=subprocess.PIPE, shell=True).communicate()
-        return out.decode().split('\n')[:-1]
-    def convert(fn, pattern, index, unit):
-        line = grep(fn, pattern)
-        if len(line)!=1:
-            raise ValueError("File %s should have exactly one occurence of %s"%(fn,pattern))
-        return float(line[0].split()[index])*unit
-    # The pressure
-    P = convert(fn, "Partial pressure:", 2, pascal)
-    # The fugacity
-    fugacity = convert(fn, "Partial fugacity", 2, pascal)
-    # The temperature
-    T = convert(fn, "External temperature:", 2, kelvin)
-    # Try to read the final average loading and the error bar
-    line = grep(fn, "Average loading absolute \[molecules/unit cell\]")
-    # Simulation not entirely completed, revert to reading the last averaged
-    # value for the uptake
-    if len(line)==0:
-        lines = grep(fn, 'absolute adsorption')
-        if len(lines)==0: raise IOError("Could not read any absolute adsorption"
-            " numbers from file %s"%fn)
-        else:
-            line = lines[-1]
-            w = line.split()
-            # Only equilibration steps are present, no average is printed yet
-            if len(w)==8: raise IOError("Could not read any results"
-                " from the production phase")
-            # Read the average after the last completed production step
-            elif len(w)==14:
-                N = float(w[4][:-1])
-                Nerr = np.nan
-            else: raise IOError
-    # Simulation was correctly terminated
-    elif len(line)==1:
-        N = float(line[0].split()[5])
-        Nerr = float(line[0].split()[7])
-    else:
-        raise IOError
+    P, fugacity, T, N, Nerr = None, None, None, None, None
+    with open(fn,'r') as f:
+        for line in f:
+            if "Partial pressure:" in line:
+                P = float(line.split()[2])*pascal
+            elif "Partial fugacity:" in line:
+                fugacity = float(line.split()[2])*pascal
+            elif "External temperature:" in line:
+                T = float(line.split()[2])*kelvin
+            elif "Average loading absolute" in line and "molecules" in line:
+                N = float(line.split()[5])
+                Nerr = float(line.split()[7])
+                break
+            elif "absolute adsorption" in line:
+                w = line.split()
+                if len(w)==14:
+                    N = float(w[4][:-1])
+                    Nerr = np.nan
+    if P is None:
+        raise ValueError("Failed to read `Partial pressure:` from file %s"%(fn))
+    if fugacity is None:
+        raise ValueError("Failed to read `Partial fugacity:` from file %s"%(fn))
+    if T is None:
+        raise ValueError("Failed to read `External temperature:` from file %s"%(fn))
+    if N is None:
+        raise ValueError("Failed to read `Average loading absolute` "
+                         "and `absolute adsorption` from file %s"%(fn))
     return T, P, fugacity, N, Nerr
