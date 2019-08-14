@@ -368,7 +368,7 @@ def read_raspa_loading(fn):
     def grep(fn, pattern, A=0):
         if A==0: command = '''grep "%s" %s'''%(pattern,fn)
         else: command = '''grep -A %d "%s" %s'''%(A,pattern,fn)
-        (out,err) = subprocess.Popen([command.encode()], stdout=subprocess.PIPE, shell=True).communicate()
+        (out,err) = subprocess.Popen([command], stdout=subprocess.PIPE, shell=True).communicate()
         return out.decode().split('\n')[:-1]
     def convert(fn, pattern, index, unit):
         line = grep(fn, pattern)
