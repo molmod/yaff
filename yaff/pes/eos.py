@@ -314,10 +314,42 @@ class PREOS(EOS):
            Z
                 Compressibility factor
         """
+        print(Z)
         return Z**3 - (1 - self.B) * Z**2 + (self.A - 2*self.B - 3*self.B**2) * Z - (
                 self.A * self.B - self.B**2 - self.B**3)
 
-    def calculate_rho(self, T, P, rho0=None):
+    def polynomial_roots(self):
+        """
+            Find the real roots of the polynomial form of the Peng-Robinson
+            equation of state
+        """
+        a = - (1 - self.B)
+        b = self.A - 2*self.B - 3*self.B**2
+        c = - (self.A * self.B - self.B**2 - self.B**3)
+        Q = (a**2-3*b)/9
+        R = (2*a**3-9*a*b+27*c)/54
+        M = R**2-Q**3
+        if M>0:
+            S = np.cbrt(-R+np.sqrt(M))
+            T = np.cbrt(-R-np.sqrt(M))
+            Z = S+T-a/3
+        else:
+            theta = np.arccos(R/np.sqrt(Q**3))
+            x1 = -2.0*np.sqrt(Q)*np.cos(theta/3)-a/3
+            x2 = -2.0*np.sqrt(Q)*np.cos((theta+2*np.pi)/3)-a/3
+            x3 = -2.0*np.sqrt(Q)*np.cos((theta-2*np.pi)/3)-a/3
+            print(x1,x2,x3)
+            if log.do_medium:
+                log("Found 3 solutions for Z (%f,%f,%f), taking the one "
+                    "closest to 1"%(x1,x2,x3))
+            Z = x1
+            if np.abs(x2-1.0)<np.abs(Z-1.0):
+                Z = x2
+            if np.abs(x3-1.0)<np.abs(Z-1.0):
+                Z = x3
+        return Z
+
+    def calculate_rho(self, T, P):
         """
            Calculate the particle density at given external conditions
 
@@ -329,21 +361,13 @@ class PREOS(EOS):
            P
                 Pressure
 
-           **Optional arguments:**
-
-           rho0
-                Initial guess for the density. If not provided, an initial
-                guess based on the ideal gas law is used.
-
            **Returns:**
 
            rho
                 The particle density
         """
         self.set_conditions(T, P)
-        if rho0 is None:
-            rho0 = P/boltzmann/T
-        Z = newton_opt(self.polynomial, P/rho0/boltzmann/T, tol=1e-10)
+        Z = self.polynomial_roots()
         return P/Z/boltzmann/T
 
     def calculate_mu_ex(self, T, P):

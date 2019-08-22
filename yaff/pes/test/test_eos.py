@@ -116,3 +116,12 @@ def test_preos_from_name():
     assert eos.Pc == 7.383*1e6*pascal
     assert eos.omega == 0.2236
     assert eos.mass == 44.010*amu
+
+
+def test_preos_solver():
+    eos = PREOS(33.19*kelvin, 13.13*bar, -0.214)
+    T = 280*kelvin
+    P = 1000*bar
+    eos.set_conditions(T, P)
+    x1 = eos.polynomial_roots()
+    assert np.abs( eos.polynomial(x1) ) < 1e-10
