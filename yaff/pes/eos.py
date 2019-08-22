@@ -233,7 +233,7 @@ class vdWEOS(EOS):
 
 class PREOS(EOS):
     """The Peng-Robinson equation of state"""
-    def __init__(self, Tc, Pc, omega, mass=0.0):
+    def __init__(self, Tc, Pc, omega, mass=0.0, phase="vapour"):
         """
            The Peng-Robinson EOS gives a relation between pressure, volume, and
            temperature with parameters based on the critical pressure, critical
@@ -255,11 +255,16 @@ class PREOS(EOS):
            mass
                 The mass of one molecule of the species. Some properties can be
                 computed without this, so it is an optional argument
+
+           phase
+                Either "vapour" or "liquid". If both phases coexist at certain
+                conditions, properties for the selected phase will be reported.
         """
         self.Tc = Tc
         self.Pc = Pc
         self.omega = omega
         self.mass = mass
+        self.phase = phase
         # Some parameters derived from the input parameters
         self.a = 0.457235 * self.Tc**2 / self.Pc
         self.b = 0.0777961 * self.Tc / self.Pc
@@ -314,7 +319,6 @@ class PREOS(EOS):
            Z
                 Compressibility factor
         """
-        print(Z)
         return Z**3 - (1 - self.B) * Z**2 + (self.A - 2*self.B - 3*self.B**2) * Z - (
                 self.A * self.B - self.B**2 - self.B**3)
 
@@ -338,15 +342,17 @@ class PREOS(EOS):
             x1 = -2.0*np.sqrt(Q)*np.cos(theta/3)-a/3
             x2 = -2.0*np.sqrt(Q)*np.cos((theta+2*np.pi)/3)-a/3
             x3 = -2.0*np.sqrt(Q)*np.cos((theta-2*np.pi)/3)-a/3
-            print(x1,x2,x3)
-            if log.do_medium:
-                log("Found 3 solutions for Z (%f,%f,%f), taking the one "
-                    "closest to 1"%(x1,x2,x3))
-            Z = x1
-            if np.abs(x2-1.0)<np.abs(Z-1.0):
-                Z = x2
-            if np.abs(x3-1.0)<np.abs(Z-1.0):
-                Z = x3
+            solutions = np.array([x1,x2,x3])
+            solutions = solutions[solutions>0.0]
+            if self.phase=='vapour':
+                Z = np.amax(solutions)
+            elif self.phase=='liquid':
+                Z = np.amin(solutions)
+            else: raise NotImplementedError
+            if log.do_high:
+                log("Found 3 solutions for Z (%f,%f,%f), meaning that two "
+                    "phases coexist. Returning Z=%f, corresponding to the "
+                    "%s phase"%(x1,x2,x3,Z,self.phase))
         return Z
 
     def calculate_rho(self, T, P):
