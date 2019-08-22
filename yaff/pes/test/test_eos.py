@@ -45,7 +45,7 @@ def check_chempot_numerical(eos, T, P):
     rho = Pgrid[0]/boltzmann/T
     for ip, p in enumerate(Pgrid):
         # Find rho, use rho from previous pressure as initial guess
-        rho = eos.calculate_rho(T, p, rho0=rho)
+        rho = eos.calculate_rho(T, p)
         integrand[ip] = 1.0/rho
     mu_ex_numerical = np.trapz(integrand, Pgrid)
     print("mu(ana) = %12.4f mu(num) = %12.4f delta = %12.4f kJ/mol" %
