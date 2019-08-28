@@ -182,6 +182,7 @@ class MC(object):
             self.emean = self.energy
             self.Vmean = self.current_configuration.cell.volume
             self.counter = 0
+            self.call_hooks()
             for istep in range(nsteps):
                 switch = np.random.rand()
                 # Select one of the possible MC moves
