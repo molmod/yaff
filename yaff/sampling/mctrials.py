@@ -191,6 +191,12 @@ class TrialVolumechange(Trial):
     log_name = 'vol.'
     """Uniform rescaling of the cell vectors, keeping fractional coordinates"""
     def compute(self):
+        if self.mc.guest.natom!=1:
+            raise ValueError("TrialVolumeChange rescales the unit "
+            "cell, keeping fractional coordinates. This makes it only apt for "
+            "single-atom guest molecules. For multiple-atom guest molecules, "
+            "centers-of-mass fractional coordinates should be fixed, "
+            "and Cartesian coordinates rescaled to retain monomer geometries")
         assert self.mc.ewald_reci is None
         # Here there are no shortcuts; we need to compute the energy of the
         # entire system before and after the rescaling

@@ -74,7 +74,7 @@ class MC(object):
     def __init__(self, state):
         """
             **Optional arguments:**
-      
+
             state
                 A list with state items. State items are simple objects
                 that take or derive a property from the current state of the
@@ -267,7 +267,7 @@ class CanonicalMC(FixedNMC):
         AttributeStateItem('emean'),
     ]
 
-    def __init__(self, guest, ff, external_potential=None, eguest=0.0, 
+    def __init__(self, guest, ff, external_potential=None, eguest=0.0,
         hooks=[], state=None):
         """
            **Arguments:**

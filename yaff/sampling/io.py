@@ -106,7 +106,7 @@ class MCHDF5Writer(BaseHDF5Writer):
         if mc.current_configuration is not None:
             grp = self.f.require_group("snapshots/%012d"%mc.counter)
             self.dump_system(mc.current_configuration, grp)
-        # The standard way of dumping simulation info to the trajectory group 
+        # The standard way of dumping simulation info to the trajectory group
         BaseHDF5Writer.__call__(self, mc)
 
 
