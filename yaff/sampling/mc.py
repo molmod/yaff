@@ -115,7 +115,7 @@ class MC(object):
             if initial is not None:
                 self.N = initial.natom//self.guest.natom
                 assert self.guest.natom*self.N==initial.natom, ("Initial configuration does not contain correct number of atoms")
-                self.state = initial
+                self.current_configuration = initial
                 self.get_ff(self.N).system.pos[:] = initial.pos
                 if self.ewald_reci is not None:
                     self.ewald_reci.compute_structurefactors(
@@ -123,7 +123,7 @@ class MC(object):
                         initial.charges,
                         self.ewald_reci.cosfacs, self.ewald_reci.sinfacs)
             else:
-                self.state = self.get_ff(self.N).system
+                self.current_configuration = self.get_ff(self.N).system
             self.energy = einit
             if not self.conditions_set:
                 raise ValueError("External conditions have not been set!")
@@ -151,7 +151,7 @@ class MC(object):
             # Start performing MC moves
             self.Nmean = self.N
             self.emean = self.energy
-            self.Vmean = self.state.cell.volume
+            self.Vmean = self.current_configuration.cell.volume
             self.counter = 0
             for hook in self.hooks:
                 if hook.expects_call(self.counter):
@@ -168,7 +168,7 @@ class MC(object):
                 self.counter += 1
                 self.Nmean += (self.N-self.Nmean)/self.counter
                 self.emean += (self.energy-self.emean)/self.counter
-                self.Vmean += (self.state.cell.volume-self.Vmean)/self.counter
+                self.Vmean += (self.current_configuration.cell.volume-self.Vmean)/self.counter
                 for hook in self.hooks:
                     if hook.expects_call(self.counter):
                         hook(self)
@@ -218,7 +218,7 @@ class FixedNMC(MC):
         self.hooks = hooks
         self.initialize_structure_factors(self.ff)
         # The System describing the current configuration of guest molecules
-        self.state = self.ff.system
+        self.current_configuration = self.ff.system
         self.N = self.ff.system.natom//self.guest.natom
         assert self.N*self.guest.natom==self.ff.system.natom
 
@@ -340,7 +340,7 @@ class NPTMC(FixedNMC):
 
 
     def log(self):
-        return '%s %s %s %s' % ( log.volume(self.state.cell.volume),
+        return '%s %s %s %s' % ( log.volume(self.current_configuration.cell.volume),
                 log.volume(self.Vmean), log.energy(self.energy), log.energy(self.emean))
 
 
@@ -409,7 +409,7 @@ class GCMC(MC):
         self.external_potential = external_potential
         self.initialize_structure_factors(self.get_ff(1))
         # The System describing the current configuration of guest molecules
-        self.state = None
+        self.current_configuration = None
         self.N = 0
         self.Nmean = 0.0
         self.energy = 0.0

@@ -195,7 +195,7 @@ class TrialVolumechange(Trial):
         # Here there are no shortcuts; we need to compute the energy of the
         # entire system before and after the rescaling
         ff = self.mc.ff_full
-        ff.system.pos[:] = self.mc.state.pos
+        ff.system.pos[:] = self.mc.current_configuration.pos
         ff.update_pos(ff.system.pos)
         e = -ff.compute()
         self.oldrvecs = ff.system.cell.rvecs.copy()
@@ -222,12 +222,12 @@ class TrialVolumechange(Trial):
         return min(1.0, p)
 
     def accept(self):
-        self.mc.state.pos[:] = self.newpos
-        self.mc.state.cell.update_rvecs(self.newrvecs)
+        self.mc.current_configuration.pos[:] = self.newpos
+        self.mc.current_configuration.cell.update_rvecs(self.newrvecs)
 
     def reject(self):
-        self.mc.state.pos[:] = self.oldpos
-        self.mc.state.cell.update_rvecs(self.oldrvecs)
+        self.mc.current_configuration.pos[:] = self.oldpos
+        self.mc.current_configuration.cell.update_rvecs(self.oldrvecs)
 
 
 class TrialInsertion(Trial):
@@ -240,7 +240,7 @@ class TrialInsertion(Trial):
         ff = self.mc.get_ff(self.mc.N)
         # Set the positions of all other guests based on the current state
         if self.mc.N>1:
-            ff.system.pos[:(self.mc.N-1)*self.mc.guest.natom] = self.mc.state.pos
+            ff.system.pos[:(self.mc.N-1)*self.mc.guest.natom] = self.mc.current_configuration.pos
         # Generate random guest configuration for the last (inserted) guest
         ff.system.pos[(self.mc.N-1)*self.mc.guest.natom:] = random_insertion(self.mc.guest)
         return self.insertion_energy(ff)
@@ -251,7 +251,7 @@ class TrialInsertion(Trial):
 
     def accept(self):
         # Set state to the system including the inserted guest
-        self.mc.state = self.mc.get_ff(self.mc.N).system
+        self.mc.current_configuration = self.mc.get_ff(self.mc.N).system
         # Update the Ewald structure factors
         if self.mc.ewald_reci is not None:
             self.mc.ewald_reci.cosfacs[:] += self.mc.cosfacs_ins
@@ -293,7 +293,7 @@ class TrialDeletion(Trial):
         # Set the state to the system without the deleted guest
         ff = self.mc.get_ff(self.mc.N)
         ff.system.pos[:] = self.mc.get_ff(self.mc.N+1).system.pos[:self.mc.N*self.mc.guest.natom]
-        self.mc.state = ff.system
+        self.mc.current_configuration = ff.system
 
     def reject(self):
         # Reset the Ewald structure factors

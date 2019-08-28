@@ -68,7 +68,7 @@ def simulate():
         gcmc.set_external_conditions(T, fugacity)
         # Run MC simulation
         gcmc.run(1000000, mc_moves=mc_moves)
-        gcmc.state = None
+        gcmc.current_configuration = None
         uptake[iP] = gcmc.Nmean
     np.save('results.npy', np.array([pressures,uptake]).T)
 
