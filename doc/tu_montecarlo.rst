@@ -56,10 +56,14 @@ instance. The setup has been automated and is performed as follows::
     fn_host = 'MIL53.chk'
     fn_pars = ['pars.txt']
     host = System.from_file(fn_host).supercell(1,1,1)
+    # Screen Logger
     screenlog = MCScreenLog(step=10000)
+    # HDF5 logger
+    fh5 = h5.File('trajectory.h5','w')
+    hdf5writer = MCHDF5Writer(fh5, step=10000)
     log.set_level(log.silent)
     gcmc = GCMC.from_files(fn_guest, fn_pars, host=host,
-        rcut=12.0*angstrom, tr=None, tailcorrections=True, hooks=[screenlog],
+        rcut=12.0*angstrom, tr=None, tailcorrections=True, hooks=[screenlog, hdf5writer],
         reci_ei='ewald_interaction', nguests=30)
 
 Notice that the ``from_files`` class method accepts all keywords that can be
@@ -108,13 +112,16 @@ simulating with a variable number of atoms, it is necessary to generate new
 ForceFields during a simulation as the number of adsorbed guests increases.
 To avoid this, the ``nguests`` keyword should be put higher.
 
+Important quantities as well as snapshots will be written every 10000 MC steps
+to the trajectory.h5 file.
+
 Note that the number of required steps to reach convergence will depend on the
 external conditions. The phase increases as the number of particles increases.
 Generally, the number of GCMC steps should be increased with increasing pressure
 and decreasing temperature.
 
 By running the ``gcmc.py`` script, the uptake will be computed for a number
-of pressures sequentially and store the results in `results.npy`.
+of pressures sequentially and results will be stored in `results.npy`.
 
 Simulating an adsorption isotherm using RASPA
 ---------------------------------------------
