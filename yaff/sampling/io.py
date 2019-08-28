@@ -29,12 +29,13 @@ from __future__ import division
 from yaff.sampling.iterative import Hook, AttributeStateItem, PosStateItem, CellStateItem, ConsErrStateItem
 from yaff.sampling.nvt import NHCThermostat, NHCAttributeStateItem
 from yaff.sampling.npt import MTKBarostat, MTKAttributeStateItem, TBCombination
+from yaff.sampling.mc import MC
 
 
-__all__ = ['HDF5Writer', 'XYZWriter', 'RestartWriter']
+__all__ = ['HDF5Writer', 'MCHDF5Writer', 'XYZWriter', 'RestartWriter']
 
 
-class HDF5Writer(Hook):
+class BaseHDF5Writer(Hook):
     def __init__(self, f, start=0, step=1):
         """
            **Argument:**
@@ -54,8 +55,6 @@ class HDF5Writer(Hook):
         Hook.__init__(self, start, step)
 
     def __call__(self, iterative):
-        if 'system' not in self.f:
-            self.dump_system(iterative.ff.system)
         if 'trajectory' not in self.f:
             self.init_trajectory(iterative)
         tgrp = self.f['trajectory']
@@ -73,8 +72,8 @@ class HDF5Writer(Hook):
                 ds.resize(row+1, axis=0)
             ds[row] = item.value
 
-    def dump_system(self, system):
-        system.to_hdf5(self.f)
+    def dump_system(self, system, grp):
+        system.to_hdf5(grp)
 
     def init_trajectory(self, iterative):
         tgrp = self.f.create_group('trajectory')
@@ -88,6 +87,27 @@ class HDF5Writer(Hook):
             dset = tgrp.create_dataset(key, shape, maxshape=maxshape, dtype=item.dtype)
             for name, value in item.iter_attrs(iterative):
                tgrp.attrs[name] = value
+
+
+class HDF5Writer(BaseHDF5Writer):
+    def __call__(self, iterative):
+        if 'system' not in self.f:
+            self.dump_system(iterative.ff.system, self.f)
+        BaseHDF5Writer.__call__(self, iterative)
+
+
+class MCHDF5Writer(BaseHDF5Writer):
+    """Write output to hdf5 file during Monte Carlo simulations"""
+    def __call__(self, mc):
+        assert isinstance(mc, MC)
+        # Dump the current configuration; the number of particles is not
+        # necessarily fixed during a simulation, so we can't just dump all
+        # positions in a giant array as done during MD simulations
+        if mc.current_configuration is not None:
+            grp = self.f.require_group("snapshots/%012d"%mc.counter)
+            self.dump_system(mc.current_configuration, grp)
+        # The standard way of dumping simulation info to the trajectory group 
+        BaseHDF5Writer.__call__(self, mc)
 
 
 class XYZWriter(Hook):

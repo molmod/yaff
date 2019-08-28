@@ -56,6 +56,7 @@ from yaff.pes.ff import ForceField, \
 from yaff.pes.ext import Cell
 from yaff.sampling.mcutils import *
 from yaff.sampling import mctrials
+from yaff.sampling.iterative import AttributeStateItem
 from yaff.system import System
 
 
@@ -68,9 +69,37 @@ class MC(object):
     """Base class for Monte-Carlo simulations"""
     allowed_trials = []
     default_trials = {}
+    default_state = []
 
-    def __init__(self):
-        raise NotImplementedError
+    def __init__(self, state):
+        """
+            **Optional arguments:**
+      
+            state
+                A list with state items. State items are simple objects
+                that take or derive a property from the current state of the
+                MC algorithm.
+        """
+        self.counter = 0
+        if state is None:
+            self.state_list = [state_item.copy() for state_item in self.default_state]
+        else:
+            self.state_list = [state_item.copy() for state_item in self.default_state]
+            self.state_list += state
+        self.state = dict((item.key, item) for item in self.state_list)
+        self.call_hooks()
+
+    def call_hooks(self):
+        # Initialize hooks
+        with timer.section('%s hooks' % self.log_name):
+            state_updated = False
+            for hook in self.hooks:
+                if hook.expects_call(self.counter):
+                    if not state_updated:
+                        for item in self.state_list:
+                            item.update(self)
+                        state_updated = True
+                    hook(self)
 
     def run(self, nsteps, mc_moves=None, initial=None, einit=0,
                 translation_stepsize=1.0*angstrom,
@@ -153,9 +182,6 @@ class MC(object):
             self.emean = self.energy
             self.Vmean = self.current_configuration.cell.volume
             self.counter = 0
-            for hook in self.hooks:
-                if hook.expects_call(self.counter):
-                    hook(self)
             for istep in range(nsteps):
                 switch = np.random.rand()
                 # Select one of the possible MC moves
@@ -169,9 +195,7 @@ class MC(object):
                 self.Nmean += (self.N-self.Nmean)/self.counter
                 self.emean += (self.energy-self.emean)/self.counter
                 self.Vmean += (self.current_configuration.cell.volume-self.Vmean)/self.counter
-                for hook in self.hooks:
-                    if hook.expects_call(self.counter):
-                        hook(self)
+                self.call_hooks()
             return acceptance
 
     def reorder_guests(self, system, iguest):
@@ -206,7 +230,8 @@ class FixedNMC(MC):
     allowed_trials = []
     default_trials = {}
 
-    def __init__(self, guest, ff, external_potential=None, eguest=0.0, hooks=[]):
+    def __init__(self, guest, ff, external_potential=None, eguest=0.0,
+        hooks=[], state=None):
         # Initialization
         self.guest = guest
         if guest.cell.nvec==0:
@@ -221,6 +246,7 @@ class FixedNMC(MC):
         self.current_configuration = self.ff.system
         self.N = self.ff.system.natom//self.guest.natom
         assert self.N*self.guest.natom==self.ff.system.natom
+        MC.__init__(self, state)
 
     def get_ff(self, nguests):
         assert nguests == self.N
@@ -235,8 +261,14 @@ class CanonicalMC(FixedNMC):
     allowed_trials = ['translation','rotation']
     default_trials = {'translation': 0.5, 'rotation':0.5}
     log_name = 'NVTMC'
+    default_state = [
+        AttributeStateItem('counter'),
+        AttributeStateItem('energy'),
+        AttributeStateItem('emean'),
+    ]
 
-    def __init__(self, guest, ff, external_potential=None, eguest=0.0, hooks=[]):
+    def __init__(self, guest, ff, external_potential=None, eguest=0.0, 
+        hooks=[], state=None):
         """
            **Arguments:**
 
@@ -263,10 +295,19 @@ class CanonicalMC(FixedNMC):
                 The intramolecular energy of one guest in the gas phase;
                 currently, guest molecules are assumed to be rigid so this
                 will be constant throughout the simulation
+
+            hooks
+                A list of MCHooks
+
+            state
+                A list with state items. State items are simple objects
+                that take or derive a property from the current state of the
+                MC algorithm.
         """
         self.set_conditions(T)
         super(CanonicalMC, self).__init__(guest, ff,
-            external_potential=external_potential, eguest=0.0, hooks=hooks)
+            external_potential=external_potential, eguest=0.0, hooks=hooks,
+            state=state)
 
     def set_external_conditions(self, T):
         # External conditions
@@ -290,8 +331,16 @@ class NPTMC(FixedNMC):
     allowed_trials = ['translation','rotation','volumechange']
     default_trials = {'translation': 0.4, 'rotation':0.4, 'volumechange':0.2}
     log_name = 'NPTMC'
+    default_state = [
+        AttributeStateItem('counter'),
+        AttributeStateItem('energy'),
+        AttributeStateItem('emean'),
+        MCVolumeStateItem(),
+        AttributeStateItem('Vmean'),
+    ]
 
-    def __init__(self, guest, ff, ff_full, eguest=0.0, hooks=[]):
+
+    def __init__(self, guest, ff, ff_full, eguest=0.0, hooks=[], state=None):
         """
            **Arguments:**
 
@@ -307,14 +356,22 @@ class NPTMC(FixedNMC):
 
            **Optional Arguments:**
 
-            eguest
+           eguest
                 The intramolecular energy of one guest in the gas phase;
                 currently, guest molecules are assumed to be rigid so this
                 will be constant throughout the simulation
+
+           hooks
+                A list of MCHooks
+
+           state
+                A list with state items. State items are simple objects
+                that take or derive a property from the current state of the
+                MC algorithm.
         """
         self.ff_full = ff_full
         super(NPTMC, self).__init__(guest, ff,
-            external_potential=None, eguest=eguest, hooks=hooks)
+            external_potential=None, eguest=eguest, hooks=hooks, state=state)
         if self.ewald_reci is not None:
             raise ValueError("NPTMC simulations can not be performed when "
                              "ForcePartEwaldReciprocalInteraction is present")
@@ -353,9 +410,16 @@ class GCMC(MC):
     default_trials = {'insertion':0.25, 'deletion':0.25,
                       'translation': 0.25, 'rotation':0.25}
     log_name = 'GCMC'
+    default_state = [
+        AttributeStateItem('counter'),
+        AttributeStateItem('energy'),
+        AttributeStateItem('emean'),
+        AttributeStateItem('N'),
+        AttributeStateItem('Nmean'),
+    ]
 
     def __init__(self, guest, ff_generator, external_potential=None, eguest=0.0,
-                 hooks=[], nguests=10):
+                 hooks=[], nguests=10, state=None):
         """
            **Arguments:**
 
@@ -394,6 +458,11 @@ class GCMC(MC):
                 only used to initialize the force fields before the start of
                 the simulation. If more than nguests are adsorbed, additional
                 force fields will be generated on the fly.
+
+            state
+                A list with state items. State items are simple objects
+                that take or derive a property from the current state of the
+                MC algorithm.
         """
         # Initialization
         if guest.cell.nvec==0:
@@ -414,6 +483,7 @@ class GCMC(MC):
         self.Nmean = 0.0
         self.energy = 0.0
         self.emean = 0.0
+        MC.__init__(self, state)
 
     def set_external_conditions(self, T, fugacity):
         """

@@ -26,6 +26,8 @@
 from __future__ import division
 
 import numpy as np
+import h5py as h5
+import pkg_resources
 
 from yaff import *
 from molmod.units import angstrom, bar, kelvin, kcalmol
@@ -102,3 +104,21 @@ def test_gcmc_probabilities():
 #        print("Move: %20s P(ref) = %8.2f %% P(sim) = %8.2f %%" %
 #         (t, p/ptotal*100, float(acceptance[i,1])/nsteps*100) )
         assert np.abs(p/ptotal-float(acceptance[i,1])/nsteps)<5e-2
+
+
+def test_gcmc_hdf5writer():
+    fn_host = pkg_resources.resource_filename(__name__, '../../data/test/CAU_13.chk')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_CAU-13_xylene.txt')
+    fn_guest = pkg_resources.resource_filename(__name__, '../../data/test/xylene.chk')
+    with h5.File('yaff.sampling.test.test_verlet.test_hdf5_start.h5', driver='core', backing_store=False) as f:
+        hdf5 = MCHDF5Writer(f)
+        gcmc = GCMC.from_files(fn_guest, fn_pars, host=fn_host, hooks=[hdf5])
+        gcmc.set_external_conditions(200*kelvin, 1000*bar)
+        gcmc.run(10)
+        assert gcmc.counter == 10
+        assert 'trajectory' in f
+        assert 'counter' in f['trajectory']
+        assert 'energy' in f['trajectory']
+        assert 'emean' in f['trajectory']
+        assert 'N' in f['trajectory']
+        assert 'Nmean' in f['trajectory']

@@ -29,13 +29,13 @@ from __future__ import division
 import numpy as np
 import time
 
-from yaff.sampling.iterative import Hook
+from yaff.sampling.iterative import Hook, StateItem
 from yaff.system import System
 from yaff.log import log, timer
 
 
 __all__ = ['get_random_rotation_matrix', 'random_insertion',
-           'MCScreenLog',
+           'MCScreenLog', 'MCVolumeStateItem',
           ]
 
 
@@ -122,3 +122,11 @@ class MCScreenLog(Hook):
                 mc.log(),
                 time.time() - self.time0,
             ))
+
+
+class MCVolumeStateItem(StateItem):
+    def __init__(self):
+        StateItem.__init__(self, 'volume')
+
+    def get_value(self, mc):
+        return mc.current_configuration.cell.volume
