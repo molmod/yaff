@@ -38,7 +38,8 @@ from itertools import permutations
 
 from yaff.log import log
 from yaff.pes.ext import PairPotEI, PairPotLJ, PairPotMM3, PairPotMM3CAP, PairPotExpRep, \
-    PairPotQMDFFRep, PairPotDampDisp, PairPotDisp68BJDamp, Switch3, PairPotEIDip
+    PairPotQMDFFRep, PairPotDampDisp, PairPotDisp68BJDamp, Switch3, PairPotEIDip, \
+    PairPotLJCross
 from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
     ForcePartEwaldNeutralizing, ForcePartTailCorrection, \
@@ -1708,12 +1709,15 @@ class LJCrossGenerator(NonbondedGenerator):
     def __call__(self, system, parsec, ff_args):
         self.check_suffixes(parsec)
         conversions = self.process_units(parsec['UNIT'])
-        par_table = self.process_pars(parsec['PARS'], conversions, 1)
+        par_table = self.process_pars(parsec['PARS'], conversions, 2)
         scale_table = self.process_scales(parsec['SCALE'])
         self.apply(par_table, scale_table, system, ff_args)
 
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
+
     def apply(self, par_table, scale_table, system, ff_args):
-        #TODO:
         # Prepare the atomic parameters
         sigmas = np.zeros([system.natom,system.natom])
         epsilons = np.zeros([system.natom,system.natom])
@@ -1725,6 +1729,9 @@ class LJCrossGenerator(NonbondedGenerator):
                     raise TypeError('Superposition should not be allowed for non-covalent terms.')
                 elif len(par_list) == 1:
                     sigmas[i,j], epsilons[i,j] = par_list[0]
+                elif len(par_list) == 0:
+                    if log.do_high:
+                        log('No LJCross parameters found for ffatypes %s,%s. Parameters set to zero.' % (system.ffatypes[i0], system.ffatypes[i1]))
 
         # Prepare the global parameters
         scalings = Scalings(system, scale_table[1], scale_table[2], scale_table[3], scale_table[4])
@@ -1732,9 +1739,9 @@ class LJCrossGenerator(NonbondedGenerator):
         # Get the part. It should not exist yet.
         part_pair = ff_args.get_part_pair(PairPotLJCross)
         if part_pair is not None:
-            raise RuntimeError('Internal inconsistency: the LJ part should not be present yet.')
+            raise RuntimeError('Internal inconsistency: the LJCross part should not be present yet.')
 
-        pair_pot = PairPotLJ(sigmas, epsilons, ff_args.rcut, ff_args.tr)
+        pair_pot = PairPotLJCross(system.ffatype_ids, epsilons, sigmas, ff_args.rcut, ff_args.tr)
         nlist = ff_args.get_nlist(system)
         part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
         ff_args.parts.append(part_pair)
