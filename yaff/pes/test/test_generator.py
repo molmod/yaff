@@ -567,6 +567,27 @@ def test_generator_water32_dampdisp2():
     assert (b_cross > 0).all()
 
 
+def test_generator_water32_ljcross():
+    system = get_system_water32()
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_ljcross.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert len(ff.parts) == 1
+    part_pair_dampdisp = ff.part_pair_ljcross
+    # check parameters
+    eps_cross = part_pair_dampdisp.pair_pot.eps_cross
+    assert abs(eps_cross[0,0] - 0.25*kcalmol) < 1e-10
+    assert abs(eps_cross[0,1] - 0.0707*kcalmol) < 1e-10
+    assert abs(eps_cross[1,1] - 0.02*kcalmol) < 1e-10
+    assert (eps_cross == eps_cross.T).all()
+    assert (eps_cross > 0).all()
+    sig_cross = part_pair_dampdisp.pair_pot.sig_cross
+    assert abs(sig_cross[0,0] - 2.96*angstrom) < 1e-10
+    assert abs(sig_cross[0,1] - 2.83746*angstrom) < 1e-10
+    assert abs(sig_cross[1,1] - 2.72*angstrom) < 1e-10
+    assert (sig_cross == sig_cross.T).all()
+    assert (sig_cross > 0).all()
+
+
 def test_generator_glycine_dampdisp1():
     system = get_system_glycine()
     fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_dampdisp1.txt')
