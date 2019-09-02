@@ -36,8 +36,10 @@ compared to other codes, especially when simulating large systems (i.e. more
 than a few hundred of atoms).
 
 The bottleneck in nearly all MD simulations is the evaluation of noncovalent
-interactions. This section discusses some methods that allow to speed up this
-part of the simulation.
+interactions. This section discusses a method that allow to speed up this
+part of the simulation, using LAMMPS as a library. Alternatively, it is
+discussed how a Yaff force field can be converted to LAMMPS input files,
+bypassing Yaff completely.
 
 
 Using LAMMPS as a library to evaluate noncovalent interactions
@@ -274,3 +276,63 @@ A few pointers on what to do when things go wrong:
   previous section, which discusses some details of how LAMMPS and Yaff are
   coupled. Finally, you can ask Steven for help (if he is still around),
   otherwise you are in for a debugging session yourself...
+
+
+Converting a Yaff force field to LAMMPS
+=======================================
+
+In a case where outsourcing the calculation of noncovalent interactions to
+LAMMPS is not enough, you can consider ditching Yaff entirely and performing
+your simulations with LAMMPS. This means you will lose all nice features of
+Yaff, but it has to be mentioned that LAMMPS features a myriad of implemented
+methods, has a large and active userbase, and is potentially a lot faster
+than running simulations with Yaff.
+Do note that NOT all Yaff force fields can be converted to LAMMPS. A typical
+force field generated using QuickFF (anno 2019) should work. Please always
+check that Yaff and LAMMPS energies agree up to a fraction of a kcalmol.
+
+The procedure will be illustrated making use of the example provided in
+``data/examples/005_speed/mil53_quickff``. We start by creating a System
+instance and a directory where LAMMPS input files will be stored::
+
+    # Generate supercell system
+    supercell = (2,2,2)
+    system = System.from_file('system.chk').supercell(nx,ny,nz)
+    dn = 'lammps_%s'%('.'.join("%d"%n for n in [nx,ny,nz]))
+    if not os.path.isdir(dn): os.makedirs(dn)
+
+Optionally, we can tabulate the van der Waals interactions. For a Buckingham
+expression combined with Gaussian electrostatics, this offers a good speedup.
+For Lennard-Jones combined with point electrostatics, the gains are probably
+marginal. Note that the table is independent of the supercell size::
+
+    # Tabulate vdW interactions
+    rcut = 15.0*angstrom
+    if not os.path.isfile('lammps.table'):
+        ff = ForceField.generate(system, ['pars.txt'], rcut=rcut)
+        write_lammps_table(ff, fn='lammps.table', rmin=0.50*angstrom,
+            nrows=2500, unit_style='real')
+
+We chose the unit\_style ``real``, this decides the units used by LAMMPS.
+The actual conversion to LAMMPS is done by the function
+:func:`yaff.external.lammpsio.ff2lammps`. More options are available in the
+reference guide, but its basic usage is well illustrated by this example::
+
+    # Write the LAMMPS input files
+    ff2lammps(system, 'pars.txt', dn, rcut=15.0*angstrom, tailcorrections=False,
+        tabulated=True, unit_style='real')
+
+This will generate at least a ``lammps.in`` and a ``lammps.table`` file in
+``dn``. Unless you know what you are doing, you should not edit manually edit
+the ``lammps.data`` file. The ``lammps.in`` file probably has to be edited, as
+it controls what happens in the simulation. More information on this subject is
+available in the LAMMPS manual.
+
+We conclude by comparing the timings of pure LAMMPS simulations with Yaff, with
+and without using LAMMPS as a library.
+
+.. image:: figures/timings_lammps_mil53.png
+
+If a 4x4x4 supercell (containing 9728 atoms) is considered, LAMMPS offers
+a speedup of a factor 19, increasing to a factor 116 when 8 cores are
+used.

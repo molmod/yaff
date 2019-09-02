@@ -346,20 +346,20 @@ def ff2lammps(system, parameter_fns, dn, triclinic=True,
             region where the truncation modifies the pair potential
 
         mode
-            One of ``md'', ``library'', or ``test'', indicating the input
+            One of ``md``, ``library``, or ``test``, indicating the input
             directives for LAMMPS
-            ``md'': generic input file for MD simulations
-            ``library'': generic input file for using LAMMPS as a library
-            ``test'': provide excessive output in order to debug things
+            ``md``: generic input file for MD simulations
+            ``library``: generic input file for using LAMMPS as a library
+            ``test``: provide excessive output in order to debug things
 
         unit_style
-            One of ``real'' or ``electron'', see
+            One of ``real`` or ``electron``, see
             https://lammps.sandia.gov/doc/units.html for details
 
         tabulated
             Boolean; if True, the van der Waals interactions will be read from
             a lammps.table file, which can be generated with the
-            ``write_lammps_table'' function.
+            ``write_lammps_table`` function.
     '''
     # Check some properties of the supplied system
     if system.cell.nvec != 3:

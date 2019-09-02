@@ -31,9 +31,17 @@ do
     nproc=1
     python md.py ${program} ${supercell} ${nsteps} > ${program}_${nproc}_${nsteps}_${supercell}.log
 
-    program=lammps
+    program=liblammps
     nproc=8
     mpirun -np ${nproc} python md.py ${program} ${supercell} ${nsteps} > ${program}_${nproc}_${nsteps}_${supercell}.log
     nproc=1
     mpirun -np ${nproc} python md.py ${program} ${supercell} ${nsteps} > ${program}_${nproc}_${nsteps}_${supercell}.log
+
+    cd lammps_${supercell}
+    ln -df ../lammps.table
+    for nproc in 1 8
+    do
+        mpirun -np ${nproc} lmp -i lammps.in > lammps_${nproc}.log
+    done
+    cd ../
 done
