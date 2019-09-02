@@ -160,12 +160,12 @@ class ForcePartLammps(ForcePart):
 
         # Hybrid style combining electrostatics and table
         if do_ei and do_table:
-            self.lammps.command("pair_style hybrid/overlay coul/long %f table spline %d"%(rcut,npoints))
+            self.lammps.command("pair_style hybrid/overlay coul/long %13.8f table spline %d"%(rcut,npoints))
             self.lammps.command("pair_coeff * * coul/long")
             self.lammps.command("kspace_style %s %10.5e" % (kspace,kspace_accuracy))
         # Only electrostatics
         elif do_ei:
-            self.lammps.command("pair_style coul/long %f"%rcut)
+            self.lammps.command("pair_style coul/long %13.8f"%rcut)
             self.lammps.command("pair_coeff * *")
             self.lammps.command("kspace_style %s %10.5e" % (kspace,kspace_accuracy))
         # Only table

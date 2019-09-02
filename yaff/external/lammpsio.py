@@ -671,7 +671,7 @@ def ff2lammps(system, parameter_fns, dn, triclinic=True,
                 fin.write("%8.4f" % (switch/units['distance']))
                 fin.write("\n")
             else:
-                fin.write("pair_style      coul/long %8.4f\n" % (rcut/units['distance']) )
+                fin.write("pair_style      coul/long %13.8f\n" % (rcut/units['distance']) )
             fin.write("pair_modify     table 16 # Accuracy of the table used for real space electrostatics\n")
             fin.write("pair_modify     mix arithmetic\n")
             fin.write("pair_modify     tail %s\n" % ("yes" if tailcorrections else "no"))
