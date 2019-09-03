@@ -47,7 +47,7 @@ class ForcePartLammps(ForcePart):
     '''Covalent energies obtained from Lammps.'''
     def __init__(self, ff, fn_system, fn_log="none", suffix='',
                     do_table=True, fn_table='lammps.table', scalings_table=[0.0,0.0,1.0],
-                    do_ei=True, kspace='pppm', kspace_accuracy=1e-6, scalings_ei=[0.0,0.0,1.0],
+                    do_ei=True, kspace='ewald', kspace_accuracy=1e-7, scalings_ei=[0.0,0.0,1.0],
                     triclinic=True, comm=None, move_central_cell=False):
         r'''Initalize LAMMPS ForcePart
 
@@ -138,6 +138,14 @@ class ForcePartLammps(ForcePart):
             if rcut==0:
                 log("ERROR, do_ei set to True, but pair_ei was not found in the ff")
         else: raise NotImplementedError
+        if not kspace in ['ewald','pppm']:
+            raise ValueError('kspace should be one of ewald or pppm')
+        if self.system.natom>2000 and kspace=='ewald' and log.do_warning:
+            log.warn("You are simulating a more or less large system."
+                     "It might be more efficient to use kspace=pppm")
+        if self.system.natom<1000 and kspace=='pppm' and log.do_warning:
+            log.warn("You are simulating a more or less small system."
+                     "It might be better to use kspace=ewald")
 
         # Initialize a class instance and some attributes
         ForcePart.__init__(self, 'lammps', self.system)

@@ -697,8 +697,10 @@ def ff2lammps(system, parameter_fns, dn, triclinic=True,
                     else:
                         name = '%s---%s' % (str(ffaj),str(ffai))
                     fin.write("pair_coeff %d %d table %s %s\n" % (iffa+1,jffa+1,'lammps.table',name))
+        if system.natom>2000: kspace = 'pppm'
+        else: kspace = 'ewald'
         if mode=='library':
-            fin.write("kspace_style    pppm 0.000001      # Ewald accuracy\n")
+            fin.write("kspace_style    %s 1e-7      # Ewald accuracy\n"%kspace)
             fin.write('\nthermo_style  custom pe ebond eangle edihed eimp evdwl ecoul elong etail pxx pyy pzz pxy pxz pyz\n')
             fin.write('neigh_modify delay 0 every 1 check no\n')
             fin.write('variable eng equal pe\n')
@@ -706,7 +708,7 @@ def ff2lammps(system, parameter_fns, dn, triclinic=True,
             fin.write('fix 1 all nve\n')
             fin.write('run 0\n')
         elif mode=='test':
-            fin.write("kspace_style    pppm 0.000000001      # Ewald accuracy\n")
+            fin.write("kspace_style    %s 1e-7      # Ewald accuracy\n"%kspace)
             fin.write('\ncompute Pmol all pressure NULL bond angle dihedral improper\n')
             fin.write('compute Ppair all pressure NULL pair kspace\n')
             fin.write('thermo_style  custom step emol evdwl ecoul elong etail c_Pmol[1] c_Pmol[2] c_Pmol[3] c_Pmol[4] c_Pmol[5] c_Pmol[6] c_Ppair[1] c_Ppair[2] c_Ppair[3] c_Ppair[4] c_Ppair[5] c_Ppair[6]\n')
@@ -716,7 +718,7 @@ def ff2lammps(system, parameter_fns, dn, triclinic=True,
             fin.write('fix 1 all nve\n')
             fin.write('run 0\n')
         elif mode=='md':
-            fin.write("kspace_style    pppm 0.000001      # Ewald accuracy\n")
+            fin.write("kspace_style    %s 1e-7      # Ewald accuracy\n"%kspace)
             fin.write("neighbor        2.0 multi\n")
             fin.write("neigh_modify    every 2 delay 4 check yes\n\n")
             fin.write("#"*30)
