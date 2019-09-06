@@ -33,7 +33,7 @@ from yaff import *
 
 from yaff.pes.test.common import check_gpos_part, check_vtens_part,\
     check_gpos_cv_fd, check_vtens_cv_fd
-from yaff.test.common import get_system_quartz
+from yaff.test.common import get_system_quartz, get_alaninedipeptide_amber99ff
 
 from molmod import bend_angle
 from molmod import MolecularGraph
@@ -213,4 +213,56 @@ def test_bias_pathdeviation_mof5():
     part.add_term(bias)
     check_gpos_part(system, part)
     check_vtens_part(system, part)
-#    assert False
+
+
+def test_bias_gaussianhills_quartz():
+    system = get_system_quartz()
+    # Volume
+    cv0 = CVVolume(system)
+    q0 = system.cell.volume
+    # Distance between 2 and 8
+    cv1 = CVInternalCoordinate(system, Bond(2,8))
+    delta = system.pos[2]-system.pos[8]
+    system.cell.mic(delta)
+    q1 = np.linalg.norm(delta)
+    # Widths of the Gaussians
+    sigmas = np.array([10.0*angstrom**3, 0.2*angstrom])
+    bias = GaussianHills([cv0, cv1], sigmas)
+    # No hills added, energy should be zero
+    e = bias.compute()
+    assert e==0.0
+    # Add one hill
+    K0 = 5*kjmol
+    bias.add_hill(np.array([q0+sigmas[0],q1-2*sigmas[1]]), K0)
+    e = bias.compute()
+    assert np.abs(e - K0*np.exp(-2.5)) < 1e-10
+    # Add another hill
+    K1 = 2*kjmol
+    bias.add_hill(np.array([q0-3*sigmas[0],q1-1*sigmas[1]]), K1)
+    e = bias.compute()
+    assert np.abs(e - K0*np.exp(-2.5) - K1*np.exp(-5.0)) < 1e-10
+    # Test derivatives
+    bias.add_hill(np.array([q0-3*sigmas[0],q1-1*sigmas[1]]), K1)
+    part = ForcePartBias(system)
+    part.add_term(bias)
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
+
+
+def test_bias_gaussianhills_alanine():
+    ff = get_alaninedipeptide_amber99ff()
+    cv = CVInternalCoordinate(ff.system, DihedAngle(4,6,8,14))
+    sigma = 0.35*rad
+    bias = GaussianHills(cv, sigma)
+    e = bias.compute()
+    assert e==0.0
+    K, phi0 = 3*kjmol, -2.5*rad
+    bias.add_hill(phi0, K)
+    e = bias.compute()
+    phi = cv.compute()
+    eref = K*np.exp(-(phi-phi0)**2/2/sigma**2)
+    assert np.abs(e-eref)<1e-10*kjmol
+    part = ForcePartBias(ff.system)
+    part.add_term(bias)
+    check_gpos_part(ff.system, part)
+    check_vtens_part(ff.system, part)
