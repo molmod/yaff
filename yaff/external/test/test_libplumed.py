@@ -121,11 +121,7 @@ def test_plumed_peroxide_bond():
 
 
 def test_plumed_md():
-    from nose.plugins.skip import SkipTest
-    raise SkipTest('The PLUMED interface does not handle multiple bias '
-                   'calculation within one time step correctly, see '
-                   'discussion on the PLUMED forum')
-    with tmpdir(__name__, 'check_plumed') as dirname:
+    with tmpdir(__name__, 'test_plumed_md') as dirname:
         ff = get_ff_water32()
         kappa, V0 = 1.6*kjmol/angstrom**6, ff.system.cell.volume
         # PLUMED input commands
@@ -145,7 +141,7 @@ def test_plumed_md():
         # Setup integrator with a barostat, so plumed has to compute forces
         # more than once per timestep
         tbc = TBCombination(MTKBarostat(ff, 300, 1*bar), NHCThermostat(300))
-        verlet = VerletIntegrator(ff, timestep, hooks=[tbc])
+        verlet = VerletIntegrator(ff, timestep, hooks=[tbc,plumed])
         # Run a short MD simulation, keeping track of the CV (volume in this case)
         cvref = [ff.system.cell.volume]
         for i in range(4):
@@ -156,3 +152,43 @@ def test_plumed_md():
         assert cv.shape[0]==5
         assert np.allclose(cv[:,0]*picosecond, np.arange(5)*timestep)
         assert np.allclose(cv[:,1]*nanometer**3, cvref)
+
+
+def test_plumed_mtd():
+    with tmpdir(__name__, 'test_plumed_mtd') as dirname:
+        ff = get_ff_water32()
+        # PLUMED input commands
+        commands = "vol: VOLUME\n"
+        # Metadynamics run, adding a hill every 4 steps
+        commands += r"""METAD ...
+  LABEL=METAD
+  ARG=vol
+  PACE=4
+  HEIGHT=.50
+  SIGMA=.50
+  FILE=%s
+... METAD
+FLUSH STRIDE=1"""%(os.path.join(dirname,'hills'))
+        # Write PLUMED commands to file
+        fn = os.path.join(dirname, 'plumed.dat')
+        with open(fn,'w') as f:
+            f.write(commands)
+        # Setup Plumed
+        timestep = 1.0*femtosecond
+        plumed = ForcePartPlumed(ff.system, timestep=timestep, fn=fn)
+        ff.add_part(plumed)
+        # Setup integrator with a barostat, so plumed has to compute forces
+        # more than once per timestep
+        tbc = TBCombination(MTKBarostat(ff, 300, 1*bar), NHCThermostat(300))
+        verlet = VerletIntegrator(ff, timestep, hooks=[tbc,plumed])
+        # Run a short MD simulation, keeping track of the MTD CV (volume in this case)
+        cvref = []
+        for i in range(5):
+            # Metadynamics, hill should be addded every 4 integrator steps
+            verlet.run(4)
+            cvref.append(ff.system.cell.volume)
+        # Read the PLUMED output and compare with reference
+        hills = np.loadtxt(os.path.join(dirname,'hills'))
+        assert hills.shape[0]==5
+        assert np.allclose(hills[:,0]*picosecond, np.arange(4,21,4)*timestep)
+        assert np.allclose(hills[:,1]*nanometer**3, cvref)

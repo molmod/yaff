@@ -34,10 +34,11 @@ from molmod.units import kjmol, nanometer, picosecond
 
 from yaff.log import log, timer
 from yaff.pes.ff import ForcePart
+from yaff.sampling.iterative import Hook
 
 __all__ = ['ForcePartPlumed']
 
-class ForcePartPlumed(ForcePart):
+class ForcePartPlumed(ForcePart, Hook):
     '''Biasing energies computed by PLUMED'''
     def __init__(self, system, timestep=0.0, restart=0,
                        fn='plumed.dat', kernel=None, fn_log='plumed.log'):
@@ -50,11 +51,11 @@ class ForcePartPlumed(ForcePart):
             information from the integrator. For example, in metadynamics
             PLUMED needs to know when a time integration step has been
             completed (which is not necessarily after each force calculation).
-            ForcePartPlumed should therefore also inherit from Hook and
+            ForcePartPlumed therefore also inherits from Hook and
             by attaching this hook to the integrator, it is possible to obtain
-            the necessary information from the integrator. Currently, there are
-            some problems within PLUMED for this approach to work, particularly
-            in the VES module, see the discussion at
+            the necessary information from the integrator. Problems within
+            PLUMED for this approach to work, particularly in the VES module,
+            have been resolved; see the discussion at
             https://groups.google.com/forum/?fromgroups=#!topic/plumed-users/kPZu_tNZtgk
 
             **Arguments:**
@@ -92,7 +93,7 @@ class ForcePartPlumed(ForcePart):
         self.plumedstep = 0
         # TODO In the LAMMPS-PLUMED interface (src/USER-PLUMED/fix_plumed.cpp)
         # it is mentioned that biasing is not possible when tailcorrections are
-        # included. Maybe this should need to be checked...
+        # included. Maybe this should be checked...
         # Check cell dimensions, only 0D and 3D systems supported
         if not self.system.cell.nvec in [0,3]:
             raise NotImplementedError
@@ -103,6 +104,10 @@ class ForcePartPlumed(ForcePart):
             self.system.set_standard_masses()
         # Initialize the ForcePart
         ForcePart.__init__(self, 'plumed', self.system)
+        # Initialize the Hook, can't see a reason why start and step could
+        # differ from default values
+        Hook.__init__(self, start=0, step=1)
+        self.hooked = False
         if log.do_warning:
             log.warn("When using PLUMED as a hook for your integrator "
                      "and PLUMED adds time-dependent forces (for instance "
@@ -152,6 +157,32 @@ class ForcePartPlumed(ForcePart):
         self.plumed.cmd("setRestart", restart)
         self.plumed.cmd("init")
 
+    def __call__(self, iterative):
+        r'''When this point is reached, a complete time integration step was
+           finished and PLUMED should be notified about this.
+        '''
+        if not self.hooked:
+            if log.do_high:
+                log.hline()
+                log("Reinitializing PLUMED")
+                log.hline()
+            if log.do_warning:
+                log.warn("You are using PLUMED as a hook for your integrator. "
+                         "If PLUMED adds time-dependent forces (for instance "
+                         "when performing metadynamics) there is no energy "
+                         "conservation. The conserved quantity reported by "
+                         "YAFF is irrelevant in this case.")
+            self.setup_plumed(timestep=iterative.timestep,
+                restart=iterative.counter>0)
+            self.hooked = True
+        # PLUMED provides a setEnergy command, which should pass the
+        # current potential energy. It seems that this is never used, so we
+        # don't pass anything for the moment.
+#        current_energy = sum([part.energy for part in iterative.ff.parts[:-1] if not isinstance(part, ForcePartPlumed)])
+#        self.plumed.cmd("setEnergy", current_energy)
+        self.plumedstep = iterative.counter
+        self._internal_compute(None, None)
+        self.plumed.cmd("update")
 
     def _internal_compute(self, gpos, vtens):
         with timer.section('PLUMED'):
@@ -163,11 +194,6 @@ class ForcePartPlumed(ForcePart):
             if self.system.cell.nvec>0:
                 rvecs = self.system.cell.rvecs.copy()
                 self.plumed.cmd("setBox", rvecs)
-            # PLUMED provides a setEnergy command, which should pass the
-            # current potential energy. It seems that this is never used, so we
-            # don't pass anything for the moment.
-            # current_energy = sum([part.energy for part in iterative.ff.parts[:-1] if not isinstance(part, ForcePartPlumed)])
-            # self.plumed.cmd("setEnergy", current_energy)
             # PLUMED always needs arrays to write forces and virial to, so
             # provide dummy arrays if Yaff does not provide them
             # Note that gpos and forces differ by a minus sign, which has to be
@@ -182,16 +208,13 @@ class ForcePartPlumed(ForcePart):
                 my_vtens = np.zeros((3,3))
             else: my_vtens = vtens
             self.plumed.cmd("setVirial", my_vtens)
-            # Do the actual calculation, including an update; this should
-            # actually only be done at the end of a time step, but for now,
-            # this is not checked
+            # Do the actual calculation, without an update; this should
+            # only be done at the end of a time step
             self.plumed.cmd("prepareCalc")
             self.plumed.cmd("performCalcNoUpdate")
-            self.plumed.cmd("update")
             if gpos is not None:
                 gpos[:] *= -1.0
             # Retrieve biasing energy
             energy = np.zeros((1,))
             self.plumed.cmd("getBias",energy)
-            self.plumedstep += 1
             return energy[0]
