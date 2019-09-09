@@ -50,6 +50,7 @@ class MTDHook(Hook):
                  restart_file=None, tempering=0, periodicities=None):
         """
            **Arguments:**
+
            ff
                 A ForceField instance
 
