@@ -47,6 +47,8 @@ class SumHills(object):
                 A [N, n] NumPy array, where n is the number of collective
                 variables and N is the number of grid points
         """
+        if grid.ndim==1:
+            grid = np.asarray([grid]).T
         self.grid = grid
         self.ncv = self.grid.shape[1]
         self.q0s = None
@@ -59,7 +61,16 @@ class SumHills(object):
             prefactor = self.tempering/(self.tempering+self.T)
         else: prefactor = 1.0
         # Compute exponential argument
-        exparg = np.diagonal(np.subtract.outer(self.grid, self.q0s), axis1=1, axis2=3)**2
+        deltas = np.diagonal(np.subtract.outer(self.grid, self.q0s), axis1=1, axis2=3).copy()
+        # Apply minimum image convention
+        if self.periodicities is not None:
+            for icv in range(self.ncv):
+                if self.periodicities[icv] is None: continue
+                # Translate (q-q0) over integer multiple of the period P, so it
+                # ends up in [-P/2,P/2]
+                deltas[:,:,icv] -= np.floor(0.5+deltas[:,:,icv]/
+                    self.periodicities[icv])*self.periodicities[icv]
+        exparg = deltas*deltas
         exparg = np.multiply(exparg, 0.5/self.sigmas**2)
         exparg = np.sum(exparg, axis=2)
         exponents = np.exp(-exparg)
@@ -67,7 +78,7 @@ class SumHills(object):
         fes = -prefactor*np.sum(np.multiply(exponents, self.Ks),axis=1)
         return fes
 
-    def set_hills(self, q0s, Ks, sigmas, tempering=0.0, T=None):
+    def set_hills(self, q0s, Ks, sigmas, tempering=0.0, T=None, periodicities=None):
         # Safety checks
         assert q0s.shape[1]==self.ncv
         assert sigmas.shape[0]==self.ncv
@@ -80,6 +91,10 @@ class SumHills(object):
         self.Ks = Ks
         self.tempering = tempering
         self.T = T
+        self.periodicities = periodicities
+        if log.do_medium:
+            with log.section("SUMHILL"):
+                log("Found %d collective variables and %d Gaussian hills"%(self.ncv,self.q0s.shape[0]))
 
     def load_hdf5(self, fn, T=None):
         """
@@ -106,4 +121,8 @@ class SumHills(object):
                     T = np.mean(f['trajectory/temp'][:])
                 if log.do_medium:
                     log("Well-tempered MTD run: T = %s deltaT = %s"%(log.temperature(T), log.temperature(tempering)))
-            self.set_hills(q0s, Ks, sigmas, tempering=tempering, T=T)
+            if 'hills/periodicities' in f:
+                periodicities = f['hills/periodicities'][:]
+            else:
+                periodicities = None
+            self.set_hills(q0s, Ks, sigmas, tempering=tempering, T=T, periodicities=periodicities)

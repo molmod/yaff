@@ -397,7 +397,7 @@ class GaussianHills(BiasPotential):
        where \\alpha loops over deposited hills and i loops over collective
        variables.
     '''
-    def __init__(self, cvs, sigmas):
+    def __init__(self, cvs, sigmas, periodicities=None):
         '''
            **Arguments:**
 
@@ -408,11 +408,20 @@ class GaussianHills(BiasPotential):
            sigmas
                 The width of the Gaussian or a NumPy array [Ncv] specifying the
                 widths of the Gaussians
+
+           **Optional arguments:**
+
+            The periodicity of the single collective variable or a [Ncv]
+            NumPy array specifying the periodicity of each
+            collective variable. Specifying None means the CV is not
+            periodic.
         '''
         if isinstance(cvs, CollectiveVariable):
             cvs = [cvs]
         if isinstance(sigmas, float):
             sigmas = np.array([sigmas])
+        if isinstance(periodicities, float):
+            periodicities = np.array([periodicities])
         self.cvs = cvs
         self.ncv = len(self.cvs)
         assert sigmas.ndim==1
@@ -422,6 +431,9 @@ class GaussianHills(BiasPotential):
         self.sigmas_isq = 1.0/(2.0*sigmas**2.0)
         self.Ks = np.zeros((0,))
         self.q0s = np.zeros((0, self.ncv))
+        if periodicities is not None:
+            assert periodicities.shape[0]==self.ncv
+        self.periodicities = periodicities
 
     def add_hill(self, q0, K):
         '''
@@ -482,6 +494,19 @@ class GaussianHills(BiasPotential):
              for icv, cv in enumerate(self.cvs)])
 
     def compute(self, gpos=None, vtens=None):
+        def get_deltas(qs):
+            '''Compute collective variable values minus rest values, taking
+               periodicities into account'''
+            deltas = np.subtract(qs, self.q0s)
+            # Apply minimum image convention
+            if self.periodicities is not None:
+                for icv in range(self.ncv):
+                    if self.periodicities[icv] is None: continue
+                    # Translate (q-q0) over integer multiple of the period P, so it
+                    # ends up in [-P/2,P/2]
+                    deltas[:,icv] -= np.floor(0.5+deltas[:,icv]/
+                        self.periodicities[icv])*self.periodicities[icv]
+            return deltas
         # Prepare a gpos array for each collective variable
         if gpos is not None:
             mygpos = np.zeros(((self.ncv,)+gpos.shape))
@@ -495,7 +520,8 @@ class GaussianHills(BiasPotential):
         qs = np.array([cv.compute(gpos=mygpos[icv],vtens=myvtens[icv])
              for icv, cv in enumerate(self.cvs)])
         # Compute exponential argument
-        exparg = np.subtract(qs,self.q0s)**2
+        deltas = get_deltas(qs)
+        exparg = deltas*deltas
         exparg = np.multiply(exparg, self.sigmas_isq)
         exparg = np.sum(exparg, axis=1)
         # Compute the bias energy
@@ -503,14 +529,12 @@ class GaussianHills(BiasPotential):
         energy = np.sum(self.Ks*exponents)
         # Derivatives
         if gpos is not None:
-            prefactors = -np.subtract(qs,self.q0s)
-            prefactors = 2.0*np.multiply(prefactors, self.sigmas_isq)
+            prefactors = -2.0*np.multiply(deltas, self.sigmas_isq)
             # i: hill index, j: cv index, a: atom index, b: cartesian index
             gpos[:] = np.einsum('i,ij,jab->ab',self.Ks*exponents,prefactors,mygpos)
         if vtens is not None:
             if gpos is None:
-                prefactors = -np.subtract(qs,self.q0s)
-                prefactors = 2.0*np.multiply(prefactors, self.sigmas_isq)
+                prefactors = -2.0*np.multiply(deltas, self.sigmas_isq)
             # i: hill index, j: cv index, a: cartesian index, b: cartesian index
             vtens[:] = np.einsum('i,ij,jab->ab',self.Ks*exponents,prefactors,myvtens)
         return energy

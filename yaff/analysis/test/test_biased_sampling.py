@@ -36,9 +36,9 @@ from molmod.units import kjmol
 
 def test_sum_hills_alanin():
     npoints = 10
-    # Construct a regular 2D grid, spanning from -pi to +pi in both dimensions
-    grid0 = np.linspace(-3.0,2.0,3)
-    grid1 = np.linspace(2.0,3.0,3)
+    # Construct a regular 2D grid
+    grid0 = np.linspace(-3.0,2.0,npoints)
+    grid1 = np.linspace(2.0,3.0,npoints)
     grid = np.zeros((grid0.shape[0]*grid1.shape[0],2))
     grid[:,0] = np.repeat(grid0, grid1.shape[0])
     grid[:,1] = np.tile(grid1, grid0.shape[0])
@@ -48,12 +48,14 @@ def test_sum_hills_alanin():
         q0s = fh5['hills/q0'][:]
         Ks = fh5['hills/K'][:]
         sigmas = fh5['hills/sigma'][:]
+        periodicities = fh5['hills/periodicities'][:]
     mtd.load_hdf5(fn)
     fes = mtd.compute_fes()
     for igrid in range(grid.shape[0]):
         f = 0.0
         for ihill in range(q0s.shape[0]):
             deltas = grid[igrid]-q0s[ihill]
+            deltas -= np.floor(0.5+deltas/periodicities)*periodicities
             f -= Ks[ihill]*np.exp(-np.sum(deltas**2/2.0/sigmas**2))
         assert np.abs(f-fes[igrid])<1e-10*kjmol
 #        print("%5d %12.6e"%(igrid,f/kjmol))

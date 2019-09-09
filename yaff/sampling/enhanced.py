@@ -47,7 +47,7 @@ class MTDHook(Hook):
     Metadynamics simulations
     """
     def __init__(self, ff, cv, sigma, K, f=None, start=0, step=1,
-                 restart_file=None, tempering=0):
+                 restart_file=None, tempering=0, periodicities=None):
         """
            **Arguments:**
            ff
@@ -82,8 +82,14 @@ class MTDHook(Hook):
 
            tempering
                 Perform a well-tempered metadynamics simulation
+
+           periodicities
+                The periodicity of the single collective variable or a [Ncv]
+                NumPy array specifying the periodicity of each
+                collective variable. Specifying None means the CV is not
+                periodic.
         """
-        self.hills = GaussianHills(cv, sigma)
+        self.hills = GaussianHills(cv, sigma, periodicities=periodicities)
         self.K = K
         self.f = f
         self.tempering = tempering
@@ -137,3 +143,5 @@ class MTDHook(Hook):
         hgrp.create_dataset('q0', (0,self.hills.ncv), maxshape=(None,self.hills.ncv), dtype=float)
         hgrp.create_dataset('K', (0,), maxshape=(None,), dtype=float)
         hgrp.attrs['tempering'] = self.tempering
+        if self.hills.periodicities is not None:
+            hgrp.create_dataset('periodicities', data=self.hills.periodicities)

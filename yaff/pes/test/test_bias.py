@@ -266,3 +266,27 @@ def test_bias_gaussianhills_alanine():
     part.add_term(bias)
     check_gpos_part(ff.system, part)
     check_vtens_part(ff.system, part)
+
+
+def test_bias_gaussianhills_alanine_periodic():
+    ff = get_alaninedipeptide_amber99ff()
+    cv = CVInternalCoordinate(ff.system, DihedAngle(4,6,8,14))
+    sigma = 0.35*rad
+    bias = GaussianHills(cv, sigma, periodicities=2.0*np.pi)
+    e = bias.compute()
+    assert e==0.0
+    K, phi0 = 3*kjmol, -2.5*rad
+    bias.add_hill(phi0, K)
+    e = bias.compute()
+    phi = cv.compute()
+    eref = K*np.exp(-(phi-phi0)**2/2/sigma**2)
+    assert np.abs(e-eref)<1e-10*kjmol
+    # Another hill, two periods away, so should give the same energy
+    # once more
+    bias.add_hill(phi0-4.0*np.pi, K)
+    e = bias.compute()
+    assert np.abs(e-2*eref)<1e-10*kjmol
+    part = ForcePartBias(ff.system)
+    part.add_term(bias)
+    check_gpos_part(ff.system, part)
+    check_vtens_part(ff.system, part)
