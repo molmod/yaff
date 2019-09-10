@@ -38,6 +38,11 @@ from molmod.test.common import tmpdir
 
 
 def test_mtd_alanine():
+    try:
+        from plumed import Plumed
+    except:
+        from nose.plugins.skip import SkipTest
+        raise SkipTest('Could not import PLUMED, skipping PLUMED related tests')
     # MTD settings
     sigma = 0.35*rad
     pace = 4
@@ -80,6 +85,11 @@ def test_mtd_alanine():
 
 
 def test_mtd_alanine_tempered():
+    try:
+        from plumed import Plumed
+    except:
+        from nose.plugins.skip import SkipTest
+        raise SkipTest('Could not import PLUMED, skipping PLUMED related tests')
     # MTD settings
     sigma = 0.35*rad
     pace = 4
