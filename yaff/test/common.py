@@ -759,8 +759,11 @@ BENDAHARM:PARS    CT    CT     N  6.69440000e+02  1.09700000e+02
         ( (10,8,14,16), 15),
     ]
 
-    part_valence = ff.parts[2]
-    assert part_valence.name=='valence'
+    part_valence = None
+    for part in ff.parts:
+        if isinstance(part, ForcePartValence):
+            part_valence = part
+    assert part_valence is not None
     for indexes, term_index in dihedral_terms:
         ic = DihedCos(*indexes)
         vterm, sign, K = dihedral_parameters[term_index]
