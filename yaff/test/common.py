@@ -27,6 +27,7 @@ from __future__ import division
 
 import numpy as np
 import tempfile
+import os
 
 from molmod import angstrom, nanometer, kjmol
 
@@ -686,12 +687,12 @@ BENDAHARM:PARS     C    CT    H1  4.18400000e+02  1.09500000e+02
 BENDAHARM:PARS     N     C     O  6.69440000e+02  1.22900000e+02
 BENDAHARM:PARS    CT    CT     N  6.69440000e+02  1.09700000e+02
 """
-    tp = tempfile.NamedTemporaryFile()
+    tp = tempfile.NamedTemporaryFile(delete=False)
     tp.write(pars)
-    tp.flush()
+    tp.close()
     # Generate a first version of the force field
-#    system = system.from_file('alanine_dipeptide.chk')
     ff = ForceField.generate(system, tp.name, rcut=100.0*angstrom)
+    os.unlink(tp.name)
     # Adapt the charges
     ff.system.charges[:] = charges
     # Add the dihedral/improper dihedral terms
