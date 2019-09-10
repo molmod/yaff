@@ -25,10 +25,12 @@
 
 import h5py as h5
 from contextlib import contextmanager
+import numpy as np
 
 from molmod.test.common import tmpdir
 from yaff import *
 from yaff.sampling.test.common import get_ff_water32
+from yaff.test.common import get_alaninedipeptide_amber99ff
 
 
 @contextmanager
@@ -75,3 +77,27 @@ def run_opt_water32(suffix, prefix):
             opt.run(5)
             assert opt.counter == 5
             yield dn_tmp, opt, f
+
+
+@contextmanager
+def run_mtd_alanine(suffix, prefix):
+    # Work in a temporary directory
+    with tmpdir(suffix, prefix) as dn_tmp:
+        # MTD settings
+        sigmas = np.array([0.35*rad,0.35*rad])
+        pace = 4
+        K = 1.2*kjmol
+        # Construct metadynamics as a Yaff hook
+        ff = get_alaninedipeptide_amber99ff()
+        cv0 = CVInternalCoordinate(ff.system, DihedAngle(4,6,8,14))
+        cv1 = CVInternalCoordinate(ff.system, DihedAngle(6,8,14,16))
+        # Dihedral angles are periodic, this has to be taken into account!
+        periodicities = np.array([2.0*np.pi,2.0*np.pi])
+        # Run a test simulation
+        with h5.File('%s/output.h5' % dn_tmp) as f:
+            hdf5 = HDF5Writer(f)
+            mtd = MTDHook(ff, [cv0,cv1], sigmas, K, f=f, start=pace, step=pace,
+                periodicities=periodicities)
+            nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=[mtd])
+            nve.run(12)
+            yield dn_tmp, nve, f
