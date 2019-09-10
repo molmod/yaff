@@ -47,10 +47,10 @@ def test_mtd_alanine():
     cv = CVInternalCoordinate(ff.system, DihedAngle(4,6,8,14))
     with h5.File('yaff.sampling.test.test_enhanced.test_mtd_alanine.h5', driver='core', backing_store=False) as f:
         hdf5 = HDF5Writer(f)
-        mtd = MTDHook(ff, cv, sigma, K, f = f, start=pace, step=pace)
-        nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=[mtd])
-        vel0 = nve.vel.copy()
-        nve.run(12)
+        mtd = MTDHook(ff, cv, sigma, K, f = f, start=pace, step=pace, periodicities=2*np.pi)
+        nvt = VerletIntegrator(ff, 1.0*femtosecond, hooks=[mtd])
+        vel0 = nvt.vel.copy()
+        nvt.run(12)
         # Check HDF5 output
         assert 'hills' in f
         assert np.all(f['hills/q0'][:]==mtd.hills.q0s)
@@ -72,8 +72,8 @@ def test_mtd_alanine():
         ff = get_alaninedipeptide_amber99ff()
         plumed = ForcePartPlumed(ff.system, fn=fn)
         ff.add_part(plumed)
-        nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=[plumed], vel0=vel0)
-        nve.run(12)
+        nvt = VerletIntegrator(ff, 1.0*femtosecond, hooks=[plumed], vel0=vel0)
+        nvt.run(12)
         hills = np.loadtxt(os.path.join(dirname,'hills'))
     # Compare hill centers
     assert np.all(np.abs(hills[:,1]-mtd.hills.q0s[:,0])<1e-10*rad)
@@ -88,10 +88,10 @@ def test_mtd_alanine_tempered():
     # Construct metadynamics as a Yaff hook
     ff = get_alaninedipeptide_amber99ff()
     cv = CVInternalCoordinate(ff.system, DihedAngle(4,6,8,14))
-    mtd = MTDHook(ff, cv, sigma, K, start=pace, step=pace, tempering=tempering)
-    nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=[mtd])
-    vel0 = nve.vel.copy()
-    nve.run(12)
+    mtd = MTDHook(ff, cv, sigma, K, start=pace, step=pace, tempering=tempering, periodicities=2*np.pi)
+    nvt = VerletIntegrator(ff, 1.0*femtosecond, hooks=[mtd])
+    vel0 = nvt.vel.copy()
+    nvt.run(12)
     # Same simulation using PLUMED
     with tmpdir(__name__, 'test_mtd_alanine') as dirname:
         # PLUMED input commands
@@ -109,8 +109,8 @@ def test_mtd_alanine_tempered():
         ff = get_alaninedipeptide_amber99ff()
         plumed = ForcePartPlumed(ff.system, fn=fn)
         ff.add_part(plumed)
-        nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=[plumed], vel0=vel0)
-        nve.run(12)
+        nvt = VerletIntegrator(ff, 1.0*femtosecond, hooks=[plumed], vel0=vel0)
+        nvt.run(12)
         hills = np.loadtxt(os.path.join(dirname,'hills'))
     # Compare Gaussian heights, PLUMED writes reweighted heights
     Kref = hills[:,3]*tempering/(300+tempering)*kjmol
@@ -126,17 +126,20 @@ def test_mtd_restart():
     # Construct metadynamics as a Yaff hook
     ff = get_alaninedipeptide_amber99ff()
     cv = CVInternalCoordinate(ff.system, DihedAngle(4,6,8,14))
-    with h5.File('yaff.sampling.test.test_enhanced.test_mtd_restart.h5', driver='core', backing_store=False) as f0:
+    with h5.File('yaff.sampling.test.test_enhanced.test_mtd_restart.h5',
+            driver='core', backing_store=False) as f0:
         hdf5 = HDF5Writer(f0)
-        mtd = MTDHook(ff, cv, sigma, K, f = f0, start=pace, step=pace)
-        nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=[mtd])
-        vel0 = nve.vel.copy()
-        nve.run(12)
+        mtd = MTDHook(ff, cv, sigma, K, f = f0, start=pace, step=pace, periodicities=2*np.pi)
+        nvt = VerletIntegrator(ff, 1.0*femtosecond, hooks=[mtd])
+        vel0 = nvt.vel.copy()
+        nvt.run(12)
         ff = get_alaninedipeptide_amber99ff()
-        with h5.File('yaff.sampling.test.test_enhanced.test_mtd_restarted.h5', driver='core', backing_store=False) as f1:
-            mtd_restart = MTDHook(ff, cv, sigma, K, f=f1, start=pace, step=pace, restart_file=f0)
-            nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=[mtd_restart])
-            nve.run(12)
+        with h5.File('yaff.sampling.test.test_enhanced.test_mtd_restarted.h5',
+                driver='core', backing_store=False) as f1:
+            mtd_restart = MTDHook(ff, cv, sigma, K, f=f1, start=pace,
+                step=pace, restart_file=f0, periodicities=2*np.pi)
+            nvt = VerletIntegrator(ff, 1.0*femtosecond, hooks=[mtd_restart])
+            nvt.run(12)
             assert mtd_restart.hills.q0s.shape[0]==6
             assert np.all(mtd_restart.hills.q0s[:3]==mtd.hills.q0s)
             assert 'hills' in f1

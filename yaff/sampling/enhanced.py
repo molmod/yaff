@@ -104,6 +104,8 @@ class MTDHook(Hook):
                 raise ValueError("Could not read hills group from %s"%(restart_file))
             if not self.tempering==restart_file['hills'].attrs['tempering']:
                 raise ValueError("Inconsistent tempering between runs")
+            if not np.all(self.hills.periodicities==restart_file['hills/periodicities']):
+                raise ValueError("Inconsistent periodicities between runs")
             q0 = restart_file['hills/q0'][:]
             K = restart_file['hills/K'][:]
             self.hills.add_hills(q0, K)
