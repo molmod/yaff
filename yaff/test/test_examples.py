@@ -33,27 +33,27 @@ from molmod.test.test_examples import check_example
 
 
 def test_example_000_overview():
-    check_example(__name__, '000_overview', 'simulation.py', ['parameters.txt', 'system.chk'])
+    check_example('000_overview', 'simulation.py', ['parameters.txt', 'system.chk'])
 
 
 def test_example_001_tutorial_bks():
-    check_example(__name__, '001_tutorial_bks', 'runall.py', [
+    check_example('001_tutorial_bks', 'runall.py', [
         'bks.pot', 'init/mksystem.py', 'init/rvecs.txt', 'init/struct.xyz',
         'nvt/analysis.py', 'nvt/simulation.py', 'opt/analysis.py', 'opt/simulation.py'])
 
 
 def test_example_002_external_trajectory():
-    check_example(__name__, '002_external_trajectory', 'rdf.py', ['trajectory.xyz'])
+    check_example('002_external_trajectory', 'rdf.py', ['trajectory.xyz'])
 
 
 def test_example_003_water_thermostat():
-    check_example(__name__, '003_water_thermostat', 'md.py', ['parameters.txt', 'system.chk'])
+    check_example('003_water_thermostat', 'md.py', ['parameters.txt', 'system.chk'])
 
 
 def test_example_004_tailcorrections():
-    check_example(__name__, '004_tailcorrections', 'runall.py', ['methane_trappe/common.py',
+    check_example('004_tailcorrections', 'runall.py', ['methane_trappe/common.py',
         'methane_trappe/sp.py','methane_trappe/md.py'])
 
 
 def test_example_999_back_propagation():
-    check_example(__name__, '999_back_propagation', 'bp.py', [])
+    check_example('999_back_propagation', 'bp.py', [])
