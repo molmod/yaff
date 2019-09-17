@@ -64,6 +64,7 @@ Tutorials
 
    tu_silica.rst
    tu_tailcorrections.rst
+   tu_montecarlo.rst
 
 
 Reference Guide

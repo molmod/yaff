@@ -79,6 +79,7 @@
 from yaff.pes.ext import *
 from yaff.pes.comlist import *
 from yaff.pes.dlist import *
+from yaff.pes.eos import *
 from yaff.pes.iclist import *
 from yaff.pes.vlist import *
 from yaff.pes.generator import *
