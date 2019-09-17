@@ -42,7 +42,8 @@ from yaff.pes.ext import PairPotEI, PairPotLJ, PairPotMM3, PairPotMM3CAP, PairPo
     PairPotLJCross
 from yaff.pes.ff import ForcePartPair, ForcePartValence, \
     ForcePartEwaldReciprocal, ForcePartEwaldCorrection, \
-    ForcePartEwaldNeutralizing, ForcePartTailCorrection
+    ForcePartEwaldNeutralizing, ForcePartTailCorrection, \
+    ForcePartEwaldReciprocalInteraction
 from yaff.pes.iclist import Bond, BendAngle, BendCos, \
     UreyBradley, DihedAngle, DihedCos, OopAngle, OopMeanAngle, OopCos, \
     OopMeanCos, OopDist, SqOopDist, DihedCos2, DihedCos3, DihedCos4, DihedCos6
@@ -88,8 +89,7 @@ class FFArgs(object):
     '''
     def __init__(self, rcut=18.89726133921252, tr=Switch3(7.558904535685008),
                  alpha_scale=3.5, gcut_scale=1.1, skin=0, smooth_ei=False,
-                 reci_ei='ewald', exclude_frame=False, n_frame=0,
-                 tailcorrections=False):
+                 reci_ei='ewald', nlow=0, nhigh=-1, tailcorrections=False):
         """
            **Optional arguments:**
 
@@ -124,18 +124,29 @@ class FFArgs(object):
            reci_ei
                 The method to be used for the reciprocal contribution to the
                 electrostatic interactions in the case of periodic systems. This
-                must be one of 'ignore' or 'ewald'. The 'ewald' option is only
-                supported for 3D periodic systems.
+                must be one of 'ignore' or 'ewald' or 'ewald_interaction'.
+                The options starting with 'ewald' are only supported for 3D
+                periodic systems. If 'ewald_interaction' is chosen, the
+                reciprocal contribution will not be included and it should be
+                accounted for by using the :class:`EwaldReciprocalInteraction`
 
-            exclude_frame
-                A boolean to exclude framework-framework interactions
-                (exclude_frame=True) for efficiency sake in MC simulations.
+           nlow
+                Interactions between atom pairs are only included if at least
+                one atom index is higher than or equal to nlow. The default
+                nlow=0 means no exclusion. Valence terms involving atoms with
+                index lower than or equal to nlow will not be included.
 
-            n_frame
-                Number of framework atoms. This parameter is used to exclude
-                framework-framework neighbors when exclude_frame=True.
+           nhigh
+                Interactions between atom pairs are only included if at least
+                one atom index is smaller than nhigh. The default nhigh=-1
+                means no exclusion. Valence terms involving atoms with index
+                higher than nhigh will not be included.
+                If nlow=nhigh, the system is divided into two parts and only
+                pairs involving one atom of each part will be included. This is
+                useful to calculate interaction energies in Monte Carlo
+                simulations
 
-            tailcorrections
+           tailcorrections
                 Boolean: if true, apply a correction for the truncation of the
                 pair potentials assuming the system is homogeneous in the
                 region where the truncation modifies the pair potential
@@ -148,8 +159,8 @@ class FFArgs(object):
            that the numerical errors do not depend too much on the real space
            cutoff and the system size.
         """
-        if reci_ei not in ['ignore', 'ewald']:
-            raise ValueError('The reci_ei option must be one of \'ignore\' or \'ewald\'.')
+        if reci_ei not in ['ignore', 'ewald', 'ewald_interaction']:
+            raise ValueError('The reci_ei option must be one of \'ignore\' or \'ewald\' or \'ewald_interaction\'.')
         self.rcut = rcut
         self.tr = tr
         self.alpha_scale = alpha_scale
@@ -160,13 +171,14 @@ class FFArgs(object):
         # arguments for the ForceField constructor
         self.parts = []
         self.nlist = None
-        self.exclude_frame = exclude_frame
-        self.n_frame = n_frame
+        self.nlow = nlow
+        self.nhigh = nhigh
         self.tailcorrections = tailcorrections
 
     def get_nlist(self, system):
         if self.nlist is None:
-            self.nlist = NeighborList(system, self.skin, self.exclude_frame, self.n_frame)
+            self.nlist = NeighborList(system, skin=self.skin, nlow=self.nlow,
+                            nhigh=self.nhigh)
         return self.nlist
 
     def get_part(self, ForcePartClass):
@@ -208,16 +220,20 @@ class FFArgs(object):
         if self.reci_ei == 'ignore':
             # Nothing to do
             pass
-        elif self.reci_ei == 'ewald':
+        elif self.reci_ei.startswith('ewald'):
             if system.cell.nvec == 3:
-                # Reciprocal-space electrostatics
-                part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, self.gcut_scale*alpha, dielectric, self.exclude_frame, self.n_frame)
+                if self.reci_ei == 'ewald_interaction':
+                    part_ewald_reci = ForcePartEwaldReciprocalInteraction(system.cell, alpha, self.gcut_scale*alpha, dielectric=dielectric)
+                elif self.reci_ei == 'ewald':
+                    # Reciprocal-space electrostatics
+                    part_ewald_reci = ForcePartEwaldReciprocal(system, alpha, self.gcut_scale*alpha, dielectric, self.nlow, self.nhigh)
+                else: raise NotImplementedError
                 self.parts.append(part_ewald_reci)
                 # Ewald corrections
-                part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings, dielectric)
+                part_ewald_corr = ForcePartEwaldCorrection(system, alpha, scalings, dielectric, self.nlow, self.nhigh)
                 self.parts.append(part_ewald_corr)
                 # Neutralizing background
-                part_ewald_neut = ForcePartEwaldNeutralizing(system, alpha, dielectric)
+                part_ewald_neut = ForcePartEwaldNeutralizing(system, alpha, dielectric, self.nlow, self.nhigh)
                 self.parts.append(part_ewald_neut)
             elif system.cell.nvec != 0:
                 raise NotImplementedError('The ewald summation is only available for 3D periodic systems.')
@@ -455,6 +471,18 @@ class ValenceGenerator(Generator):
             raise ValueError('The system must have bonds in order to define valence terms.')
         part_valence = ff_args.get_part_valence(system)
         for indexes in self.iter_indexes(system):
+            # We do not want terms where at least one atom index is smaller than
+            # nlow, as this is (should be) an excluded interaction
+            if min(indexes)<ff_args.nlow:
+                # Check that this term indeed features only atoms with index<nlow
+                assert max(indexes)<ff_args.nlow
+                continue
+            # We do not want terms where at least one atom index is higher than
+            # or equal to nhigh, as this is (should be) an excluded interaction
+            if ff_args.nhigh!=-1 and max(indexes)>=ff_args.nhigh:
+                # Check that this term indeed features only atoms with index<nlow
+                assert min(indexes)>=ff_args.nhigh
+                continue
             key = tuple(system.get_ffatype(i) for i in indexes)
             par_list = par_table.get(key, [])
             for pars in par_list:
@@ -1078,6 +1106,16 @@ class ValenceCrossGenerator(Generator):
             3: self.get_indexes3, 4: self.get_indexes4, 5: self.get_indexes5,
         }
         for indexes in self.iter_indexes(system):
+            if min(indexes)<ff_args.nlow:
+                # Check that this term indeed features only atoms with index<nlow
+                assert max(indexes)<ff_args.nlow
+                continue
+            # We do not want terms where at least one atom index is higher than
+            # or equal to nhigh, as this is (should be) an excluded interaction
+            if ff_args.nhigh!=-1 and max(indexes)>=ff_args.nhigh:
+                # Check that this term indeed features only atoms with index<nlow
+                assert min(indexes)>=ff_args.nhigh
+                continue
             key = tuple(system.get_ffatype(i) for i in indexes)
             par_list = par_table.get(key, [])
             for pars in par_list:
@@ -2155,7 +2193,8 @@ def apply_generators(system, parameters, ff_args):
     # If tail corrections are requested, go through all parts and add when necessary
     if ff_args.tailcorrections:
         if system.cell.nvec==0:
-            log.warn('Tail corrections were requested, but this makes no sense for non-periodic system. Not adding tail corrections...')
+            if log.do_warning:
+                log.warn('Tail corrections were requested, but this makes no sense for non-periodic system. Not adding tail corrections...')
         elif system.cell.nvec==3:
             for part in ff_args.parts:
                 # Only add tail correction to pair potentials
@@ -2165,7 +2204,7 @@ def apply_generators(system, parameters, ff_args):
                     if isinstance(part.pair_pot,PairPotEI) or isinstance(part.pair_pot,PairPotEIDip):
                         continue
                     else:
-                        part_tailcorrection = ForcePartTailCorrection(system, part)
+                        part_tailcorrection = ForcePartTailCorrection(system, part, nlow=ff_args.nlow, nhigh=ff_args.nhigh)
                         ff_args.parts.append(part_tailcorrection)
         else:
             raise ValueError('Tail corrections not available for 1-D and 2-D periodic systems')

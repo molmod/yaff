@@ -23,20 +23,20 @@
 # --
 
 
-cimport cell
+from __future__ import division
+from __future__ import print_function
 
-cdef extern from "nlist.h":
-    ctypedef struct neigh_row_type:
-        long a, b
-        double d
-        double dx, dy, dz
-        long r0, r1, r2
+import pkg_resources
 
-    bint nlist_build_low(double *pos, double rcut, long *rmax,
-                         cell.cell_type* cell, long *nlist_status,
-                         neigh_row_type *neighs, long pos_size, long nlow, long nhigh, long nneigh)
+from yaff.conversion.raspa import *
+from molmod.units import kelvin, pascal
 
-    void nlist_recompute_low(double *pos, double *pos_old, cell.cell_type*
-                             unitcell, neigh_row_type *neighs, long nneigh)
-
-    bint nlist_inc_r(cell.cell_type *unitcell, long *r, long *rmax)
+def test_raspa_read_loading():
+    fn = pkg_resources.resource_filename(__name__,
+            '../../data/test/output_MIL53_2.2.2_298.000000_10000.data')
+    T, P, fugacity, N, Nerr = read_raspa_loading(fn)
+    assert T==298*kelvin
+    assert P==10000*pascal
+    assert fugacity==9994.52870926490505*pascal
+    assert N==0.2916750000
+    assert Nerr==0.0178022822

@@ -412,6 +412,20 @@ def test_subsystem():
     assert np.shape(system2.dipoles)[1] == 3
 
 
+def test_merge():
+    system1 = get_system_quartz()
+    system2 = get_system_peroxide()
+    system = system1.merge(system2)
+    assert system1.natom+system2.natom==system.natom
+    assert np.all( system.numbers[:system1.natom] == system1.numbers)
+    assert np.all( system.numbers[system1.natom:] == system2.numbers)
+    assert np.all( system.pos[:system1.natom] == system1.pos)
+    assert np.all( system.pos[system1.natom:] == system2.pos)
+    assert system.charges is None
+    assert np.all([system1.get_ffatype(iatom) for iatom in range(system1.natom)]==system.ffatypes[system.ffatype_ids[:system1.natom]])
+    assert np.all([system2.get_ffatype(iatom) for iatom in range(system2.natom)]==system.ffatypes[system.ffatype_ids[system1.natom:]])
+
+
 def test_cut_bonds():
     system = get_system_peroxide()
     system.cut_bonds([0,2])

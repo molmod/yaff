@@ -37,7 +37,7 @@ from yaff.test.common import get_system_fluidum_grid, get_system_water32
 
 
 
-def check_tailcorr_convergence(system, pairpot_class, decay, *args, **kwargs):
+def check_tailcorr_convergence(system, pairpot_class, decay, nlow, nhigh, *args, **kwargs):
     """
     Systematically increase rcut to extrapolate the energy and pressure for
     rcut -> infinity. Then check that the energy and pressure including
@@ -54,7 +54,7 @@ def check_tailcorr_convergence(system, pairpot_class, decay, *args, **kwargs):
         * **kwargs: all keyword arguments that need to be passed to initialize
           the pairpot_class
     """
-    nlist = NeighborList(system)
+    nlist = NeighborList(system, nlow=nlow, nhigh=nhigh)
     scalings = Scalings(system)
     rcuts = np.linspace(12.0,32.0,11)*angstrom
     vtens0, vtens1 = np.zeros((3,3)), np.zeros((3,3))
@@ -65,7 +65,7 @@ def check_tailcorr_convergence(system, pairpot_class, decay, *args, **kwargs):
         newargs = args + (rcut,)
         pair_pot = pairpot_class(*(newargs), **kwargs)
         part_pair = ForcePartPair(system, nlist, scalings, pair_pot)
-        part_tailcorr = ForcePartTailCorrection(system, part_pair)
+        part_tailcorr = ForcePartTailCorrection(system, part_pair, nlow=nlow, nhigh=nhigh)
         ff0 = ForceField(system, [part_pair], nlist=nlist)
         ff1 = ForceField(system, [part_pair, part_tailcorr], nlist=nlist)
         vtens0[:] = 0.0
@@ -180,7 +180,20 @@ def test_tailcorr_fluidum_lj():
     epsilons = np.ones((natom,))*0.15*kcalmol
     epsilons += np.random.normal(0.0,0.001*kcalmol,epsilons.shape[0])
     for tr in [None,Switch3(3.0*angstrom)]:
-        check_tailcorr_convergence(system, PairPotLJ, 'r6', sigmas, epsilons, tr=tr)
+        check_tailcorr_convergence(system, PairPotLJ, 'r6', nlist.nlow, nlist.nhigh, sigmas, epsilons, tr=tr)
+
+
+def test_tailcorr_fluidum_lj_exclude_frame():
+    natom = 64
+    system = get_system_fluidum_grid(natom)
+    nlist = NeighborList(system, nlow=59)
+    scalings = Scalings(system)
+    sigmas = np.ones((natom,))*2.1*angstrom
+    sigmas += np.random.normal(0.0,0.01*angstrom,sigmas.shape[0])
+    epsilons = np.ones((natom,))*0.15*kcalmol
+    epsilons += np.random.normal(0.0,0.001*kcalmol,epsilons.shape[0])
+    for tr in [None,Switch3(3.0*angstrom)]:
+        check_tailcorr_convergence(system, PairPotLJ, 'r6', nlist.nlow, nlist.nhigh, sigmas, epsilons, tr=tr)
 
 
 def test_tailcorr_fluidum_mm3():
@@ -195,7 +208,7 @@ def test_tailcorr_fluidum_mm3():
     for onlypauli,decay in zip([0,1],['r6','exp']):
         onlypaulis = np.ones((natom,),dtype=np.int32)*onlypauli
         for tr in [None,Switch3(3.0*angstrom)]:
-            check_tailcorr_convergence(system, PairPotMM3, decay, sigmas, epsilons, onlypaulis, tr=tr)
+            check_tailcorr_convergence(system, PairPotMM3, decay, nlist.nlow, nlist.nhigh, sigmas, epsilons, onlypaulis, tr=tr)
 
 
 def test_tailcorr_fluidum_grimme():
@@ -208,7 +221,7 @@ def test_tailcorr_fluidum_grimme():
     c6s = np.ones((natom,))*0.2*1e-3*kjmol*nanometer**6
     c6s += np.random.normal(0.0,0.01*angstrom,c6s.shape[0])
     for tr in [None,Switch3(3.0*angstrom)]:
-        check_tailcorr_convergence(system, PairPotGrimme, 'r6', r0s, c6s, tr=tr)
+        check_tailcorr_convergence(system, PairPotGrimme, 'r6', nlist.nlow, nlist.nhigh, r0s, c6s, tr=tr)
 
 
 def test_tailcorr_fluidum_exprep():
@@ -225,7 +238,7 @@ def test_tailcorr_fluidum_exprep():
     b_cross = np.zeros((3, 3), float)
     amp_mix, amp_mix_coeff, b_mix, b_mix_coeff = 0,0,1,0
     for tr in [None,Switch3(3.0*angstrom)]:
-        check_tailcorr_convergence(system, PairPotExpRep, 'exp',
+        check_tailcorr_convergence(system, PairPotExpRep, 'exp', nlist.nlow, nlist.nhigh,
             system.ffatype_ids, amp_cross, b_cross, tr=tr,
             amps=amps, amp_mix=amp_mix, amp_mix_coeff=amp_mix_coeff,
             bs=bs, b_mix=b_mix, b_mix_coeff=b_mix_coeff)
@@ -247,5 +260,5 @@ def test_tailcorr_fluidum_ljcross():
     assert np.all( np.abs( sig_cross - np.transpose(sig_cross) ) < 1e-15 )
     assert np.all( np.abs( eps_cross - np.transpose(eps_cross) ) < 1e-15 )
     for tr in [None,Switch3(3.0*angstrom)]:
-        check_tailcorr_convergence(system, PairPotLJCross, 'r6',
+        check_tailcorr_convergence(system, PairPotLJCross, 'r6', nlist.nlow, nlist.nhigh,
             system.ffatype_ids, eps_cross, sig_cross, tr=tr)
