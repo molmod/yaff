@@ -58,7 +58,8 @@ __all__ = [
     'PairPotDisp68BJDamp', 'PairPotEI', 'PairPotEIDip', 'PairPotEiSlater1s1sCorr',
     'PairPotEiSlater1sp1spCorr', 'PairPotOlpSlater1s1s','PairPotChargeTransferSlater1s1s',
     'compute_ewald_reci', 'compute_ewald_reci_dd',  'compute_ewald_corr_dd',
-    'compute_ewald_corr',
+    'compute_ewald_corr', 'compute_ewald_prefactors', 'compute_ewald_structurefactors',
+    'compute_ewald_deltae',
     'comlist_dtype', 'comlist_forward', 'comlist_back',
     'delta_dtype', 'dlist_forward', 'dlist_back',
     'iclist_dtype', 'iclist_forward', 'iclist_back',
@@ -377,7 +378,8 @@ def nlist_status_init(rmax):
 def nlist_build(np.ndarray[double, ndim=2] pos, double rcut,
                 np.ndarray[long, ndim=1] rmax,
                 Cell unitcell, np.ndarray[long, ndim=1] status,
-                np.ndarray[nlist.neigh_row_type, ndim=1] neighs, int n_frame):
+                np.ndarray[nlist.neigh_row_type, ndim=1] neighs,
+                int nlow, int nhigh):
     '''Scan the system for all pairs that have a distance smaller than rcut until the neighs array is filled or all pairs are considered
 
        **Arguments:**
@@ -404,9 +406,18 @@ def nlist_build(np.ndarray[double, ndim=2] pos, double rcut,
             The neighbor list array. One element is of the datatype
             nlist.neigh_row_type.
 
-       n_frame
-            The number of framework atoms. This is used to exclude framework-framework atoms
-            in the construction of a NeighborList in case n_frame > 0.
+       nlow
+            Atom pairs are only included if at least one atom index is
+            higher than or equal to nlow. The default nlow=0 means no
+            exclusion.
+
+       nhigh
+            Atom pairs are only included if at least one atom index is
+            smaller than nhigh. The default nhigh=-1 means no exclusion.
+            If nlow=nhigh, the system is divided into two parts and only
+            pairs involving one atom of each part will be included. This is
+            useful to calculate interaction energies in Monte Carlo
+            simulations
 
        **Returns:**
 
@@ -424,7 +435,7 @@ def nlist_build(np.ndarray[double, ndim=2] pos, double rcut,
     return nlist.nlist_build_low(
         <double*>pos.data, rcut, <long*>rmax.data,
         unitcell._c_cell, <long*>status.data,
-        <nlist.neigh_row_type*>neighs.data, len(pos), n_frame, len(neighs)
+        <nlist.neigh_row_type*>neighs.data, len(pos), nlow, nhigh, len(neighs)
     )
 
 
@@ -651,11 +662,15 @@ cdef class PairPot:
         '''Returns the current truncation scheme'''
         return self.tr
 
-    def prepare_tailcorrections(self, natom):
+    def prepare_tailcorrections(self, natom, nlow=0, nhigh=-1):
         '''
         Compute tail corrections for this pair potential, assuming that the
         system is homogeneous at long range.
         '''
+        if nhigh==-1: nhigh = natom
+        assert nlow>=0
+        assert nhigh<=natom
+        assert nlow<=nhigh
         # First element will contain corrections to energy,
         # second element corrections to virial
         cdef np.ndarray corrections = np.zeros((2,),dtype=float)
@@ -663,10 +678,10 @@ cdef class PairPot:
         # we decide which C function to call based on which truncation scheme
         # is used
         if self.tr is None:
-            pair_pot.pair_pot_tailcorr_cut(<double*>corrections.data, natom, self._c_pair_pot)
+            pair_pot.pair_pot_tailcorr_cut(<double*>corrections.data, natom, nlow, nhigh, self._c_pair_pot)
         else:
             if isinstance(self.tr, Switch3):
-                pair_pot.pair_pot_tailcorr_switch3(<double*>corrections.data, natom, self._c_pair_pot)
+                pair_pot.pair_pot_tailcorr_switch3(<double*>corrections.data, natom, nlow, nhigh, self._c_pair_pot)
             else:
                 raise NotImplementedError, "Tail corrections not supported for %s" % self.tr
         return corrections[0], corrections[1]
@@ -2341,7 +2356,7 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
                        np.ndarray[double, ndim=2] gpos,
                        np.ndarray[double, ndim=1] work,
                        np.ndarray[double, ndim=2] vtens,
-                       int n_frame):
+                       int nlow, int nhigh):
     '''Compute the reciprocal interaction term in the Ewald summation scheme
 
        **Arguments:**
@@ -2385,10 +2400,14 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
             If not set to None, the virial tensor is computed and stored in
             this array. numpy array with shape (3, 3).
 
-       n_frame
-            The number of framework atoms. This is used to exclude framework-framework
-            interactions in case n_frame > 0.
+       nlow
+            Atom pairs are only included if at least one atom index is
+            higher than or equal to nlow. The default nlow=0 means no
+            exclusion.
 
+       nhigh
+            Atom pairs are only included if at least one atom index is
+            smaller than nhigh. The default nhigh=-1 means no exclusion.
     '''
     cdef double *my_gpos
     cdef double *my_work
@@ -2424,7 +2443,7 @@ def compute_ewald_reci(np.ndarray[double, ndim=2] pos,
         assert vtens.shape[1] == 3
         my_vtens = <double*>vtens.data
 
-    return ewald.compute_ewald_reci(<double*>pos.data, len(pos), n_frame,
+    return ewald.compute_ewald_reci(<double*>pos.data, len(pos), nlow, nhigh,
                                     <double*>charges.data,
                                     unitcell._c_cell, alpha, <long*>gmax.data,
                                     gcut, dielectric, my_gpos, my_work,
@@ -2439,7 +2458,7 @@ def compute_ewald_reci_dd(np.ndarray[double, ndim=2] pos,
                        np.ndarray[double, ndim=2] gpos,
                        np.ndarray[double, ndim=1] work,
                        np.ndarray[double, ndim=2] vtens,
-                       int n_frame):
+                       int nlow, int nhigh):
     '''Compute the reciprocal interaction term in the Ewald summation scheme
 
        **Arguments:**
@@ -2483,9 +2502,14 @@ def compute_ewald_reci_dd(np.ndarray[double, ndim=2] pos,
             If not set to None, the virial tensor is computed and stored in
             this array. numpy array with shape (3, 3).
 
-       n_frame
-            The number of framework atoms. This is used to exclude framework-framework
-            interactions in case n_frame > 0.
+       nlow
+            Atom pairs are only included if at least one atom index is
+            higher than or equal to nlow. The default nlow=0 means no
+            exclusion.
+
+       nhigh
+            Atom pairs are only included if at least one atom index is
+            smaller than nhigh. The default nhigh=-1 means no exclusion.
     '''
     cdef double *my_gpos
     cdef double *my_work
@@ -2522,7 +2546,7 @@ def compute_ewald_reci_dd(np.ndarray[double, ndim=2] pos,
         assert vtens.shape[1] == 3
         my_vtens = <double*>vtens.data
 
-    return ewald.compute_ewald_reci_dd(<double*>pos.data, len(pos), n_frame,
+    return ewald.compute_ewald_reci_dd(<double*>pos.data, len(pos), nlow, nhigh,
                                     <double*>charges.data,
                                     <double*>dipoles.data,
                                     unitcell._c_cell, alpha,
@@ -2536,7 +2560,8 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
                        np.ndarray[pair_pot.scaling_row_type, ndim=1] stab,
                        double dielectric,
                        np.ndarray[double, ndim=2] gpos,
-                       np.ndarray[double, ndim=2] vtens):
+                       np.ndarray[double, ndim=2] vtens,
+                       int nlow, int nhigh):
     '''Compute the corrections to the reciprocal Ewald term due to scaled
        short-range non-bonding interactions.
 
@@ -2571,6 +2596,16 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
        vtens
             If not set to None, the virial tensor is computed and stored in
             this array. numpy array with shape (3, 3).
+
+       nlow
+            Atom pairs are only included if at least one atom index is
+            higher than or equal to nlow. The default nlow=0 means no
+            exclusion.
+
+       nhigh
+            Atom pairs are only included if at least one atom index is
+            smaller than nhigh. The default nhigh=-1 means no exclusion.
+
     '''
 
     cdef double *my_gpos
@@ -2602,7 +2637,7 @@ def compute_ewald_corr(np.ndarray[double, ndim=2] pos,
     return ewald.compute_ewald_corr(
         <double*>pos.data, <double*>charges.data, unitcell._c_cell, alpha,
         <pair_pot.scaling_row_type*>stab.data, len(stab), dielectric,
-        my_gpos, my_vtens, len(pos)
+        my_gpos, my_vtens, len(pos), nlow, nhigh
     )
 
 def compute_ewald_corr_dd(np.ndarray[double, ndim=2] pos,
@@ -2611,7 +2646,8 @@ def compute_ewald_corr_dd(np.ndarray[double, ndim=2] pos,
                        Cell unitcell, double alpha,
                        np.ndarray[pair_pot.scaling_row_type, ndim=1] stab,
                        np.ndarray[double, ndim=2] gpos,
-                       np.ndarray[double, ndim=2] vtens):
+                       np.ndarray[double, ndim=2] vtens,
+                       int nlow, int nhigh):
     '''Compute the corrections to the reciprocal Ewald term due to scaled
        short-range non-bonding interactions.
 
@@ -2643,6 +2679,15 @@ def compute_ewald_corr_dd(np.ndarray[double, ndim=2] pos,
        vtens
             If not set to None, the virial tensor is computed and stored in
             this array. numpy array with shape (3, 3).
+
+       nlow
+            Atom pairs are only included if at least one atom index is
+            higher than or equal to nlow. The default nlow=0 means no
+            exclusion.
+
+       nhigh
+            Atom pairs are only included if at least one atom index is
+            smaller than nhigh. The default nhigh=-1 means no exclusion.
     '''
 
     cdef double *my_gpos
@@ -2675,8 +2720,180 @@ def compute_ewald_corr_dd(np.ndarray[double, ndim=2] pos,
     return ewald.compute_ewald_corr_dd(
         <double*>pos.data, <double*>charges.data, <double*>dipoles.data, unitcell._c_cell, alpha,
         <pair_pot.scaling_row_type*>stab.data, len(stab), my_gpos,
-        my_vtens, len(pos)
+        my_vtens, len(pos), nlow, nhigh
     )
+
+
+def compute_ewald_prefactors(Cell unitcell, double alpha,
+                       np.ndarray[long, ndim=1] gmax,
+                       double gcut,
+                       np.ndarray[double, ndim=3] prefactors):
+    '''Compute prefactors of the reciprocal interaction term in the Ewald
+       summation scheme
+
+       **Arguments:**
+
+       unitcell
+            An instance of the ``Cell`` class that describes the periodic
+            boundary conditions.
+
+       alpha
+            The :math:`\\alpha` parameter from the Ewald summation scheme.
+
+       gmax
+            The maximum range of periodic images in reciprocal space to be
+            considered for the Ewald sum. integer numpy array with shape (3,).
+            Each element gives the range along the corresponding reciprocal
+            cell vector. The range along each axis goes from -gmax[0] to
+            gmax[0] (inclusive).
+
+       gcut
+            The cutoff in reciprocal space. The caller is responsible for the
+            compatibility of ``gcut`` with ``gmax``.
+
+       prefactors
+            The prefactors will be stored in this NumPy with shape
+            (2*gmax[0]+1,2*gmax[1]+1,gmax[2]+1)
+
+       kvectors
+            The components of the k vectors will be stored in this NumPy with
+            shape (2*gmax[0]+1,2*gmax[1]+1,gmax[2]+1)
+    '''
+    assert unitcell.nvec == 3
+    assert alpha > 0
+    assert gmax.flags['C_CONTIGUOUS']
+    assert gmax.shape[0] == 3
+    assert prefactors.flags['C_CONTIGUOUS']
+    assert prefactors.shape[0] == 2*gmax[0]+1
+    assert prefactors.shape[1] == 2*gmax[1]+1
+    assert prefactors.shape[2] == gmax[2]+1
+
+    ewald.compute_ewald_prefactors(unitcell._c_cell, alpha,
+                 <long*>gmax.data, gcut, <double*>prefactors.data)
+
+
+def compute_ewald_structurefactors(np.ndarray[double, ndim=2] pos,
+                       np.ndarray[double, ndim=1] charges,
+                       Cell unitcell, double alpha,
+                       np.ndarray[long, ndim=1] gmax,
+                       double gcut,
+                       np.ndarray[double, ndim=3] cosfacs,
+                       np.ndarray[double, ndim=3] sinfacs):
+    '''Compute structure factors of the reciprocal interaction term in the Ewald
+       summation scheme
+
+       **Arguments:**
+
+       pos
+            The atomic positions. numpy array with shape (natom,3).
+
+       charges
+            The atomic charges. numpy array with shape (natom,).
+
+       unitcell
+            An instance of the ``Cell`` class that describes the periodic
+            boundary conditions.
+
+       alpha
+            The :math:`\\alpha` parameter from the Ewald summation scheme.
+
+       gmax
+            The maximum range of periodic images in reciprocal space to be
+            considered for the Ewald sum. integer numpy array with shape (3,).
+            Each element gives the range along the corresponding reciprocal
+            cell vector. The range along each axis goes from -gmax[0] to
+            gmax[0] (inclusive).
+
+       gcut
+            The cutoff in reciprocal space. The caller is responsible for the
+            compatibility of ``gcut`` with ``gmax``.
+
+       cosfacs
+            The cosine structure factors will be ADDED to this NumPy with shape
+            (2*gmax[0]+1,2*gmax[1]+1,gmax[2]+1)
+
+       sinfacs
+            The sine structure factors will be ADDED to this NumPy with shape
+            (2*gmax[0]+1,2*gmax[1]+1,gmax[2]+1)
+    '''
+    assert pos.flags['C_CONTIGUOUS']
+    assert pos.shape[1] == 3
+    assert charges.flags['C_CONTIGUOUS']
+    assert charges.shape[0] == pos.shape[0]
+
+    assert unitcell.nvec == 3
+    assert alpha > 0
+    assert gmax.flags['C_CONTIGUOUS']
+    assert gmax.shape[0] == 3
+
+    assert cosfacs.flags['C_CONTIGUOUS']
+    assert cosfacs.shape[0] == 2*gmax[0]+1
+    assert cosfacs.shape[1] == 2*gmax[1]+1
+    assert cosfacs.shape[2] == gmax[2]+1
+    assert sinfacs.flags['C_CONTIGUOUS']
+    assert sinfacs.shape[0] == 2*gmax[0]+1
+    assert sinfacs.shape[1] == 2*gmax[1]+1
+    assert sinfacs.shape[2] == gmax[2]+1
+
+    ewald.compute_ewald_structurefactors(<double*>pos.data, len(pos),
+                 <double*>charges.data, unitcell._c_cell, alpha,
+                 <long*>gmax.data, gcut, <double*>cosfacs.data,
+                 <double*>sinfacs.data)
+
+
+def compute_ewald_deltae(np.ndarray[double, ndim=3] prefactors,
+                         np.ndarray[double, ndim=3] deltacosfacs,
+                         np.ndarray[double, ndim=3] cosfacs,
+                         np.ndarray[double, ndim=3] deltasinfacs,
+                         np.ndarray[double, ndim=3] sinfacs):
+    '''Compute the energy difference arising if deltacosfacs and deltasinfacs
+       would be added to cosfacs and sinfacs
+
+       **Arguments:**
+
+       prefactors
+            Numpy array [2*gmax[0]+1,2*gmax[1]+1,gmax[2]+1] computed with
+            compute_ewald_prefactor
+
+       deltacosfacs
+            Cosine structure factors of the additional atoms, computed with
+            compute_ewald_structurefactors
+
+       cosfacs
+            Cosine structure factors of the original atoms, computed with
+            compute_ewald_structurefactors
+
+       deltasinfacs
+            Sine structure factors of the additional atoms, computed with
+            compute_ewald_structurefactors
+
+       sinfacs
+            Sine structure factors of the original atoms, computed with
+            compute_ewald_structurefactors
+    '''
+    assert deltacosfacs.flags['C_CONTIGUOUS']
+    nk = deltacosfacs.shape[0]*deltacosfacs.shape[1]*deltacosfacs.shape[2]
+
+    assert cosfacs.flags['C_CONTIGUOUS']
+    assert cosfacs.shape[0] == deltacosfacs.shape[0]
+    assert cosfacs.shape[1] == deltacosfacs.shape[1]
+    assert cosfacs.shape[2] == deltacosfacs.shape[2]
+
+    assert deltasinfacs.flags['C_CONTIGUOUS']
+    assert deltasinfacs.shape[0] == deltacosfacs.shape[0]
+    assert deltasinfacs.shape[1] == deltacosfacs.shape[1]
+    assert deltasinfacs.shape[2] == deltacosfacs.shape[2]
+
+    assert sinfacs.flags['C_CONTIGUOUS']
+    assert sinfacs.shape[0] == deltacosfacs.shape[0]
+    assert sinfacs.shape[1] == deltacosfacs.shape[1]
+    assert sinfacs.shape[2] == deltacosfacs.shape[2]
+
+    return ewald.compute_ewald_deltae(<double*>deltacosfacs.data,
+                        <double*>cosfacs.data,
+                        <double*>deltasinfacs.data,
+                        <double*>sinfacs.data,
+                        <double*>prefactors.data, nk)
 
 
 #

@@ -31,7 +31,8 @@ import numpy as np
 from yaff import *
 
 from yaff.test.common import get_system_water32, get_system_quartz
-from yaff.pes.test.common import check_gpos_part, check_vtens_part
+from yaff.pes.test.common import check_gpos_part, check_vtens_part, \
+    check_nlow_nhigh_part
 
 
 def test_ewald_water32():
@@ -269,3 +270,72 @@ def test_ewald_vtens_neut_water32():
     for alpha in 0.05, 0.1, 0.2:
         part_ewald_neut = ForcePartEwaldNeutralizing(system, alpha)
         check_vtens_part(system, part_ewald_neut)
+
+
+def test_ewald_neut_water32_exclusion():
+    system = get_system_water32()
+    system.charges -= 0.1
+    system.radii = np.random.uniform(0.5,1.5,system.natom)
+    alpha = 0.25
+    def part_generator(system, **kwargs):
+        alpha = kwargs.pop('alpha')
+        return ForcePartEwaldNeutralizing(system, alpha, **kwargs)
+    for nlow, nhigh in [(15,33),(0,12),(81,96)]:
+        check_nlow_nhigh_part(system, part_generator, nlow, nhigh, alpha=alpha)
+
+
+def test_ewald_corr_water32_exclusion():
+    system = get_system_water32()
+    alpha = 0.35
+    def part_generator(system, **kwargs):
+        alpha = kwargs.pop('alpha')
+        scalings = Scalings(system, 0.0, 0.25, 0.5)
+        return ForcePartEwaldCorrection(system, alpha, scalings, **kwargs)
+    for nlow, nhigh in [(15,33),(0,12),(81,96)]:
+        check_nlow_nhigh_part(system, part_generator, nlow, nhigh, alpha=alpha)
+
+
+def test_ewald_reci_water32_exclusion():
+    system = get_system_water32()
+    alpha = 0.35
+    gcut = 2.0*alpha
+    def part_generator(system, **kwargs):
+        alpha = kwargs.pop('alpha')
+        gcut = kwargs.pop('gcut')
+        return ForcePartEwaldReciprocal(system, alpha, gcut=gcut, **kwargs)
+    for nlow, nhigh in [(15,33),(0,12),(81,96)]:
+        check_nlow_nhigh_part(system, part_generator, nlow, nhigh, alpha=alpha, gcut=gcut)
+
+
+def test_ewaldreciprocalinteraction_water32():
+    alpha = 0.1
+    dielectric = 1.3
+    # original system
+    system0 = get_system_water32()
+    part0 = ForcePartEwaldReciprocal(system0, alpha, gcut=2.0*alpha,
+         dielectric=dielectric)
+    nmol = int(system0.natom/3)
+    ndel = 2
+    for ndel in range(4):
+        # delete some molecules
+        system1 = system0.subsystem(np.arange(3*(nmol-ndel)))
+        part1 = ForcePartEwaldReciprocal(system1, alpha, gcut=2.0*alpha,
+             dielectric=dielectric)
+        # system containing only deleted molecules
+        system2 = system0.subsystem(np.arange(3*(nmol-ndel), 3*nmol))
+        part2 = ForcePartEwaldReciprocal(system2, alpha, gcut=2.0*alpha,
+             dielectric=dielectric)
+        # energy difference between the different parts
+        eref = part0.compute()-part1.compute()-part2.compute()
+        # direct calculation of energy difference
+        # setup class using the system with deleted molecules
+        ewald_interaction = ForcePartEwaldReciprocalInteraction(system1.cell, alpha,
+             2.0*alpha, pos=system1.pos, charges=system1.charges,
+             dielectric=dielectric)
+        # compute the energy difference from inserting the molecules again
+        shape = ewald_interaction.cosfacs.shape
+        cosfacs, sinfacs = np.zeros(shape), np.zeros(shape)
+        ewald_interaction.compute_structurefactors(system2.pos, system2.charges,
+            cosfacs, sinfacs)
+        e = ewald_interaction.compute_deltae(cosfacs, sinfacs)
+        assert np.abs(e-eref)<1e-12

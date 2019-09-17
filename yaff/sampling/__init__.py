@@ -28,6 +28,9 @@ from yaff.sampling.dof import *
 from yaff.sampling.harmonic import *
 from yaff.sampling.io import *
 from yaff.sampling.iterative import *
+from yaff.sampling.mc import *
+from yaff.sampling.mcutils import *
+from yaff.sampling.mctrials import *
 from yaff.sampling.npt import *
 from yaff.sampling.opt import *
 from yaff.sampling.utils import *
