@@ -1,0 +1,86 @@
+# Fixed charges
+# =============
+
+# Mathematical form: q_A = q_0A + sum'_B p_AB
+# where q0_A is the reference charge of atom A. It is mostly zero, sometimes a
+# non-zero integer. The total charge of a fragment is the sum of all reference
+# charges. The parameter p_BA is the charge transfered from B to A. Such charge
+# transfers are only carried out over bonds in the FF topology.
+# The charge on an atom is modeled as a Gaussian distribution. The spread on the
+# Gaussian is called the radius R. When the radius is set to zero, point charges
+# will be used instead of smeared charges.
+
+FIXQ:UNIT Q0 e
+FIXQ:UNIT P e
+FIXQ:UNIT R angstrom
+FIXQ:SCALE 1 1.0
+FIXQ:SCALE 2 1.0
+FIXQ:SCALE 3 1.0
+FIXQ:DIELECTRIC 1.0
+
+# Atom parameters
+# -------------------------------------------
+# KEY        label        Q0             R
+# -------------------------------------------
+FIXQ:ATOM     H_HY   0.000000000  0.730800000
+FIXQ:ATOM     O_HY   0.000000000  1.132500000
+FIXQ:ATOM       AL   0.000000000  1.674200000
+FIXQ:ATOM     O_CA   0.000000000  1.132500000
+FIXQ:ATOM     C_PH   0.000000000  1.170300000
+FIXQ:ATOM     H_PH   0.000000000  0.730800000
+FIXQ:ATOM     C_PC   0.000000000  1.170300000
+FIXQ:ATOM     C_CA   0.000000000  1.170300000
+FIXQ:ATOM     O_gas  0.000000000  1.132500000
+FIXQ:ATOM     C_gas  0.000000000  1.170300000
+FIXQ:ATOM     Xe     0.000000000  0.000000000
+
+# Bond parameters
+# -------------------------------------------
+# KEY       label0   label1          P_AB
+# -------------------------------------------
+FIXQ:BOND     H_HY     O_HY   0.518526380
+FIXQ:BOND       AL     O_HY   0.345674657
+FIXQ:BOND       AL     O_CA   0.349912408
+FIXQ:BOND     C_PH     H_PH  -0.151969159
+FIXQ:BOND     C_PH     C_PH   0.000000000
+FIXQ:BOND     C_PC     C_PH  -0.045395041
+FIXQ:BOND     C_CA     O_CA   0.394651945
+FIXQ:BOND     C_CA     C_PC   0.056728179
+FIXQ:BOND     C_gas    O_gas  0.325600000
+
+# van der Waals
+#==============
+
+# The following mathemetical form is supported:
+#  - MM3:   EPSILON*(1.84e5*exp(-12*r/SIGMA)-2.25*(SIGMA/r)^6)
+#  - LJ:    4.0*EPSILON*((SIGMA/r)^12 - (SIGMA/r)^6)
+#
+# Remark:
+#  In MM3, if ONLYPAULI=1 then only the pauli term will be used.
+#  If ONLYPAULI=0, the full MM3 expression is used with 12.
+
+
+LJ:UNIT SIGMA angstrom*2*(2**(-1./6.))
+LJ:UNIT EPSILON 0.86*kcalmol
+LJ:SCALE 1 0.0
+LJ:SCALE 2 0.0
+LJ:SCALE 3 1.0
+
+# ---------------------------------------------
+# KEY      ffatype  SIGMA  EPSILON  ONLYPAULI
+# ---------------------------------------------
+
+LJ:PARS      AL     2.360   0.116
+LJ:PARS    O_HY     1.820   0.059
+LJ:PARS    O_CA     1.820   0.059
+LJ:PARS    C_CA     1.940   0.056
+LJ:PARS    C_PC     1.940   0.056
+LJ:PARS    C_PH     1.940   0.056
+LJ:PARS    H_HY     1.600   0.016
+LJ:PARS    H_PH     1.620   0.020
+LJ:PARS      Xe     2.280   0.495
+LJ:PARS      He     1.530   0.026
+LJ:PARS      Ne     1.584   0.064
+LJ:PARS      Ar     1.945   0.226
+LJ:PARS      C_gas  1.571   0.0624
+LJ:PARS      O_gas  1.712   0.1826

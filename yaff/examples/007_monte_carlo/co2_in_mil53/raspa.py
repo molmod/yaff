@@ -21,22 +21,19 @@
 # along with this program; if not, see <http://www.gnu.org/licenses/>
 #
 # --
+'''Conversion to RASPA input files'''
 
 
-cimport cell
+from __future__ import division
+from __future__ import print_function
 
-cdef extern from "nlist.h":
-    ctypedef struct neigh_row_type:
-        long a, b
-        double d
-        double dx, dy, dz
-        long r0, r1, r2
+from yaff.external.raspa import write_raspa_input
+from yaff import log
+log.set_level(log.medium)
 
-    bint nlist_build_low(double *pos, double rcut, long *rmax,
-                         cell.cell_type* cell, long *nlist_status,
-                         neigh_row_type *neighs, long pos_size, long nlow, long nhigh, long nneigh)
-
-    void nlist_recompute_low(double *pos, double *pos_old, cell.cell_type*
-                             unitcell, neigh_row_type *neighs, long nneigh)
-
-    bint nlist_inc_r(cell.cell_type *unitcell, long *r, long *rmax)
+if __name__=='__main__':
+    fn_guests = ['CO2.chk']
+    fn_host = 'MIL53.chk'
+    fn_pars = ['pars.txt']
+    write_raspa_input(fn_guests, fn_pars, host=fn_host,
+        guestdata=[('carbondioxide',)], hostname='MIL53', workdir='raspa')

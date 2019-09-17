@@ -63,8 +63,8 @@ double pair_pot_compute(neigh_row_type *neighs,
                         long scaling_size, pair_pot_type *pair_pot,
                         double *gpos, double* vtens);
 
-void pair_pot_tailcorr_cut(double *corrs, long natom, pair_pot_type *pair_pot);
-void pair_pot_tailcorr_switch3(double *corrs, long natom, pair_pot_type *pair_pot);
+void pair_pot_tailcorr_cut(double *corrs, long natom, long nlow, long nhigh, pair_pot_type *pair_pot);
+void pair_pot_tailcorr_switch3(double *corrs, long natom, long nlow, long nhigh, pair_pot_type *pair_pot);
 
 
 typedef struct {

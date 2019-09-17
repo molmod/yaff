@@ -35,7 +35,8 @@ from yaff.test.common import get_system_water32
 
 __all__ = [
     'check_gpos_part', 'check_vtens_part', 'check_gpos_ff', 'check_vtens_ff',
-    'check_gpos_cv_fd', 'check_vtens_cv_fd', 'get_part_water32_9A_lj'
+    'check_gpos_cv_fd', 'check_vtens_cv_fd', 'get_part_water32_9A_lj',
+    'check_nlow_nhigh_part'
 ]
 
 
@@ -284,3 +285,47 @@ def get_part_water32_9A_lj():
         x = (sigma/d)**6
         return 4*epsilon*(x*(x-1))*np.exp(1.0/(d-rcut))
     return system, nlist, scalings, part_pair, pair_fn
+
+
+def check_nlow_nhigh_part(system, part_generator, nlow, nhigh, **kwargs):
+    '''Check that nlow and nhigh exclude the correct interactions'''
+    # 0) The full system
+    part0 = part_generator(system, **kwargs)
+    gpos0 = np.zeros((system.natom,3))
+    vtens0 = np.zeros((3,3))
+    e0 = part0.compute(gpos0, vtens0)
+    # 1) The system with only atoms whose index is smaller than or equal to
+    # nlow
+    system1 = system.subsystem(np.arange(nlow))
+    part1 = part_generator(system1, **kwargs)
+    gpos1 = np.zeros((system1.natom,3))
+    vtens1 = np.zeros((3,3))
+    e1 = part1.compute(gpos1, vtens1)
+    # 2) The system with only atoms whose index is larger than nhigh (take for
+    # nhigh = -1
+    if nhigh==-1:
+        system2 = system.subsystem(np.arange(system.natom,system.natom))
+    else:
+        system2 = system.subsystem(np.arange(nhigh,system.natom))
+    part2 = part_generator(system2, **kwargs)
+    gpos2 = np.zeros((system2.natom,3))
+    vtens2 = np.zeros((3,3))
+    e2 = part2.compute(gpos2, vtens2)
+    # 3) Direct computation excluding the requested pairs
+    kwargs['nlow'] = nlow
+    kwargs['nhigh'] = nhigh
+    part3 = part_generator(system, **kwargs)
+    gpos3 = np.zeros((system.natom,3))
+    vtens3 = np.zeros((3,3))
+    e3 = part3.compute(gpos3, vtens3)
+    # Energy of 3) should equal energy of 0) minus 1) minus 2)
+    print("E0 = %20.12f E1 = %20.12f E2 = %20.12f | E0-E1-E2 = %20.12f deltaE = %20.12f" %
+        (e0,e1,e2,e0-e1-e2,e3))
+    assert np.abs(e0-e1-e2-e3)<1e-10
+    # Same for forces, but pay attention to attribute forces to correct atoms
+    gpos0[np.arange(nlow)] -= gpos1
+    if nhigh != -1:
+        gpos0[np.arange(nhigh,system.natom)] -= gpos2
+    assert np.all( np.abs(gpos0-gpos3) < 1e-10 )
+    # Same for vtens
+    assert np.all( np.abs(vtens0-vtens1-vtens2-vtens3) < 1e-10 )
