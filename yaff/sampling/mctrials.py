@@ -72,14 +72,44 @@ class Trial(object):
         assert sign in [-1,1]
         # Calculate the energy difference for guest-guest interactions
         ff.update_pos(ff.system.pos)
-        e = ff.compute() - self.mc.eguest
+        # Check for close contact distance to other guest atoms
+        if self.mc.close_contact>=0.0:
+            ndists = (ff.system.natom-self.mc.guest.natom)*self.mc.guest.natom
+            if ndists>0:
+                distances = np.zeros((ndists,))
+                ff.system.cell.compute_distances(distances, ff.system.pos[-self.mc.guest.natom:],
+                    pos1=ff.system.pos[:-self.mc.guest.natom])
+                dmin = np.amin(distances)
+            else: dmin = self.mc.close_contact+1
+        else: dmin = self.mc.close_contact+1
+        # Only do computation if there is no close contact
+        if dmin>=self.mc.close_contact:
+            e = ff.compute() - self.mc.eguest
+        else:
+            e = 1e10
         # Calculate the energy difference for guest-host interactions
         extpot = self.mc.external_potential
         if extpot is not None:
-            extpot.system.pos[-self.mc.guest.natom:] = ff.system.pos[-self.mc.guest.natom:]
-            extpot.update_pos(extpot.system.pos)
-            e += extpot.compute() - self.mc.eguest
+            # Check for close contact to guest atoms
+            if self.mc.close_contact>=0.0:
+                ndists = (extpot.system.natom-self.mc.guest.natom)*self.mc.guest.natom
+                if ndists>0:
+                    distances = np.zeros((ndists,))
+                    ff.system.cell.compute_distances(distances, ff.system.pos[-self.mc.guest.natom:],
+                        pos1=extpot.system.pos[:-self.mc.guest.natom])
+                    dmin_host = np.amin(distances)
+            else: dmin_host = self.mc.close_contact+1
+            # Only do computation if there is no close contact
+            if dmin_host>=self.mc.close_contact:
+                extpot.system.pos[-self.mc.guest.natom:] = ff.system.pos[-self.mc.guest.natom:]
+                extpot.update_pos(extpot.system.pos)
+                e += extpot.compute() - self.mc.eguest
+            else:
+                e += 1e10
         # Energy difference for reciprocal Ewald (guest-guest and guest-host)
+        # This is done even if there is a close contact detected, the reason
+        # being that we cannot alter the bookkeeping of the mc.cosfacs and
+        # mc.sinfacs here without repercussion on other parts of the code.
         if self.mc.ewald_reci is not None:
             if sign==1:
                 cosfacs = self.mc.cosfacs_ins
