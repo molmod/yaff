@@ -284,7 +284,7 @@ def write_pseudo_atoms(ff, workdir):
         charges = np.zeros(system.natom)
     else: charges = system.charges
     # RASPA cannot handle Gaussian charges
-    if system.radii is not None:
+    if system.radii is not None and np.any(system.radii!=0.0):
         if log.do_warning:
             log.warn("Atomic radii were specified, but RASPA will not take "
                      "this into account for electrostatic interactions")
