@@ -288,6 +288,7 @@ def write_pseudo_atoms(ff, workdir):
         if log.do_warning:
             log.warn("Atomic radii were specified, but RASPA will not take "
                      "this into account for electrostatic interactions")
+        raise ValueError("Gaussian electrostatics not supported by RASPA")
     # We need to write an entry for each atomtype, specifying the charge. If
     # atoms of the same atomtype show different charges, this means the
     # atomtypes need to be fine grained
