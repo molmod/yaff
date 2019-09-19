@@ -25,6 +25,7 @@
 
 
 from yaff.sampling.dof import *
+from yaff.sampling.enhanced import *
 from yaff.sampling.harmonic import *
 from yaff.sampling.io import *
 from yaff.sampling.iterative import *

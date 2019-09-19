@@ -25,6 +25,7 @@
 
 
 from yaff.analysis.basic import *
+from yaff.analysis.biased_sampling import *
 from yaff.analysis.blav import *
 from yaff.analysis.diffusion import *
 from yaff.analysis.rdf import *
