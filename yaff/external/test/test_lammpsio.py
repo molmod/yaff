@@ -30,9 +30,11 @@ import tempfile
 import shutil
 import os
 import numpy as np
+import pkg_resources
 
 from molmod.test.common import tmpdir
 from yaff.external.lammpsio import *
+from yaff import System
 
 from yaff.test.common import get_system_water32
 
@@ -45,3 +47,14 @@ def test_lammps_system_data_water32():
         natom = int(lines[2].split()[0])
         assert natom==system.natom
         assert (system.natom+system.bonds.shape[0]+23)==len(lines)
+
+
+def test_lammps_ffconversion_mil53():
+    fn_system = pkg_resources.resource_filename(__name__, '../../data/test/system_mil53.chk')
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_mil53.txt')
+    system = System.from_file(fn_system)
+    with tmpdir(__name__, 'test_lammps_ffconversion_mil53') as dirname:
+        ff2lammps(system, fn_pars, dirname)
+        # No test for correctness, just check that output files are present
+        assert os.path.isfile(os.path.join(dirname,'lammps.in'))
+        assert os.path.isfile(os.path.join(dirname,'lammps.data'))

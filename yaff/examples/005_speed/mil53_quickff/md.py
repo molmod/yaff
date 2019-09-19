@@ -81,7 +81,7 @@ if __name__=='__main__':
     else:
         supercell = [int(s) for s in sys.argv[2].split('.')]
         nsteps = int(sys.argv[3])
-        ff = load_ff(uselammps=sys.argv[1]=='lammps',supercell=supercell)
+        ff = load_ff(uselammps=sys.argv[1]=='liblammps',supercell=supercell)
         verlet = load_integrator(ff)
         start = time.time()
         verlet.run(nsteps)

@@ -47,7 +47,7 @@ class ForcePartLammps(ForcePart):
     '''Covalent energies obtained from Lammps.'''
     def __init__(self, ff, fn_system, fn_log="none", suffix='',
                     do_table=True, fn_table='lammps.table', scalings_table=[0.0,0.0,1.0],
-                    do_ei=True, kspace='pppm', kspace_accuracy=1e-6, scalings_ei=[0.0,0.0,1.0],
+                    do_ei=True, kspace='ewald', kspace_accuracy=1e-7, scalings_ei=[0.0,0.0,1.0],
                     triclinic=True, comm=None, move_central_cell=False):
         r'''Initalize LAMMPS ForcePart
 
@@ -106,6 +106,11 @@ class ForcePartLammps(ForcePart):
 
            comm
                 MPI communicator, required if LAMMPS should run in parallel
+
+           move_central_cell
+                Boolean, if True, every atom is moved to the central cell
+                (centered at the origin) before passing positions to LAMMPS.
+                Change this if LAMMPS gives a Atoms Lost ERROR.
         '''
         self.system = ff.system
         # Try to load the lammps package, quit if not possible
@@ -133,6 +138,14 @@ class ForcePartLammps(ForcePart):
             if rcut==0:
                 log("ERROR, do_ei set to True, but pair_ei was not found in the ff")
         else: raise NotImplementedError
+        if not kspace in ['ewald','pppm']:
+            raise ValueError('kspace should be one of ewald or pppm')
+        if self.system.natom>2000 and kspace=='ewald' and log.do_warning:
+            log.warn("You are simulating a more or less large system."
+                     "It might be more efficient to use kspace=pppm")
+        if self.system.natom<1000 and kspace=='pppm' and log.do_warning:
+            log.warn("You are simulating a more or less small system."
+                     "It might be better to use kspace=ewald")
 
         # Initialize a class instance and some attributes
         ForcePart.__init__(self, 'lammps', self.system)
@@ -155,12 +168,12 @@ class ForcePartLammps(ForcePart):
 
         # Hybrid style combining electrostatics and table
         if do_ei and do_table:
-            self.lammps.command("pair_style hybrid/overlay coul/long %f table spline %d"%(rcut,npoints))
+            self.lammps.command("pair_style hybrid/overlay coul/long %13.8f table spline %d"%(rcut,npoints))
             self.lammps.command("pair_coeff * * coul/long")
             self.lammps.command("kspace_style %s %10.5e" % (kspace,kspace_accuracy))
         # Only electrostatics
         elif do_ei:
-            self.lammps.command("pair_style coul/long %f"%rcut)
+            self.lammps.command("pair_style coul/long %13.8f"%rcut)
             self.lammps.command("pair_coeff * *")
             self.lammps.command("kspace_style %s %10.5e" % (kspace,kspace_accuracy))
         # Only table
@@ -263,11 +276,7 @@ class ForcePartLammps(ForcePart):
         return energy
 
 
-def swap_noncovalent_lammps(ff, fn_system='system.dat', fn_log="none",
-        suffix='', fn_table='table.dat', kspace='pppm', kspace_accuracy=1e-6,
-        triclinic=True, comm=None, overwrite_table=False, nrows=5000,
-        keep_forceparts=[ForcePartTailCorrection,ForcePartGrid,
-        ForcePartPressure, ForcePartValence]):
+def swap_noncovalent_lammps(ff, **kwargs):
     r'''Take a YAFF ForceField instance and replace noncovalent interactions with
     a ForcePartLammps instance.
 
@@ -279,39 +288,10 @@ def swap_noncovalent_lammps(ff, fn_system='system.dat', fn_log="none",
            **Optional arguments:**
 
            fn_system
-                the filename where system information in LAMMPS format will be
-                written. Default is ``system.dat``
+                The filename to which the system data in LAMMPS format will be
+                written.
 
-           fn_log
-                Filename where LAMMPS output is stored. This is probably only
-                necessary for debugging. Default: None, which means no output
-                is stored
-
-           suffix
-                The suffix of the liblammps_*.so library file
-
-           fn_table
-                the filename where the tables of noncovalent interactions in
-                LAMMPS format will be written. Default is ``table.dat``
-
-           kspace
-                Method to treat long-range electrostatics, should be one of
-                ewald or pppm
-
-           kspace_accuracy
-                Desired relative error in electrostatic forces
-                Default: 1e-6
-
-           triclinic
-                Boolean, specify whether a triclinic cell will be used during
-                the simulation. If the cell is orthogonal, set it to False
-                as LAMMPS should run slightly faster.
-                Default: True
-
-           comm
-                MPI communicator, required if LAMMPS should run in parallel
-
-           overwrite_tables
+           overwrite_table
                 whether or not fn_table should be updated if it already exists.
                 Default is ``False``
 
@@ -326,7 +306,22 @@ def swap_noncovalent_lammps(ff, fn_system='system.dat', fn_log="none",
                 interactions, but also for instance analytical tail
                 corrections. Default:[ForcePartTailCorrection,ForcePartGrid,
                 ForcePartPressure,ForcePartValence]
+
+           Any optional argument in the constructor of the
+                :class:`yaff.external.liblammps.ForcePartLammps` class,
+                can be passed here as well.
     '''
+    # Some keyword arguments that should not be passed to the constructor of
+    # ForcePartLammps
+    overwrite_table = kwargs.pop("overwrite_table", False)
+    nrows = kwargs.pop("nrows", 5000)
+    keep_forceparts = kwargs.pop("keep_forceparts", [ForcePartTailCorrection,
+        ForcePartGrid, ForcePartPressure, ForcePartValence])
+    fn_system = kwargs.pop("fn_system", "system.dat")
+    # Some other keywords that should be passed to ForcePartLammps
+    comm = kwargs.get("comm", None)
+    fn_table = kwargs.get("fn_table", "lammps.table")
+    triclinic = kwargs.get("triclinic", True)
     # Find out which parts need to be retained, and which ones need to be tabulated
     parts, parts_tabulated = [],[]
     scaling_rules = [1.0,1.0,1.0,1.0]
@@ -367,11 +362,13 @@ def swap_noncovalent_lammps(ff, fn_system='system.dat', fn_log="none",
         write_lammps_system_data(ff.system, ff=ff, fn=fn_system, triclinic=triclinic)
     # Let all processes wait untill the data file is completely written
     if comm is not None: comm.Barrier()
+    # Adapt optional arguments
+    kwargs["scalings_ei"] = np.array(scaling_rules)
+    kwargs["do_ei"] = do_ei
+    kwargs["scalings_table"] = np.array(scaling_rules)
+    kwargs["do_table"] = do_table
     # Get the ForcePartLammps, which will handle noncovalent interactions
-    part_lammps = ForcePartLammps(ff, fn_system, fn_log=fn_log, suffix='',
-        do_table=do_table, fn_table=fn_table, scalings_table=np.array(scaling_rules),
-        do_ei=do_ei, kspace=kspace, kspace_accuracy=kspace_accuracy,
-        scalings_ei=np.array(scaling_rules),triclinic=triclinic, comm=comm)
+    part_lammps = ForcePartLammps(ff, fn_system, **kwargs)
     parts.append(part_lammps)
     # Potentially add additional parts which correct scaling rules
     scaling_nlist = BondedNeighborList(ff.system,selected=[],add15=correct_15_rule)
