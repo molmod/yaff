@@ -26,8 +26,10 @@
 from __future__ import division
 
 import numpy as np
+import tempfile
+import os
 
-from molmod import angstrom
+from molmod import angstrom, nanometer, kjmol
 
 from yaff import *
 
@@ -39,7 +41,7 @@ __all__ = [
     'get_system_2T', 'get_system_peroxide', 'get_system_mil53',
     'get_system_2atoms', 'get_2systems_2oxygens', 'get_system_formaldehyde',
     'get_system_amoniak', 'get_system_4113_01WaterWater', 'get_nacl_cubic',
-    'get_system_fluidum_grid',
+    'get_system_fluidum_grid', 'get_alaninedipeptide_amber99ff'
 ]
 
 
@@ -549,3 +551,237 @@ def get_system_fluidum_grid(natom, l0=3.0*angstrom, ffatypes=['X']):
     system = System(numbers, pos, rvecs=rvecs, bonds=[], ffatypes=ffatypes[:natom])
     system.pos += np.random.normal(0.0,0.01*l0,system.natom*3).reshape((-1,3))
     return system
+
+
+def get_alaninedipeptide_amber99ff():
+    '''
+    The AMBER99SB-ILDN force field for alanine dipeptide. All parameters are
+    taken from the PLUMED tutorial
+    https://www.plumed.org/doc-v2.5/user-doc/html/tutorial-resources/belfast-6.tar.gz
+
+    This cannot be simply generated from a parameter file; charges are atom
+    specific, so are different for atoms of the same type. Additionally,
+    there are dihedral terms for groups of atoms that are not proper dihedrals.
+    We therefore start from a parameter file, and make the necessary changes
+    afterwards.
+    '''
+    # Geometry and atomic numbers from conf.gro file
+    numbers = np.array([1,6,1,1,6,8,7,1,6,1,6,1,1,1,6,8,7,1,6,1,1,1], dtype=int)
+    pos = np.array([[1.417,   1.889,   0.008],
+                    [1.424,   1.783,  -0.016],
+                    [1.334,   1.734,   0.023],
+                    [1.517,   1.747,   0.027],
+                    [1.412,   1.749,  -0.164],
+                    [1.371,   1.836,  -0.241],
+                    [1.443,   1.627,  -0.208],
+                    [1.493,   1.567,  -0.144],
+                    [1.429,   1.591,  -0.347],
+                    [1.333,   1.632,  -0.378],
+                    [1.532,   1.652,  -0.442],
+                    [1.629,   1.602,  -0.437],
+                    [1.494,   1.647,  -0.544],
+                    [1.554,   1.757,  -0.421],
+                    [1.432,   1.439,  -0.361],
+                    [1.502,   1.372,  -0.286],
+                    [1.380,   1.390,  -0.473],
+                    [1.343,   1.456,  -0.541],
+                    [1.358,   1.251,  -0.508],
+                    [1.367,   1.240,  -0.616],
+                    [1.421,   1.180,  -0.455],
+                    [1.256,   1.224,  -0.480] ], dtype=float)*nanometer
+    # Atom types and charges from topol.top
+    ffatypes = ['HC','CT','HC','HC','C','O','N','H','CT','H1','CT','HC','HC',
+                'HC','C','O','N','H','CT','H1','H1','H1']
+    charges = np.array([0.1123,-0.3662,0.1123,0.1123,0.5972,-0.5679,
+                        -0.4157,0.2719,0.0337,0.0823,-0.1825,0.0603,
+                        0.0603,0.0603,0.5973,-0.5679,-0.4157,0.2719,
+                        -0.149,0.0976,0.0976,0.0976], dtype=float)
+    assert np.abs(np.sum(charges))<1e-10
+    system = System(numbers, pos, ffatypes=ffatypes)
+    system.set_standard_masses()
+    # Bond detections should work fine
+    system.detect_bonds()
+    assert system.bonds.shape[0]==21
+    # Pseudo parameter file
+    pars = b"""
+# van der Waals
+#==============
+
+# The following mathemetical form is supported:
+#  - LJ:    4.0*EPSILON*((SIGMA/r)^12 - (SIGMA/r)^6)
+
+LJ:UNIT SIGMA nanometer
+LJ:UNIT EPSILON kjmol
+LJ:SCALE 1 0.0
+LJ:SCALE 2 0.0
+LJ:SCALE 3 0.5
+
+# ---------------------------------------
+# KEY      ffatype  SIGMA         EPSILON
+# ---------------------------------------
+LJ:PARS       HC        2.64953e-01     6.56888e-02
+LJ:PARS       CT        3.39967e-01     4.57730e-01
+LJ:PARS        C        3.39967e-01     3.59824e-01
+LJ:PARS        O        2.95992e-01     8.78640e-01
+LJ:PARS        N        3.25000e-01     7.11280e-01
+LJ:PARS        H        1.06908e-01     6.56888e-02
+LJ:PARS       H1        2.47135e-01     6.56888e-02
+
+# Fixed charges
+# =============
+
+FIXQ:UNIT Q0 e
+FIXQ:UNIT P e
+FIXQ:UNIT R angstrom
+FIXQ:SCALE 1 0.0
+FIXQ:SCALE 2 0.0
+FIXQ:SCALE 3 0.8333
+FIXQ:DIELECTRIC 1.0
+
+# Atom parameters
+# -------------------------------------------
+# KEY        label        Q0             R
+# -------------------------------------------
+FIXQ:ATOM        HC   0.00000000   0.00000000
+FIXQ:ATOM        CT   0.00000000   0.00000000
+FIXQ:ATOM         C   0.00000000   0.00000000
+FIXQ:ATOM         O   0.00000000   0.00000000
+FIXQ:ATOM         N   0.00000000   0.00000000
+FIXQ:ATOM         H   0.00000000   0.00000000
+FIXQ:ATOM        H1   0.00000000   0.00000000
+
+
+# BONDHARM
+#---------
+BONDHARM:UNIT  K kjmol/nanometer**2
+BONDHARM:UNIT  R0 nanometer
+
+BONDHARM:PARS    CT    H1  2.84512000e+05  1.09000000e-01
+BONDHARM:PARS     C    CT  2.65265600e+05  1.52200000e-01
+BONDHARM:PARS     H     N  3.63171200e+05  1.01000000e-01
+BONDHARM:PARS    CT    CT  2.59408000e+05  1.52600000e-01
+BONDHARM:PARS     C     N  4.10032000e+05  1.33500000e-01
+BONDHARM:PARS    CT     N  2.82001600e+05  1.44900000e-01
+BONDHARM:PARS     C     O  4.76976000e+05  1.22900000e-01
+BONDHARM:PARS    CT    HC  2.84512000e+05  1.09000000e-01
+
+# BENDAHARM
+#----------
+BENDAHARM:UNIT  K kjmol/rad**2
+BENDAHARM:UNIT  THETA0 deg
+
+BENDAHARM:PARS    HC    CT    HC  2.92880000e+02  1.09500000e+02
+BENDAHARM:PARS     C     N     H  4.18400000e+02  1.20000000e+02
+BENDAHARM:PARS    CT     N     H  4.18400000e+02  1.18040000e+02
+BENDAHARM:PARS     C    CT    CT  5.27184000e+02  1.11100000e+02
+BENDAHARM:PARS    CT    CT    HC  4.18400000e+02  1.09500000e+02
+BENDAHARM:PARS    H1    CT    H1  2.92880000e+02  1.09500000e+02
+BENDAHARM:PARS    CT     C     N  5.85760000e+02  1.16600000e+02
+BENDAHARM:PARS    CT    CT    H1  4.18400000e+02  1.09500000e+02
+BENDAHARM:PARS     C    CT     N  5.27184000e+02  1.10100000e+02
+BENDAHARM:PARS    CT     C     O  6.69440000e+02  1.20400000e+02
+BENDAHARM:PARS    H1    CT     N  4.18400000e+02  1.09500000e+02
+BENDAHARM:PARS     C     N    CT  4.18400000e+02  1.21900000e+02
+BENDAHARM:PARS     C    CT    HC  4.18400000e+02  1.09500000e+02
+BENDAHARM:PARS     C    CT    H1  4.18400000e+02  1.09500000e+02
+BENDAHARM:PARS     N     C     O  6.69440000e+02  1.22900000e+02
+BENDAHARM:PARS    CT    CT     N  6.69440000e+02  1.09700000e+02
+"""
+    tp = tempfile.NamedTemporaryFile(delete=False)
+    tp.write(pars)
+    tp.close()
+    # Generate a first version of the force field
+    ff = ForceField.generate(system, tp.name, rcut=100.0*angstrom)
+    os.unlink(tp.name)
+    # Adapt the charges
+    ff.system.charges[:] = charges
+    # Add the dihedral/improper dihedral terms
+    dihedral_parameters = [
+        (Chebychev2, -1, 43.932*kjmol),
+        (Chebychev2, -1, 4.602*kjmol),
+        (Chebychev1, 1, 3.347*kjmol),
+        (Chebychev3, -1, 0.335*kjmol),
+        (Chebychev2, -1, 10.460*kjmol),
+        (Chebychev1, 1, 8.368*kjmol),
+        (Chebychev2, 1, 8.368*kjmol),
+        (Chebychev3, 1, 1.674*kjmol),
+        (Chebychev2, 1, 1.130*kjmol),
+        (Chebychev3, 1, 1.757*kjmol),
+        (Chebychev3, 1, 0.651*kjmol),
+        (Chebychev1, -1, 1.883*kjmol),
+        (Chebychev2, -1, 6.611*kjmol),
+        (Chebychev3, -1, 2.301*kjmol),
+        (Chebychev1, 1, 0.837*kjmol),
+        (Chebychev2, 1, 0.837*kjmol),
+    ]
+
+    dihedral_terms = [
+        ( (1,6,4,5), 0 ),
+        ( (8,16,14,15), 0),
+        ( (4,8,6,7), 1),
+        ( (14,18,16,17), 1),
+        ( (0,1,4,5), 2),
+        ( (2,1,4,5), 2),
+        ( (3,1,4,5), 2),
+        ( (9,8,14,15), 2),
+        ( (0,1,4,5), 3),
+        ( (2,1,4,5), 3),
+        ( (3,1,4,5), 3),
+        ( (9,8,14,15), 3),
+        ( (1,4,6,7), 4),
+        ( (1,4,6,8), 4),
+        ( (5,4,6,7), 4),
+        ( (5,4,6,8), 4),
+        ( (8,14,16,17), 4),
+        ( (8,14,16,18), 4),
+        ( (15,14,16,17), 4),
+        ( (15,14,16,18), 4),
+        ( (5,4,6,7), 5),
+        ( (4,6,8,10), 5),
+        ( (15,14,16,17), 5),
+        ( (4,6,8,10), 6),
+        ( (4,6,8,10), 7),
+        ( (10,8,14,16), 7),
+        ( (4,6,8,14), 8),
+        ( (4,6,8,14), 9),
+        ( (6,8,10,11), 10),
+        ( (6,8,10,12), 10),
+        ( (6,8,10,13), 10),
+        ( (9,8,10,11), 10),
+        ( (9,8,10,12), 10),
+        ( (9,8,10,13), 10),
+        ( (14,8,10,11), 10),
+        ( (14,8,10,12), 10),
+        ( (14,8,10,13), 10),
+        ( (6,8,14,16), 11),
+        ( (6,8,14,16), 12),
+        ( (6,8,14,16), 13),
+        ( (10,8,14,16), 14),
+        ( (10,8,14,16), 15),
+    ]
+
+    part_valence = None
+    for part in ff.parts:
+        if isinstance(part, ForcePartValence):
+            part_valence = part
+    assert part_valence is not None
+    for indexes, term_index in dihedral_terms:
+        ic = DihedCos(*indexes)
+        vterm, sign, K = dihedral_parameters[term_index]
+        part_valence.add_term( vterm(2*K, ic, sign=sign) )
+
+    # Compare with GROMACS energies
+    e = ff.compute()
+    for part in ff.parts:
+        if part.name=='pair_lj':
+            eref = (14.124110-4.177347)*kjmol
+            assert np.abs(part.energy-eref)<0.005*kjmol
+        elif part.name=='pair_ei':
+            eref = (203.383560-330.883545)*kjmol
+            assert np.abs(part.energy-eref)<0.005*kjmol
+        elif part.name=='valence':
+            eref = (0.463078+29.090401+45.499016+5.947888)*kjmol
+            assert np.abs(part.energy-eref)<0.005*kjmol
+        else:
+            raise ValueError
+    return ff

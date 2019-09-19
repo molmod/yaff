@@ -29,11 +29,12 @@ from __future__ import division
 import numpy as np
 
 from yaff.log import log, timer
+from yaff.pes.colvar import CollectiveVariable
 
 
 __all__ = [
     'BiasPotential', 'HarmonicBias', 'PathDeviationBias', 'LowerWallBias',
-    'UpperWallBias',
+    'UpperWallBias', 'GaussianHills'
 ]
 
 
@@ -385,4 +386,155 @@ class PathDeviationBias(BiasPotential):
             gpos[:] += np.einsum('aij,a->ij', self.gpos_cvs, self.fc*self.weights**2*deltas[1])
         if vtens is not None:
             vtens[:] += np.einsum('aij,a->ij', self.vtens_cvs, self.fc*self.weights**2*deltas[1])
+        return energy
+
+
+class GaussianHills(BiasPotential):
+    '''A sum of Gaussian hills, for instance used in metadynamics:
+
+       V = \sum_{\\alpha} K_{\\alpha}} \exp{-\sum_{i} \\frac{(q_i-q_{i,\\alpha}^0)^2}{2\sigma^2}}
+
+       where \\alpha loops over deposited hills and i loops over collective
+       variables.
+    '''
+    def __init__(self, cvs, sigmas, periodicities=None):
+        '''
+           **Arguments:**
+
+           cvs
+                A single ``CollectiveVariable`` or a list of ``CollectiveVariable``
+                instances.
+
+           sigmas
+                The width of the Gaussian or a NumPy array [Ncv] specifying the
+                widths of the Gaussians
+
+           **Optional arguments:**
+
+            The periodicity of the single collective variable or a [Ncv]
+            NumPy array specifying the periodicity of each
+            collective variable. Specifying None means the CV is not
+            periodic.
+        '''
+        if isinstance(cvs, CollectiveVariable):
+            cvs = [cvs]
+        if isinstance(sigmas, float):
+            sigmas = np.array([sigmas])
+        if isinstance(periodicities, float):
+            periodicities = np.array([periodicities])
+        self.cvs = cvs
+        self.ncv = len(self.cvs)
+        assert sigmas.ndim==1
+        assert sigmas.shape[0]==self.ncv
+        assert np.all(sigmas>0)
+        self.sigmas = sigmas
+        self.sigmas_isq = 1.0/(2.0*sigmas**2.0)
+        self.Ks = np.zeros((0,))
+        self.q0s = np.zeros((0, self.ncv))
+        if periodicities is not None:
+            assert periodicities.shape[0]==self.ncv
+        self.periodicities = periodicities
+
+    def add_hill(self, q0, K):
+        '''
+            Deposit a single hill
+
+            **Arguments:**
+
+            q0
+                A NumPy array [Ncv] specifying the Gaussian center for each
+                collective variable, or a single float if there is only one
+                collective variable
+
+            K
+                The force constant of this hill
+        '''
+        if isinstance(q0, float):
+            assert self.ncv==1
+            q0 = np.array([q0])
+        assert q0.ndim==1
+        assert q0.shape[0]==self.ncv
+        self.q0s = np.append(self.q0s, [q0], axis=0)
+        self.Ks = np.append(self.Ks, [K], axis=0)
+
+    def add_hills(self, q0s, Ks):
+        '''
+            Deposit multiple hills
+
+            **Arguments:**
+
+            q0s
+                A NumPy array [Nhills,Ncv]. Each row represents a hill,
+                specifying the Gaussian center for each collective variable
+
+            K
+                A NumPy array [Nhills] providing the force constant of each
+                hill.
+        '''
+        assert q0s.ndim==2
+        assert q0s.shape[1]==self.ncv
+        self.q0s = np.concatenate((self.q0s, q0s), axis=0)
+        assert Ks.ndim==1
+        assert Ks.shape[0]==q0s.shape[0]
+        self.Ks = np.concatenate((self.Ks, Ks), axis=0)
+
+    def get_log(self):
+        res = self.__class__.__name__
+        res += '(sigmas='
+        for icv, cv in enumerate(self.cvs):
+            c = cv.get_conversion()
+            res += '%.5e,' % (
+                self.sigmas[icv]/c
+            )
+        res += ')'
+        return res
+
+    def calculate_cvs(self):
+        return np.array([cv.compute()
+             for icv, cv in enumerate(self.cvs)])
+
+    def compute(self, gpos=None, vtens=None):
+        def get_deltas(qs):
+            '''Compute collective variable values minus rest values, taking
+               periodicities into account'''
+            deltas = np.subtract(qs, self.q0s)
+            # Apply minimum image convention
+            if self.periodicities is not None:
+                for icv in range(self.ncv):
+                    if self.periodicities[icv] is None: continue
+                    # Translate (q-q0) over integer multiple of the period P, so it
+                    # ends up in [-P/2,P/2]
+                    deltas[:,icv] -= np.floor(0.5+deltas[:,icv]/
+                        self.periodicities[icv])*self.periodicities[icv]
+            return deltas
+        # Prepare a gpos array for each collective variable
+        if gpos is not None:
+            mygpos = np.zeros(((self.ncv,)+gpos.shape))
+        else: mygpos = [None]*self.ncv
+        # Prepare a vtens array for each collective variable
+        if vtens is not None:
+            myvtens = np.zeros(((self.ncv,)+vtens.shape))
+        else: myvtens = [None]*self.ncv
+        # Compute the collective variable values, storing the gpos and vtens
+        # contribution of each collective variable separately
+        qs = np.array([cv.compute(gpos=mygpos[icv],vtens=myvtens[icv])
+             for icv, cv in enumerate(self.cvs)])
+        # Compute exponential argument
+        deltas = get_deltas(qs)
+        exparg = deltas*deltas
+        exparg = np.multiply(exparg, self.sigmas_isq)
+        exparg = np.sum(exparg, axis=1)
+        # Compute the bias energy
+        exponents = np.exp(-exparg)
+        energy = np.sum(self.Ks*exponents)
+        # Derivatives
+        if gpos is not None:
+            prefactors = -2.0*np.multiply(deltas, self.sigmas_isq)
+            # i: hill index, j: cv index, a: atom index, b: cartesian index
+            gpos[:] = np.einsum('i,ij,jab->ab',self.Ks*exponents,prefactors,mygpos)
+        if vtens is not None:
+            if gpos is None:
+                prefactors = -2.0*np.multiply(deltas, self.sigmas_isq)
+            # i: hill index, j: cv index, a: cartesian index, b: cartesian index
+            vtens[:] = np.einsum('i,ij,jab->ab',self.Ks*exponents,prefactors,myvtens)
         return energy
