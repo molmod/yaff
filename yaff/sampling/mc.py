@@ -103,7 +103,8 @@ class MC(object):
 
     def run(self, nsteps, mc_moves=None, initial=None, einit=0,
                 translation_stepsize=1.0*angstrom,
-                volumechange_stepsize=10.0*angstrom**3):
+                volumechange_stepsize=10.0*angstrom**3,
+                close_contact=0.4*angstrom):
         """
            Perform Monte-Carlo steps
 
@@ -131,6 +132,10 @@ class MC(object):
 
            volumechange_stepsize
                 The maximal magnitude of a TrialVolumechange
+
+           close_contact
+                Automatically reject TrialMove if atoms are placed shorter
+                than this distance apart
         """
         if log.do_warning:
             log.warn("Currently, Yaff does not consider interactions of a guest molecule "
@@ -141,6 +146,7 @@ class MC(object):
             # Initialization
             self.translation_stepsize = translation_stepsize
             self.volumechange_stepsize = volumechange_stepsize
+            self.close_contact = close_contact
             if initial is not None:
                 self.N = initial.natom//self.guest.natom
                 assert self.guest.natom*self.N==initial.natom, ("Initial configuration does not contain correct number of atoms")
