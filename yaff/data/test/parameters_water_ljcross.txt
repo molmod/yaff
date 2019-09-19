@@ -1,0 +1,8 @@
+LJCROSS:UNIT SIGMA angstrom
+LJCROSS:UNIT EPSILON kcalmol
+LJCROSS:SCALE 1 0.0
+LJCROSS:SCALE 2 0.0
+LJCROSS:SCALE 3 1.0
+LJCROSS:PARS         H         H        2.72000       0.0200
+LJCROSS:PARS         H         O        2.83746       0.0707
+LJCROSS:PARS         O         O        2.96000       0.2500
