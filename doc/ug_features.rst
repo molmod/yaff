@@ -57,7 +57,15 @@ Missing features (work in progress) include:
 Release notes
 -------------
 
+* **Version 1.6.0** October 21, 2019
 
+  - LAMMPS for efficient long-range interactions
+  - Generic Monte Carlo driver
+  - Fix COM list contribution to vtens
+  - Fix for polysix generator and new polysixcos generator
+  - Include License in Manifest
+  - PLUMED integration for biased sampling and metadynamics
+  - Make dihedral angles conform to IUPAC conventions
 
 * **Version 1.5.0** March 7, 2019
 
