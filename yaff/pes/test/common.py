@@ -67,12 +67,8 @@ def check_vtens_part(system, part, nlists=None, symm_vtens=True):
                       For instance for dipole interactions, this is not true
     '''
     # define some rvecs and gvecs
-    if system.cell.nvec == 3:
-        gvecs = system.cell.gvecs
-        rvecs = system.cell.rvecs
-    else:
-        gvecs = np.identity(3, float)
-        rvecs = np.identity(3, float)
+    gvecs = system.cell._get_gvecs(full=True)
+    rvecs = system.cell._get_rvecs(full=True)
 
     # Get the reduced coordinates
     reduced = np.dot(system.pos, gvecs.transpose())
