@@ -138,7 +138,7 @@ class ForcePart(object):
                 energy towards uniform deformations, including changes in the
                 shape of the unit cell. (v stands for virial and 'tens' stands
                 for tensor.) This must be a writeable numpy array with shape (3,
-                3).
+                3). Note that the factor 1/V is not included.
 
            The energy is returned. The optional arguments are Fortran-style
            output arguments. When they are present, the corresponding results
