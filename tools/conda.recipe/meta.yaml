@@ -7,27 +7,28 @@ source:
 
 build:
   number: 0
-  script: python setup.py install
+  string: py{{ CONDA_PY }}_1
+  script: {{ PYTHON }} setup.py install --single-version-externally-managed --record=record.txt
 
 requirements:
+  build:
+    - {{ compiler("c") }}
+  host:
+    - python
+    - numpy >=1.5
+    - cython >=0.26
+    - setuptools
   run:
     - python
     - numpy >=1.5
-    - nose
     - molmod >=1.4.1
     - h5py
     - scipy
     - matplotlib
-  build:
-    - python
-    - numpy >=1.5
-    - nose
-    - molmod >=1.4.1
-    - h5py
-    - scipy
-    - matplotlib
-    - cython >=0.26
-    - setuptools
+
+test:
+  imports:
+    - yaff
 
 about:
   dev_url: https://github.com/molmod/yaff
