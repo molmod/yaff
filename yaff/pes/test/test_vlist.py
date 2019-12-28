@@ -403,6 +403,22 @@ def test_vlist_cross_water32():
             check_energy += 1.2*(bond0 - 1.7 - 0.01*i)*(bond1 - 1.9 - 0.01*k)
     assert abs(energy - check_energy) < 1e-8
 
+def test_vlist_poly4_water32():
+    system = get_system_water32()
+    part = ForcePartValence(system)
+    c0, c1, c2, c3, c4, r0 = 0.0, 0.0, 0.271, -0.32793, 0.23151, 0.9419
+    for i, j in system.bonds:
+        part.add_term(Poly4(c0, c1, c2, c3, c4, r0, Bond(i, j)))
+
+    energy = part.compute()
+    check_energy = 0.0
+    for i, j in system.bonds:
+        delta = system.pos[j] - system.pos[i]
+        system.cell.mic(delta)
+        bond = np.linalg.norm(delta)
+        check_energy += c0 + c1*(bond-r0) + c2*(bond-r0)**2 + c3*(bond-r0)**3 + c4*(bond-r0)**4
+
+    assert abs(energy - check_energy) < 1e-8
 
 def test_vlist_dihedral_cos_mil53():
     system = get_system_mil53()

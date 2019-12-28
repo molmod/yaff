@@ -38,6 +38,11 @@ double forward_polyfour(vlist_row_type* term, iclist_row_type* ictab) {
   return (*term).par0*q + (*term).par1*q*q + (*term).par2*q*q*q + (*term).par3*q*q*q*q;
 }
 
+double forward_poly4(vlist_row_type* term, iclist_row_type* ictab) {
+  double x = ictab[(*term).ic0].value - (*term).par5;
+  return (*term).par0 + (*term).par1*x + (*term).par2*x*x + (*term).par3*x*x*x + (*term).par4*x*x*x*x;
+}
+
 double forward_fues(vlist_row_type* term, iclist_row_type* ictab) {
   double x;
   x = (*term).par1/ictab[(*term).ic0].value;
@@ -130,12 +135,12 @@ double forward_morse(vlist_row_type* term, iclist_row_type* ictab) {
   return (*term).par0*(exp(-2.0*a)-2.0*exp(-a));
 }
 
-v_forward_type v_forward_fns[15] = {
+v_forward_type v_forward_fns[16] = {
   forward_harmonic, forward_polyfour, forward_fues, forward_cross,
   forward_cosine, forward_chebychev1, forward_chebychev2, forward_chebychev3,
   forward_chebychev4, forward_chebychev6, forward_polysix,
   forward_mm3quartic, forward_mm3bend, forward_bonddoublewell,
-  forward_morse,
+  forward_morse, forward_poly4
 };
 
 double vlist_forward(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
@@ -159,6 +164,11 @@ void back_harmonic(vlist_row_type* term, iclist_row_type* ictab) {
 void back_polyfour(vlist_row_type* term, iclist_row_type* ictab) {
   double q = ictab[(*term).ic0].value;
   ictab[(*term).ic0].grad += (*term).par0 + 2.0*(*term).par1*q + 3.0*(*term).par2*q*q + 4.0*(*term).par3*q*q*q;
+}
+
+void back_poly4(vlist_row_type* term, iclist_row_type* ictab) {
+  double x = ictab[(*term).ic0].value - (*term).par5;
+  ictab[(*term).ic0].grad += (*term).par1 + 2.0*(*term).par2*x + 3.0*(*term).par3*x*x + 4.0*(*term).par4*x*x*x;
 }
 
 void back_fues(vlist_row_type* term, iclist_row_type* ictab) {
@@ -240,11 +250,11 @@ void back_morse(vlist_row_type* term, iclist_row_type* ictab) {
   ictab[(*term).ic0].grad += -2.0*(*term).par1*(*term).par0*(exp(-2.0*a)-exp(-a));
 }
 
-v_back_type v_back_fns[15] = {
+v_back_type v_back_fns[16] = {
   back_harmonic, back_polyfour, back_fues, back_cross, back_cosine,
   back_chebychev1, back_chebychev2, back_chebychev3, back_chebychev4,
   back_chebychev6, back_polysix, back_mm3quartic,
-  back_mm3bend, back_bonddoublewell, back_morse
+  back_mm3bend, back_bonddoublewell, back_morse, back_poly4
 };
 
 void vlist_back(iclist_row_type* ictab, vlist_row_type* vtab, long nv) {
