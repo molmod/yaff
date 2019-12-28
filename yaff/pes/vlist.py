@@ -64,7 +64,7 @@ from yaff.pes.ext import vlist_dtype, vlist_forward, vlist_back
 
 
 __all__ = [
-    'ValenceList', 'ValenceTerm', 'Harmonic', 'PolyFour', 'Fues', 'Cross',
+    'ValenceList', 'ValenceTerm', 'Harmonic', 'PolyFour', 'Poly4', 'Fues', 'Cross',
     'Cosine', 'Chebychev1', 'Chebychev2', 'Chebychev3', 'Chebychev4',
     'Chebychev6', 'PolySix', 'MM3Quartic', 'MM3Bend', 'BondDoubleWell',
     'Morse',
@@ -232,6 +232,49 @@ class PolyFour(ValenceTerm):
             self.pars[1]/(log.energy.conversion/u**2),
             self.pars[2]/(log.energy.conversion/u**3),
             self.pars[3]/(log.energy.conversion/u**4),
+        )
+
+
+class Poly4(ValenceTerm):
+    '''Fourth-order polynomical term: c0 + c1*(q-q0) + c2*(q-q0)^2 + c3*(q-q0)^3 + c4*(q-q0)^4'''
+    kind = 15
+    def __init__(self, c0, c1, c2, c3, c4, rv, ic):
+        '''
+           **Arguments:**
+
+           c0
+                Zeroth order coefficient of the polynomial (in atomic units).
+
+           c1
+                First order coefficient of the polynomial (in atomic units).
+
+           c2
+                Second order coefficient of the polynomial (in atomic units).
+
+           c3
+                Third order coefficient of the polynomial (in atomic units).
+
+           c4
+                Fourth order coefficient of the polynomial (in atomic units).
+
+           rv
+                The rest value (in atomic units).
+
+           ic
+                An ``InternalCoordinate`` object.
+        '''
+        ValenceTerm.__init__(self, [c0, c1, c2, c3, c4, rv], [ic])
+        
+    def get_log(self):
+        u = self.ics[0].get_conversion()
+        return '%s(C0=%.5e,C1=%.5e,C2=%.5e,C3=%.5e,C4=%.5e,RV=%.5e)' % (
+            self.__class__.__name__,
+            self.pars[0]/(log.energy.conversion),
+            self.pars[1]/(log.energy.conversion/u),
+            self.pars[2]/(log.energy.conversion/u**2),
+            self.pars[3]/(log.energy.conversion/u**3),
+            self.pars[4]/(log.energy.conversion/u**4),
+            self.pars[5]/u,
         )
 
 
