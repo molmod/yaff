@@ -1732,16 +1732,18 @@ class LJCrossGenerator(NonbondedGenerator):
 
     def apply(self, par_table, scale_table, system, ff_args):
         # Prepare the atomic parameters
-        sigmas = np.zeros([system.natom,system.natom])
-        epsilons = np.zeros([system.natom,system.natom])
+        nffatypes = system.ffatype_ids.max() + 1
+        sigmas = np.zeros([nffatypes, nffatypes])
+        epsilons = np.zeros([nffatypes, nffatypes])
         for i in range(system.natom):
             for j in range(system.natom):
-                key = (system.get_ffatype(i),system.get_ffatype(j))
+                ffa_i, ffa_j = system.ffatype_ids[i], system.ffatype_ids[j]
+                key = (system.get_ffatype(i), system.get_ffatype(j))
                 par_list = par_table.get(key, [])
                 if len(par_list) > 2:
                     raise TypeError('Superposition should not be allowed for non-covalent terms.')
                 elif len(par_list) == 1:
-                    sigmas[i,j], epsilons[i,j] = par_list[0]
+                    sigmas[ffa_i,ffa_j], epsilons[ffa_i,ffa_j] = par_list[0]
                 elif len(par_list) == 0:
                     if log.do_high:
                         log('No LJCross parameters found for ffatypes %s,%s. Parameters set to zero.' % (system.ffatypes[i0], system.ffatypes[i1]))
