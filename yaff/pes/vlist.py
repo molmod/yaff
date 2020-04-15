@@ -264,7 +264,7 @@ class Poly4(ValenceTerm):
                 An ``InternalCoordinate`` object.
         '''
         ValenceTerm.__init__(self, [c0, c1, c2, c3, c4, rv], [ic])
-        
+
     def get_log(self):
         u = self.ics[0].get_conversion()
         return '%s(C0=%.5e,C1=%.5e,C2=%.5e,C3=%.5e,C4=%.5e,RV=%.5e)' % (
