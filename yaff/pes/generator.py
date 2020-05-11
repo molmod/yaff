@@ -49,7 +49,7 @@ from yaff.pes.iclist import Bond, BendAngle, BendCos, \
     OopMeanCos, OopDist, SqOopDist, DihedCos2, DihedCos3, DihedCos4, DihedCos6
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
-from yaff.pes.vlist import Harmonic, PolyFour, Fues, Cross, Cosine, \
+from yaff.pes.vlist import Harmonic, PolyFour, Poly4, Fues, Cross, Cosine, \
     Chebychev1, Chebychev2, Chebychev3, Chebychev4, Chebychev6, PolySix, \
     MM3Quartic, MM3Bend, BondDoubleWell, Morse
 
@@ -57,7 +57,7 @@ from yaff.pes.vlist import Harmonic, PolyFour, Fues, Cross, Cosine, \
 __all__ = [
     'FFArgs', 'Generator',
 
-    'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator', 'BondDoubleWellGenerator',
+    'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator', 'BondDoubleWellGenerator', 'Poly4Generator',
     'BondDoubleWell2Generator', 'BondFuesGenerator', 'BondMorseGenerator', 'BondPolySixGenerator', 'MM3QuarticGenerator',
     'BendGenerator', 'BendAngleHarmGenerator', 'BendCosHarmGenerator', 'BendCosGenerator', 'MM3BendGenerator',
     'TorsionGenerator', 'TorsionCosHarmGenerator', 'TorsionCos2HarmGenerator', 'TorsionPolySixCosGenerator',
@@ -606,6 +606,19 @@ class BondDoubleWell2Generator(ValenceGenerator):
             par_table[key] = [(pars,)]
         return par_table
 
+class Poly4Generator(ValenceGenerator):
+    nffatype = 2
+    prefix = 'POLY4'
+    ICClass = Bond
+    VClass = Poly4
+    par_info = [('C0', float), ('C1', float), ('C2', float), ('C3', float), ('C4', float), ('R0', float)]
+
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
+
+    def iter_indexes(self, system):
+        return system.iter_bonds()
 
 class BondPolySixGenerator(ValenceGenerator):
     nffatype = 2
