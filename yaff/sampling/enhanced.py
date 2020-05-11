@@ -47,7 +47,7 @@ class MTDHook(Hook):
     Metadynamics simulations
     """
     def __init__(self, ff, cv, sigma, K, f=None, start=0, step=1,
-                 restart_file=None, tempering=0, periodicities=None):
+                 restart_file=None, tempering=0, periodicities=None, comlist=None):
         """
            **Arguments:**
 
@@ -89,13 +89,18 @@ class MTDHook(Hook):
                 NumPy array specifying the periodicity of each
                 collective variable. Specifying None means the CV is not
                 periodic.
+
+           comlist
+                An optional layer to derive centers of mass from the atomic positions.
+                These centers of mass are used as input for the first layer, the relative
+                vectors.
         """
         self.hills = GaussianHills(cv, sigma, periodicities=periodicities)
         self.K = K
         self.f = f
         self.tempering = tempering
         # Add the bias part to the force field
-        part = ForcePartBias(ff.system)
+        part = ForcePartBias(ff.system, comlist=comlist)
         part.add_term(self.hills)
         ff.add_part(part)
         # Initialize hills from restart files
@@ -104,7 +109,10 @@ class MTDHook(Hook):
                 raise ValueError("Could not read hills group from %s"%(restart_file))
             if not self.tempering==restart_file['hills'].attrs['tempering']:
                 raise ValueError("Inconsistent tempering between runs")
-            if not np.all(self.hills.periodicities==restart_file['hills/periodicities']):
+            if 'hills/periodicities' in restart_file:
+                if not np.all(self.hills.periodicities==restart_file['hills/periodicities']):
+                    raise ValueError("Inconsistent periodicities between runs")
+            elif self.hills.periodicities is not None:
                 raise ValueError("Inconsistent periodicities between runs")
             q0 = restart_file['hills/q0'][:]
             K = restart_file['hills/K'][:]
