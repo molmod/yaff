@@ -35,7 +35,7 @@ import pkg_resources
 
 from yaff import *
 from yaff.analysis.test.common import run_nve_water32
-from yaff.sampling.test.common import get_ff_water32
+from yaff.sampling.test.common import get_ff_water, get_ff_water32
 
 
 def test_rdf1_offline():
@@ -45,6 +45,7 @@ def test_rdf1_offline():
         assert 'trajectory/pos_rdf' in f
         assert 'trajectory/pos_rdf/d' in f
         assert 'trajectory/pos_rdf/rdf' in f
+        assert 'trajectory/pos_rdf/CN' in f
         fn_png = '%s/rdf.png' % dn_tmp
         rdf.plot(fn_png)
         assert os.path.isfile(fn_png)
@@ -76,6 +77,7 @@ def test_rdf2_offline():
         assert 'trajectory/pos_rdf' in f
         assert 'trajectory/pos_rdf/d' in f
         assert 'trajectory/pos_rdf/rdf' in f
+        assert 'trajectory/pos_rdf/CN' in f
         fn_png = '%s/rdf.png' % dn_tmp
         rdf.plot(fn_png)
         assert os.path.isfile(fn_png)
@@ -110,6 +112,21 @@ def test_rdf2_online_blind():
     nve.run(5)
     assert nve.counter == 5
     assert rdf.nsample == 6
+
+
+def test_CN_online_blind():
+    # Setup a test FF and run simulation without any HDF5 file
+    ff = get_ff_water()
+    ff.update_rvecs(np.diag([20., 20., 20.]))
+    select0 = ff.system.get_indexes('O')
+    select1 = ff.system.get_indexes('H')
+    rdf = RDF(4.5*angstrom, 0.1*angstrom, select0=select0, select1=select1)
+    nve = VerletIntegrator(ff, 1.0*femtosecond, hooks=rdf)
+    nve.run(5)
+    assert nve.counter == 5
+    assert rdf.nsample == 6
+    assert (rdf.CN[:7] == 0).all()
+    assert (np.round(rdf.CN[-7:], decimals=5) == 2).all()
 
 
 def test_rdf2_offline_pairs_sr():
@@ -180,5 +197,6 @@ def test_rdf_from_file_variable_cell():
         assert 'trajectory/pos_rdf' in f
         assert 'trajectory/pos_rdf/d' in f
         assert 'trajectory/pos_rdf/rdf' in f
+        assert 'trajectory/pos_rdf/CN' in f
         # The first part of the RDF should be zero.
         assert (rdf.rdf[:6] == 0.0).all()

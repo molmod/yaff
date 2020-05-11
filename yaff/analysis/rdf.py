@@ -139,6 +139,7 @@ class RDF(AnalysisHook):
         self.bins = np.arange(self.nbin+1)*self.rspacing
         self.d = self.bins[:-1] + 0.5*self.rspacing
         self.rdf_sum = np.zeros(self.nbin, float)
+        self.CN_sum = np.zeros(self.nbin, float)
         if self.pairs_sr is not None:
             self.rdf_sum_sr = np.zeros(self.nbin, float)
         self.nsample = 0
@@ -229,6 +230,7 @@ class RDF(AnalysisHook):
         AnalysisHook.init_first(self)
         if self.outg is not None:
             self.outg.create_dataset('rdf', (self.nbin,), float)
+            self.outg.create_dataset('CN', (self.nbin,), float)
             self.outg['d'] = self.d
             if self.pairs_sr is not None:
                 self.outg.create_dataset('rdf_sr', (self.nbin,), float)
@@ -256,8 +258,9 @@ class RDF(AnalysisHook):
     def compute_iteration(self):
         self.cell.compute_distances(self.work, self.pos0, self.pos1, nimage=self.nimage)
         counts = np.histogram(self.work, bins=self.bins)[0]
-        normalization = (self.npair/(self.cell.volume*(1+2*self.nimage)**3)*(4*np.pi*self.rspacing))*self.d**2
+        normalization = self.npair/(self.cell.volume*(1+2*self.nimage)**3)*(4*np.pi*self.rspacing)*self.d**2
         self.rdf_sum += counts/normalization
+        self.CN_sum += counts/(self.natom0*4*np.pi*self.rspacing*self.d**2)
         if self.pairs_sr is not None:
             self.cell.compute_distances(self.work[:len(self.pairs_sr)], self.pos0, self.pos1, pairs=self.pairs_sr, do_include=True)
             counts_sr = np.histogram(self.work[:len(self.pairs_sr)], bins=self.bins)[0]
@@ -265,13 +268,18 @@ class RDF(AnalysisHook):
         self.nsample += 1
 
     def compute_derived(self):
-        # derive the RDF
+        # derive the RDF and the CN
+        from scipy.integrate import cumtrapz
         self.rdf = self.rdf_sum/self.nsample
+        if self.select1 is None:
+            self.CN_sum *= (1 + 2*self.nimage)**3*self.natom0**2/self.npair
+        self.CN = cumtrapz(4*np.pi*self.d**2*self.CN_sum/self.nsample, self.d, initial=0.)
         if self.pairs_sr is not None:
             self.rdf_sr = self.rdf_sum_sr/self.nsample
         # store everything in the h5py file
         if self.outg is not None:
             self.outg['rdf'][:] = self.rdf
+            self.outg['CN'][:] = self.CN
             if self.pairs_sr is not None:
                 self.outg['rdf_sr'][:] = self.rdf_sr
 
