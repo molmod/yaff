@@ -1,0 +1,8 @@
+POLY4:UNIT  C0 kcalmol
+POLY4:UNIT  C1 kcalmol/A
+POLY4:UNIT  C2 kcalmol/A**2
+POLY4:UNIT  C3 kcalmol/A**3
+POLY4:UNIT  C4 kcalmol/A**4
+POLY4:UNIT  R0 A
+
+POLY4:PARS         O         H     0.001  0.002 607.19353721    -1388.65161960  1852.5769815   0.9419

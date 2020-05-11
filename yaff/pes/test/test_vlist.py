@@ -406,7 +406,7 @@ def test_vlist_cross_water32():
 def test_vlist_poly4_water32():
     system = get_system_water32()
     part = ForcePartValence(system)
-    c0, c1, c2, c3, c4, r0 = 0.0, 0.0, 0.271, -0.32793, 0.23151, 0.9419
+    c0, c1, c2, c3, c4, r0 = 0.001, 0.002, 0.271, -0.32793, 0.23151, 1.78
     for i, j in system.bonds:
         part.add_term(Poly4(c0, c1, c2, c3, c4, r0, Bond(i, j)))
 
@@ -739,6 +739,15 @@ def test_gpos_vtens_polyfour_water32():
     part = ForcePartValence(system)
     for i, j in system.bonds:
         part.add_term(PolyFour([-0.5, 0.3, -0.16, 0.09], Bond(i, j)))
+    check_gpos_part(system, part)
+    check_vtens_part(system, part)
+
+
+def test_gpos_vtens_poly4_water32():
+    system = get_system_water32()
+    part = ForcePartValence(system)
+    for i, j in system.bonds:
+        part.add_term(Poly4(0.001, 0.002, 0.271, -0.32793, 0.23151, 1.78, Bond(i, j)))
     check_gpos_part(system, part)
     check_vtens_part(system, part)
 
