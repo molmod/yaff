@@ -588,6 +588,46 @@ def test_generator_water32_ljcross():
     assert (sig_cross > 0).all()
 
 
+def test_generator_glycine_ljcross():
+    system = get_system_glycine()
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_ljcross.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert len(ff.parts) == 1
+    part_pair_dampdisp = ff.part_pair_ljcross
+    # check parameters
+    eps_cross = part_pair_dampdisp.pair_pot.eps_cross
+    assert abs(eps_cross[0,0] - 0.1800*kcalmol) < 1e-10
+    assert abs(eps_cross[0,1] - 0.1990*kcalmol) < 1e-10
+    assert abs(eps_cross[0,2] - 0.1470*kcalmol) < 1e-10
+    assert abs(eps_cross[0,3] - 0.0949*kcalmol) < 1e-10
+    assert abs(eps_cross[1,1] - 0.2200*kcalmol) < 1e-10
+    assert abs(eps_cross[1,2] - 0.1625*kcalmol) < 1e-10
+    assert abs(eps_cross[1,3] - 0.1049*kcalmol) < 1e-10
+    assert abs(eps_cross[2,2] - 0.1200*kcalmol) < 1e-10
+    assert abs(eps_cross[2,3] - 0.0775*kcalmol) < 1e-10
+    assert abs(eps_cross[3,3] - 0.0500*kcalmol) < 1e-10
+    assert (eps_cross == eps_cross.T).all()
+    assert (eps_cross > 0).all()
+    sig_cross = part_pair_dampdisp.pair_pot.sig_cross
+    assert abs(sig_cross[0,0] - 1.70*angstrom) < 1e-10
+    assert abs(sig_cross[0,1] - 1.75*angstrom) < 1e-10
+    assert abs(sig_cross[0,2] - 1.65*angstrom) < 1e-10
+    assert abs(sig_cross[0,3] - 1.10*angstrom) < 1e-10
+    assert abs(sig_cross[1,1] - 1.80*angstrom) < 1e-10
+    assert abs(sig_cross[1,2] - 1.70*angstrom) < 1e-10
+    assert abs(sig_cross[1,3] - 1.15*angstrom) < 1e-10
+    assert abs(sig_cross[2,2] - 1.60*angstrom) < 1e-10
+    assert abs(sig_cross[2,3] - 1.05*angstrom) < 1e-10
+    assert abs(sig_cross[3,3] - 0.50*angstrom) < 1e-10
+    assert (sig_cross == sig_cross.T).all()
+    assert (sig_cross > 0).all()
+
+    energy_ljcross = ff.compute()/kcalmol
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_lj.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert abs(ff.compute()/kcalmol - energy_ljcross) < 1e-4
+
+
 def test_generator_glycine_dampdisp1():
     system = get_system_glycine()
     fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_dampdisp1.txt')

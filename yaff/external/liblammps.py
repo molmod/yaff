@@ -229,7 +229,7 @@ class ForcePartLammps(ForcePart):
         # Perform the rotation
         pos[:] = np.einsum('ij,kj', pos, self.rot)
         if self.move_central_cell:
-            for i in xrange(self.system.natom):
+            for i in range(self.system.natom):
                 self.cell.mic(pos[i])
         self.lammps.scatter_atoms("x",1,3,ctypes.c_void_p(pos.ctypes.data))
 
