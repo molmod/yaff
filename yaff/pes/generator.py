@@ -49,7 +49,7 @@ from yaff.pes.iclist import Bond, BendAngle, BendCos, \
     OopMeanCos, OopDist, SqOopDist, DihedCos2, DihedCos3, DihedCos4, DihedCos6
 from yaff.pes.nlist import NeighborList
 from yaff.pes.scaling import Scalings
-from yaff.pes.vlist import Harmonic, PolyFour, Fues, Cross, Cosine, \
+from yaff.pes.vlist import Harmonic, PolyFour, Poly4, Fues, Cross, Cosine, \
     Chebychev1, Chebychev2, Chebychev3, Chebychev4, Chebychev6, PolySix, \
     MM3Quartic, MM3Bend, BondDoubleWell, Morse
 
@@ -57,7 +57,7 @@ from yaff.pes.vlist import Harmonic, PolyFour, Fues, Cross, Cosine, \
 __all__ = [
     'FFArgs', 'Generator',
 
-    'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator', 'BondDoubleWellGenerator',
+    'ValenceGenerator', 'BondGenerator', 'BondHarmGenerator', 'BondDoubleWellGenerator', 'Poly4Generator',
     'BondDoubleWell2Generator', 'BondFuesGenerator', 'BondMorseGenerator', 'BondPolySixGenerator', 'MM3QuarticGenerator',
     'BendGenerator', 'BendAngleHarmGenerator', 'BendCosHarmGenerator', 'BendCosGenerator', 'MM3BendGenerator',
     'TorsionGenerator', 'TorsionCosHarmGenerator', 'TorsionCos2HarmGenerator', 'TorsionPolySixCosGenerator',
@@ -606,6 +606,19 @@ class BondDoubleWell2Generator(ValenceGenerator):
             par_table[key] = [(pars,)]
         return par_table
 
+class Poly4Generator(ValenceGenerator):
+    nffatype = 2
+    prefix = 'POLY4'
+    ICClass = Bond
+    VClass = Poly4
+    par_info = [('C0', float), ('C1', float), ('C2', float), ('C3', float), ('C4', float), ('R0', float)]
+
+    def iter_equiv_keys_and_pars(self, key, pars):
+        yield key, pars
+        yield key[::-1], pars
+
+    def iter_indexes(self, system):
+        return system.iter_bonds()
 
 class BondPolySixGenerator(ValenceGenerator):
     nffatype = 2
@@ -1719,16 +1732,18 @@ class LJCrossGenerator(NonbondedGenerator):
 
     def apply(self, par_table, scale_table, system, ff_args):
         # Prepare the atomic parameters
-        sigmas = np.zeros([system.natom,system.natom])
-        epsilons = np.zeros([system.natom,system.natom])
+        nffatypes = system.ffatype_ids.max() + 1
+        sigmas = np.zeros([nffatypes, nffatypes])
+        epsilons = np.zeros([nffatypes, nffatypes])
         for i in range(system.natom):
             for j in range(system.natom):
-                key = (system.get_ffatype(i),system.get_ffatype(j))
+                ffa_i, ffa_j = system.ffatype_ids[i], system.ffatype_ids[j]
+                key = (system.get_ffatype(i), system.get_ffatype(j))
                 par_list = par_table.get(key, [])
                 if len(par_list) > 2:
                     raise TypeError('Superposition should not be allowed for non-covalent terms.')
                 elif len(par_list) == 1:
-                    sigmas[i,j], epsilons[i,j] = par_list[0]
+                    sigmas[ffa_i,ffa_j], epsilons[ffa_i,ffa_j] = par_list[0]
                 elif len(par_list) == 0:
                     if log.do_high:
                         log('No LJCross parameters found for ffatypes %s,%s. Parameters set to zero.' % (system.ffatypes[i0], system.ffatypes[i1]))

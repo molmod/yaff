@@ -74,6 +74,30 @@ def test_generator_water32_bondfues():
     assert part_valence.vlist.nv == 64
 
 
+def test_generator_water32_poly4():
+    system = get_system_water32()
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_poly4.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert len(ff.parts) == 1
+    assert isinstance(ff.parts[0], ForcePartValence)
+    part_valence = ff.parts[0]
+    assert part_valence.dlist.ndelta == 64
+    for i, j in system.bonds:
+        row = part_valence.dlist.lookup.get((i, j))
+        assert row is not None
+    assert (part_valence.iclist.ictab['kind'] == 0).all()
+    assert part_valence.iclist.nic == 64
+    assert (part_valence.vlist.vtab['kind'] == 15).all()
+    print(part_valence.iclist.ictab['kind'], part_valence.vlist.vtab['kind'])
+    assert abs(part_valence.vlist.vtab['par0'] - 0.0010000000e+00*kcalmol).max() < 1e-10
+    assert abs(part_valence.vlist.vtab['par1'] - 0.0020000000e+00*kcalmol/angstrom).max() < 1e-10
+    assert abs(part_valence.vlist.vtab['par2'] - 6.0719353721e+02*kcalmol/angstrom**2).max() < 1e-10
+    assert abs(part_valence.vlist.vtab['par3'] + 1.3886516196e+03*kcalmol/angstrom**3).max() < 1e-10
+    assert abs(part_valence.vlist.vtab['par4'] - 1.8525769815e+03*kcalmol/angstrom**4).max() < 1e-10
+    assert abs(part_valence.vlist.vtab['par5'] - 0.9419000000e+00*angstrom).max() < 1e-10
+    assert part_valence.vlist.nv == 64
+
+
 def test_generator_water32_bendaharm():
     system = get_system_water32()
     fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_water_bendaharm.txt')
@@ -586,6 +610,46 @@ def test_generator_water32_ljcross():
     assert abs(sig_cross[1,1] - 2.72*angstrom) < 1e-10
     assert (sig_cross == sig_cross.T).all()
     assert (sig_cross > 0).all()
+
+
+def test_generator_glycine_ljcross():
+    system = get_system_glycine()
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_ljcross.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert len(ff.parts) == 1
+    part_pair_dampdisp = ff.part_pair_ljcross
+    # check parameters
+    eps_cross = part_pair_dampdisp.pair_pot.eps_cross
+    assert abs(eps_cross[0,0] - 0.1800*kcalmol) < 1e-10
+    assert abs(eps_cross[0,1] - 0.1990*kcalmol) < 1e-10
+    assert abs(eps_cross[0,2] - 0.1470*kcalmol) < 1e-10
+    assert abs(eps_cross[0,3] - 0.0949*kcalmol) < 1e-10
+    assert abs(eps_cross[1,1] - 0.2200*kcalmol) < 1e-10
+    assert abs(eps_cross[1,2] - 0.1625*kcalmol) < 1e-10
+    assert abs(eps_cross[1,3] - 0.1049*kcalmol) < 1e-10
+    assert abs(eps_cross[2,2] - 0.1200*kcalmol) < 1e-10
+    assert abs(eps_cross[2,3] - 0.0775*kcalmol) < 1e-10
+    assert abs(eps_cross[3,3] - 0.0500*kcalmol) < 1e-10
+    assert (eps_cross == eps_cross.T).all()
+    assert (eps_cross > 0).all()
+    sig_cross = part_pair_dampdisp.pair_pot.sig_cross
+    assert abs(sig_cross[0,0] - 1.70*angstrom) < 1e-10
+    assert abs(sig_cross[0,1] - 1.75*angstrom) < 1e-10
+    assert abs(sig_cross[0,2] - 1.65*angstrom) < 1e-10
+    assert abs(sig_cross[0,3] - 1.10*angstrom) < 1e-10
+    assert abs(sig_cross[1,1] - 1.80*angstrom) < 1e-10
+    assert abs(sig_cross[1,2] - 1.70*angstrom) < 1e-10
+    assert abs(sig_cross[1,3] - 1.15*angstrom) < 1e-10
+    assert abs(sig_cross[2,2] - 1.60*angstrom) < 1e-10
+    assert abs(sig_cross[2,3] - 1.05*angstrom) < 1e-10
+    assert abs(sig_cross[3,3] - 0.50*angstrom) < 1e-10
+    assert (sig_cross == sig_cross.T).all()
+    assert (sig_cross > 0).all()
+
+    energy_ljcross = ff.compute()/kcalmol
+    fn_pars = pkg_resources.resource_filename(__name__, '../../data/test/parameters_fake_lj.txt')
+    ff = ForceField.generate(system, fn_pars)
+    assert abs(ff.compute()/kcalmol - energy_ljcross) < 1e-4
 
 
 def test_generator_glycine_dampdisp1():
