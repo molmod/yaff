@@ -165,14 +165,14 @@ class ForcePartPlumed(ForcePart, Hook):
                          "conservation. The conserved quantity reported by "
                          "YAFF is irrelevant in this case.")
             self.setup_plumed(timestep=iterative.timestep,
-                restart=iterative.counter>0)
+                restart=int(iterative.counter>0))
             self.hooked = True
         # PLUMED provides a setEnergy command, which should pass the
         # current potential energy. It seems that this is never used, so we
         # don't pass anything for the moment.
 #        current_energy = sum([part.energy for part in iterative.ff.parts[:-1] if not isinstance(part, ForcePartPlumed)])
 #        self.plumed.cmd("setEnergy", current_energy)
-        self.plumedstep = iterative.counter
+        self.plumedstep = int(iterative.counter)
         self._internal_compute(None, None)
         self.plumed.cmd("update")
 
