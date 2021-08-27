@@ -69,8 +69,8 @@ class ForcePartPlumed(ForcePart, Hook):
                 The timestep (in au) of the integrator
 
             restart
-                Set to a value different from 0 to let PLUMED know that this
-                is a restarted run
+                Set to an integer value different from 0 to let PLUMED know that
+                this is a restarted run
 
             fn
                 A filename from which the PLUMED instructions are read, default
@@ -124,8 +124,8 @@ class ForcePartPlumed(ForcePart, Hook):
                 The timestep (in au) of the integrator
 
             restart
-                Set to a value different from 0 to let PLUMED know that this
-                is a restarted run
+                Set to an integer value different from 0 to let PLUMED know that
+                this is a restarted run
         '''
         # Try to load the plumed Python wrapper, quit if not possible
         try:
@@ -165,14 +165,15 @@ class ForcePartPlumed(ForcePart, Hook):
                          "conservation. The conserved quantity reported by "
                          "YAFF is irrelevant in this case.")
             self.setup_plumed(timestep=iterative.timestep,
-                restart=iterative.counter>0)
+                restart=int(iterative.counter>0))
             self.hooked = True
         # PLUMED provides a setEnergy command, which should pass the
         # current potential energy. It seems that this is never used, so we
         # don't pass anything for the moment.
 #        current_energy = sum([part.energy for part in iterative.ff.parts[:-1] if not isinstance(part, ForcePartPlumed)])
 #        self.plumed.cmd("setEnergy", current_energy)
-        self.plumedstep = iterative.counter
+        # Ensure the plumedstep is an integer and not a numpy data type
+        self.plumedstep = int(iterative.counter)
         self._internal_compute(None, None)
         self.plumed.cmd("update")
 
