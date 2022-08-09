@@ -30,7 +30,7 @@ import h5py as h5
 import numpy as np
 import scipy.linalg as spla
 import matplotlib.pyplot as pt
-from scipy import random
+from numpy import random
 
 from molmod.units import *
 from molmod.constants import boltzmann
