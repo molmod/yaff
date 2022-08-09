@@ -1131,7 +1131,7 @@ class System(object):
             pos = merge_arrays(self.pos, system.pos),
             scopes=merge_scopes(self, system),
             ffatypes=merge_ffatypes(self, system),
-            bonds=np.array(merge_arrays(self.bonds, system.bonds+self.natom), dtype=int),
+            bonds=np.array(merge_arrays(np.array(self.bonds), np.array(system.bonds)+self.natom), dtype=int),
             rvecs=self.cell.rvecs,
             charges=merge_arrays(self.charges, system.charges),
             radii=merge_arrays(self.radii, system.radii),
