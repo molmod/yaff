@@ -307,6 +307,10 @@ def swap_noncovalent_lammps(ff, **kwargs):
                 corrections. Default:[ForcePartTailCorrection,ForcePartGrid,
                 ForcePartPressure,ForcePartValence]
 
+            rmin
+                minimal pair distance considered in the lammps table generation
+                default is 0.50*angstrom
+
            Any optional argument in the constructor of the
                 :class:`yaff.external.liblammps.ForcePartLammps` class,
                 can be passed here as well.
@@ -315,6 +319,7 @@ def swap_noncovalent_lammps(ff, **kwargs):
     # ForcePartLammps
     overwrite_table = kwargs.pop("overwrite_table", False)
     nrows = kwargs.pop("nrows", 5000)
+    rmin = kwargs.pop("rmin", 0.5*angstrom)
     keep_forceparts = kwargs.pop("keep_forceparts", [ForcePartTailCorrection,
         ForcePartGrid, ForcePartPressure, ForcePartValence])
     fn_system = kwargs.pop("fn_system", "system.dat")
@@ -353,7 +358,7 @@ def swap_noncovalent_lammps(ff, **kwargs):
         # Make sure that at most one process actually writes the table
         if comm is None or comm.Get_rank()==0:
             ff_tabulate = ForceField(ff.system, parts_tabulated, nlist=ff.nlist)
-            write_lammps_table(ff_tabulate,fn=fn_table, nrows=nrows)
+            write_lammps_table(ff_tabulate,fn=fn_table, nrows=nrows, rmin=rmin)
         # Let all processes wait untill the table is completely written
         if comm is not None: comm.Barrier()
     # Write system data
