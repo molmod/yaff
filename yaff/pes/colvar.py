@@ -234,8 +234,8 @@ class CVCOMProjection(CollectiveVariable):
         # Define weights w_i such that difference of centers of mass can be
         # computed as sum_i w_i r_i
         self.weights = np.zeros((system.natom))
-        self.weights[groups[0]] = -self.system.masses[groups[0]]/np.sum(self.system.masses[groups[0]])
-        self.weights[groups[1]] = self.system.masses[groups[1]]/np.sum(self.system.masses[groups[1]])
+        self.weights[groups[0]] += -self.system.masses[groups[0]]/np.sum(self.system.masses[groups[0]])
+        self.weights[groups[1]] += self.system.masses[groups[1]]/np.sum(self.system.masses[groups[1]])
 
     def get_conversion(self):
         return log.length.conversion
